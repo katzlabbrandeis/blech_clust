@@ -17,37 +17,80 @@ from utils.blech_utils import entry_checker, imp_metadata
 # Get blech_clust path
 blech_clust_path = ('/').join(os.path.abspath(__file__).split('/')[0:-1])
 
+#First ask user if there are multiple files that need to be stitched together
+m_loop = 1
+while m_loop == 1:
+	m_val = input("\nINPUT REQUESTED: Are there multiple recordings that need to be stitched together (y/n)? ")
+	if m_val=='y' or m_val=='n':
+		m_loop = 0
+	else:
+		print("Error, incorrect entry. Please try again.")
+if m_val == 'y':
+	m_loop = 1
+	while m_loop == 1:
+		m_count_input = input("\nINPUT REQUESTED: How many files need to be combined? ")
+		try:
+			m_count = int(m_count_input)
+			m_loop = 0
+		except:
+			print("Error, non-integer entry. Please try again.")
+else:
+	m_count = 1
+
 ############################################################
 
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
-print(f'Processing : {dir_name}')
-os.chdir(dir_name)
 
-info_dict = metadata_handler.info_dict
-file_list = metadata_handler.file_list
+if m_count > 1:
+	print("\nWARNING: Combining multiple files requires a new storage directory.")
+	print("Please create a storage folder, and select it in the next prompt.")
+	save_dir_name = easygui.diropenbox(msg = 'Please select data directory') + '/'
 
+#Store lists of information for each file to be concatenated
+dir_name_list = []	
+info_dict_list = []
+file_list_list = []
+file_type_list = []
+for m_i in range(m_count):
+	if m_count > 1:
+		print('\nBeginning import of data from segment #' + str(m_i+1))
+		metadata_handler = imp_metadata([])
+		dir_name = metadata_handler.dir_name
+	else:
+		metadata_handler = imp_metadata(sys.argv)
+		dir_name = metadata_handler.dir_name
+		save_dir_name = dir_name + '/'
+	
+	dir_name_list.append(dir_name)
+	
+	print(f'Processing : {dir_name}')
+	os.chdir(dir_name)
+	
+	info_dict = metadata_handler.info_dict
+	info_dict_list.append(info_dict)
+	file_list = metadata_handler.file_list
+	file_list_list.append(file_list)
 
-# Get the type of data files (.rhd or .dat)
-#HANNAH CHANGE: ADDED TEST OF ONE FILE PER SIGNAL TYPE
-try:
-	file_list.index('auxiliary.dat')
-	file_type = ['one file per signal type']
-except:
-	file_type = ['one file per channel']
+	# Get the type of data files (.rhd or .dat)
+	try:
+		file_list.index('auxiliary.dat')
+		file_type = ['one file per signal type']
+	except:
+		file_type = ['one file per channel']
+	file_type_list.append(file_type)
 
 # Create hdf5 file, and make groups for raw data, raw emgs, 
 # digital outputs and digital inputs, and close
 
-# Grab directory name to create the name of the hdf5 file
+# Use save directory name to create the name of the hdf5 file
 # If HDF5 present, use that, otherwise, create new one
+os.chdir(save_dir_name)
 h5_search = glob.glob('*.h5')
 if len(h5_search):
     hdf5_name = h5_search[0] 
     print(f'HDF5 file found...Using file {hdf5_name}')
     hf5 = tables.open_file(hdf5_name, 'r+')
 else:
-    hdf5_name = str(os.path.dirname(dir_name)).split('/')[-1]+'.h5'
+    hdf5_name = str(os.path.dirname(save_dir_name)).split('/')[-1]+'.h5'
     print(f'No HDF5 found...Creating file {hdf5_name}')
     hf5 = tables.open_file(hdf5_name, 'w', title = hdf5_name[-1])
 
@@ -94,77 +137,82 @@ else:
     quit()
 
 print('Created dirs in data folder')
-
-#Get lists of amplifier and digital input files
-if file_type == ['one file per signal type']:
-	electrodes_list = ['amplifier.dat']
-	dig_in_list = ['digitalin.dat']
-elif file_type == ['one file per channel']:
-	electrodes_list = [name for name in file_list if name.startswith('amp-')]
-	dig_in_list = [name for name in file_list if name.startswith('board-DI')]
-
-#Use info file for port list calculation
-info_file = np.fromfile(dir_name + '/info.rhd', dtype = np.dtype('float32'))
-sampling_rate = int(info_file[2])
-
-# Read the time.dat file for use in separating out the one file per signal type data
-num_recorded_samples = len(np.fromfile(dir_name + '/' + 'time.dat', dtype = np.dtype('float32')))
-total_recording_time = num_recorded_samples/sampling_rate #In seconds
-
-check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-           f'\nDigital input files: {dig_in_list} \n ---------- \n \n'
-print(check_str)
-
-ports = info_dict['ports']
-
-if file_type == ['one file per channel']:
-    print("\tOne file per CHANNEL Detected")
-
-    # Read dig-in data
-    # Pull out the digital input channels used, 
-    # and convert them to integers
-    dig_in = [x.split('-')[-1].split('.')[0] for x in dig_in_list]
-    dig_in = sorted([int(x) for x in dig_in])
-
-elif file_type == ['one file per signal type']:
-
-    print("\tOne file per SIGNAL Detected")
-    dig_in = np.arange(info_dict['dig_ins']['count'])
-
-check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
-            f'\n digital inputs on intan board: {dig_in}'
-
-print(check_str)
-
-all_car_group_vals = []
-for region_name, region_elecs in info_dict['electrode_layout'].items():
-    if not region_name == 'emg':
-        for group in region_elecs:
-            if len(group) > 0:
-                all_car_group_vals.append(group)
-all_electrodes = [electrode for region in all_car_group_vals \
-                        for electrode in region]
-
-emg_info = info_dict['emg']
-emg_port = emg_info['port']
-emg_channels = sorted(emg_info['electrodes'])
-
-
-layout_path = glob.glob(os.path.join(dir_name,"*layout.csv"))[0]
-electrode_layout_frame = pd.read_csv(layout_path) 
-
-
-# Read data files, and append to electrode arrays
-if file_type == ['one file per channel']:
-	#read_file.read_files_abu(hdf5_name, dig_in, electrode_layout_frame) 
-	read_file.read_digins(hdf5_name, dig_in, dig_in_list)
-	read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
-	if len(emg_channels) > 0:
-	    read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
-elif file_type == ['one file per signal type']:
-	read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
-	#This next line takes care of both electrodes and emgs
-	read_file.read_electrode_emg_channels_single_file(hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+for m_i in range(m_count):
+	print("Storing dataset # " + str(m_i + 1) + " to HDF5.")
+	dir_name = dir_name_list[m_i]
+	info_dict = info_dict_list[m_i]
+	file_list = file_list_list[m_i]
+	file_type = file_type_list[m_i]
+	#Get lists of amplifier and digital input files
+	if file_type == ['one file per signal type']:
+		electrodes_list = ['amplifier.dat']
+		dig_in_list = ['digitalin.dat']
+	elif file_type == ['one file per channel']:
+		electrodes_list = [name for name in file_list if name.startswith('amp-')]
+		dig_in_list = [name for name in file_list if name.startswith('board-DI')]
+	
+	#Use info file for port list calculation
+	info_file = np.fromfile(dir_name + '/info.rhd', dtype = np.dtype('float32'))
+	sampling_rate = int(info_file[2])
+	
+	# Read the time.dat file for use in separating out the one file per signal type data
+	num_recorded_samples = len(np.fromfile(dir_name + '/' + 'time.dat', dtype = np.dtype('float32')))
+	total_recording_time = num_recorded_samples/sampling_rate #In seconds
+	
+	check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
+	           f'\nDigital input files: {dig_in_list} \n ---------- \n \n'
+	print(check_str)
+	
+	ports = info_dict['ports']
+	
+	if file_type == ['one file per channel']:
+	    print("\tOne file per CHANNEL Detected")
+	
+	    # Read dig-in data
+	    # Pull out the digital input channels used, 
+	    # and convert them to integers
+	    dig_in = [x.split('-')[-1].split('.')[0] for x in dig_in_list]
+	    dig_in = sorted([int(x) for x in dig_in])
+	
+	elif file_type == ['one file per signal type']:
+	
+	    print("\tOne file per SIGNAL Detected")
+	    dig_in = np.arange(info_dict['dig_ins']['count'])
+	
+	check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
+	            f'\n digital inputs on intan board: {dig_in}'
+	
+	print(check_str)
+	
+	all_car_group_vals = []
+	for region_name, region_elecs in info_dict['electrode_layout'].items():
+	    if not region_name == 'emg':
+	        for group in region_elecs:
+	            if len(group) > 0:
+	                all_car_group_vals.append(group)
+	all_electrodes = [electrode for region in all_car_group_vals \
+	                        for electrode in region]
+	
+	emg_info = info_dict['emg']
+	emg_port = emg_info['port']
+	emg_channels = sorted(emg_info['electrodes'])
+	
+	
+	layout_path = glob.glob(os.path.join(dir_name,"*layout.csv"))[0]
+	electrode_layout_frame = pd.read_csv(layout_path) 
+	
+	
+	# Read data files, and append to electrode arrays
+	if file_type == ['one file per channel']:
+		#read_file.read_files_abu(hdf5_name, dig_in, electrode_layout_frame) 
+		read_file.read_digins(save_dir_name+hdf5_name, dir_name, dig_in, dig_in_list)
+		read_file.read_electrode_channels(save_dir_name+hdf5_name, dir_name, electrode_layout_frame)
+		if len(emg_channels) > 0:
+		    read_file.read_emg_channels(save_dir_name+hdf5_name, dir_name, electrode_layout_frame)
+	elif file_type == ['one file per signal type']:
+		read_file.read_digins_single_file(save_dir_name+hdf5_name, dir_name, dig_in, dig_in_list)
+		#This next line takes care of both electrodes and emgs
+		read_file.read_electrode_emg_channels_single_file(save_dir_name+hdf5_name, dir_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
 
 # Write out template params file to directory if not present
 #home_dir = os.getenv('HOME')

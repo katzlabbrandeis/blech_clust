@@ -214,10 +214,11 @@ else:
         for n_i in range(num_dig_ins):
             start_ind = np.where(d_diff == n_i + 1)[0]
             dig_in_trials.append(int(len(start_ind)))
-        dig_in_print_str = "A total of " + str(num_dig_ins)
+        dig_in_print_str = "A total of " + str(num_dig_ins) + "dig-ins : \n" + \
+            ", ".join([str(x) for x in range(num_dig_ins)])
 
     # Ask for user input of which line index the dig in came from
-    print(dig_in_print_str + "\n were found. Please provide the indices.")
+    print(dig_in_print_str + "\ntaste dig-ins were found. Please provide the indices.")
     taste_dig_in_str, continue_bool = entry_checker(
         msg=' Taste dig_ins used (IN ORDER, anything separated)  :: ',
         check_func=count_check,
@@ -225,8 +226,12 @@ else:
     if continue_bool:
         nums = re.findall('[0-9]+', taste_dig_in_str)
         taste_digins = [int(x) for x in nums]
-        taste_digin_filenames = [dig_in_list[i] for i in taste_digins]
-        print('Selected taste digins: \n' + "\n".join(taste_digin_filenames))
+        if file_type == ['one file per channel']:
+            taste_digin_filenames = [dig_in_list[i] for i in taste_digins]
+            print('Selected taste digins: \n' + "\n".join(taste_digin_filenames))
+        elif file_type == ['one file per signal type']:
+            taste_digin_filenames = [dig_in_list[0]]
+            print('Selected taste digins: '+dig_in_list[0])
     else:
         exit()
 
