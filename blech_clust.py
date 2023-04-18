@@ -65,6 +65,14 @@ for m_i in range(m_count):
 	print(f'Processing : {dir_name}')
 	os.chdir(dir_name)
 	
+	info_file_path = metadata_handler.info_file_path
+	
+	#Check if save directory has an info file - if not copy first datasets info file
+	info_file_list = glob.glob(os.path.join(save_dir_name,'**.info'))
+	if len(info_file_list) < 1:
+		info_file_name = save_dir_name.split('/')[-2] + '.info'
+		shutil.copy(info_file_path,save_dir_name + info_file_name)
+	
 	info_dict = metadata_handler.info_dict
 	info_dict_list.append(info_dict)
 	file_list = metadata_handler.file_list
