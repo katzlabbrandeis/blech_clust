@@ -251,7 +251,7 @@ runner_path = os.path.join(blech_clust_path,'blech_clust_jetstream_parallel1.sh'
 f = open(os.path.join(blech_clust_path,'blech_clust_jetstream_parallel.sh'), 'w')
 print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +\
         "--memfree 4G --retry-failed "+\
-        f"--joblog {dir_name}/results.log "+\
+        f"--joblog {save_dir_name}/results.log "+\
         f"bash {runner_path} "+\
         #f"::: {{{','.join([str(x) for x in bash_electrode_list])}}}", 
         f"::: {' '.join([str(x) for x in bash_electrode_list])}", 
@@ -267,7 +267,7 @@ f.close()
 
 # Dump the directory name where blech_process has to cd
 f = open(os.path.join(blech_clust_path,'blech.dir'), 'w')
-print(dir_name, file=f)
+print(save_dir_name, file=f)
 f.close()
 
 print('blech_clust.py complete \n')
