@@ -234,6 +234,7 @@ params_template = json.load(open(params_template_path,'r'))
 all_params_dict = params_template.copy() 
 all_params_dict['sampling_rate'] = sampling_rate
 
+os.chdir(save_dir_name)
 params_out_path = hdf5_name.split('.')[0] + '.params'
 if not os.path.exists(params_out_path):
     print('No params file found...Creating new params file')
