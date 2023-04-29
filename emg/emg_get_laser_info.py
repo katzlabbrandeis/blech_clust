@@ -7,7 +7,7 @@ import pandas as pd
 # Necessary blech_clust modules
 sys.path.append('..')
 from utils.blech_utils import imp_metadata
-from blech_make_arrays import get_dig_in_data
+from blech_make_arrays import get_dig_in_data,
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files

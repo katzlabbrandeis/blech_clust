@@ -183,8 +183,7 @@ while True:
 
         # Re-show images of neurons so dumb people like Abu can make sure they
         # picked the right ones
-        #if ast.literal_eval(args.show_plot):
-        if args.show_plot == 'False':
+        if ast.literal_eval(args.show_plot): 
             fig, ax = plt.subplots(len(clusters), 2)
             for cluster_num, cluster in enumerate(clusters):
                 isi_plot = mpimg.imread(

@@ -2,10 +2,13 @@
 
 # Import stuff
 import numpy as np
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, freqz
+import easygui
 import os
 import sys
+from tqdm import tqdm
 import shutil
+import json
 import glob
 import pandas as pd
 

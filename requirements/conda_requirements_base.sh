@@ -9,3 +9,6 @@ mamba install -c conda-forge pandas=1.1.5 -y
 mamba install -c conda-forge psutil=5.8.0 -y
 mamba install -c conda-forge pytables=3.6.1 -y
 mamba install -c conda-forge scikit-learn=0.22.1 -y
+#mamba install -c conda-forge umap-learn=0.3.10 -y
+mamba install -c conda-forge umap-learn=0.5.8 -y
+#mamba install -c conda-forge pynndescent=0.5.8 -y

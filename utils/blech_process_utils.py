@@ -365,11 +365,6 @@ class classifier_handler():
                     f'git clone {git_path} {neurecommend_dir}', shell=True)
             # Forces process to complete before proceeding
             stdout, stderr = process.communicate()
-            # Install requirements for neuRecommend
-            process = subprocess.Popen(
-                    f'pip install -r {neurecommend_dir}/requirements.txt', shell=True)
-            # Forces process to complete before proceeding
-            stdout, stderr = process.communicate()
 
         # If model_dir doesn't exist, then download models
         if not os.path.exists(f'{model_dir}/.models_downloaded'):

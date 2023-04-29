@@ -35,19 +35,12 @@ except:
 # Extract info experimental info file
 info_dict = metadata_handler.info_dict
 taste_names = info_dict['taste_params']['tastes']
-#trials = [int(x) for x in info_dict['taste_params']['trial_count']]
+trials = [int(x) for x in info_dict['taste_params']['trial_count']]
 
-#if len(np.unique(trials)) > 1:
-#    print(f'Uneven numbers of trials detected : {trials}')
-#    print(f'Using max number of trials for array : {np.max(trials)}') 
-#    print(f'!! WARNING !! emg_BSA_results will have trials with zero data')
-
-# Taking this out should be fine since make_arrays 
-# already deals with uneven trials
-
-# Use trial count from emg_data to account for chopping down of trials
-emg_data = np.load(os.path.join('emg_output','emg_data.npy'))
-trials = [emg_data.shape[2]]*emg_data.shape[1]
+if len(np.unique(trials)) > 1:
+    print(f'Uneven numbers of trials detected : {trials}')
+    print(f'Using max number of trials for array : {np.max(trials)}') 
+    print(f'!! WARNING !! emg_BSA_results will have trials with zero data')
 
 ############################################################
 ## Following will be looped over emg channels
@@ -73,8 +66,7 @@ for num, this_dir in enumerate(channel_dirs):
     sig_trials = np.load('sig_trials.npy')
     tastes = sig_trials.shape[0]
 
-    #print(f'Trials taken from info file ::: {dict(zip(taste_names, trials))}')
-    print(f'Trials taken from emg_data.npy ::: {dict(zip(taste_names, trials))}')
+    print(f'Trials taken from info file ::: {dict(zip(taste_names, trials))}')
 
     # Change to emg_BSA_results
     os.chdir('emg_BSA_results')

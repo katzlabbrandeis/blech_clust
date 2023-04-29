@@ -3,11 +3,14 @@ import numpy as np
 import tables
 import sys
 import os
+import re
+import glob
 import pandas as pd
 from tqdm import tqdm
 from utils.clustering import get_filtered_electrode
 from utils.blech_process_utils import return_cutoff_values
 from utils.blech_utils import (
+        entry_checker,
         imp_metadata,
         )
 
@@ -136,9 +139,12 @@ def create_laser_params_for_digin(
             'laser_onset_lag', laser_start)
     hf5.flush() 
 
-############################################################
-## Run Main
-############################################################
+# _                    _   ____        _        
+#| |    ___   __ _  __| | |  _ \  __ _| |_ __ _ 
+#| |   / _ \ / _` |/ _` | | | | |/ _` | __/ _` |
+#| |__| (_) | (_| | (_| | | |_| | (_| | || (_| |
+#|_____\___/ \__,_|\__,_| |____/ \__,_|\__\__,_|
+#                                               
 
 if __name__ == '__main__':
 
@@ -223,7 +229,7 @@ if __name__ == '__main__':
 
             # Cut data to have integer number of seconds
             sampling_rate = params_dict['sampling_rate']
-            filt_el = filt_el[:int(sampling_rate)*int(len(filt_el)/sampling_rate)]
+            filt_el = filt_el[:int(sampling_rate)*int(len(file_el)/sampling_rate)]
 
             # Delete raw electrode recording from memory
             del raw_el
@@ -238,7 +244,7 @@ if __name__ == '__main__':
                             params_dict['max_mean_breach_rate_persec']
                             ) 
             # First output of recording cutoff is processed filtered electrode 
-            cutoff_data.append(this_out)
+            cutoff_data.append(this_out[1:])
 
 
         elec_cutoff_frame = pd.DataFrame(
@@ -269,9 +275,13 @@ if __name__ == '__main__':
         expt_end_time = np.max([x.times[-1] for x in units]) 
     #============================================================#
 
-    ############################################################ 
-    ## Processing
-    ############################################################ 
+    # ____                              _             
+    #|  _ \ _ __ ___   ___ ___  ___ ___(_)_ __   __ _ 
+    #| |_) | '__/ _ \ / __/ _ \/ __/ __| | '_ \ / _` |
+    #|  __/| | | (_) | (_|  __/\__ \__ \ | | | | (_| |
+    #|_|   |_|  \___/ \___\___||___/___/_|_| |_|\__, |
+    #                                           |___/ 
+
     #TODO: Creating spike-trians + laser arrays can CERTAINLY be made cleaner
     # Go through the taste_digin_inds and make an array of spike trains 
     # of dimensions (# trials x # units x trial duration (ms)) - 

@@ -6,6 +6,7 @@ Info file and sorting table (csv) as kept
 # Import stuff!
 import os
 import shutil
+import easygui
 import sys
 import glob
 from utils.blech_utils import imp_metadata
@@ -15,7 +16,7 @@ dir_name = metadata_handler.dir_name
 file_list = metadata_handler.file_list
 
 # Keep certain files and remove everything else
-keep_pattern = ['*.dat','*.info','*.rhd', '*.csv', "*_info"]
+keep_pattern = ['*.dat','*.info','*.rhd', '*.csv']
 keep_files = []
 for pattern in keep_pattern:
     keep_files.extend(glob.glob(os.path.join(dir_name, pattern)))

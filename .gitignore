@@ -4,5 +4,3 @@ blech_clust_jetstream_parallel1.sh
 blech_clust_jetstream_parallel.sh
 requirements/.DS_Store
 blech.dir
-*.swp
-*.Rhistory
