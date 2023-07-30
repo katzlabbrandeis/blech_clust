@@ -5,6 +5,7 @@ import easygui
 import os
 import glob
 import json
+import pandas as pd
 
 def entry_checker(msg, check_func, fail_response):
     check_bool = False
@@ -28,6 +29,7 @@ class imp_metadata():
         self.get_hdf5_name()
         self.load_params()
         self.load_info()
+        self.load_layout()
 
     def get_dir_name(self, args):
         if len(args) > 1:
@@ -55,6 +57,13 @@ class imp_metadata():
         else:
             print('No PARAMS file found')
 
+    def get_layout_path(self,):
+        file_list = glob.glob(os.path.join(self.dir_name,'**layout.csv'))
+        if len(file_list) > 0:
+            self.layout_file_path = file_list[0]
+        else:
+            print('No LAYOUT file found')
+
     def load_params(self,):
         self.get_params_path()
         if 'params_file_path' in dir(self):
@@ -73,3 +82,8 @@ class imp_metadata():
         if 'info_file_path' in dir(self):
             with open(self.info_file_path, 'r') as info_file_connect:
                 self.info_dict = json.load(info_file_connect)
+
+    def load_layout(self,):
+        self.get_layout_path()
+        if 'layout_file_path' in dir(self):
+            self.layout = pd.read_csv(self.layout_file_path, index_col = 0)

@@ -1,6 +1,6 @@
-# Run through all the raw electrode data, 
+# Run through all the raw electrode data,
 # and subtract a common average reference from every electrode's recording
-# The user specifies the electrodes to be used as a common average group 
+# The user specifies the electrodes to be used as a common average group
 
 # Import stuff!
 import tables
@@ -51,8 +51,20 @@ def return_subset(dat_len, electrode_inds, batch_size):
             for electrode_ind in electrode_inds], axis=1)
     return dat 
 
+def get_electrode_by_name(raw_electrodes, name):
+    """
+    Get the electrode data from the list of raw electrodes
+    by the name of the electrode
+    """
+    str_name = f"electrode{name:02}"
+    wanted_electrode_ind = [
+        x for x in raw_electrodes if str_name in x._v_pathname][0]
+    return wanted_electrode_ind
+
 ############################################################
 ############################################################
+
+
 # Get name of directory with the data files
 dir_name = '/media/storage/gc_only/AS18/AS18_4Tastes_200228_151511/'
 metadata_handler = imp_metadata([[], dir_name])
@@ -68,38 +80,28 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # Every region is a separate group, multiple ports under single region is a separate group,
 # emg is a separate group
 info_dict = metadata_handler.info_dict
+electrode_layout_frame = metadata_handler.layout
+# Remove emg and none channels from the electrode layout frame
+emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
+none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
+fin_bool = np.logical_and(emg_bool, none_bool)
+electrode_layout_frame = electrode_layout_frame[fin_bool]
 
 # Since electrodes are already in monotonic numbers (A : 0-31, B: 32-63)
 # we can directly pull them
-all_car_group_vals = []
-all_car_group_names = []
-for region_name, region_elecs in info_dict['electrode_layout'].items():
-    for group in region_elecs:
-        if len(group) > 0:
-            all_car_group_vals.append(group)
-            all_car_group_names.append(region_name)
+grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
+all_car_group_names = [x[0] for x in grouped_layout]
+# Note: electrodes in HDF5 are also saved according to inds
+# specified in the layout file
+all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
-# Select car groups which are not emg
-all_car_group_vals, all_car_group_names = list(zip(*[
-        [x,y] for x,y in zip(all_car_group_vals, all_car_group_names) \
-                if (('emg' not in y) and ('none'!=y))
-        ]))
 num_groups = len(all_car_group_vals)
-
-CAR_electrodes = all_car_group_vals
-print(f" Number of groups : {len(CAR_electrodes)}")
-for region,vals in zip(all_car_group_names, all_car_group_vals):
+print(f" Number of groups : {num_groups}")
+for region, vals in zip(all_car_group_names, all_car_group_vals):
     print(f" {region} :: {vals}")
 
 # Pull out the raw electrode nodes of the HDF5 file
 raw_electrodes = hf5.list_nodes('/raw')
-# Sort electrodes (just in case) so we can index them directly
-sort_order = np.argsort([x.__str__() for x in raw_electrodes])
-raw_electrodes = [raw_electrodes[i] for i in sort_order]
-raw_electrodes_map = {
-        int(str.split(electrode._v_pathname, 'electrode')[-1]):num \
-                for num, electrode in enumerate(raw_electrodes)}
-
 
 # Note: Order of error reduction
 # Raw data > CAR > PCA on downsampled data > PCA on full data
@@ -110,7 +112,7 @@ for group in range(num_groups):
     print('Processing Group {}'.format(group))
     # Pull out timepoints x electrodes array for this group
 
-    car_electrode_names = CAR_electrodes[group]
+    car_electrode_names = all_car_group_vals[group]
     car_electrode_inds = np.array([raw_electrodes_map[electrode_name] \
             for electrode_name in car_electrode_names])
 
@@ -128,58 +130,44 @@ for group in range(num_groups):
     # Iterate through data in time (since PCA needs all electrodes together)
     # Perform subtraction and write back to the hdf5 file, appending to array
     # Step by sampling rate
-    for 
-
-    for electrode_name in tqdm(CAR_electrodes[group]):
-        electrode_ind = raw_electrodes_map[electrode_name]
-        common_average_reference[group,:] += raw_electrodes[electrode_ind][:]
-
 
 if transform_type == 'car':
-    # First get the common average references by averaging across the electrodes picked for each group
-    print("Calculating common average reference for {:d} groups".format(num_groups))
-    common_average_reference = np.zeros((num_groups, raw_electrodes[0][:].shape[0]))
+    # First get the common average references by averaging across
+    # the electrodes picked for each group
+    print(
+        "Calculating common average reference for {:d} groups".format(num_groups))
+    common_average_reference = np.zeros(
+        (num_groups, raw_electrodes[0][:].shape[0]))
     print('Calculating mean values')
     for group in range(num_groups):
         print('Processing Group {}'.format(group))
-        # Stack up the voltage data from all the electrodes that need 
-        # to be averaged across in this CAR group   
-        # In hindsight, don't stack up all the data, it is a huge memory waste. 
-        # Instead first add up the voltage values from each electrode to the same array 
-        # and divide by number of electrodes to get the average    
-        for electrode_name in tqdm(CAR_electrodes[group]):
-            electrode_ind = raw_electrodes_map[electrode_name]
-            common_average_reference[group,:] += raw_electrodes[electrode_ind][:]
-        # Average the voltage data across electrodes by dividing by the number 
-        # of electrodes in this group
-        common_average_reference[group, :] /= float(len(CAR_electrodes[group]))
+        # First add up the voltage values from each electrode to the same array
+        # then divide by number of electrodes to get the average
+        # This is more memory efficient than loading all the electrode data into
+        # a single array and then averaging
+        for electrode_name in tqdm(all_car_group_vals[group]):
+            common_average_reference[group, :] += \
+                get_electrode_by_name(raw_electrodes, electrode_name)[:]
+        common_average_reference[group, :] /= float(len(all_car_group_vals[group]))
 
-    print("Common average reference for {:d} groups calculated".format(num_groups))
-
-    # Now run through the raw electrode data and 
+    # Now run through the raw electrode data and
     # subtract the common average reference from each of them
     print('Performing background subtraction')
-    for electrode in tqdm(raw_electrodes):
-        electrode_num = int(str.split(electrode._v_pathname, 'electrode')[-1])
-        # Get the common average group number that this electrode belongs to
-        # IMPORTANT!
-        # We assume that each electrode belongs to only 1 common average reference group 
-        group = int([i for i in range(num_groups) \
-                if electrode_num in CAR_electrodes[i]][0])
-
-        # Subtract the common average reference for that group from the 
-        # voltage data of the electrode
-        referenced_data = electrode[:] - common_average_reference[group]
-
-        # First remove the node with this electrode's data
-        hf5.remove_node(f"/raw/electrode{electrode_num:02}")
-
-        # Now make a new array replacing the node removed above with the referenced data
-        hf5.create_array("/raw", f"electrode{electrode_num:02}", referenced_data)
-        hf5.flush()
-
-        del referenced_data
+    for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+        print(f"Processing group {group_name}")
+        for electrode_num in tqdm(all_car_group_vals[group_num]):
+            # Subtract the common average reference for that group from the
+            # voltage data of the electrode
+            referenced_data = get_electrode_by_name(raw_electrodes, electrode_num)[:] - \
+                common_average_reference[group_num]
+            # First remove the node with this electrode's data
+            hf5.remove_node(f"/raw/electrode{electrode_num:02}")
+            # Now make a new array replacing the node removed above with the referenced data
+            hf5.create_array(
+                "/raw", f"electrode{electrode_num:02}", referenced_data)
+            hf5.flush()
+            del referenced_data
 
 hf5.close()
-print("Modified electrode arrays written to HDF5 file after "\
-        "subtracting the common average reference")
+print("Modified electrode arrays written to HDF5 file after "
+      "subtracting the common average reference")

@@ -102,6 +102,9 @@ elif file_type == ['one file per channel']:
     electrodes_list = [name for name in file_list if name.startswith('amp-')]
     dig_in_list = [name for name in file_list if name.startswith('board-DI')]
 
+electrodes_list = sorted(electrodes_list)
+dig_in_list = sorted(dig_in_list)
+
 # Use info file for port list calculation
 info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
 sampling_rate = int(info_file[2])
