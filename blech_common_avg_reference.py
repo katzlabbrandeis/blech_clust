@@ -21,10 +21,12 @@ def truncated_ipca(
         data_generator = None
         ):
     """
-    Truncated IPCA
+    Truncated IPCA, stops when the change in components is less than tolerance
     """
     if data_generator is None:
         raise ValueError('Data generator must be specified')
+    print('Starting IPCA')
+    print('Threshold : {:f}'.format(tolerance))
 
     delta_list = []
     components_list = []
@@ -42,12 +44,12 @@ def truncated_ipca(
             break
     return ipca, delta_list
 
-def return_subset(dat_len, electrode_inds, batch_size):
+def return_subset(dat_len, electrode_inds, batch_size, raw_electrodes):
     """
-    Return a random subset of the data
+    Return a random subset of the data for pca training
     """
     idx = np.random.choice(dat_len, batch_size, replace=False)
-    dat = np.stack([raw_electrodes[electrode_ind][idx] \
+    dat = np.stack([get_electrode_by_name(raw_electrodes, electrode_ind)[idx] \
             for electrode_ind in electrode_inds], axis=1)
     return dat 
 
@@ -60,6 +62,36 @@ def get_electrode_by_name(raw_electrodes, name):
     wanted_electrode_ind = [
         x for x in raw_electrodes if str_name in x._v_pathname][0]
     return wanted_electrode_ind
+
+def return_data_chunk(electrode_inds, time_bin):
+    """
+    Return a chunk of data from the HDF5 file
+    Used for subtraction step
+    """
+    dat = np.stack(
+            [
+                get_electrode_by_name(
+                    raw_electrodes, this_electrode_ind)[time_bin[0]:time_bin[1]] \
+            for this_electrode_ind in electrode_inds
+            ], axis=1
+        )
+    return dat
+
+def subtract_ipca(transformer, data):
+    """
+    Subtract the components from the data
+    """
+    ipca_dat = data - transformer.inverse_transform(transformer.transform(data))
+    return ipca_dat.astype(np.float32)
+
+def append_data_to_arrays(data, electrode_names):
+    """
+    Append data to the arrays in the hdf5 file
+    """
+    for this_name, this_data in zip(electrode_names, data.T):
+        hf5.get_node('/raw', this_name).append(this_data)
+    return
+
 
 ############################################################
 ############################################################
@@ -80,6 +112,8 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # Every region is a separate group, multiple ports under single region is a separate group,
 # emg is a separate group
 info_dict = metadata_handler.info_dict
+params_dict = metadata_handler.params_dict
+transform_type = params_dict['reference_transform_type']
 electrode_layout_frame = metadata_handler.layout
 # Remove emg and none channels from the electrode layout frame
 emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
@@ -107,29 +141,65 @@ raw_electrodes = hf5.list_nodes('/raw')
 # Raw data > CAR > PCA on downsampled data > PCA on full data
 # IncrementalPCA (both full and truncated) works just as well as PCA 
 # but is more memory efficient AND faster (by about 2-20x) than PCA
-#if transform_type == 'pca':
-for group in range(num_groups):
-    print('Processing Group {}'.format(group))
-    # Pull out timepoints x electrodes array for this group
 
-    car_electrode_names = all_car_group_vals[group]
-    car_electrode_inds = np.array([raw_electrodes_map[electrode_name] \
-            for electrode_name in car_electrode_names])
-
+if transform_type == 'pca':
     dat_len = raw_electrodes[0].shape[0]
     batch_size = 10000
-    data_generator = lambda : return_subset(dat_len, car_electrode_inds, batch_size)
-    n_iter = dat_len // batch_size
-    ipca = truncated_ipca(
-            n_components = 10,
-            n_iter = n_iter,
-            tolerance = 1e-2,
-            data_generator = data_generator
-            )
 
-    # Iterate through data in time (since PCA needs all electrodes together)
-    # Perform subtraction and write back to the hdf5 file, appending to array
-    # Step by sampling rate
+    for group in range(num_groups):
+        print(f'Processing Group {group} : {all_car_group_names[group]}')
+
+        car_electrode_inds = all_car_group_vals[group]
+
+        data_generator = lambda : return_subset(
+                dat_len, car_electrode_inds, batch_size, raw_electrodes)
+        n_iter = dat_len // batch_size
+        ipca, delta_list = truncated_ipca(
+                n_components = 10,
+                n_iter = n_iter,
+                tolerance = 1e-2,
+                data_generator = data_generator
+                )
+
+        # Iterate through data in time (since PCA needs all electrodes together)
+        # Perform subtraction and write back to the hdf5 file, appending to array
+        # Step by sampling rate
+
+        ## Test type after subtraction
+        #raw_dat = data_generator()
+        #car_dat = raw_dat - np.mean(raw_dat, axis=1, keepdims=True)
+        #ipca_dat = subtract_ipca(ipca, raw_dat)
+
+        #fig, ax = plt.subplots(3, 1, sharex=True, sharey=True)
+        #ax[0].plot(raw_dat, alpha=0.5)
+        #ax[1].plot(car_dat, alpha=0.5)
+        #ax[2].plot(processed_dat, alpha=0.5)
+        #plt.show()
+
+        # First, generate extendable arrays for the new data
+        electrode_names = [f"electrode_pca{electrode_name:02}" \
+                for electrode_name in all_car_group_vals[group]]
+        for this_name in electrode_names: 
+            if os.path.join('/raw', this_name) in hf5:
+                hf5.remove_node('/raw', this_name)
+            hf5.create_earray('/raw', this_name, tables.Float32Atom(), (0,))
+        time_steps = np.arange(0, dat_len, params_dict['sampling_rate'])
+        time_bins = list(zip(time_steps[:-1], time_steps[1:]))
+        for this_bin in tqdm(time_bins):
+            raw_dat = return_data_chunk(all_car_group_vals[group], this_bin)
+            ipca_sub_dat = subtract_ipca(ipca, raw_dat)
+            append_data_to_arrays(ipca_sub_dat, electrode_names)
+
+        # Delete corresponding raw data and rename pca channels to raw
+        for electrode_name in all_car_group_vals[group]:
+            hf5.remove_node('/raw', f"electrode{electrode_name:02}")
+        for electrode_name in all_car_group_vals[group]:
+            hf5.rename_node(
+                    '/raw', 
+                    f"electrode{electrode_name:02}",
+                    f"electrode_pca{electrode_name:02}"
+                    ) 
+        hf5.flush()
 
 if transform_type == 'car':
     # First get the common average references by averaging across
