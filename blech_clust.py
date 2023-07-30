@@ -190,6 +190,8 @@ else:
 # Dump shell file(s) for running GNU parallel job on the user's blech_clust folder on the desktop
 # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
 num_cpu = multiprocessing.cpu_count()
+# Set max according to params_dict
+num_cpu = np.min((num_cpu, all_params_dict['max_cores']))
 
 electrode_bool = electrode_layout_frame.loc[
     electrode_layout_frame.electrode_ind.isin(all_electrodes)]

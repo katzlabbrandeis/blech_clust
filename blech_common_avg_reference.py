@@ -98,9 +98,9 @@ def append_data_to_arrays(data, electrode_names):
 
 
 # Get name of directory with the data files
-dir_name = '/media/storage/gc_only/AS18/AS18_4Tastes_200228_151511/'
-metadata_handler = imp_metadata([[], dir_name])
-#metadata_handler = imp_metadata(sys.argv)
+#dir_name = '/media/storage/gc_only/AS18/AS18_4Tastes_200228_151511/'
+#metadata_handler = imp_metadata([[], dir_name])
+metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -155,7 +155,7 @@ if transform_type == 'pca':
                 dat_len, car_electrode_inds, batch_size, raw_electrodes)
         n_iter = dat_len // batch_size
         ipca, delta_list = truncated_ipca(
-                n_components = 10,
+                n_components = 3,
                 n_iter = n_iter,
                 tolerance = 1e-2,
                 data_generator = data_generator
@@ -228,15 +228,18 @@ if transform_type == 'car':
         for electrode_num in tqdm(all_car_group_vals[group_num]):
             # Subtract the common average reference for that group from the
             # voltage data of the electrode
+            raw_electrodes = hf5.list_nodes('/raw')
             referenced_data = get_electrode_by_name(raw_electrodes, electrode_num)[:] - \
                 common_average_reference[group_num]
             # First remove the node with this electrode's data
+            # This closes the node in the raw_electrodes list, therefore
+            # we have to redefine the list each iteration
             hf5.remove_node(f"/raw/electrode{electrode_num:02}")
             # Now make a new array replacing the node removed above with the referenced data
             hf5.create_array(
                 "/raw", f"electrode{electrode_num:02}", referenced_data)
-            hf5.flush()
             del referenced_data
+            hf5.flush()
 
 hf5.close()
 print("Modified electrode arrays written to HDF5 file after "
