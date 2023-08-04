@@ -11,9 +11,10 @@ from utils.blech_utils import imp_metadata
 import xgboost as xgb
 from sklearn.linear_model import LinearRegression as LR
 import pylab as plt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, zscore
 from sklearn.decomposition import PCA
 from sklearn.decomposition import IncrementalPCA as IPCA
+from sklearn.cluster import KMeans
 import time
 
 # import standard scaler
@@ -131,9 +132,45 @@ def intra_corr(X):
     return corr_mat
 
 corr_mat = intra_corr(down_stack)
+# nan to 0
+corr_mat[np.isnan(corr_mat)] = 0
+# Cluster the channels using KMeans
+n_clusters = np.arange(3,7)
 
-plt.matshow(corr_mat)
-plt.colorbar()
+def return_sorted_corr_mat(corr_mat, n_clusters):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(corr_mat)
+    # Sort cluster by mean correlation
+    centers = kmeans.cluster_centers_
+    mean_cluster_centers = np.mean(centers, axis=1)
+    label_map = dict(zip(np.arange(0,n_clusters), np.argsort(mean_cluster_centers)))
+    fin_labels = [label_map[x] for x in kmeans.labels_]
+    # Sort by cluster
+    sort_order = np.argsort(fin_labels)
+    # Sort the correlation matrix and labels
+    corr_mat_sorted = corr_mat[sort_order,:][:,sort_order]
+    kmeans_sorted = kmeans.labels_[sort_order]
+    plot_cluster_inds = np.where(np.diff(kmeans_sorted))[0] + 1
+    return corr_mat_sorted, plot_cluster_inds
+
+corr_mat_sorted, plot_cluster_inds = \
+        list(zip(*[return_sorted_corr_mat(corr_mat, x) for x in n_clusters]))
+
+# Plot original and sorted correlation matrices
+fig, ax = plt.subplots(1,1+len(n_clusters), figsize=(20,5))
+ax[0].imshow(corr_mat, cmap='viridis', vmin=0, vmax=1)
+ax[0].set_title('Original')
+for i, (x, y) in enumerate(zip(corr_mat_sorted, n_clusters)):
+    im = ax[i+1].imshow(x, cmap='viridis', vmin=0, vmax=1)
+    ax[i+1].set_title(f'Sorted, {y} clusters')
+    for ind in plot_cluster_inds[i]:
+        ax[i+1].axvline(ind, color='r')
+        ax[i+1].axhline(ind, color='r')
+cax = fig.add_axes([0.95, 0.15, 0.01, 0.7])
+fig.colorbar(im, cax=cax)
+plt.show()
+
+plt.hist(corr_mat.flatten(), bins=100)
+plt.xlim([0,1])
 plt.show()
 
 ##############################
@@ -179,70 +216,79 @@ print('PCA noise +/- std : ' + print_stats(pca_sub_car_rmnoise))
 # Make sure that PCA generated from downsampled data is
 # still useful for the full data
 cut_raw_dat = wanted_electrodes[:,:(wanted_electrodes.shape[1]//5)]
-cut_car_dat = cut_raw_dat - np.mean(cut_raw_dat, axis=0)
-cut_down_pca_dat = \
-        cut_raw_dat - pca.inverse_transform(pca.transform(cut_raw_dat.T)).T
+# Zscore the data
+cut_raw_dat = zscore(cut_raw_dat, axis=-1)
+# Set nan values to 0
+cut_raw_dat[np.isnan(cut_raw_dat)] = 0
+cut_car_dat = zscore(cut_raw_dat - np.mean(cut_raw_dat, axis=0), axis=-1)
+
+#cut_down_pca_dat = \
+#        cut_raw_dat - pca.inverse_transform(pca.transform(cut_raw_dat.T)).T
 
 # Keep track of time taken
-pca_time = []
+#pca_time = []
 ipca_time = []
 trunc_ipca_time = []
-pca_time.append(time.time())
-cut_pca = PCA(n_components=10).fit(cut_raw_dat.T)
-pca_time.append(time.time())
+#pca_time.append(time.time())
+#cut_pca = PCA(n_components=10).fit(cut_raw_dat.T)
+#pca_time.append(time.time())
 ipca_time.append(time.time())
 cut_ipca = IPCA(n_components=10).fit(cut_raw_dat.T)
 ipca_time.append(time.time())
 trunc_ipca_time.append(time.time())
 cut_trunc_ipca, delta_list = truncated_ipca(
         X = cut_raw_dat.T,
-        n_components=10,
+        n_components=3,
         n_iter=1000,
         tolerance = 1e-2
         )
 trunc_ipca_time.append(time.time())
 
-cut_pca_dat = cut_raw_dat - cut_pca.inverse_transform(
-        cut_pca.transform(cut_raw_dat.T)).T
+#cut_pca_dat = cut_raw_dat - cut_pca.inverse_transform(
+#        cut_pca.transform(cut_raw_dat.T)).T
 cut_ipca_dat = cut_raw_dat - cut_ipca.inverse_transform(
         cut_ipca.transform(cut_raw_dat.T)).T
+cut_ipca_dat = zscore(cut_ipca_dat, axis=-1)
 cut_trunc_ipca_dat = cut_raw_dat - cut_trunc_ipca.inverse_transform(
         cut_trunc_ipca.transform(cut_raw_dat.T)).T
+cut_trunc_ipca_dat = zscore(cut_trunc_ipca_dat, axis=-1)
 
-print(f"PCA time : {pca_time[1] - pca_time[0]:.2f}")
+from matplotlib import colors
+vmin,vmax = np.min(cut_trunc_ipca.components_), np.max(cut_trunc_ipca.components_)
+divnorm = colors.TwoSlopeNorm(vmin=vmin, vcenter=0., vmax=vmax)
+im = plt.matshow(cut_trunc_ipca.components_, cmap='bwr', norm=divnorm)
+plt.colorbar(im)
+plt.show()
+
+#print(f"PCA time : {pca_time[1] - pca_time[0]:.2f}")
 print(f"IPCA time : {ipca_time[1] - ipca_time[0]:.2f}")
 print(f"Truncated IPCA time : {trunc_ipca_time[1] - trunc_ipca_time[0]:.2f}")
 
 cut_raw_rmnoise = calc_rmnoise(cut_raw_dat)
 cut_car_rmnoise = calc_rmnoise(cut_car_dat)
-cut_pca_rmnoise = calc_rmnoise(cut_pca_dat)
-cut_down_pca_rmnoise = calc_rmnoise(cut_down_pca_dat)
+#cut_pca_rmnoise = calc_rmnoise(cut_pca_dat)
+#cut_down_pca_rmnoise = calc_rmnoise(cut_down_pca_dat)
 cut_ipca_rmnoise = calc_rmnoise(cut_ipca_dat)
 cut_trunc_ipca_rmnoise = calc_rmnoise(cut_trunc_ipca_dat)
 
 print('Cut raw noise +/- std : ' + print_stats(cut_raw_rmnoise))
 print('Cut CAR noise +/- std : ' + print_stats(cut_car_rmnoise))
-print('Cut PCA noise +/- std : ' + print_stats(cut_pca_rmnoise))
-print('Cut down PCA noise +/- std : ' + print_stats(cut_down_pca_rmnoise))
+#print('Cut PCA noise +/- std : ' + print_stats(cut_pca_rmnoise))
+#print('Cut down PCA noise +/- std : ' + print_stats(cut_down_pca_rmnoise))
 print('Cut IPCA noise +/- std : ' + print_stats(cut_ipca_rmnoise))
 print('Cut truncated IPCA noise +/- std : ' + print_stats(cut_trunc_ipca_rmnoise))
 
 down_plot_rate = 100
-fig, ax = plt.subplots(6,1,sharex=True, sharey=True)
+fig, ax = plt.subplots(4,1,sharex=True, sharey=True)
 ax[0].plot(cut_raw_dat[:4,::down_plot_rate].T, alpha=0.3)
 ax[1].plot(cut_car_dat[:4,::down_plot_rate].T, alpha=0.3)
-ax[2].plot(cut_pca_dat[:4,::down_plot_rate].T, alpha=0.3)
-ax[3].plot(cut_down_pca_dat[:4,::down_plot_rate].T, alpha=0.3)
-ax[4].plot(cut_ipca_dat[:4,::down_plot_rate].T, alpha=0.3)
-ax[5].plot(cut_trunc_ipca_dat[:4,::down_plot_rate].T, alpha=0.3)
+ax[2].plot(cut_ipca_dat[:4,::down_plot_rate].T, alpha=0.3)
+ax[3].plot(cut_trunc_ipca_dat[:4,::down_plot_rate].T, alpha=0.3)
 ax[0].set_title('Raw, RMS = ' + print_stats(cut_raw_rmnoise))
 ax[1].set_title('CAR, RMS = ' + print_stats(cut_car_rmnoise))
-ax[2].set_title('PCA, RMS = ' + print_stats(cut_pca_rmnoise) + \
-        ', Time : ' + f"{pca_time[1] - pca_time[0]:.2f} s")
-ax[3].set_title('Down PCA, RMS = ' + print_stats(cut_down_pca_rmnoise))
-ax[4].set_title('IPCA, RMS = ' + print_stats(cut_ipca_rmnoise) + \
+ax[2].set_title('IPCA, RMS = ' + print_stats(cut_ipca_rmnoise) + \
         ', Time : ' + f"{ipca_time[1] - ipca_time[0]:.2f} s")
-ax[5].set_title('Trunc IPCA, RMS = ' + print_stats(cut_trunc_ipca_rmnoise) + \
+ax[3].set_title('Trunc IPCA, RMS = ' + print_stats(cut_trunc_ipca_rmnoise) + \
         ', Time : ' + f"{trunc_ipca_time[1] - trunc_ipca_time[0]:.2f} s")
 plt.show()
 
