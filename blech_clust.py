@@ -142,11 +142,15 @@ check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
 print(check_str)
 
 all_car_group_vals = []
+all_car_group_names = []
 for region_name, region_elecs in info_dict['electrode_layout'].items():
-    if not region_name == 'emg':
+    if not region_name == 'emg' and not region_name in ['none', 'na']:
         for group in region_elecs:
             if len(group) > 0:
                 all_car_group_vals.append(group)
+                all_car_group_names.append(region_name)
+
+# Pull out all electrodes with wanted CAR groups
 all_electrodes = [electrode for region in all_car_group_vals
                   for electrode in region]
 
@@ -203,6 +207,13 @@ qa.gen_corr_output(corr_mat,
                    dir_name, 
                    qa_threshold,)
 ##############################
+##############################
+# Check inconsistency within CAR groups
+#sym_corr_mat = make_corr_mat_symmetric(corr_mat)
+#car_corr_mats = return_corr_mat_car_groups(
+#        sym_corr_mat, all_car_group_vals, chan_names)
+
+# Calculate most likely clusters per matrix
 
 # Dump shell file(s) for running GNU parallel job on the user's blech_clust folder on the desktop
 # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
