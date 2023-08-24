@@ -31,9 +31,11 @@ def get_all_channels(hf5_path, downsample_rate = 100):
 	for node in [raw, raw_emg]:
 		for chan in tqdm(node):
 			all_chans.append(chan[:][::downsample_rate])
-			chan_names.append(chan._v_name)
+			if 'emg' in chan._v_name:
+				chan_names.append(int(chan._v_name.split('emg')[-1]))
+			else:
+				chan_names.append(int(chan._v_name.split('electrode')[-1]))
 	hf5.close()
-	chan_names = [int(x.split('electrode')[-1]) for x in chan_names]
 	# Sort everything by channel number
 	sort_order = np.argsort(chan_names)
 	chan_names = np.array(chan_names)[sort_order]

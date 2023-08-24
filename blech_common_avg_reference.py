@@ -93,13 +93,10 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
     for electrode_num in tqdm(all_car_group_vals[group_num]):
         # Subtract the common average reference for that group from the
         # voltage data of the electrode
-        referenced_data = get_electrode_by_name(raw_electrodes, electrode_num)[:] - \
-            common_average_reference[group_num]
-        # First remove the node with this electrode's data
-        hf5.remove_node(f"/raw/electrode{electrode_num:02}")
-        # Now make a new array replacing the node removed above with the referenced data
-        hf5.create_array(
-            "/raw", f"electrode{electrode_num:02}", referenced_data)
+        wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
+        referenced_data = wanted_electrode[:] - common_average_reference[group_num]
+        # Overwrite the electrode data with the referenced data
+        wanted_electrode[:] = referenced_data
         hf5.flush()
         del referenced_data
 

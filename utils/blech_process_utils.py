@@ -730,6 +730,8 @@ class spike_handler():
         wanted_inds = [i for i, x in enumerate(self.feature_names) \
                 if wanted_feature in x]
         wanted_data = self.spike_features[:, wanted_inds]
+        if any([x == 0 for x in wanted_data.shape]):
+            raise Exception(f'Feature {wanted_feature} seems to have 0 shape')
         return wanted_data
 
     def write_out_spike_data(self):
@@ -756,8 +758,9 @@ class spike_handler():
         energy = self.return_feature('energy')
         amplitude = self.return_feature('amplitude')
 
-        waveform_dir = f'{self.dir_name}/spike_waveforms/electrode{self.electrode_num:02}'
-        spiketime_dir = f'{self.dir_name}/spike_times/electrode{self.electrode_num:02}'
+        electrode_num_str = f'electrode{self.electrode_num:02}'
+        waveform_dir = f'{self.dir_name}/spike_waveforms/{electrode_num_str}'
+        spiketime_dir = f'{self.dir_name}/spike_times/{electrode_num_str}'
         save_paths = [f'{waveform_dir}/spike_waveforms.npy',
                       f'{waveform_dir}/pca_waveforms.npy',
                       f'{waveform_dir}/energy.npy',
@@ -766,7 +769,10 @@ class spike_handler():
                       ]
 
         for key, path in zip(to_be_saved, save_paths):
-            np.save(path, locals()[key])
+            if locals()[key].size > 0:
+                np.save(path, locals()[key])
+            else:
+                raise Exception(f'Feature {key} seems to have 0 size')
 
 
 def ifisdir_rmdir(dir_name):

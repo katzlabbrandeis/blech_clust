@@ -60,6 +60,7 @@ metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
 
 electrode_num = int(sys.argv[1])
+print(f'Processing electrode {electrode_num}')
 params_dict = metadata_handler.params_dict
 
 # Check if the directories for this electrode number exist -
