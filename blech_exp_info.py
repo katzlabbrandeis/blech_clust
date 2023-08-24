@@ -27,6 +27,11 @@ import pandas as pd
 # so cd to utils folder and then back out
 from utils.blech_utils import entry_checker, imp_metadata
 
+def confirm_check(x):
+    this_bool = x in ['y', 'yes']
+    return this_bool
+
+############################################################
 
 # Get name of directory with the data files
 # Create argument parser
@@ -141,9 +146,6 @@ else:
             "Indicate different CARS from same region as GC1,GC2...etc"
         print(prompt_str)
 
-        def confirm_check(x):
-            this_bool = x in ['y', 'yes']
-            return this_bool
         perm_str, continue_bool = entry_checker(
             msg='Lemme know when its done (y/yes) ::: ',
             check_func=confirm_check,
@@ -161,6 +163,19 @@ else:
         list(layout_frame_filled.groupby('CAR_group').electrode_ind))
     for key, vals in layout_dict.items():
         layout_dict[key] = [layout_dict[key].to_list()]
+
+    print('Following layout detected')
+    for key, vals in layout_dict.items():
+        print(f'{key} : {vals}')
+
+    perm_str, continue_bool = entry_checker(
+        msg='Does this look right? (y/yes) :::',
+        check_func=confirm_check,
+        fail_response='Please say y or yes')
+    if not continue_bool:
+        print('Exiting...please fix layout file and try again')
+        exit()
+
 
     if any(['emg' in x for x in layout_dict.keys()]):
         orig_emg_electrodes = [layout_dict[x][0] for x in layout_dict.keys()

@@ -59,6 +59,23 @@ def intra_corr(X):
 		corr_mat[j,i] = np.nan 
 	return corr_mat
 
+def abs_dist(X):
+	"""
+	Absolute Euclidean distance between all channels in X
+
+	Input:
+		X: np.array (n_chans, n_samples)
+
+	Output:
+		dist_mat: np.array (n_chans, n_chans)
+	"""
+	inds = list(combinations(range(X.shape[0]), 2))
+	dist_mat = np.zeros((X.shape[0], X.shape[0]))
+	for i,j in tqdm(inds):
+		dist_mat[i,j] = np.linalg.norm(X[i,:] - X[j,:])
+		dist_mat[j,i] = np.nan
+	return dist_mat
+
 def gen_corr_output(corr_mat, plot_dir, threshold = 0.9):
 	"""
 	Generate a plot of the raw, and thresholded correlation matrices

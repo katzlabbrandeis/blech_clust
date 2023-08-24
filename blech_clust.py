@@ -203,17 +203,24 @@ down_dat_stack, chan_names = qa.get_all_channels(
         hdf5_name, 
         downsample_rate = qa_down_rate,)
 corr_mat = qa.intra_corr(down_dat_stack)
+#corr_mat = qa.abs_dist(down_dat_stack)
 qa.gen_corr_output(corr_mat, 
                    dir_name, 
                    qa_threshold,)
 ##############################
 ##############################
-# Check inconsistency within CAR groups
-#sym_corr_mat = make_corr_mat_symmetric(corr_mat)
-#car_corr_mats = return_corr_mat_car_groups(
-#        sym_corr_mat, all_car_group_vals, chan_names)
-
+# Check if there are clusters WITHIN the CAR groups
+sym_corr_mat = make_corr_mat_symmetric(corr_mat)
+car_corr_mats, group_inds = return_corr_mat_car_groups(
+        sym_corr_mat, all_car_group_vals, chan_names)
+CAR_down_dat = [down_dat_stack[x] for x in group_inds]
 # Calculate most likely clusters per matrix
+car_clust_out = [calc_mat_clusters(x, criterion = 'bic', max_clusters = 3) \
+        for x in car_corr_mats]
+clust_nums, clust_labels = zip(*car_clust_out)
+plot_clustered_mat(car_corr_mats, CAR_down_dat, all_car_group_names, 
+                   clust_labels, group_inds, dir_name)
+
 
 # Dump shell file(s) for running GNU parallel job on the user's blech_clust folder on the desktop
 # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
