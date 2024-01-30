@@ -14,6 +14,8 @@ from tqdm import tqdm
 from matplotlib.patches import Patch
 import seaborn as sns
 from xgboost import XGBClassifier
+import pickle
+import json
 
 # Have to be in blech_clust/emg/gape_QDA_classifier dir
 code_dir = os.path.expanduser('~/Desktop/blech_clust/emg/multi_event_classifier')
@@ -22,8 +24,6 @@ from utils.extract_scored_data import return_taste_orders, process_scored_data
 from utils.gape_clust_funcs import (extract_movements,
                                             normalize_segments,
                                             extract_features,
-                                            find_segment,
-                                            calc_peak_interval,
                                             JL_process,
                                             gen_gape_frame,
                                             threshold_movement_lengths,
@@ -195,12 +195,20 @@ y = scored_gape_frame['event_type']
 y_bool = [x in wanted_event_types for x in y] 
 X = X[y_bool]
 y = y[y_bool]
-y_labels = y.astype('category').cat.categories.values
-y = y.astype('category').cat.codes
+
+# Convert y to categorical
+y_map = dict(zip(wanted_event_types, range(len(wanted_event_types))))
+y = y.map(y_map) 
+
+# Write out y_map
+y_map_path = os.path.join(artifacts_dir, 'y_map.json')
+with open(y_map_path, 'w') as f:
+    json.dump(y_map, f)
 
 clf = XGBClassifier()
 clf.fit(X, y)
 
 # Save classifier in artifacts
 clf_path = os.path.join(artifacts_dir, 'gape_classifier.pkl')
-clf.save_model(clf_path)
+# clf.save_model(clf_path)
+pickle.dump(clf, open(clf_path, 'wb'))
