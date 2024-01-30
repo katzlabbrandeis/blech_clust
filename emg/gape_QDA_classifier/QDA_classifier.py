@@ -1,7 +1,9 @@
 from scipy.io import loadmat
+import os
+data_dir = os.path.expanduser('~/Desktop/blech_clust/emg/gape_QDA_classifier/')
 
 # Load the gape algorithm results from Li et al. 2016
-a = loadmat('QDA_nostd_no_first.mat')
+a = loadmat(os.path.join(data_dir, 'QDA_nostd_no_first.mat'))
 a = a['important_coefficients'][0]
 
 # Define a function that applies the QD algorithm to each individual movement,
