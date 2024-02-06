@@ -283,7 +283,7 @@ def JL_process(
     return gape_peak_ind
 
 # Convert segment_dat and gapes_Li to pandas dataframe for easuer handling
-def gen_gape_frame(segment_dat_list, gapes_Li, inds):
+def gen_gape_frame(segment_dat_list, gapes_Li, inds, scaler_obj = None):
     """
     Generate a dataframe with the following columns:
     channel, taste, trial, segment_num, features, segment_raw, segment_bounds
@@ -297,15 +297,35 @@ def gen_gape_frame(segment_dat_list, gapes_Li, inds):
 
     gape_frame = pd.DataFrame(data = inds, 
                               columns = ['channel', 'taste', 'trial'])
-    # Standardize features
-    gape_frame['features'] = [x[0] for x in segment_dat_list]
-    gape_frame['segment_raw'] = [x[1] for x in segment_dat_list]
-    gape_frame['segment_bounds'] = [x[2] for x in segment_dat_list]
-    gape_frame = gape_frame.explode(['features','segment_raw','segment_bounds'])
+
+    # Segment inds
+    segment_inds = [np.arange(len(x[0])) for x in segment_dat_list]
+    gape_frame['segment_inds'] = segment_inds
+    gape_frame = gape_frame.explode('segment_inds')
+
+    # Extract features
+    features = [x[0] for x in segment_dat_list]
+    segment_raw = [x[1] for x in segment_dat_list]
+    segment_bounds = [x[2] for x in segment_dat_list]
+
+    flat_features = [item for sublist in features for item in sublist]
+    flat_segment_raw = [item for sublist in segment_raw for item in sublist]
+    flat_segment_bounds = [item for sublist in segment_bounds for item in sublist]
+
+    gape_frame['features'] = flat_features
+    gape_frame['segment_raw'] = flat_segment_raw
+    gape_frame['segment_bounds'] = flat_segment_bounds
+
+    # gape_frame['features'] = [x[0] for x in segment_dat_list]
+    # gape_frame['segment_raw'] = [x[1] for x in segment_dat_list]
+    # gape_frame['segment_bounds'] = [x[2] for x in segment_dat_list]
+    # gape_frame = gape_frame.explode(['features','segment_raw','segment_bounds'])
 
     # Standardize features
     raw_features = np.stack(gape_frame['features'].values)
-    scaled_features = StandardScaler().fit_transform(raw_features)
+    if scaler_obj is None:
+        scaler_obj = StandardScaler().fit(raw_features)
+    scaled_features = scaler_obj.transform(raw_features)
     gape_frame['features'] = [x for x in scaled_features]
 
     # Add index for each segment
@@ -323,4 +343,4 @@ def gen_gape_frame(segment_dat_list, gapes_Li, inds):
     # Convert to int
     gape_frame['classifier'] = gape_frame['classifier'].astype(int)
 
-    return gape_frame, scaled_features
+    return gape_frame, scaled_features, scaler_obj

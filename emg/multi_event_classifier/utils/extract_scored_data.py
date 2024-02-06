@@ -97,6 +97,9 @@ def process_scored_data(data_subdirs, all_taste_orders):
         else:
             table_files.append(path_list[0])
 
+    subdir_basenames = [os.path.basename(x) for x in data_subdirs]
+    day_ind_map = {x:i for i,x in enumerate(subdir_basenames)}
+
     # Process score tables
     score_tables = [np.load(table_file, allow_pickle=True) for table_file in table_files]
     # Only first and last columns are relevant
@@ -124,7 +127,8 @@ def process_scored_data(data_subdirs, all_taste_orders):
 
     # Keep only trials with more than one event (that is more than trial start)
     #fin_table = fin_table.groupby('trial').filter(lambda x: len(x) > 1)
-    fin_table['day_ind'] = [int(str(x)[-1])-1 for x in fin_table.day]
+    # fin_table['day_ind'] = [int(str(x)[-1])-1 for x in fin_table.day]
+    fin_table['day_ind'] = [day_ind_map[x] for x in fin_table.day]
     fin_table.reset_index(inplace=True, drop=True)
 
     # Mark taste for each trial

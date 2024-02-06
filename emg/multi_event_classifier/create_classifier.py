@@ -9,13 +9,12 @@ import numpy as np
 import tables
 import pylab as plt
 import pandas as pd
-import glob
 from tqdm import tqdm
 from matplotlib.patches import Patch
 import seaborn as sns
 from xgboost import XGBClassifier
-import pickle
 import json
+import joblib
 
 # Have to be in blech_clust/emg/gape_QDA_classifier dir
 code_dir = os.path.expanduser('~/Desktop/blech_clust/emg/multi_event_classifier')
@@ -134,7 +133,11 @@ else:
         merged_dat = [feature_array, segment_dat, segment_bounds] 
         segment_dat_list.append(merged_dat)
 
-    gape_frame, scaled_features = gen_gape_frame(segment_dat_list, gapes_Li, inds)
+    gape_frame, scaled_features, scaler_obj = gen_gape_frame(segment_dat_list, gapes_Li, inds)
+    # Save scaler to artifacts
+    scaler_path = os.path.join(artifacts_dir, 'feature_scaler.pkl')
+    joblib.dump(scaler_obj, scaler_path)
+
     # Bounds for gape_frame are in 0-7000 time
     # Adjust to make -2000 -> 5000
     # Adjust segment_bounds by removing pre_stim
@@ -186,7 +189,11 @@ else:
 ############################################################
 # Multiclass 
 
-wanted_event_types = ['gape','tongue protrusion',]
+wanted_event_types = [
+        'gape',
+        'tongue protrusion',
+        'unknown mouth movement',
+        ]
 
 
 # Train new classifier on data
@@ -211,4 +218,4 @@ clf.fit(X, y)
 # Save classifier in artifacts
 clf_path = os.path.join(artifacts_dir, 'gape_classifier.pkl')
 # clf.save_model(clf_path)
-pickle.dump(clf, open(clf_path, 'wb'))
+joblib.dump(clf, open(clf_path, 'wb'))
