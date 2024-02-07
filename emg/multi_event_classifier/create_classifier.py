@@ -15,6 +15,7 @@ import seaborn as sns
 from xgboost import XGBClassifier
 import json
 import joblib
+from scipy.ndimage import white_tophat
 
 # Have to be in blech_clust/emg/gape_QDA_classifier dir
 code_dir = os.path.expanduser('~/Desktop/blech_clust/emg/multi_event_classifier')
@@ -85,19 +86,37 @@ else:
     ############################################################
     # Extract mouth movements 
     ############################################################
-
     pre_stim = 2000
     post_stim = 5000
+
+    ############################## 
+    # Preprocessing
+    ############################## 
+    filtered_envs = np.zeros(envs.shape)
+    inds = np.array(list(np.ndindex(envs.shape[:3])))
+    for this_ind in tqdm(inds):
+        filtered_envs[tuple(this_ind)] = white_tophat(envs[tuple(this_ind)], size = 250)
+
+    # Calculate MAD threshold to mark non-movement
+    baseline_dat = filtered_envs[:, :, :, :pre_stim]
+    baseline_med = np.median(baseline_dat, axis=None)
+    baseline_mad = np.median(np.abs(baseline_dat - baseline_med), axis=None)
+    filtered_MAD_threshold = baseline_med + 3*baseline_mad
+
+    ##############################
+
     gapes_Li = np.zeros(envs.shape)
 
     segment_dat_list = []
     inds = list(np.ndindex(envs.shape[:3]))
     for this_ind in inds:
-        this_trial_dat = envs[this_ind]
+        # this_trial_dat = envs[this_ind]
+        this_trial_dat = filtered_envs[this_ind]
 
         ### Jenn Li Process ###
         # Get peak indices
-        this_day_prestim_dat = envs[this_ind[0], :, :, :pre_stim]
+        # this_day_prestim_dat = envs[this_ind[0], :, :, :pre_stim]
+        this_day_prestim_dat = filtered_envs[this_ind[0], :, :, :pre_stim]
         gape_peak_inds = JL_process(
                             this_trial_dat, 
                             this_day_prestim_dat,
@@ -108,8 +127,8 @@ else:
             gapes_Li[this_ind][gape_peak_inds] = 1
 
         ### AM Process ###
-        segment_starts, segment_ends, segment_dat = extract_movements(
-            this_trial_dat, size=200)
+        segment_starts, segment_ends, segment_dat = \
+                extract_movements(this_trial_dat)
 
         # Threshold movement lengths
         segment_starts, segment_ends, segment_dat = threshold_movement_lengths(
@@ -158,6 +177,7 @@ else:
     gape_match_cols = ['day_ind','taste,','trial']
 
     score_bounds_list = []
+    score_inds = []
     for ind, row in tqdm(gape_frame.iterrows()):
         day_ind = row.day_ind
         taste = row.taste
@@ -170,16 +190,40 @@ else:
         if len(wanted_score_table):
             # Check if segment center is in any of the scored segments
             for _, score_row in wanted_score_table.iterrows():
-                if (score_row.segment_bounds[0] <= segment_center) & (segment_center <= score_row.segment_bounds[1]):
+                if (score_row.segment_bounds[0] <= segment_center) & \
+                        (segment_center <= score_row.segment_bounds[1]):
                     gape_frame.loc[ind, 'scored'] = True
                     gape_frame.loc[ind, 'event_type'] = score_row.event  
                     score_bounds_list.append(score_row.segment_bounds)
+                    score_inds.append(ind)
                     break
                 else:
                     gape_frame.loc[ind, 'scored'] = False
 
-    scored_gape_frame = gape_frame.loc[gape_frame.scored == True]
-    scored_gape_frame['score_bounds'] = score_bounds_list
+    # Fill in unscored with nan
+    ind_score_bounds_map = {ind: score_ind for ind, score_ind in zip(score_inds, score_bounds_list)}
+    fin_scored_bounds = [ind_score_bounds_map[i] if i in score_inds else np.nan \
+            for i in range(len(gape_frame))]
+             
+    # scored_gape_frame = gape_frame.loc[gape_frame.scored == True]
+    scored_gape_frame = gape_frame.copy()
+    # Fill 'scored' and 'event_type' nan with False
+    scored_gape_frame['scored'].fillna(False, inplace=True) 
+    scored_gape_frame['score_bounds'] = fin_scored_bounds 
+
+    # Threshold segments using filtered_MAD_threshold
+    # Get amplitude from segment_raw
+    # TODO: this should simply be done using the unscaled features
+    scored_gape_frame['amplitude'] = [np.max(x) for x in scored_gape_frame.segment_raw]
+
+    # If amplitude < threshold, set scored to False
+    # Unless it's already scored
+    for ind, row in scored_gape_frame.iterrows():
+        if (row.scored == False) & (row.amplitude < filtered_MAD_threshold):
+            scored_gape_frame.loc[ind, 'event_type'] = 'none'
+
+    # Drop all nan event_types
+    scored_gape_frame = scored_gape_frame.dropna(subset=['event_type'])
 
     scored_gape_frame.to_pickle(scored_gape_frame_path)
 
@@ -193,6 +237,7 @@ wanted_event_types = [
         'gape',
         'tongue protrusion',
         'unknown mouth movement',
+        'none',
         ]
 
 

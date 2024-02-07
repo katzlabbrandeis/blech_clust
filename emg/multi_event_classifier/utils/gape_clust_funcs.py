@@ -4,7 +4,6 @@ import os
 sys.path.append(os.path.expanduser('~/Desktop/blech_clust/emg/gape_QDA_classifier'))
 import numpy as np
 from scipy.signal import welch
-from scipy.ndimage import white_tophat
 from sklearn.decomposition import PCA
 from detect_peaks import detect_peaks
 import pandas as pd
@@ -12,10 +11,9 @@ from sklearn.preprocessing import StandardScaler
 from QDA_classifier import QDA
 
 
-def extract_movements(this_trial_dat, size = 250):
-    filtered_dat = white_tophat(this_trial_dat, size=size)
-    segments_raw = np.where(filtered_dat)[0]
-    segments = np.zeros_like(filtered_dat)
+def extract_movements(this_trial_dat) 
+    segments_raw = np.where(this_trial_dat)[0]
+    segments = np.zeros_like(this_trial_dat)
     segments[segments_raw] = 1
     segment_starts = np.where(np.diff(segments) == 1)[0]
     segment_ends = np.where(np.diff(segments) == -1)[0]

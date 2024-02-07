@@ -11,6 +11,7 @@ from xgboost import XGBClassifier
 import joblib
 import json
 from matplotlib import patches 
+from scipy.ndimage import white_tophat
 
 code_dir = os.path.expanduser('~/Desktop/blech_clust/emg/multi_event_classifier')
 sys.path.append(code_dir)
@@ -50,6 +51,11 @@ def get_emg_envs(data_dir, channel_pattern='emgAD'):
     env = np.load(env_file)
     return env
 
+##############################
+plot_dir = os.path.join(code_dir, 'plots')
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)
+
 ############################################################
 # Load Classifier
 ############################################################
@@ -87,14 +93,28 @@ pre_stim = 2000
 post_stim = 5000
 gapes_Li = np.zeros(envs.shape)
 
+############################## 
+# Preprocessing
+############################## 
+filtered_envs = np.zeros(envs.shape)
+inds = np.array(list(np.ndindex(envs.shape[:3])))
+for this_ind in tqdm(inds):
+    filtered_envs[tuple(this_ind)] = white_tophat(envs[tuple(this_ind)], size = 250)
+
+##############################
+
+gapes_Li = np.zeros(envs.shape)
+
 segment_dat_list = []
 inds = list(np.ndindex(envs.shape[:3]))
 for this_ind in inds:
-    this_trial_dat = envs[this_ind]
+    # this_trial_dat = envs[this_ind]
+    this_trial_dat = filtered_envs[this_ind]
 
     ### Jenn Li Process ###
     # Get peak indices
-    this_day_prestim_dat = envs[this_ind[0], :, :, :pre_stim]
+    # this_day_prestim_dat = envs[this_ind[0], :, :, :pre_stim]
+    this_day_prestim_dat = filtered_envs[this_ind[0], :, :, :pre_stim]
     gape_peak_inds = JL_process(
                         this_trial_dat, 
                         this_day_prestim_dat,
@@ -105,13 +125,19 @@ for this_ind in inds:
         gapes_Li[this_ind][gape_peak_inds] = 1
 
     ### AM Process ###
-    segment_starts, segment_ends, segment_dat = extract_movements(
-        this_trial_dat, size=200)
+    segment_starts, segment_ends, segment_dat = \
+            extract_movements(this_trial_dat) 
 
     # Threshold movement lengths
     segment_starts, segment_ends, segment_dat = threshold_movement_lengths(
         segment_starts, segment_ends, segment_dat, 
         min_len = 50, max_len= 500)
+
+    # plt.plot(this_trial_dat)
+    # for i in range(len(segment_starts)):
+    #     plt.plot(np.arange(segment_starts[i], segment_ends[i]),
+    #              segment_dat[i], linewidth = 5, alpha = 0.5)
+    # plt.show()
 
     (feature_array,
      feature_names,
@@ -124,7 +150,9 @@ for this_ind in inds:
     merged_dat = [feature_array, segment_dat, segment_bounds] 
     segment_dat_list.append(merged_dat)
 
-gape_frame, scaled_features, _ = gen_gape_frame(segment_dat_list, gapes_Li, inds, scaler)
+gape_frame, scaled_features, scaler_obj = \
+        gen_gape_frame(segment_dat_list, gapes_Li, inds)
+
 # Bounds for gape_frame are in 0-7000 time
 # Adjust to make -2000 -> 5000
 # Adjust segment_bounds by removing pre_stim
@@ -207,7 +235,7 @@ plt.show()
 wanted_day_ind = 0
 wanted_frame = gape_frame[gape_frame.day_ind == wanted_day_ind]
 
-cmap = plt.get_cmap('Set1')
+cmap = plt.get_cmap('tab10')
 # Plot all tastes on same plot
 taste_inds = gape_frame.taste.unique()
 trial_inds = gape_frame.groupby('taste').trial.unique()
@@ -253,7 +281,9 @@ for i, this_taste in tqdm(enumerate(taste_inds)):
     # Set legend at bottom
     handles = [patches.Patch(color=cmap(key), label=val) for key, val in inverse_y_map.items()]
     fig.legend(handles=handles, loc='lower center', ncol=len(inverse_y_map))
-plt.show()
+    fig.savefig(os.path.join(plot_dir, f'taste_{this_taste}_events.png'))
+    plt.close(fig)
+# plt.show()
 
 fig, ax = plt.subplots(1, len(taste_inds), figsize=(20, 5),
                        sharex=True, sharey=True)
@@ -290,4 +320,7 @@ fig.legend(handles=handles, loc='lower center', ncol=len(inverse_y_map))
 fig.suptitle('Inferrred Mouth Events')
 plt.tight_layout()
 plt.subplots_adjust(top=0.9, bottom=0.2)
-plt.show()
+# plt.show()
+fig.savefig(os.path.join(plot_dir, 'inferred_mouth_events.png'),
+            bbox_inches='tight')
+plt.close(fig)
