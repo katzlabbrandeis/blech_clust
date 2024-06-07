@@ -73,7 +73,14 @@ DIR=/path/to/raw/data/files  #save the path of the target Intan data to be sorte
 python blech_exp_info.py $DIR  # Generate metadata and electrode layout  
 ```
 Once you've started running the script, it will ask you to "fill in car groups". Go to the intan data folder, where you'll find a file named ```[...]_electrode_layout.csv```. Open this file in a spreadsheet editor, and fill in the ```CAR_group``` column. You should give all of the electrodes implanted in the same bundle the same identifier, and use different identifiers for different bundles (e.g. all electrodes from a bundle in right GC are called ```GC1```, and all electrodes from a bundle in left GC are called ```GC2```). Once you've edited the .csv, return to the terminal and type y/enter.
-Next, you'll be asked to provide indices for the intan digital inputs.
+Next, you'll be asked to provide indices for the intan digital inputs. The script will have printed the available inputs immediately above, looking something like this:
+```
+(0, 'board-DIN-09.dat'),
+(1, 'board-DIN-11.dat'),
+(2, 'board-DIN-12.dat'),
+(3, 'board-DIN-13.dat')
+```
+
 
 ```
 bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP  
