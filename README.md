@@ -64,7 +64,7 @@ pip install -r neuRecommend/requirements.txt
 ![nomnoml (1)](https://github.com/abuzarmahmood/blech_clust/assets/12436309/3a44e1a7-af29-4f48-8aa1-427b3e983a81)
 
 
-### Example workflow
+### Workflow Walkthrough
 Open a terminal, and run:
 ```
 cd /path/to/blech_clust #make the blech_clust repository your working directory
