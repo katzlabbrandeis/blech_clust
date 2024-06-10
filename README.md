@@ -72,14 +72,18 @@ conda activate blech_clust #activate blech_clust
 DIR=/path/to/raw/data/files  #save the path of the target Intan data to be sorted
 python blech_exp_info.py $DIR  # Generate metadata and electrode layout  
 ```
-Once you've started running the script, it will ask you to "fill in car groups". Go to the intan data folder, where you'll find a file named ```[...]_electrode_layout.csv```. Open this file in a spreadsheet editor, and fill in the ```CAR_group``` column. You should give all of the electrodes implanted in the same bundle the same identifier, and use different identifiers for different bundles (e.g. all electrodes from a bundle in right GC are called ```GC1```, and all electrodes from a bundle in left GC are called ```GC2```). Once you've edited the .csv, return to the terminal and type y/enter.
-Next, you'll be asked to provide indices for the intan digital inputs. The script will have printed the available inputs immediately above, looking something like this:
+Once you've started running the script, it will ask you to "fill in car groups". Go to the intan data folder, where you'll find a file named ```[...]_electrode_layout.csv```. Open this file in a spreadsheet editor, and fill in the ```CAR_group``` column. You should give all of the electrodes implanted in the same bundle the same identifier, and use different identifiers for different bundles (e.g. all electrodes from a bundle in right GC are called ```GC1```, and all electrodes from a bundle in left GC are called ```GC2```). Once you've edited the .csv, return to the terminal and type ```y``` ```enter```.
+Next, you'll be asked to provide indices for the intan digital inputs. The script will have printed the available inputs immediately above, looking something like this, though the specific files may vary:
 ```
 (0, 'board-DIN-09.dat'),
 (1, 'board-DIN-11.dat'),
 (2, 'board-DIN-12.dat'),
 (3, 'board-DIN-13.dat')
 ```
+These are the files for the Intan digital inputs that blech_clust has detected in your data folder, which should correspond to the on/off times of each stimulus presentation. You can select as many or as few as you'd like to be included in later steps in the analysis; they don't impact initial spike-sorting. In this case, if we wanted to include DINs 11 and 13 but not 9 or 12, we would type ```1,3``` ```enter``` in the terminal, using the indices corresponding to the desired DINs.
+Next, you'll see this dialog: ```Tastes names used (IN ORDER, anything separated)  :: "x" to exit ::```, asking to provide taste names for each of your selected DINs. Supposing that DIN 11 was associated with DI H2O, and DIN 13 was 300mM sucrose, we would enter ```Water,Sucrose``` ```enter```, leaving off the molarity, which will be provided in the next step.
+That prompt (```Corresponding concs used (in M, IN ORDER, COMMA separated)  :: "x" to exit ::```) should immediately follow. This requires numeric inputs, so for our stimuli of DI H2O and 300mM sucrose, the appropriate input would be ```0,0.3``` ```enter```, giving the molarity of Water as 0, and converting mM to M in the sucrose concentration.
+The next prompt (```Enter palatability rankings used (anything separated), higher number = more palatable  :: "x" to exit ::```) asks for palatability rankings for the stimuli. This requires a numeric input > 0, but does not need to be integer, and accepts duplicate values (e.g. ```4,3,2,1``` is fine, ```0.4,0.3,0.2,0.1``` is also fine, even ```3,2,2,1``` is fine, but ```2,1,1,0``` is not). In our water/sucrose example, ```1,2``` ```enter``` would be an appropriate entry.
 
 
 ```
