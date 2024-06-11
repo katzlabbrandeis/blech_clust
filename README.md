@@ -98,6 +98,8 @@ Our final prompt (```::: Please enter any notes about the experiment.```) just a
 
 Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
 
+While you're there, you should also copy and adapt the other two params templates (`waveform_classifier_params.json` and `emg_params.json`), or you will probably be haunted by errors.
+
 ```
 bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP  
 python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)  
