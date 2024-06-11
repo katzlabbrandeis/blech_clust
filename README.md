@@ -65,6 +65,7 @@ pip install -r neuRecommend/requirements.txt
 
 
 ### Workflow Walkthrough
+This section is being expanded, in progress.
 Open a terminal, and run:
 ```
 cd /path/to/blech_clust #make the blech_clust repository your working directory
@@ -88,15 +89,7 @@ The next prompt (```Enter palatability rankings used (anything separated), highe
 The next prompt (```Laser dig_in index, <BLANK> for none::: "x" to exit ::```) asks for the index of the DIN corresponding to laser activations. If DIN-09 was the channel for the laser, for example, we would type ```0``` ```enter```, using the index corresponding with DIN-09. Alternatively, if we had no laser, we would just hit ```enter``` to proceed.
 Our final prompt (```::: Please enter any notes about the experiment.```) just asks for notes. Enter any pertinent comments, or just hit ```enter``` to finish running ```blech_exp_info.py```
 
-Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed. Likely updates include: 
-####### Need to make belch_clust compatible with IntanRead.R; currently 
-Traceback (most recent call last):
-  File "blech_clust.py", line 141, in <module>
-    dig_in_int = sorted([int(x) for x in dig_in_int])
-  File "blech_clust.py", line 141, in <listcomp>
-    dig_in_int = sorted([int(x) for x in dig_in_int])
-ValueError: invalid literal for int() with base 10: 'breakAlign_port2'
-So, blechclust is trying to import the DIN names as int, which is fine in the default convention, but not if you rename the DINs
+Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
 
 ```
 bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP  
