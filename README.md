@@ -65,7 +65,8 @@ pip install -r neuRecommend/requirements.txt
 
 
 ### Workflow Walkthrough
-This section is being expanded, in progress.
+*This section is being expanded, in progress.*
+
 Open a terminal, and run:
 ```
 cd /path/to/blech_clust #make the blech_clust repository your working directory
@@ -82,11 +83,17 @@ The script will then search your data folder for DIN files, and will print somet
 (3, 'board-DIN-13.dat')
 ```
 These are the files for the Intan digital inputs that blech_clust has detected in your data folder, which should correspond to the on/off times of each stimulus presentation, and/or laser activations.
+
 You'll also be given this prompt: ```Taste dig_ins used (IN ORDER, anything separated)  :: "x" to exit ::```. You can select as many or as few as you'd like to be included in later steps in the analysis; they don't impact initial spike-sorting. In this case, if we wanted to include DINs 11 and 13 but not 09 or 12, we would type ```1,3``` ```enter``` in the terminal, using the indices corresponding to the desired DINs. If you have a DIN for laser activations, do not include that here; it will be requested at a later step.
+
 Next, you'll see this dialog: ```Tastes names used (IN ORDER, anything separated)  :: "x" to exit ::```, asking to provide taste names for each of your selected DINs. Supposing that DIN-11 was associated with DI H2O, and DIN-13 was 300mM sucrose, we would enter ```Water,Sucrose``` ```enter```, leaving off the molarity, which will be provided in the next step.
+
 That prompt (```Corresponding concs used (in M, IN ORDER, COMMA separated)  :: "x" to exit ::```) should immediately follow. This requires numeric inputs, so for our stimuli of DI H2O and 300mM sucrose, the appropriate input would be ```0,0.3``` ```enter```, giving the molarity of Water as 0, and converting mM to M in the sucrose concentration.
+
 The next prompt (```Enter palatability rankings used (anything separated), higher number = more palatable  :: "x" to exit ::```) asks for palatability rankings for the stimuli. This requires a numeric input > 0 and <= the number of stimuli, does not need to be integer, and accepts duplicate values (e.g. ```4,3,2,1``` is fine, ```0.4,0.3,0.2,0.1``` is also fine, even ```3,2,2,1``` is fine, but ```2,1,1,0``` is not, nor is ```5,4,3,2```). In our water/sucrose example, ```1,2``` ```enter``` would be an appropriate entry.
+
 The next prompt (```Laser dig_in index, <BLANK> for none::: "x" to exit ::```) asks for the index of the DIN corresponding to laser activations. If DIN-09 was the channel for the laser, for example, we would type ```0``` ```enter```, using the index corresponding with DIN-09. Alternatively, if we had no laser, we would just hit ```enter``` to proceed.
+
 Our final prompt (```::: Please enter any notes about the experiment.```) just asks for notes. Enter any pertinent comments, or just hit ```enter``` to finish running ```blech_exp_info.py```
 
 Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
