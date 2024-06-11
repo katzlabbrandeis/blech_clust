@@ -7,6 +7,14 @@ choose_folder() {
 
 DIR=$1
 
+# Check if the required file exists
+required_file="./params/waveform_classifier_params.json"
+if [ ! -f "$required_file" ]; then
+    echo "=== Waveform Classifier Params file not found. ==="
+    echo "==> Please copy [[ ./params/_templates/waveform_classifier_params.json ]] to [[ $required_file ]] and update as needed."
+    exit 1
+fi
+
 # Check if DIR exists and is a directory
 if [ ! -d "$DIR" ]; then
     echo "Directory does not exist or was not provided. Please identify your data folder."
