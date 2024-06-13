@@ -138,7 +138,7 @@ if file_type == ['one file per channel']:
     # Pull out the digital input channels used,
     # and convert them to integers
     dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
-    dig_in_int = sorted([(x) for x in dig_in_int])
+    dig_in_int = sorted([int(x) for x in dig_in_int])
 
 elif file_type == ['one file per signal type']:
 
