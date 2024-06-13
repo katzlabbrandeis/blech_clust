@@ -6,24 +6,19 @@ DIG_INs and AMP channels
 import argparse
 import glob
 import os
+import sys
 
-import easygui
 import numpy as np
 import pylab as plt
 from tqdm import tqdm
 
+from utils.blech_utils import imp_metadata
+
 # Get name of directory with the data files
 # Create argument parser
 parser = argparse.ArgumentParser(description = 'Plots DIG_INs and AMP files')
-parser.add_argument('dir_name',  help = 'Directory containing data files')
-args = parser.parse_args()
-
-if args.dir_name:
-    dir_path = args.dir_name
-    if dir_path[-1] != '/':
-        dir_path += '/'
-else:
-    dir_path = easygui.diropenbox(msg = 'Please select data directory')
+metadata_handler = imp_metadata(sys.argv)
+dir_path = metadata_handler.dir_name
 
 # Create plot dir
 plot_dir = os.path.join(dir_path, "channel_profile_plots")
