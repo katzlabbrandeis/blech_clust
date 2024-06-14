@@ -243,12 +243,12 @@ dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
 
 plt.scatter(dig_in_markers[1], dig_in_markers[0], s=50, marker='|', c='k')
 # If there is a laser_dig_in, mark laser trials with axvline
-if laser_dig_in is not None:
+if laser_dig_in is not None and len(laser_dig_in) > 0:
     laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
     for marker in laser_markers:
         plt.axvline(dig_in_markers[1][marker], c='yellow', lw=2, alpha = 0.5,
                     zorder = -1)
-plt.yticks(np.arange(len(dig_in_str)), dig_in_str)
+plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
 plt.title('Digital Inputs')
 plt.xlabel('Time (s)')
 plt.ylabel('Digital Input Channel')

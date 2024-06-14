@@ -11,7 +11,7 @@ def read_digins(hdf5_name, dig_in_int, dig_in_file_list):
 	print('Reading dig-ins')
 	for i, (dig_int, dig_in_filename) in \
 			enumerate(zip(dig_in_int, dig_in_file_list)):
-		dig_in_name = f'dig_in_{dig_int:02d}'
+		dig_in_name = f'dig_in_{dig_int}'
 		print(f'Reading {dig_in_name}')
 		inputs = np.fromfile(dig_in_filename,
 					   dtype = np.dtype('uint16'))
