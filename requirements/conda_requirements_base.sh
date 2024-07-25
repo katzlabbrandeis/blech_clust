@@ -1,4 +1,5 @@
 conda install -c conda-forge bokeh=1.4.0 -y
+conda install -c conda-forge dask=2021.10.0 -y
 conda install -c conda-forge datashader=0.13.0 -y
 conda install -c conda-forge imageio=2.6.1 -y
 conda install -c conda-forge matplotlib=3.3.4 -y
