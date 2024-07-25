@@ -29,22 +29,21 @@ import os
 os.environ['OMP_NUM_THREADS']='1'
 os.environ['MKL_NUM_THREADS']='1'
 
-from utils.blech_utils import (
-    imp_metadata,
-)
+from utils.blech_utils import imp_metadata
 import utils.blech_process_utils as bpu
 from utils import memory_monitor as mm
 import pylab as plt
 import json
 import sys
 import numpy as np
+import warnings
+
+# Ignore specific warning
+warnings.filterwarnings(action="ignore", category=UserWarning, message="Trying to unpickle estimator")
 
 # Set seed to allow inter-run reliability
 # Also allows reusing the same sorting sheets across runs
 np.random.seed(0)
-
-from utils.blech_utils import imp_metadata
-
 
 ############################################################
 # Load Data
@@ -220,7 +219,9 @@ else:
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
     cluster_handler.create_output_plots(params_dict)
-    cluster_handler.create_classifier_plots(classifier_handler)
+    if classifier_params['use_classifier'] and \
+        classifier_params['use_neuRecommend']:
+        cluster_handler.create_classifier_plots(classifier_handler)
 
 
 # Make file for dumping info about memory usage

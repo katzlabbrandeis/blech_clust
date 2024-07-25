@@ -45,7 +45,7 @@ class cluster_handler():
                  data_dir, electrode_num, cluster_num,
                  spike_set, fit_type = 'manual'):
         assert fit_type in ['manual', 'auto'], 'fit_type must be manual or auto'
-        self.check_classifier_data_exists(data_dir)
+
 
         self.params_dict = params_dict
         self.dat_thresh = 10e3
@@ -62,12 +62,7 @@ class cluster_handler():
             'spike_waveforms/electrode*/clf_prob.npy'))
 
         if len(clf_list) == 0:
-            print()
-            print('======================================')
-            print('Classifier output not found, please run blech_run_process.sh with classifier.')
-            print('======================================')
-            print()
-            exit()
+            raise Exception('Classifier output not found, please run blech_run_process.sh with classifier.')
 
     def return_training_set(self, data):
         """
@@ -265,6 +260,8 @@ class cluster_handler():
 
         Input data can come from classifier_handler
         """
+
+        self.check_classifier_data_exists(data_dir)
 
         classifier_pred = classifier_handler.clf_pred
         classifier_prob = classifier_handler.clf_prob
