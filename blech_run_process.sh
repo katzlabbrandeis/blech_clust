@@ -7,6 +7,21 @@ choose_folder() {
 
 DIR=$1
 
+# Check if the result log exists, ask whether to overwrite
+LOG_FILE="$DIR/results.log"
+if [ -f "$LOG_FILE" ]; then
+    while true; do
+    	read -p "results.log detected, overwrite existing log? ([y]/n) :: " yn
+        yn=${yn:-y}  # Default to 'y' if no input is provided
+    	case $yn in
+   	    [Yy]* ) echo "Overwriting existing log";rm "$LOG_FILE"; break;;
+    	    [Nn]* ) echo "Using existing log"; break;;
+    	    * ) echo "Please answer yes or no.";;
+    	esac
+    done
+fi
+
+
 # Check if the required file exists
 required_file="./params/waveform_classifier_params.json"
 if [ ! -f "$required_file" ]; then
