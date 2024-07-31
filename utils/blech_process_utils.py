@@ -1041,7 +1041,7 @@ def gen_window_plots(
                                  int(windows_in_data*(window_len * sampling_rate)),
                                  int(windows_in_data))
     window_markers = np.array([int(x) for x in window_markers])
-    chosen_window_inds = np.vectorize(np.int)(np.sort(np.random.choice(
+    chosen_window_inds = np.vectorize(int)(np.sort(np.random.choice(
         np.arange(windows_in_data), window_count)))
     chosen_window_markers = [(window_markers[x-1], window_markers[x])
                              for x in chosen_window_inds]
