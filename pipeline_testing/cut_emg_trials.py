@@ -22,7 +22,7 @@ os.chdir(metadata_handler.dir_name)
 # # Chop down number of trials to have close to n total trials
 # total_trials = 10
 # data = [np.load(f) for f in filenames]
-# trials_per_digin = np.int(np.ceil(total_trials/data[0].shape[1]))
+# trials_per_digin = int(np.ceil(total_trials/data[0].shape[1]))
 # data[0] = data[0][:,:,:trials_per_digin]
 # data[1] = data[1][:,:trials_per_digin]
 # 
