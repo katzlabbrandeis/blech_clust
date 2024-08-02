@@ -77,6 +77,7 @@ class cluster_handler():
         Cluster waveforms
         """
         model = gmm(
+            random_state=0,
             n_components=clusters,
             max_iter=self.params_dict['clustering_params']['num_iter'],
             n_init=self.params_dict['clustering_params']['num_restarts'],
@@ -102,6 +103,7 @@ class cluster_handler():
             bgm_train_data = train_set
 
         g = BGM(
+                random_state=0,
                 n_components=clusters,
                 max_iter=self.params_dict['clustering_params']['num_iter'],
                 n_init=self.params_dict['clustering_params']['num_restarts'],
@@ -736,6 +738,7 @@ class classifier_handler():
 
         # Don't need multiple restarts, this is just for visualization, not actual clustering
         gmm_model = gmm(
+            random_state=0,
             n_components=5,
             max_iter=self.params_dict['clustering_params']['num_iter'],
             n_init=1,
