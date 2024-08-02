@@ -1,4 +1,26 @@
 ############################################################
+# First handle arguments
+# This allows the -h flag to run without loading imports
+############################################################
+import argparse
+
+############################################################
+# Input from user and setup data 
+############################################################
+# Get directory where the hdf5 file sits, and change to that directory
+# Get name of directory with the data files
+# Create argument parser
+parser = argparse.ArgumentParser(
+        description = 'Spike extraction and sorting script')
+parser.add_argument('dir-name',
+                    help = 'Directory containing data files')
+parser.add_argument('--show-plot', '-p', 
+        help = 'Show waveforms while iterating (True/False)', default = 'True')
+parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
+                    default = None)
+args = parser.parse_args()
+
+############################################################
 # Imports and Settings
 ############################################################
 import os
@@ -6,7 +28,6 @@ import tables
 import numpy as np
 import pylab as plt
 from sklearn.mixture import GaussianMixture
-import argparse
 import pandas as pd
 import matplotlib
 from glob import glob
@@ -22,23 +43,6 @@ import utils.blech_post_process_utils as post_utils
 # Set seed to allow inter-run reliability
 # Also allows reusing the same sorting sheets across runs
 np.random.seed(0)
-
-############################################################
-# Input from user and setup data 
-############################################################
-# Get directory where the hdf5 file sits, and change to that directory
-# Get name of directory with the data files
-# Create argument parser
-parser = argparse.ArgumentParser(
-        description = 'Spike extraction and sorting script')
-parser.add_argument('--dir-name',  '-d', 
-                    help = 'Directory containing data files')
-parser.add_argument('--show-plot', '-p', 
-        help = 'Show waveforms while iterating (True/False)', default = 'True')
-parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
-                    default = None)
-args = parser.parse_args()
-
 
 ##############################
 # Instantiate sort_file_handler
