@@ -18,7 +18,6 @@ from glob import glob
 import shutil
 import matplotlib
 import pandas as pd
-matplotlib.use('Agg')
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram
 from matplotlib.patches import ConnectionPatch
