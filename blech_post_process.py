@@ -178,6 +178,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 
         # Cluster the data
         g = GaussianMixture(
+                random_state = 0,
                 n_components = n_clusters, 
                 covariance_type = 'full', 
                 tol = thresh, 
