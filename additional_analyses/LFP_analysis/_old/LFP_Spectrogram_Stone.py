@@ -347,8 +347,8 @@ for taste in trange(len(df['Taste'].unique()), desc = 'Taste'):
         #create processing variables 
         mean_dem = np.size(query,axis=0) #ChannelsXTrials
         mean_pwelch = [] #empy array for pwelch values
-        big_norm_P = np.empty([mean_dem,np.int((signal_window/2)+1),np.int(max_pow)])
-        big_mean_P = np.empty([mean_dem,np.int((signal_window/2)+1),np.int(max_pow)])
+        big_norm_P = np.empty([mean_dem,int((signal_window/2)+1),int(max_pow)])
+        big_mean_P = np.empty([mean_dem,int((signal_window/2)+1),int(max_pow)])
         
         for lfp in range(len(query)):
                 
