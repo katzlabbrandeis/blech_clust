@@ -14,6 +14,7 @@ from utils.blech_process_utils import gen_isi_hist
 from utils import blech_waveforms_datashader
 from datetime import datetime
 from scipy.stats import chisquare
+from tqdm import tqdm
 
 
 class sort_file_handler():
@@ -527,21 +528,34 @@ def delete_raw_recordings(hdf5_name):
     print("Removing raw recordings from hdf5 file")
     print()
 
-    try:
-        with tables.open_file(hdf5_name, 'r+') as hf5:
+    # Remove children node one a time so we can report progress
+    with tables.open_file(hdf5_name, 'r+') as hf5:
+        if '/raw' in hf5:
+            removed_bool = False
+            raw_children = hf5.list_nodes('/raw')
+            len_raw_children = len(raw_children)
+            # Get children nodes under /raw
+            for i, child in enumerate(tqdm(raw_children)):
+                child_name = child._v_name
+                hf5.remove_node('/raw', child_name)
+                tqdm.write(f"Removed {child_name}, {i+1}/{len_raw_children}")
             # Remove the raw recordings from the hdf5 file
             hf5.remove_node('/raw', recursive = 1)
-        print("Raw recordings removed")
+            print("Raw recordings removed")
+            print('==============================')
+        else:
+            removed_bool = True
+            print("Raw recordings have already been removed, so moving on ..")
+            print('==============================')
+
+    if not removed_bool:
         os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 "
             "--complib=blosc " + hdf5_name + " " + hdf5_name[:-3] + "_repacked.h5")
         # Delete the old (raw and big) hdf5 file
         os.system("rm " + hdf5_name)
         print("File repacked")
-        print('==============================')
         return True
-    except:
-        print("Raw recordings have already been removed, so moving on ..")
-        print('==============================')
+    else:
         return False
 
 def generate_violations_warning(

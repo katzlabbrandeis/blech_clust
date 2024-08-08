@@ -145,11 +145,11 @@ def select_clusters(data_dir):
 @task(log_prints=True)
 def post_process(data_dir):
     script_name = 'blech_post_process.py'
+    dir_pos = data_dir
     plot_flag = '-p ' + 'False'
-    dir_flag = '-d' + data_dir
     sorted_units_path = glob(os.path.join(data_dir, '*sorted_units.csv'))[0]
     file_flag = '-f' + sorted_units_path
-    process = Popen(["python", script_name, plot_flag, dir_flag, file_flag],
+    process = Popen(["python", script_name, dir_pos, plot_flag, file_flag],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)

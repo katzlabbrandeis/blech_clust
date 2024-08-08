@@ -12,7 +12,7 @@ import argparse
 # Create argument parser
 parser = argparse.ArgumentParser(
         description = 'Spike extraction and sorting script')
-parser.add_argument('dir-name',
+parser.add_argument('dir_name',
                     help = 'Directory containing data files')
 parser.add_argument('--show-plot', '-p', 
         help = 'Show waveforms while iterating (True/False)', default = 'True')
