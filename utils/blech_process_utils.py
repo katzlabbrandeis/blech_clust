@@ -262,7 +262,7 @@ class cluster_handler():
         Input data can come from classifier_handler
         """
 
-        self.check_classifier_data_exists(data_dir)
+        self.check_classifier_data_exists(self.data_dir)
 
         classifier_pred = classifier_handler.clf_pred
         classifier_prob = classifier_handler.clf_prob
