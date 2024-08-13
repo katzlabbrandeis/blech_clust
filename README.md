@@ -61,7 +61,8 @@ pip install -r neuRecommend/requirements.txt
 - blech_clust_post.sh : Runs steps 7-14   
 
 ### Operations Workflow Visual 
-![nomnoml (1)](https://github.com/abuzarmahmood/blech_clust/assets/12436309/3a44e1a7-af29-4f48-8aa1-427b3e983a81)
+![nomnoml](https://github.com/user-attachments/assets/68f4d3b1-9ce7-4f1a-8eb2-b107d5e49308)
+
 
 
 ### Workflow Walkthrough
