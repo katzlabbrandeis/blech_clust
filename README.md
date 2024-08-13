@@ -23,12 +23,12 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 5. `python blech_post_process.py`  
     - Add selected units to HDF5 file for further processing  
 
-6. `bash blech_run_QA.sh`  
-    - Run quality asurance steps: 1) spike-time collisions across units, 2) drift within units
-7. `python blech_units_plot.py`  
+6. `python blech_units_plot.py`  
     - Plot waveforms of selected spikes  
-8. `python blech_make_arrays.py`  
+7. `python blech_make_arrays.py`  
     - Generate spike-train arrays  
+8. `bash blech_run_QA.sh`  
+    - Run quality asurance steps: 1) spike-time collisions across units, 2) drift within units
 9. `python blech_make_psth.py`  
     - Plots PSTHs and rasters for all selected units  
 10. `python blech_palatability_identity_setup.py`  
@@ -61,7 +61,8 @@ pip install -r neuRecommend/requirements.txt
 - blech_clust_post.sh : Runs steps 7-14   
 
 ### Operations Workflow Visual 
-![nomnoml (1)](https://github.com/abuzarmahmood/blech_clust/assets/12436309/3a44e1a7-af29-4f48-8aa1-427b3e983a81)
+![nomnoml](https://github.com/user-attachments/assets/68f4d3b1-9ce7-4f1a-8eb2-b107d5e49308)
+
 
 
 ### Workflow Walkthrough
@@ -118,10 +119,10 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_clust] -> [blech_common_average_reference]
 - - [blech_common_average_reference] -> [bash blech_run_process.sh]
 - - [bash blech_run_process.sh] -> [blech_post_process]
-- - [blech_post_process] -> [bash blech_run_QA.sh]
-- - [bash blech_run_QA.sh] -> [blech_units_plot]
+- - [blech_post_process] -> [blech_units_plot]
 - - [blech_units_plot] -> [blech_make_arrays]
-- - [blech_make_arrays] -> [blech_make_psth]
+- - [blech_make_arrays] -> [bash blech_run_QA.sh]
+- - [bash blech_run_QA.sh] -> [blech_make_psth]
 - - [blech_make_psth] -> [blech_palatability_identity_setup]
 - - [blech_palatability_identity_setup] -> [blech_overlay_psth]
 
