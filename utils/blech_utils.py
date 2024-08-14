@@ -7,6 +7,48 @@ import glob
 import json
 import pandas as pd
 
+class pipeline_graph_check():
+    """
+    Check that parent scripts executed properly before running child scripts 
+    
+    1) Check that computation graph is present
+    2) Check that all scripts mentioned in computation graph are present
+    3) For current run script, check that previous run script is present and executed successfully
+    4) If prior exeuction is not present or failed, generate warning, give user option to override, else exit
+    """
+
+    def load_graph(self, graph_path):
+        """
+        Load computation graph from file, if file is present
+        """
+        pass
+
+    def check_graph(self):
+        """
+        Check that all scripts mentioned in computation graph are present
+        """
+        pass
+
+    def check_previous(self):
+        """
+        Check that previous run script is present and executed successfully
+        """
+        pass
+
+    def write_to_log(self):
+        """
+        Write to log file
+        """
+        pass
+
+    def generate_warning(self):
+        """
+        Generate warning
+        """
+        pass
+
+    
+
 def entry_checker(msg, check_func, fail_response):
     check_bool = False
     continue_bool = True
