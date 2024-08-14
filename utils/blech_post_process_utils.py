@@ -34,6 +34,8 @@ class sort_file_handler():
             sort_table.sort_values(
                     ['len_cluster','Split'],
                     ascending=False, inplace=True)
+            if 'level_0' in sort_table.columns:
+                sort_table.drop(columns=['level_0'], inplace=True)
             sort_table.reset_index(inplace=True)
             sort_table['unit_saved'] = False
             self.sort_table = sort_table
@@ -160,7 +162,7 @@ def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
             ax[cluster_num,0].axis('off')
             ax[cluster_num, 1].imshow(waveform_plot,aspect='auto');
             ax[cluster_num,1].axis('off')
-    fig.suptitle('Are these the neurons you want to select?')
+    fig.suptitle('Are these the neurons you want to select? Press q to exit plot')
     fig.tight_layout()
     plt.show()
 
@@ -216,12 +218,17 @@ def generate_cluster_plots(
     plt.tight_layout()
     plt.show()
 
-def get_clustering_params():
+def get_clustering_params(this_sort_file_handler):
     """
     Ask user for clustering parameters
     """
     # Get clustering parameters from user
-    n_clusters = int(input('Number of clusters (default=5): ') or "5")
+    if (this_sort_file_handler.sort_table is not None):
+        dat_row = this_sort_file_handler.current_row
+        n_clusters = int(input(f'Number of clusters (sort file={round(dat_row.Split)}): ') or dat_row.Split)
+    else:    
+        n_clusters = int(input('Number of clusters (default=5): ') or "5")
+    
     fields = [
             'Max iterations',
             'Convergence criterion',
@@ -982,7 +989,7 @@ class split_merge_signal:
                 check_func = lambda x: x in ['y','n'],
                 fail_response = 'Please enter (y/n)')
         if continue_bool:
-            if msg == 'y': 
+            if msg == 'y':
                 self.split = True
             elif msg == 'n': 
                 self.split = False
@@ -990,7 +997,7 @@ class split_merge_signal:
     def check_split_sort_file(self):
         if self.this_sort_file_handler.sort_table is not None:
             dat_row = self.this_sort_file_handler.current_row
-            if len(dat_row.Split) > 0:
+            if not (dat_row.Split == ''):
                 self.split=True
             else:
                 self.split=False
