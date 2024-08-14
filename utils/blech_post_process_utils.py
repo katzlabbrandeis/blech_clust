@@ -89,8 +89,8 @@ class sort_file_handler():
 
             # Get splits and merges out of the way first
             sort_table.sort_values(
-                ['len_cluster', 'Split'],
-                ascending=False, inplace=True)
+                    ['len_cluster','Split'],
+                    ascending=False, inplace=True)
             if 'level_0' in sort_table.columns:
                 sort_table.drop(columns=['level_0'], inplace=True)
             sort_table.reset_index(inplace=True)
@@ -286,7 +286,6 @@ def generate_cluster_plots(
 
     plt.tight_layout()
     plt.show()
-
 
 def get_clustering_params(this_sort_file_handler):
     """
