@@ -158,7 +158,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         ##############################
         # Get clustering parameters from user
         continue_bool, n_clusters, n_iter, thresh, n_restarts = \
-                post_utils.get_clustering_params()
+                post_utils.get_clustering_params(this_sort_file_handler)
         if not continue_bool: continue
 
         # Make data array to be put through the GMM - 5 components: 
