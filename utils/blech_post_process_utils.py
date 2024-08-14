@@ -225,7 +225,8 @@ def get_clustering_params(this_sort_file_handler):
     # Get clustering parameters from user
     if (this_sort_file_handler.sort_table is not None):
         dat_row = this_sort_file_handler.current_row
-        n_clusters = int(input(f'Number of clusters (sort file={round(dat_row.Split)}): ') or dat_row.Split)
+        split_val = int(re.findall('[0-9]+', str(dat_row.Split))[0])
+        n_clusters = int(input(f'Number of clusters (sort file={split_val})') or split_val)
     else:    
         n_clusters = int(input('Number of clusters (default=5): ') or "5")
     
