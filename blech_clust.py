@@ -36,6 +36,7 @@ dir_name = metadata_handler.dir_name
 # Perform pipeline graph check
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 print(f'Processing : {dir_name}')
 os.chdir(dir_name)
@@ -309,4 +310,5 @@ f.close()
 print('blech_clust.py complete \n')
 print('*** Please check params file to make sure all is good ***\n')
 
-this_pipeline_check.write_to_log(script_path)
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')

@@ -47,6 +47,7 @@ dir_name = os.path.basename(dir_path[:-1])
 
 script_path = os.path.abspath(__file__)
 this_pipeline_check = pipeline_graph_check(dir_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # Extract details from name of folder
 splits = dir_name.split("_")
@@ -381,4 +382,5 @@ json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
 with open(json_file_name, 'w') as file:
     json.dump(fin_dict, file, indent=4)
 
-this_pipeline_check.write_to_log(script_path)
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')

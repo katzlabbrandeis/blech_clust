@@ -57,6 +57,7 @@ data_dir_name = sys.argv[1]
 script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(data_dir_name)
 this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
@@ -236,4 +237,4 @@ f.close()
 print(f'Electrode {electrode_num} complete.')
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path)
+this_pipeline_check.write_to_log(script_path, 'completed')

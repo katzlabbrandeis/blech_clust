@@ -35,6 +35,7 @@ dir_name = metadata_handler.dir_name
 script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 
@@ -212,7 +213,7 @@ hf5.create_array('/ancillary_analysis', 'unscaled_neural_response', unscaled_arr
 hf5.close()
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path)
+this_pipeline_check.write_to_log(script_path, 'completed')
 
 #############################################################
 ## Further ancillary analyses

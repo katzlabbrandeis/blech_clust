@@ -73,6 +73,7 @@ dir_name = metadata_handler.dir_name
 # Perform pipeline graph check
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -339,4 +340,4 @@ if np.any(sig_p_val_vec):
         print('\n', file=f)
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path)
+this_pipeline_check.write_to_log(script_path, 'completed')

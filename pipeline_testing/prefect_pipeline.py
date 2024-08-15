@@ -99,6 +99,14 @@ def run_clean_slate(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
+def mark_exp_info_success(data_dir):
+    script_name = './pipeline_testing/mark_exp_info_success.py'
+    process = Popen(["python", script_name, data_dir],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(process,stderr,stdout)
+
+@task(log_prints=True)
 def run_blech_clust(data_dir):
     script_name = 'blech_clust.py'
     process = Popen(["python", script_name, data_dir],
@@ -281,6 +289,7 @@ def run_spike_test():
     os.chdir(blech_clust_dir)
     reset_blech_clust()
     run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     run_CAR(data_dir)
     run_jetstream_bash(data_dir)
@@ -298,6 +307,7 @@ def run_emg_main_test():
     os.chdir(blech_clust_dir)
     reset_blech_clust()
     run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     make_arrays(data_dir)
     # Chop number of trials down to preserve time

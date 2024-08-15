@@ -101,16 +101,19 @@ class pipeline_graph_check():
             if os.path.exists(self.log_path):
                 with open(self.log_path, 'r') as log_file_connect:
                     log_dict = json.load(log_file_connect)
-                if parent_script in log_dict.keys():
+                if parent_script in log_dict['completed'].keys():
                     return True
                 else:
                     raise ValueError(f'Parent script [{parent_script}] not found in log')
         else:
             raise ValueError(f'Script path [{script_path}] not found in flat graph')
 
-    def write_to_log(self, script_path):
+    def write_to_log(self, script_path, type = 'attempted'):
         """
         Write to log file
+
+        type = 'attempted' : script was attempted
+        type = 'completed' : script was completed
         """
         self.log_path = os.path.join(self.data_dir, 'execution_log.json')
         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -119,11 +122,18 @@ class pipeline_graph_check():
                 log_dict = json.load(log_file_connect)
         else:
             log_dict = {}
-        log_dict[script_path] = current_datetime
+        if type == 'attempted':
+            if 'attempted' not in log_dict.keys():
+                log_dict['attempted'] = {}
+            log_dict['attempted'][script_path] = current_datetime
+        elif type == 'completed':
+            if 'completed' not in log_dict.keys():
+                log_dict['completed'] = {}
+            log_dict['completed'][script_path] = current_datetime
+        # log_dict[script_path] = current_datetime
         with open(self.log_path, 'w') as log_file_connect:
             json.dump(log_dict, log_file_connect, indent = 4)
 
-    
 def entry_checker(msg, check_func, fail_response):
     check_bool = False
     continue_bool = True
