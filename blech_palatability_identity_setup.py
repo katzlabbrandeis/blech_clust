@@ -7,7 +7,7 @@ import os
 import json
 import glob
 import itertools
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 #from scipy.stats import rankdata
 #from scipy.stats import spearmanr
 #from scipy.stats import pearsonr
@@ -30,6 +30,12 @@ print('Make sure you are in the **CORERCT ENVIRONMENT**')
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+
 os.chdir(dir_name)
 
 # Open the hdf5 file
@@ -204,6 +210,9 @@ hf5.create_array('/ancillary_analysis', 'scaled_neural_response', scaled_array)
 hf5.create_array('/ancillary_analysis', 'unscaled_neural_response', unscaled_array)
 
 hf5.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path)
 
 #############################################################
 ## Further ancillary analyses

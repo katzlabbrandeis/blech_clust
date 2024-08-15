@@ -6,10 +6,11 @@ import sys
 import os
 import pandas as pd
 # Get script path
-script_path = os.path.dirname(os.path.realpath(__file__))
-blech_path = os.path.dirname(os.path.dirname(script_path))
+script_path = os.path.realpath(__file__)
+script_dir_path = os.path.dirname(script_path)
+blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 from tqdm import tqdm
 from numba import jit
 
@@ -140,6 +141,11 @@ if __name__ == '__main__':
     # Get name of directory with the data files
     metadata_handler = imp_metadata(sys.argv)
     dir_name = metadata_handler.dir_name
+
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+
     os.chdir(dir_name)
     print(f'Processing : {dir_name}')
 
@@ -227,3 +233,6 @@ if __name__ == '__main__':
 
         from scipy.stats import pearsonr
         print(pearsonr(unit_distances_perc.flatten(), unit_distances.flatten()))
+
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path)

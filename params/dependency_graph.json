@@ -1,32 +1,29 @@
-"graph" : {
-    "." : { 
-    "blech_exp_info.py" : "blech_clust.py",
-    "blech_clust.py" : "blech_common_average_reference.py",
-    "blech_common_average_reference.py" : "blech_process.py",
-    "blech_process.py" : "blech_post_process.py",
-    "blech_post_process.py" : "blech_units_plot.py",
-    "blech_post_process.py" : "blech_make_arrays.py",
-    "blech_make_arrays.py" : "blech_make_psth.py",
-    "blech_make_psth.py" : "blech_palatability_identity_setup.py",
-    "blech_palatability_identity_setup.py" : "blech_overlay_psth.py",
-    "blech_clust.py" : "blech_make_arrays.py",
-    "blech_make_arrays.py" : "./emg/emg_filter.py",
-    },
-    "./utils/qa_utils/" : {
-        "blech_post_process.py" : "unit_similarity.py",
-        "blech_post_process.py" : "drift_check.py",
-    },
-    "./emg/" : {
-        "emg_filter.py" : "emg_freq_setup.py",
-        "emg_freq_setup.py" : "emg_local_BSA_execute.py",
-        "emg_freq_post_process.py" : "emg_freq_plot.py",
-    },
-    "emg_filter" : "emg_freq_setup"
-    "emg_freq_setup" : "bash blech_emg_jetstream_parallel.sh"
-    "bash blech_emg_jetstream_parallel.sh" : "emg_freq_post_process"
-    "emg_freq_post_process" : "emg_freq_plot"
-    QDA (Jenn Li)
-
-    "emg_freq_setup" : "get_gapes_Li"
+{
+    "graph": {
+        "": {
+            "blech_clust.py" : "blech_exp_info.py",
+            "blech_common_avg_reference.py": "blech_clust.py",
+            "blech_make_arrays.py": "blech_clust.py",
+            "blech_process.py": "blech_common_avg_reference.py",
+            "blech_post_process.py": "blech_process.py",
+            "blech_units_plot.py": "blech_post_process.py",
+            "blech_make_psth.py": "blech_make_arrays.py",
+            "emg/emg_filter.py": "blech_make_arrays.py",
+            "blech_palatability_identity_setup.py": "blech_make_psth.py",
+            "blech_overlay_psth.py": "blech_palatability_identity_setup.py",
+            "utils/qa_utils/unit_similarity.py": "blech_post_process.py",
+            "utils/qa_utils/drift_check.py": "blech_post_process.py"
+        },
+        "emg/": {
+            "emg_freq_setup.py": "emg_filter.py",
+            "emg_local_BSA_execute.py": "emg_freq_setup.py",
+            "emg_local_STFT_execute.py": "emg_freq_setup.py",
+            "gape_QDA_classifier/get_gapes_Li.py": "emg_freq_setup.py",
+            "emg_freq_post_process.py": [
+                "emg_local_BSA_execute.py",
+                "emg_local_STFT_execute.py"
+            ],
+            "emg_freq_plot.py": "emg_freq_post_process.py"
+        }
     }
 }

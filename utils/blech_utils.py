@@ -6,6 +6,16 @@ import os
 import glob
 import json
 import pandas as pd
+from datetime import datetime
+
+class path_handler():
+
+    def __init__(self):
+        self.home_dir = os.getenv('HOME')
+        file_path = os.path.abspath(__file__)
+        blech_clust_dir =  ('/').join(file_path.split('/')[:-2])
+        self.blech_clust_dir = blech_clust_dir
+
 
 class pipeline_graph_check():
     """
@@ -17,38 +27,103 @@ class pipeline_graph_check():
     4) If prior exeuction is not present or failed, generate warning, give user option to override, else exit
     """
 
-    def load_graph(self, graph_path):
+    def __init__(self, data_dir):
+        self.load_graph()
+        self.check_graph()
+        self.data_dir = data_dir
+
+    def load_graph(self):
         """
         Load computation graph from file, if file is present
         """
-        pass
+        this_path_handler = path_handler()
+        self.blech_clust_dir = this_path_handler.blech_clust_dir
+        # self.blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
+        graph_path = os.path.join(
+                self.blech_clust_dir, 
+                'params', 
+                'dependency_graph.json')
+        if os.path.exists(graph_path):
+            with open(graph_path, 'r') as graph_file_connect:
+                self.graph = json.load(graph_file_connect)['graph']
+        else:
+            raise FileNotFoundError(f'Dependency graph not found, looking for {graph_path}')
+
+    def make_full_path(self, x, dir_name):
+        return os.path.join(self.blech_clust_dir, dir_name, x)
 
     def check_graph(self):
         """
         Check that all scripts mentioned in computation graph are present
+        Also, flatten out the graph for easier checking downstream
         """
-        pass
+        # First, flatten out the graph and get all keys and values
+        # First level = directories
+        # Second level = parent scripts : child scripts
+        directory_names = list(self.graph.keys())
+        directories = [self.graph[x] for x in directory_names]
+        flat_graph = {}
+        all_files = []
 
-    def check_previous(self):
+        for dir_name, this_dir in zip(directory_names, directories):
+            for this_parent, this_children in this_dir.items():
+                this_parent_full = self.make_full_path(this_parent, dir_name) 
+                all_files.append(this_parent_full)
+                if type(this_children) == list:
+                    this_children_full = [self.make_full_path(x, dir_name) for x in this_children]
+                    for this_child in this_children_full:
+                        all_files.append(this_child)
+                else:
+                    this_children_full = self.make_full_path(this_children, dir_name)
+                    all_files.append(this_children_full)
+                flat_graph[this_parent_full] = this_children_full
+
+        self.flat_graph = flat_graph
+
+        # Now check that all files are present
+        all_files_present = [os.path.exists(x) for x in all_files]
+        if all(all_files_present):
+            return True
+        else:
+            missing_files = [x for x, y in zip(all_files, all_files_present) if not y]
+            raise FileNotFoundError(f'Missing files ::: {missing_files}')
+
+    def check_previous(self, script_path):
         """
         Check that previous run script is present and executed successfully
         """
-        pass
+        # Check that script_path is present in flat_graph
+        if script_path in self.flat_graph.keys():
+            # Check that parent script is present in log
+            parent_script = self.flat_graph[script_path]
+            # Check that parent script is present in log
+            self.log_path = os.path.join(self.data_dir, 'execution_log.json')
+            if os.path.exists(self.log_path):
+                with open(self.log_path, 'r') as log_file_connect:
+                    log_dict = json.load(log_file_connect)
+                if parent_script in log_dict.keys():
+                    return True
+                else:
+                    raise ValueError(f'Parent script [{parent_script}] not found in log')
+        else:
+            raise ValueError(f'Script path [{script_path}] not found in flat graph')
 
-    def write_to_log(self):
+    def write_to_log(self, script_path):
         """
         Write to log file
         """
-        pass
-
-    def generate_warning(self):
-        """
-        Generate warning
-        """
-        pass
+        self.log_path = os.path.join(self.data_dir, 'execution_log.json')
+        current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if os.path.exists(self.log_path):
+            with open(self.log_path, 'r') as log_file_connect:
+                log_dict = json.load(log_file_connect)
+        else:
+            log_dict = {}
+        log_dict[script_path] = current_datetime
+        with open(self.log_path, 'w') as log_file_connect:
+            json.dump(log_dict, log_file_connect, indent = 4)
 
     
-
 def entry_checker(msg, check_func, fail_response):
     check_bool = False
     continue_bool = True

@@ -11,11 +11,17 @@ import shutil
 import pylab as plt
 from scipy.stats import ttest_ind
 import glob
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
 
@@ -294,3 +300,6 @@ for unit in range(num_units):
 		plt.close("all")
 
 hf5.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path)

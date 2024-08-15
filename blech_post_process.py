@@ -37,7 +37,7 @@ matplotlib.rcParams['font.size'] = 6
 
 # Import 3rd party code
 from utils import blech_waveforms_datashader
-from utils.blech_utils import entry_checker, imp_metadata
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 import utils.blech_post_process_utils as post_utils
 
 # Set seed to allow inter-run reliability
@@ -53,6 +53,7 @@ if args.dir_name is not None:
 else:
     metadata_handler = imp_metadata([])
 
+
 # Extract parameters for automatic processing
 params_dict = metadata_handler.params_dict
 sampling_rate = params_dict['sampling_rate']
@@ -66,9 +67,16 @@ count_threshold = auto_params['cluster_count_threshold']
 chi_square_alpha = auto_params['chi_square_alpha'] 
 
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+
 os.chdir(dir_name)
 file_list = metadata_handler.file_list
 hdf5_name = metadata_handler.hdf5_name
+
 
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
 repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
@@ -573,3 +581,6 @@ print()
 print('== Post-processing exiting ==')
 # Close the hdf5 file
 hf5.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path)
