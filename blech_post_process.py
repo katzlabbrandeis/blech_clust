@@ -87,9 +87,15 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if not '/sorted_units' in hf5:
+if '/sorted_units' in hf5:
+    overwrite_hf5 = input('Saved units detected; remove them? (y/[n]): ') or 'n'
+    if overwrite_hf5.lower() == 'y':
+        hf5.remove_node('/sorted_units', recursive=True)
+        hf5.create_group('/', 'sorted_units')
+else:
     hf5.create_group('/', 'sorted_units')
-
+    
+    
 ############################################################
 # Main Processing Loop 
 ############################################################
