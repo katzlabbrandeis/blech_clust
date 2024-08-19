@@ -116,7 +116,7 @@ else:
     if os.path.exists(layout_file_path):
 
         use_csv_str, continue_bool = entry_checker(
-            msg="Layout file detected...use what's there? (y/yes/no/n)",
+            msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
             check_func=yn_check,
             fail_response='Please [y, yes, n, no]')
     else:
@@ -145,7 +145,7 @@ else:
             this_bool = x in ['y', 'yes']
             return this_bool
         perm_str, continue_bool = entry_checker(
-            msg='Lemme know when its done (y/yes) ::: ',
+            msg='Lemme know when its done (y/yes) :: ',
             check_func=confirm_check,
             fail_response='Please say y or yes')
         if not continue_bool:
@@ -232,7 +232,7 @@ else:
     if dig_in_present_bool:
         print(dig_in_print_str + "\n were found. Please provide the indices.")
         taste_dig_in_str, continue_bool = entry_checker(
-            msg=' Taste dig_ins used (IN ORDER, anything separated)  :: ',
+            msg=' Taste dig_ins used (IN ORDER, anything separated) :: ',
             check_func=count_check,
             fail_response='Please enter integers only')
         if continue_bool:
@@ -302,7 +302,7 @@ else:
     # Ask for laser info
     # TODO: Allow for (onset, duration) tuples to be entered
     laser_select_str, continue_bool = entry_checker(
-        msg='Laser dig_in index, <BLANK> for none::: ',
+        msg='Laser dig_in index, <BLANK> for none :: ',
         check_func=count_check,
         fail_response='Please enter a single, valid integer')
     if continue_bool:
@@ -322,7 +322,7 @@ else:
         return sum([x.isdigit() for x in nums]) == 2
     if laser_digin:
         laser_select_str, continue_bool = entry_checker(
-            msg='Laser onset_time, duration (ms, IN ORDER, anything separated) ::: ',
+            msg='Laser onset_time, duration (ms, IN ORDER, anything separated) :: ',
             check_func=laser_check,
             fail_response='Please enter two, valid integers')
         if continue_bool:
@@ -333,7 +333,7 @@ else:
     else:
         onset_time, duration = [None, None]
 
-    notes = input('::: Please enter any notes about the experiment. \n ::: ')
+    notes = input('Please enter any notes about the experiment. \n :: ')
 
     ########################################
     # Finalize dictionary
