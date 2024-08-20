@@ -119,13 +119,18 @@ binned_spike_trains = [np.reshape(x, (x.shape[0], -1, bin_size)).sum(axis=2) for
 
 # Group by neuron across tastes
 plot_spike_trains = list(zip(*binned_spike_trains))
-zscore_binned_spike_trains = [zscore(x, axis=-1) for x in plot_spike_trains]
+
+# Z score the spike trains for each taste/neuron
+zscore_binned_spike_trains = []
+for UnitN in range(len(plot_spike_trains)):
+    zScoreTemp = [zscore(StimN, axis=-1) for StimN in plot_spike_trains[UnitN]]
+    zscore_binned_spike_trains.append(zScoreTemp)
 
 # Plot heatmaps of all tastes, both raw data and zscored
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, 10))
 for i in range(len(plot_spike_trains)):
     ax[i, 0].imshow(plot_spike_trains[i], aspect='auto', interpolation='none')
-    ax[i, 1].imshow(zscore_binned_spike_trains[i], aspect='auto', interpolation='none')
+    ax[i, 1].imshow(zscore_binned_spike_trains[i], aspect='auto', interpolation='none') #MAR The new culprit
     ax[i, 0].set_title(f'Unit {i} Raw')
     ax[i, 1].set_title(f'Unit {i} Zscored')
     ax[i, 0].set_ylabel('Taste')
@@ -138,7 +143,7 @@ plt.close()
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, 10))
 for i in range(len(plot_spike_trains)):
     ax[i, 0].plot(np.array(plot_spike_trains[i]).T, alpha=0.7)
-    ax[i, 1].plot(zscore_binned_spike_trains[i].T, alpha=0.7)
+    ax[i, 1].plot(zscore_binned_spike_trains[i].T, alpha=0.7)#MAR bet anything this is a poison pill also
     ax[i, 0].set_title(f'Unit {i} Raw')
     ax[i, 1].set_title(f'Unit {i} Zscored')
     ax[i, 0].set_ylabel('Taste')
