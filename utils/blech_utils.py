@@ -96,12 +96,15 @@ class pipeline_graph_check():
         if script_path in self.flat_graph.keys():
             # Check that parent script is present in log
             parent_script = self.flat_graph[script_path]
+            # If parent_script is not list, convert to list
+            if type(parent_script) != list:
+                parent_script = [parent_script]
             # Check that parent script is present in log
             self.log_path = os.path.join(self.data_dir, 'execution_log.json')
             if os.path.exists(self.log_path):
                 with open(self.log_path, 'r') as log_file_connect:
                     log_dict = json.load(log_file_connect)
-                if parent_script in log_dict['completed'].keys():
+                if any([x in log_dict['completed'].keys() for x in parent_script]):
                     return True
                 else:
                     raise ValueError(f'Parent script [{parent_script}] not found in log')

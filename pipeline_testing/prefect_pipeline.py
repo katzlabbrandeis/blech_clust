@@ -15,8 +15,14 @@ parser.add_argument('-e', action = 'store_true',
                     help = 'Run EMG test only')
 parser.add_argument('-s', action = 'store_true',
                     help = 'Run spike sorting test only')
+parser.add_argument('--freq', action = 'store_true',
+                    help = 'Run freq test only')
 parser.add_argument('--bsa', action = 'store_true',
                     help = 'Run BSA test only')
+parser.add_argument('--stft', action = 'store_true',
+                    help = 'Run STFT test only')
+parser.add_argument('--qda', action = 'store_true',
+                    help = 'Run QDA test only')
 parser.add_argument('--all', action = 'store_true',
                     help = 'Run all tests')
 args = parser.parse_args()
@@ -344,7 +350,7 @@ def spike_only_test():
         print('Failed to run spike test')
 
 @flow(log_prints=True)
-def emg_only_test():
+def bsa_only_test():
     try:
         prep_data_flow()
     except:
@@ -353,10 +359,35 @@ def emg_only_test():
         run_emg_freq_test(use_BSA=1)
     except:
         print('Failed to run emg BSA test')
+
+@flow(log_prints=True)
+def stft_only_test():
+    try:
+        prep_data_flow()
+    except:
+        print('Failed to prep data')
     try:
         run_emg_freq_test(use_BSA=0)
     except:
         print('Failed to run emg STFT test')
+
+@flow(log_prints=True)
+def run_emg_freq_only():
+    try:
+        bsa_only_test()
+    except:
+        print('Failed to run BSA test')
+    try:
+        stft_only_test()
+    except:
+        print('Failed to run STFT test')
+
+@flow(log_prints=True)
+def emg_only_test():
+    try:
+        run_emg_freq_test()
+    except:
+        print('Failed to run emg freq test')
     try:
         run_EMG_QDA_test()
     except:
@@ -386,6 +417,15 @@ elif args.e:
 elif args.s:
     print('Running spike-sorting tests only')
     spike_only_test(return_state=True)
+elif args.freq:
+    print('Running BSA tests only')
+    run_emg_freq_only(return_state=True)
+elif args.qda:
+    print('Running QDA tests only')
+    run_EMG_QDA_test(return_state=True)
 elif args.bsa:
     print('Running BSA tests only')
-    run_emg_BSA_test(return_state=True)
+    bsa_only_test(return_state=True)
+elif args.stft:
+    print('Running STFT tests only')
+    stft_only_test(return_state=True)

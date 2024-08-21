@@ -12,11 +12,18 @@ import tables
 import ast
 
 sys.path.append('..')
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
 
@@ -182,3 +189,5 @@ with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
                     emg_env_list[car_ind][digin_ind]
                     )
 
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')
