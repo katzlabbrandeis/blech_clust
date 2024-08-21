@@ -12,6 +12,10 @@ import sys
 import datetime
 from scipy import signal
 import json
+script_path = os.path.realpath(__file__)
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path)) 
+sys.path.append(blech_clust_dir)
+from utils.blech_utils import pipeline_graph_check
 
 class Logger(object):
     def __init__(self, log_file_path):
@@ -95,8 +99,8 @@ def calc_stft_mode_freq(dat, BSA_output = True, **stft_params):
 ##############################
 # Setup params
 ##############################
-# script_dir = '/home/abuzarmahmood/Desktop/blech_clust/emg'
-script_dir = os.path.dirname(os.path.realpath(__file__))
+# script_path = os.path.realpath(__file__)
+script_dir = os.path.dirname(script_path)
 blech_clust_dir = os.path.dirname(script_dir)
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
 
@@ -114,6 +118,11 @@ stft_params = emg_params_dict['stft_params']
 # Read blech.dir, and cd to that directory. 
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
+
+# Perform pipeline graph check
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # If there is more than one dir in BSA_run.dir,
 # loop over both, as both sets will have the same number of trials
@@ -151,3 +160,6 @@ else:
 # Save p and omega by taste and trial number
 np.save(os.path.join('emg_BSA_results',f'trial{task:03}_p.npy'), p)
 np.save(os.path.join('emg_BSA_results',f'trial{task:03}_omega.npy'), omega)
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

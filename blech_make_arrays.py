@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from utils.clustering import get_filtered_electrode
 from utils.blech_process_utils import return_cutoff_values
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 def get_dig_in_data(hf5):
     dig_in_nodes = hf5.list_nodes('/digital_in')
@@ -101,6 +101,13 @@ if __name__ == '__main__':
     # Get name of directory with the data files
 
     metadata_handler = imp_metadata(sys.argv)
+
+    # Perform pipeline graph check 
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
     os.chdir(metadata_handler.dir_name)
     print(f'Processing: {metadata_handler.dir_name}')
 
@@ -476,3 +483,5 @@ if __name__ == '__main__':
 
     hf5.close()
 
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')

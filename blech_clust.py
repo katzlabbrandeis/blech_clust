@@ -13,7 +13,7 @@ import pylab as plt
 # Necessary blech_clust modules
 from utils import read_file
 from utils.qa_utils import channel_corr
-from utils.blech_utils import entry_checker, imp_metadata
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.blech_process_utils import path_handler
 
 # Get blech_clust path
@@ -32,6 +32,12 @@ if not os.path.exists(params_template_path):
 
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 print(f'Processing : {dir_name}')
 os.chdir(dir_name)
 
@@ -303,3 +309,6 @@ f.close()
 
 print('blech_clust.py complete \n')
 print('*** Please check params file to make sure all is good ***\n')
+
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')

@@ -13,7 +13,7 @@ import seaborn as sns
 from detect_peaks import detect_peaks
 from QDA_classifier import QDA
 sys.path.append('../..')
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 
@@ -111,6 +111,13 @@ def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 data_dir = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(data_dir)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 os.chdir(data_dir)
 
 # Open the hdf5 file
@@ -304,3 +311,6 @@ hf5.create_array(hf5_save_path, 'first_gape_Li', first_gapes)
 hf5.flush()
 
 hf5.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

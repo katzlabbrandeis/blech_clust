@@ -29,7 +29,7 @@ import os
 os.environ['OMP_NUM_THREADS']='1'
 os.environ['MKL_NUM_THREADS']='1'
 
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 import utils.blech_process_utils as bpu
 from utils import memory_monitor as mm
 import pylab as plt
@@ -52,6 +52,12 @@ np.random.seed(0)
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
 data_dir_name = sys.argv[1]
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(data_dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
@@ -229,3 +235,6 @@ f= open(f'./memory_monitor_clustering/{electrode_num:02}.txt', 'w')
 print(mm.memory_usage_resource(), file=f)
 f.close()
 print(f'Electrode {electrode_num} complete.')
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

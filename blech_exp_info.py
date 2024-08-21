@@ -25,7 +25,8 @@ import argparse
 import pandas as pd
 # When running in Spyder, throws an error,
 # so cd to utils folder and then back out
-from utils.blech_utils import entry_checker, imp_metadata
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+
 
 
 # Get name of directory with the data files
@@ -43,6 +44,10 @@ metadata_handler = imp_metadata([[], args.dir_name])
 dir_path = metadata_handler.dir_name
 
 dir_name = os.path.basename(dir_path[:-1])
+
+script_path = os.path.abspath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # Extract details from name of folder
 splits = dir_name.split("_")
@@ -376,3 +381,6 @@ else:
 json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
 with open(json_file_name, 'w') as file:
     json.dump(fin_dict, file, indent=4)
+
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')
