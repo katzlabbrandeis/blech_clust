@@ -225,8 +225,11 @@ def get_clustering_params(this_sort_file_handler):
     # Get clustering parameters from user
     if (this_sort_file_handler.sort_table is not None):
         dat_row = this_sort_file_handler.current_row
-        split_val = int(re.findall('[0-9]+', str(dat_row.Split))[0])
-        n_clusters = int(input(f'Number of clusters (sort file={split_val})') or split_val)
+        split_val = re.findall('[0-9]+', str(dat_row.Split))
+        if (len(split_val) > 0): 
+            n_clusters = int(input(f'Number of clusters (default={split_val[0]}): ') or split_val[0])
+        else:
+            n_clusters = int(input('Number of clusters (default=5): ') or "5")
     else:    
         n_clusters = int(input('Number of clusters (default=5): ') or "5")
     
@@ -998,11 +1001,12 @@ class split_merge_signal:
     def check_split_sort_file(self):
         if self.this_sort_file_handler.sort_table is not None:
             dat_row = self.this_sort_file_handler.current_row
-            if not (dat_row.Split == ''):
+            split_val = re.findall('[0-9]+', str(dat_row.Split))
+            if (len(str(dat_row.Split).strip()) > 0):
                 self.split=True
             else:
                 self.split=False
-            print('== Got split details from sort file ==')
+            print(f'== Got split details from sort file: {split_val} ==')
             return True
         else:
             return None
