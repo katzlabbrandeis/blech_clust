@@ -53,6 +53,10 @@ bash patch_dependencies.sh                                  # Fix issues with de
 cd ~/Desktop                                                # Relocate to download classifier library
 git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifier library
 pip install -r neuRecommend/requirements.txt
+
+### Install EMG (BSA) requirements (OPTIONAL)
+cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
+bash emg_install.sh                                         # Install EMG requirements
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
