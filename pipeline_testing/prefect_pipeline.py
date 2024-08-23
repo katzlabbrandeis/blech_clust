@@ -246,16 +246,13 @@ def emg_freq_setup(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def emg_jetstream_parallel(data_dir, use_emg_env = True):
+def emg_jetstream_parallel(data_dir): 
     script_name = 'bash blech_emg_jetstream_parallel.sh'
-    if use_emg_env:
-        conda_init = 'conda run -p ' + emg_env_path
-        full_str = ' '.join([conda_init, script_name])
-    else:
-        full_str = script_name
+    full_str = script_name
     process = Popen(full_str, shell = True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
+
 
 @task(log_prints=True)
 def emg_freq_post_process(data_dir):
@@ -328,7 +325,7 @@ def run_emg_freq_test(use_BSA = 1):
     # change_emg_freq_method needs to be in blech_clust_dir
     change_emg_freq_method(use_BSA = use_BSA)
     run_emg_main_test()
-    emg_jetstream_parallel(data_dir, use_emg_env = True)
+    emg_jetstream_parallel(data_dir) 
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
 
