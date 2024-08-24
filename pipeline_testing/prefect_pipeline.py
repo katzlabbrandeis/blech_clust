@@ -382,7 +382,7 @@ def run_emg_freq_only():
 @flow(log_prints=True)
 def emg_only_test():
     try:
-        run_emg_freq_test()
+        run_emg_freq_only()
     except:
         print('Failed to run emg freq test')
     try:

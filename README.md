@@ -41,10 +41,10 @@ conda deactivate                                            # Make sure we're in
 conda update -n base conda                                  # Update conda to have the new Libmamba solver
 
 cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda clean --all                                           # Removes unused packages and caches
-conda create --name blech_clust python=3.8.13               # Create "blech_clust" environment with conda requirements
+conda clean --all -y                                        # Removes unused packages and caches
+conda create --name blech_clust python=3.8.13 -y            # Create "blech_clust" environment with conda requirements
 conda activate blech_clust                                  # Activate blech_clust environment
-conda install -c conda-forge -y conda_requirements_base.txt                             # Install main packages using conda/mamba
+conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
 bash install_gnu_parallel.sh                                # Install GNU Parallel
 pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
 bash patch_dependencies.sh                                  # Fix issues with dependencies
@@ -55,10 +55,23 @@ git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifie
 pip install -r neuRecommend/requirements.txt
 
 ### Install EMG (BSA) requirements (OPTIONAL)
+# Tested with installation after neuRecommend requirements
 cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
+conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
 bash emg_install.sh                                         # Install EMG requirements
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
+
+### Testing
+```
+cd <path_to_blech_clust>                                    # Move to blech_clust directory
+conda activate blech_clust                                  # Activate blech_clust environment
+pip install -U prefect                                      # Update prefect
+python pipeline_testing/prefect_pipeline.py --all           # Run all tests
+```
+
+Use `prefect server start` to start the prefect server in a different terminal window, and monitor the progress of the pipeline in th Prefect UI.
+
 
 ### Convenience scripts
 - blech_clust_pre.sh : Runs steps 2-5  
