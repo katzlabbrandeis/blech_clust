@@ -25,6 +25,8 @@ parser.add_argument('--qda', action = 'store_true',
                     help = 'Run QDA test only')
 parser.add_argument('--all', action = 'store_true',
                     help = 'Run all tests')
+parser.add_argument('--spike-emg', action = 'store_true',
+                    help = 'Run spike + emg in single test')
 args = parser.parse_args()
 
 def raise_error_if_error(process, stderr, stdout):
@@ -348,6 +350,55 @@ def run_emg_main_test():
     emg_freq_setup(data_dir)
 
 @flow(log_prints=True)
+def spike_emg_test():
+    # Set data type
+    data_type = 'emg_spike'
+    prep_data_flow(data_type = data_type)
+    print(f'Running spike+emg test with data type : {data_type}')
+    # Spike test
+    os.chdir(blech_clust_dir)
+    reset_blech_clust()
+    run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
+    run_blech_clust(data_dir)
+    run_CAR(data_dir)
+    run_jetstream_bash(data_dir)
+    select_clusters(data_dir)
+    post_process(data_dir)
+    quality_assurance(data_dir)
+    units_plot(data_dir)
+    make_arrays(data_dir)
+    make_psth(data_dir)
+    pal_iden_setup(data_dir)
+    overlay_psth(data_dir)
+    # Switch to EMG test without resetting
+    # Chop number of trials down to preserve time
+    cut_emg_trials(data_dir)
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_filter(data_dir)
+    ## Perform EMG tests
+    # BSA
+    os.chdir(blech_clust_dir)
+    change_emg_freq_method(use_BSA = 1) # change_freq_method is in pipeline_testing dir
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_freq_setup(data_dir)
+    emg_jetstream_parallel(data_dir) 
+    emg_freq_post_process(data_dir)
+    emg_freq_plot(data_dir)
+    # STFT
+    os.chdir(blech_clust_dir)
+    change_emg_freq_method(use_BSA = 0) # change_freq_method is in pipeline_testing dir
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_freq_setup(data_dir) # Freq setup needs to be rerun to recreate bash parallel file
+    emg_jetstream_parallel(data_dir)
+    emg_freq_post_process(data_dir)
+    emg_freq_plot(data_dir)
+    # QDA
+    os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+    run_gapes_Li(data_dir)
+
+
+@flow(log_prints=True)
 def run_emg_freq_test(use_BSA = 1):
     os.chdir(blech_clust_dir)
     # change_emg_freq_method needs to be in blech_clust_dir
@@ -443,6 +494,10 @@ def full_test():
         emg_only_test()
     except:
         print('Failed to run emg test')
+    try:
+        spike_emg_test()
+    except:
+        print('Failed to run spike + emg test')
 
 ############################################################
 ## Run Flows
@@ -469,3 +524,6 @@ elif args.bsa:
 elif args.stft:
     print('Running STFT tests only')
     stft_only_test(return_state=True)
+elif args.spike_emg:
+    print('Running spike then emg test')
+    spike_emg_test(return_state=True)
