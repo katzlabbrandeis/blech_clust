@@ -471,6 +471,10 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
                     new_clust_names,
                     )
 
+            # In case first unit is merged, we need to create the autosort_output_dir
+            if not os.path.exists(autosort_output_dir):
+                os.makedirs(autosort_output_dir)
+
             fig.savefig(
                     os.path.join(
                         autosort_output_dir,
