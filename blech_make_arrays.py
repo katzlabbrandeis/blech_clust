@@ -291,10 +291,7 @@ if __name__ == '__main__':
     # If sorting hasn't been done, use only emg channels
     # to calculate cutoff...don't need to go through all channels
 
-    if '/raw_emg' in hf5:
-        raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
-    else:
-        raw_emg_electrodes = []
+    raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
 
     if len(raw_emg_electrodes) > 0:
         emg_electrode_names = [x._v_pathname for x in raw_emg_electrodes]
