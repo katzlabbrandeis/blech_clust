@@ -431,46 +431,41 @@ if __name__ == '__main__':
     else:
         print('No sorted units found...NOT MAKING SPIKE TRAINS')
 
-    if '/raw_emg' in hf5:
-        if len(hf5.list_nodes('/raw_emg')) == 0:
-            print("/raw_emg exists, but is empty...NOT MAKING EMG ARRAYS")
-        else:
-            if len(list(hf5.get_node('/','raw_emg'))) > 0:
-            
-                print('EMG Data found ==> Making EMG Trial Arrays')
+    #Test for EMG Data and then use it
+    if len(raw_emg_electrodes) > 0:
+        print('EMG Data found ==> Making EMG Trial Arrays')
 
-                # Grab the names of the arrays containing emg recordings
-                emg_nodes = hf5.list_nodes('/raw_emg')
-                emg_pathname = []
-                for node in emg_nodes:
-                    emg_pathname.append(node._v_pathname)
+        # Grab the names of the arrays containing emg recordings
+        emg_nodes = hf5.list_nodes('/raw_emg')
+        emg_pathname = []
+        for node in emg_nodes:
+            emg_pathname.append(node._v_pathname)
 
-            # Delete /emg_data in hf5 file if it exists, and then create it
-            if '/emg_data' in hf5:
-                hf5.remove_node('/emg_data', recursive = True)
-            hf5.create_group('/', 'emg_data')
+        # Delete /emg_data in hf5 file if it exists, and then create it
+        if '/emg_data' in hf5:
+            hf5.remove_node('/emg_data', recursive = True)
+        hf5.create_group('/', 'emg_data')
 
-            # Pull out emg trials 
-            for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
-                print(f'Creating emg-trials for {dig_in_basename[i]}')
-                create_emg_trials_for_digin(
-                        this_starts,
-                        durations,
-                        sampling_rate_ms,
-                        emg_nodes,
-                        hf5,
-                        )
+        # Pull out emg trials 
+        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
+            print(f'Creating emg-trials for {dig_in_basename[i]}')
+            create_emg_trials_for_digin(
+                    this_starts,
+                    durations,
+                    sampling_rate_ms,
+                    emg_nodes,
+                    hf5,
+                    )
 
-            # Save output in emg dir
-            if not os.path.exists('emg_output'):
-                os.makedirs('emg_output')
+        # Save output in emg dir
+        if not os.path.exists('emg_output'):
+            os.makedirs('emg_output')
 
-            # Also write out README to explain CAR groups and order of emg_data for user
-            with open('emg_output/emg_data_readme.txt','w') as f:
-                f.write(f'Channels used : {emg_pathname}')
-                f.write('\n')
-                f.write('Numbers indicate "electrode_ind" in electrode_layout_frame')
-
+        # Also write out README to explain CAR groups and order of emg_data for user
+        with open('emg_output/emg_data_readme.txt','w') as f:
+            f.write(f'Channels used : {emg_pathname}')
+            f.write('\n')
+            f.write('Numbers indicate "electrode_ind" in electrode_layout_frame')
     else:
         print('No EMG Data Found...NOT MAKING EMG ARRAYS')
 
