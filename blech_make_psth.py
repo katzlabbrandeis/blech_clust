@@ -123,7 +123,7 @@ for dig_in in trains_dig_in:
 			laser_exists = dig_in.laser_durations[:]
 		except:
 			pass
-		if len(laser_exists) > 0:
+		if sum(laser_exists) > 0:
 			# First get the unique laser onset times (from end of taste delivery) in this dataset
 			onset_lags = np.unique(dig_in.laser_onset_lag[:])
 			# Then get the unique laser onset durations
@@ -250,7 +250,7 @@ for unit in range(num_units):
 		laser_exists = dig_in.laser_durations[:]
 	except:
 		pass
-	if len(laser_exists) > 0:
+	if sum(laser_exists) > 0:
 		# Now get ready for the plotting by first making the axes (both x and y axis will be shared across plots)
 		fig, ax = plt.subplots(len(trains_dig_in), sharex=True, sharey=True)
 		# Run through the tastes
