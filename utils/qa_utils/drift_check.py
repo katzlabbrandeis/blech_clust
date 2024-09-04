@@ -22,10 +22,11 @@ import pingouin as pg
 import seaborn as sns
 import glob
 # Get script path
-script_path = os.path.dirname(os.path.realpath(__file__))
-blech_path = os.path.dirname(os.path.dirname(script_path))
+script_path = os.path.realpath(__file__)
+script_dir_path = os.path.dirname(script_path)
+blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 def get_spike_trains(hf5_path):
     """
@@ -69,10 +70,10 @@ def array_to_df(array, dim_names):
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
-
-# dir_name = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
-# metadata_handler = imp_metadata([[], dir_name])
-# dir_name = metadata_handler.dir_name
+# Perform pipeline graph check
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -337,3 +338,6 @@ if np.any(sig_p_val_vec):
         print('\n', file=f)
         print('=== End Post-stimulus Drift Warning ===', file=f)
         print('\n', file=f)
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

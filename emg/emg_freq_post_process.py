@@ -15,11 +15,18 @@ import sys
 import pandas as pd
 
 sys.path.append('..')
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
 
@@ -84,3 +91,5 @@ ltp_array = np.sum(p_data[:, :, 11:], axis = 2)/\
 np.save('emg_output/gape_array.npy', gape_array)
 np.save('emg_output/ltp_array.npy', ltp_array)
 
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

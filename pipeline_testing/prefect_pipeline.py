@@ -15,14 +15,30 @@ parser.add_argument('-e', action = 'store_true',
                     help = 'Run EMG test only')
 parser.add_argument('-s', action = 'store_true',
                     help = 'Run spike sorting test only')
+parser.add_argument('--freq', action = 'store_true',
+                    help = 'Run freq test only')
 parser.add_argument('--bsa', action = 'store_true',
                     help = 'Run BSA test only')
+parser.add_argument('--stft', action = 'store_true',
+                    help = 'Run STFT test only')
+parser.add_argument('--qda', action = 'store_true',
+                    help = 'Run QDA test only')
 parser.add_argument('--all', action = 'store_true',
                     help = 'Run all tests')
+parser.add_argument('--spike-emg', action = 'store_true',
+                    help = 'Run spike + emg in single test')
 args = parser.parse_args()
 
 def raise_error_if_error(process, stderr, stdout):
+    # Print current data_type
+    current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
+    if os.path.exists(current_data_type_path):
+        with open(os.path.join(data_dir, 'current_data_type.txt'), 'r') as f:
+            current_data_type = f.read()
+        print('=== Current data type: ', current_data_type, ' ===\n\n')
+    print('=== Process stdout ===\n\n')
     print(stdout.decode('utf-8'))
+    print('=== Process stderr ===\n\n')
     if process.returncode:
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
@@ -72,9 +88,29 @@ def download_test_data():
         raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def prep_data_info():
+def prep_data_info(data_type = 'emg_spike'):
+    """
+    Prepares data directory with info according to inputs
+
+    Args:
+        data_type (str): Type of data to prepare. Options are 'emg', 'spike', 'emg_spike'
+    """
+    if data_type == 'emg':
+        flag_str = '-emg'
+    elif data_type == 'spike':
+        flag_str = '-spike'
+    elif data_type == 'emg_spike':
+        flag_str = '-emg_spike'
+
+    # Write out data_type to file
+    current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
+    print(f'Writing data type: {data_type} to {current_data_type_path}')
+    with open(current_data_type_path, 'w') as f:
+        f.write(data_type)
+
     script_name = './pipeline_testing/test_data_handling/prep_data_info.py' 
-    cmd_str = 'python ' + script_name + ' ' + '-emg_spike' + ' ' + data_dir
+    # cmd_str = 'python ' + script_name + ' ' + '-emg_spike' + ' ' + data_dir
+    cmd_str = 'python ' + script_name + ' ' + flag_str + ' ' + data_dir
     process = Popen(cmd_str, shell=True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
@@ -93,6 +129,14 @@ def reset_blech_clust():
 @task(log_prints=True)
 def run_clean_slate(data_dir):
     script_name = 'blech_clean_slate.py'
+    process = Popen(["python", script_name, data_dir],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(process,stderr,stdout)
+
+@task(log_prints=True)
+def mark_exp_info_success(data_dir):
+    script_name = './pipeline_testing/mark_exp_info_success.py'
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
@@ -232,16 +276,13 @@ def emg_freq_setup(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def emg_jetstream_parallel(data_dir, use_emg_env = True):
+def emg_jetstream_parallel(data_dir): 
     script_name = 'bash blech_emg_jetstream_parallel.sh'
-    if use_emg_env:
-        conda_init = 'conda run -p ' + emg_env_path
-        full_str = ' '.join([conda_init, script_name])
-    else:
-        full_str = script_name
+    full_str = script_name
     process = Popen(full_str, shell = True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
+
 
 @task(log_prints=True)
 def emg_freq_post_process(data_dir):
@@ -271,16 +312,17 @@ def run_gapes_Li(data_dir):
 ## Define Flows
 ############################################################
 @flow(log_prints=True)
-def prep_data_flow():
+def prep_data_flow(data_type = 'emg_spike'):
     os.chdir(blech_clust_dir)
     download_test_data()
-    prep_data_info()
+    prep_data_info(data_type)
 
 @flow(log_prints=True)
 def run_spike_test():
     os.chdir(blech_clust_dir)
     reset_blech_clust()
     run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     run_CAR(data_dir)
     run_jetstream_bash(data_dir)
@@ -298,6 +340,7 @@ def run_emg_main_test():
     os.chdir(blech_clust_dir)
     reset_blech_clust()
     run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     make_arrays(data_dir)
     # Chop number of trials down to preserve time
@@ -307,46 +350,135 @@ def run_emg_main_test():
     emg_freq_setup(data_dir)
 
 @flow(log_prints=True)
+def spike_emg_test():
+    # Set data type
+    data_type = 'emg_spike'
+    prep_data_flow(data_type = data_type)
+    print(f'Running spike+emg test with data type : {data_type}')
+    # Spike test
+    os.chdir(blech_clust_dir)
+    reset_blech_clust()
+    run_clean_slate(data_dir)
+    mark_exp_info_success(data_dir)
+    run_blech_clust(data_dir)
+    run_CAR(data_dir)
+    run_jetstream_bash(data_dir)
+    select_clusters(data_dir)
+    post_process(data_dir)
+    quality_assurance(data_dir)
+    units_plot(data_dir)
+    make_arrays(data_dir)
+    make_psth(data_dir)
+    pal_iden_setup(data_dir)
+    overlay_psth(data_dir)
+    # Switch to EMG test without resetting
+    # Chop number of trials down to preserve time
+    cut_emg_trials(data_dir)
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_filter(data_dir)
+    ## Perform EMG tests
+    # BSA
+    os.chdir(blech_clust_dir)
+    change_emg_freq_method(use_BSA = 1) # change_freq_method is in pipeline_testing dir
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_freq_setup(data_dir)
+    emg_jetstream_parallel(data_dir) 
+    emg_freq_post_process(data_dir)
+    emg_freq_plot(data_dir)
+    # STFT
+    os.chdir(blech_clust_dir)
+    change_emg_freq_method(use_BSA = 0) # change_freq_method is in pipeline_testing dir
+    os.chdir(os.path.join(blech_clust_dir, 'emg'))
+    emg_freq_setup(data_dir) # Freq setup needs to be rerun to recreate bash parallel file
+    emg_jetstream_parallel(data_dir)
+    emg_freq_post_process(data_dir)
+    emg_freq_plot(data_dir)
+    # QDA
+    os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+    run_gapes_Li(data_dir)
+
+
+@flow(log_prints=True)
 def run_emg_freq_test(use_BSA = 1):
     os.chdir(blech_clust_dir)
     # change_emg_freq_method needs to be in blech_clust_dir
     change_emg_freq_method(use_BSA = use_BSA)
     run_emg_main_test()
-    emg_jetstream_parallel(data_dir, use_emg_env = True)
+    emg_jetstream_parallel(data_dir) 
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
 
 @flow(log_prints=True)
 def run_EMG_QDA_test():
-    run_emg_main_test()
-    os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
-    run_gapes_Li(data_dir)
+    for data_type in ['emg', 'emg_spike']:
+        print(f'Running QDA test with data type : {data_type}')
+        try:
+            prep_data_flow(data_type = data_type)
+        except:
+            print('Failed to prep data')
+        try:
+            run_emg_main_test()
+            os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+            run_gapes_Li(data_dir)
+        except:
+            print('Failed to run QDA test')
 
 @flow(log_prints=True)
 def spike_only_test():
+    for data_type in ['spike', 'emg_spike']:
+        print(f'Running spike test with data type : {data_type}')
+        try:
+            prep_data_flow(data_type = data_type)
+        except:
+            print('Failed to prep data')
+        try:
+            run_spike_test()
+        except:
+            print('Failed to run spike test')
+
+@flow(log_prints=True)
+def bsa_only_test():
+    for data_type in ['emg', 'emg_spike']:
+        print(f'Running BSA test with data type : {data_type}')
+        try:
+            prep_data_flow(data_type = data_type)
+        except:
+            print('Failed to prep data')
+        try:
+            run_emg_freq_test(use_BSA=1)
+        except:
+            print('Failed to run emg BSA test')
+
+@flow(log_prints=True)
+def stft_only_test():
+    for data_type in ['emg', 'emg_spike']:
+        print(f'Running STFT test with data type : {data_type}')
+        try:
+            prep_data_flow(data_type = data_type)
+        except:
+            print('Failed to prep data')
+        try:
+            run_emg_freq_test(use_BSA=0)
+        except:
+            print('Failed to run emg STFT test')
+
+@flow(log_prints=True)
+def run_emg_freq_only():
     try:
-        prep_data_flow()
+        bsa_only_test()
     except:
-        print('Failed to prep data')
+        print('Failed to run BSA test')
     try:
-        run_spike_test()
+        stft_only_test()
     except:
-        print('Failed to run spike test')
+        print('Failed to run STFT test')
 
 @flow(log_prints=True)
 def emg_only_test():
     try:
-        prep_data_flow()
+        run_emg_freq_only()
     except:
-        print('Failed to prep data')
-    try:
-        run_emg_freq_test(use_BSA=1)
-    except:
-        print('Failed to run emg BSA test')
-    try:
-        run_emg_freq_test(use_BSA=0)
-    except:
-        print('Failed to run emg STFT test')
+        print('Failed to run emg freq test')
     try:
         run_EMG_QDA_test()
     except:
@@ -362,6 +494,10 @@ def full_test():
         emg_only_test()
     except:
         print('Failed to run emg test')
+    try:
+        spike_emg_test()
+    except:
+        print('Failed to run spike + emg test')
 
 ############################################################
 ## Run Flows
@@ -376,6 +512,18 @@ elif args.e:
 elif args.s:
     print('Running spike-sorting tests only')
     spike_only_test(return_state=True)
+elif args.freq:
+    print('Running BSA tests only')
+    run_emg_freq_only(return_state=True)
+elif args.qda:
+    print('Running QDA tests only')
+    run_EMG_QDA_test(return_state=True)
 elif args.bsa:
     print('Running BSA tests only')
-    run_emg_BSA_test(return_state=True)
+    bsa_only_test(return_state=True)
+elif args.stft:
+    print('Running STFT tests only')
+    stft_only_test(return_state=True)
+elif args.spike_emg:
+    print('Running spike then emg test')
+    spike_emg_test(return_state=True)

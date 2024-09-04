@@ -6,6 +6,10 @@ import easygui
 import os
 import sys
 import datetime
+script_path = os.path.realpath(__file__)
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path)) 
+sys.path.append(blech_clust_dir)
+from utils.blech_utils import pipeline_graph_check
 
 class Logger(object):
     def __init__(self, log_file_path):
@@ -30,6 +34,12 @@ class Logger(object):
 # Read blech.dir, and cd to that directory. 
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
+
+# Perform pipeline graph check
+# script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # If there is more than one dir in BSA_run.dir,
 # loop over both, as both sets will have the same number of trials
@@ -98,3 +108,6 @@ else:
 # Save p and omega by taste and trial number
 np.save(os.path.join('emg_BSA_results',f'trial{task:03}_p.npy'), p)
 np.save(os.path.join('emg_BSA_results',f'trial{task:03}_omega.npy'), omega)
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')
