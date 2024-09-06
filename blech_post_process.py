@@ -292,6 +292,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         violations1, violations2,_,_ = post_utils.generate_datashader_plot(
                 unit_waveforms, 
                 unit_times,
+                sampling_rate,
                 title = 'Merged Unit',
                 )
 
