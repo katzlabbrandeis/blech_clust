@@ -7,5 +7,6 @@ jobs:
     steps:
       - run: cd /media/volume/abu_data/blech_clust
       - run: pwd
-      - run: echo which python
+      - run: which python
+      - run: conda info --envs
       - run: python blech_exp_info.py
