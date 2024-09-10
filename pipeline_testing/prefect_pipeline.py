@@ -27,11 +27,14 @@ parser.add_argument('--all', action = 'store_true',
                     help = 'Run all tests')
 parser.add_argument('--spike-emg', action = 'store_true',
                     help = 'Run spike + emg in single test')
-parser.add_argument('--raise', action = 'store_true',
+parser.add_argument('--raise-exception', action = 'store_true',
                     help = 'Raise error if subprocess fails')
 args = parser.parse_args()
 
-if args.raise:
+print(args.raise_exception)
+break_bool = args.raise_exception 
+
+if break_bool:
     print('====================')
     print('Raising error if subprocess fails')
     print('====================')
@@ -418,7 +421,7 @@ def run_emg_freq_test(use_BSA = 1):
 ##############################
 @flow(log_prints=True)
 def run_EMG_QDA_test():
-    if args.raise: 
+    if break_bool: 
         for data_type in ['emg', 'emg_spike']:
             print(f'Running QDA test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -441,7 +444,7 @@ def run_EMG_QDA_test():
 
 @flow(log_prints=True)
 def spike_only_test():
-    if args.raise:
+    if break_bool:
         for data_type in ['spike', 'emg_spike']:
             print(f'Running spike test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -460,7 +463,7 @@ def spike_only_test():
 
 @flow(log_prints=True)
 def bsa_only_test():
-    if args.raise:
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running BSA test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -479,7 +482,7 @@ def bsa_only_test():
 
 @flow(log_prints=True)
 def stft_only_test():
-    if args.raise:
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running STFT test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -498,7 +501,7 @@ def stft_only_test():
 
 @flow(log_prints=True)
 def run_emg_freq_only():
-    if args.raise:
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running EMG freq test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -515,7 +518,7 @@ def run_emg_freq_only():
 
 @flow(log_prints=True)
 def emg_only_test():
-    if args.raise:
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running EMG test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -534,7 +537,7 @@ def emg_only_test():
 
 @flow(log_prints=True)
 def full_test():
-    if args.raise:
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running full test with data type : {data_type}')
             prep_data_flow(data_type = data_type)

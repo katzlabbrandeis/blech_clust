@@ -11,10 +11,10 @@ jobs:
       - run: conda info --envs
       - name: Prefect SPIKE only test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -s --raise
+        run: python pipeline_testing/prefect_pipeline.py -s --raise-exception
       - name: Prefect EMG only test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -e --raise
+        run: python pipeline_testing/prefect_pipeline.py -e --raise-exception
       - name: Prefect SPIKE then EMG test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py --spike-emg --raise
+        run: python pipeline_testing/prefect_pipeline.py --spike-emg --raise-exception
