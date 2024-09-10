@@ -2,9 +2,10 @@ name: Python test
 run-name: python_test 
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+  Python-Test-Action:
     runs-on: self-hosted
     steps:
       - run: cd ~/Desktop/blech_clust 
+      - run: pwd
       - run: echo which python
       - run: python blech_exp_info.py
