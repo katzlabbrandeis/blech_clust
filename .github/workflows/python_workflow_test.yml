@@ -5,7 +5,7 @@ jobs:
   Python-Test-Action:
     runs-on: self-hosted
     steps:
-      - run: cd /media/volume/abu_data/blech_clust
+      - run: cd ~/Desktop/blech_clust
       - run: pwd
       - run: which python
       - run: conda info --envs
