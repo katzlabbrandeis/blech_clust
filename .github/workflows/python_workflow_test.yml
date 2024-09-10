@@ -9,6 +9,12 @@ jobs:
       - run: pwd
       - run: which python
       - run: conda info --envs
-      - name: Run prefect tests
+      - name: Prefect SPIKE only test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py --all
+        run: python pipeline_testing/prefect_pipeline.py -s
+      - name: Prefect EMG only test
+        working-directory: /home/abuzarmahmood/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py -e
+      - name: Prefect SPIKE then EMG test
+        working-directory: /home/abuzarmahmood/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py --spike-emg
