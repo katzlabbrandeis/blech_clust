@@ -5,7 +5,7 @@ jobs:
   Python-Test-Action:
     runs-on: self-hosted
     steps:
-      - run: cd ~/Desktop/blech_clust 
+      - run: cd /media/volume/abu_data/blech_clust
       - run: pwd
       - run: echo which python
       - run: python blech_exp_info.py
