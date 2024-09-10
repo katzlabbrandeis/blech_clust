@@ -9,4 +9,4 @@ jobs:
       - run: pwd
       - run: which python
       - run: conda info --envs
-      - run: python blech_exp_info.py
+      - run: python pipeline_testing/prefect_pipeline.py --all
