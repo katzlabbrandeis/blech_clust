@@ -9,4 +9,6 @@ jobs:
       - run: pwd
       - run: which python
       - run: conda info --envs
-      - run: python pipeline_testing/prefect_pipeline.py --all
+      - name: Run prefect tests
+        working-directory: /home/abuzarmahmood/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py --all
