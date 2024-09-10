@@ -27,7 +27,14 @@ parser.add_argument('--all', action = 'store_true',
                     help = 'Run all tests')
 parser.add_argument('--spike-emg', action = 'store_true',
                     help = 'Run spike + emg in single test')
+parser.add_argument('--raise', action = 'store_true',
+                    help = 'Raise error if subprocess fails')
 args = parser.parse_args()
+
+if args.raise:
+    print('====================')
+    print('Raising error if subprocess fails')
+    print('====================')
 
 def raise_error_if_error(process, stderr, stdout):
     # Print current data_type
@@ -408,96 +415,146 @@ def run_emg_freq_test(use_BSA = 1):
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
 
+##############################
 @flow(log_prints=True)
 def run_EMG_QDA_test():
-    for data_type in ['emg', 'emg_spike']:
-        print(f'Running QDA test with data type : {data_type}')
-        try:
+    if args.raise: 
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running QDA test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
-        except:
-            print('Failed to prep data')
-        try:
             run_emg_main_test()
             os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
             run_gapes_Li(data_dir)
-        except:
-            print('Failed to run QDA test')
+    else:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running QDA test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_emg_main_test()
+                os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+                run_gapes_Li(data_dir)
+            except:
+                print('Failed to run QDA test')
 
 @flow(log_prints=True)
 def spike_only_test():
-    for data_type in ['spike', 'emg_spike']:
-        print(f'Running spike test with data type : {data_type}')
-        try:
+    if args.raise:
+        for data_type in ['spike', 'emg_spike']:
+            print(f'Running spike test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
-        except:
-            print('Failed to prep data')
-        try:
             run_spike_test()
-        except:
-            print('Failed to run spike test')
+    else:
+        for data_type in ['spike', 'emg_spike']:
+            print(f'Running spike test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_spike_test()
+            except:
+                print('Failed to run spike test')
 
 @flow(log_prints=True)
 def bsa_only_test():
-    for data_type in ['emg', 'emg_spike']:
-        print(f'Running BSA test with data type : {data_type}')
-        try:
+    if args.raise:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running BSA test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
-        except:
-            print('Failed to prep data')
-        try:
             run_emg_freq_test(use_BSA=1)
-        except:
-            print('Failed to run emg BSA test')
+    else:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running BSA test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_emg_freq_test(use_BSA=1)
+            except:
+                print('Failed to run emg BSA test')
 
 @flow(log_prints=True)
 def stft_only_test():
-    for data_type in ['emg', 'emg_spike']:
-        print(f'Running STFT test with data type : {data_type}')
-        try:
+    if args.raise:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running STFT test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
-        except:
-            print('Failed to prep data')
-        try:
             run_emg_freq_test(use_BSA=0)
-        except:
-            print('Failed to run emg STFT test')
+    else:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running STFT test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_emg_freq_test(use_BSA=0)
+            except:
+                print('Failed to run emg STFT test')
 
 @flow(log_prints=True)
 def run_emg_freq_only():
-    try:
-        bsa_only_test()
-    except:
-        print('Failed to run BSA test')
-    try:
-        stft_only_test()
-    except:
-        print('Failed to run STFT test')
+    if args.raise:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running EMG freq test with data type : {data_type}')
+            prep_data_flow(data_type = data_type)
+            run_emg_freq_test()
+    else:
+        try:
+            bsa_only_test()
+        except:
+            print('Failed to run BSA test')
+        try:
+            stft_only_test()
+        except:
+            print('Failed to run STFT test')
 
 @flow(log_prints=True)
 def emg_only_test():
-    try:
-        run_emg_freq_only()
-    except:
-        print('Failed to run emg freq test')
-    try:
-        run_EMG_QDA_test()
-    except:
-        print('Failed to run EMG QDA test')
+    if args.raise:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running EMG test with data type : {data_type}')
+            prep_data_flow(data_type = data_type)
+            run_emg_main_test()
+    else:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running EMG test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_emg_main_test()
+            except:
+                print('Failed to run emg test')
 
 @flow(log_prints=True)
 def full_test():
-    try:
-        spike_only_test()
-    except:
-        print('Failed to run spike test')
-    try:
-        emg_only_test()
-    except:
-        print('Failed to run emg test')
-    try:
-        spike_emg_test()
-    except:
-        print('Failed to run spike + emg test')
+    if args.raise:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running full test with data type : {data_type}')
+            prep_data_flow(data_type = data_type)
+            run_spike_test()
+            run_emg_main_test()
+    else:
+        for data_type in ['emg', 'emg_spike']:
+            print(f'Running full test with data type : {data_type}')
+            try:
+                prep_data_flow(data_type = data_type)
+            except:
+                print('Failed to prep data')
+            try:
+                run_spike_test()
+            except:
+                print('Failed to run spike test')
+            try:
+                run_emg_main_test()
+            except:
+                print('Failed to run emg test')
 
 ############################################################
 ## Run Flows
