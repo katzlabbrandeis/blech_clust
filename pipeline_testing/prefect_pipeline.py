@@ -8,6 +8,7 @@ from prefect import flow, task
 from glob import glob
 import json
 import argparse
+import sys
 
 ############################################################
 parser = argparse.ArgumentParser(description='Run tests, default = Run all tests')
@@ -52,6 +53,7 @@ def raise_error_if_error(process, stderr, stdout):
     if process.returncode:
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
+        sys.exit(2)
 
 ############################################################
 ## Define paths 

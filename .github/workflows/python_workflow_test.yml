@@ -2,7 +2,7 @@ name: Python test
 run-name: python_test 
 on: [push]
 jobs:
-  Python-Test-Action:
+  Spike-Only:
     runs-on: self-hosted
     steps:
       - run: cd ~/Desktop/blech_clust
@@ -12,9 +12,15 @@ jobs:
       - name: Prefect SPIKE only test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -s --raise-exception
+  EMG-Only:
+    runs-on: self-hosted
+    steps:
       - name: Prefect EMG only test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -e --raise-exception
+  Spike-EMG:
+    runs-on: self-hosted
+    steps:
       - name: Prefect SPIKE then EMG test
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py --spike-emg --raise-exception
