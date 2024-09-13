@@ -15,7 +15,8 @@ jobs:
       - name: Prefect SPIKE only test
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -s --raise-exception
+        run: python pipeline_testing/prefect_pipeline.py -s --raise-exception | tee ~/Desktop/blech_clust/github.log;
+          if grep -q "Traceback" ~/Desktop/blech_clust/github.log; then exit 1; fi 
   EMG-Only:
     runs-on: self-hosted
     steps:
