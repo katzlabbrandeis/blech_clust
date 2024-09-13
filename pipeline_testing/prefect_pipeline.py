@@ -51,10 +51,8 @@ def raise_error_if_error(process, stderr, stdout):
     print(stdout.decode('utf-8'))
     print('=== Process stderr ===\n\n')
     if process.returncode:
-        print('ERROR')
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
-        sys.exit(2)
 
 ############################################################
 ## Define paths 
@@ -535,6 +533,8 @@ def emg_only_test():
                 print('Failed to prep data')
             try:
                 run_emg_main_test()
+                run_emg_freq_only()
+                run_EMG_QDA_test()
             except:
                 print('Failed to run emg test')
 
