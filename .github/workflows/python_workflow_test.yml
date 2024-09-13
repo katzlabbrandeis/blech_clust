@@ -14,7 +14,7 @@ jobs:
       - run: conda info --envs
       - name: Set up repo
         uses: actions/checkout@v4
-      - run: echo "${{ github.ref }} ${{ github.repository }}"
+      - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
