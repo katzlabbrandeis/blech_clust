@@ -1,6 +1,6 @@
 name: Python test 
 run-name: python_test 
-on: [push]
+on: [pull_request]
 jobs:
   Preamble:
     runs-on: self-hosted
@@ -9,10 +9,14 @@ jobs:
       - run: pwd
       - run: which python
       - run: conda info --envs
+      - name: Set up repo
+        uses: actions/checkout@v4
+        run: echo "${{ github.ref }} ${{ github.repository }}"
   Spike-Only:
     runs-on: self-hosted
     steps:
       - name: Prefect SPIKE only test
+        uses: actions/checkout@v4
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -s 2>&1 |
@@ -23,6 +27,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Prefect EMG only test
+        uses: actions/checkout@v4
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -e 2>&1 |
@@ -33,6 +38,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Prefect SPIKE then EMG test
+        uses: actions/checkout@v4
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
