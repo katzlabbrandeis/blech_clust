@@ -2,25 +2,31 @@ name: Python test
 run-name: python_test 
 on: [push]
 jobs:
-  Spike-Only:
+  Preamble:
     runs-on: self-hosted
     steps:
       - run: cd ~/Desktop/blech_clust
       - run: pwd
       - run: which python
       - run: conda info --envs
+  Spike-Only:
+    runs-on: self-hosted
+    steps:
       - name: Prefect SPIKE only test
+        shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -s --raise-exception
   EMG-Only:
     runs-on: self-hosted
     steps:
       - name: Prefect EMG only test
+        shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py -e --raise-exception
   Spike-EMG:
     runs-on: self-hosted
     steps:
       - name: Prefect SPIKE then EMG test
+        shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
         run: python pipeline_testing/prefect_pipeline.py --spike-emg --raise-exception
