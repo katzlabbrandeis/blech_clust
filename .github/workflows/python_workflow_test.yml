@@ -15,9 +15,9 @@ jobs:
       - name: Prefect SPIKE only test
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -s 2>&1 |\
+        run: python pipeline_testing/prefect_pipeline.py -s 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;\
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
@@ -25,9 +25,9 @@ jobs:
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -e 2>&1 |\
+        run: python pipeline_testing/prefect_pipeline.py -e 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;\
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
@@ -35,8 +35,8 @@ jobs:
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/abuzarmahmood/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |\
+        run: python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;\
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
 
