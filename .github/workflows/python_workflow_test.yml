@@ -1,3 +1,6 @@
+# Description: This is a test workflow for running a Python script on a self-hosted runner
+# Don't chain jobs together as any failure in one job will stop the workflow
+
 name: Python test 
 run-name: python_test 
 on: [pull_request]
@@ -14,6 +17,7 @@ jobs:
       - run: echo "${{ github.ref }} ${{ github.repository }}"
   Spike-Only:
     runs-on: self-hosted
+    needs: Preamble
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
@@ -26,6 +30,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
+    needs: Preamble 
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
@@ -38,6 +43,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
+    needs: Preamble 
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
