@@ -51,6 +51,7 @@ def raise_error_if_error(process, stderr, stdout):
     print(stdout.decode('utf-8'))
     print('=== Process stderr ===\n\n')
     if process.returncode:
+        print('ERROR')
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
         sys.exit(2)
