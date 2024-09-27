@@ -59,6 +59,15 @@ pip install -r neuRecommend/requirements.txt
 cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
 conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
 bash emg_install.sh                                         # Install EMG requirements
+
+### Install BlechRNN for firing rate estimation (OPTIONAL)
+cd ~/Desktop                                                # Relocate to download BlechRNN
+git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
+cd blechRNN                                                 # Move into BlechRNN directory
+pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements 
+**Note: If you'd like to use GPU, you'll need to install CUDA
+-- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
+
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
