@@ -28,11 +28,33 @@ sys.path.append(blech_clust_path)
 from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 
-data_dir = sys.argv[1]
-# data_dir = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
-
+import argparse
+parser = argparse.ArgumentParser(description = 'Infer firing rates using RNN')
+parser.add_argument('data_dir', help = 'Path to data directory')
+parser.add_argument('--train_steps', type = int, default = 15000,
+                    help = 'Number of training steps')
 # Hidden size of 8 was tested to be optimal across multiple datasets
-hidden_size = 8
+parser.add_argument('--hidden_size', type = int, default = 8,
+                    help = 'Hidden size of RNN')
+parser.add_argument('--bin_size', type = int, default = 25,
+                    help = 'Bin size for binning spikes')
+parser.add_argument('--no_pca', action = 'store_true', 
+                    help = 'Do not use PCA for preprocessing')
+parser.add_argument('--retrain', action = 'store_true', 
+                    help = 'Force retraining of model. Will overwrite existing model')
+
+# data_dir = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
+# train_steps = 100
+# hidden_size = 8
+# bin_size = 25
+
+args = parser.parse_args()
+data_dir = args.data_dir
+train_steps = args.train_steps
+hidden_size = args.hidden_size
+bin_size = args.bin_size
+# data_dir = sys.argv[1]
+
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
@@ -57,13 +79,12 @@ data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
 
 ############################################################
-bin_size = 25
 
 spike_array = np.stack(data.spikes)
 cat_spikes = np.concatenate(spike_array)
 
 # Trial number
-trial_num = np.stack([np.ones(spike_array.shape[1])*i for i in range(spike_array.shape[0])])
+trial_num = np.stack([np.arange(spike_array.shape[1]) for i in range(spike_array.shape[0])])
 trial_num = np.concatenate(trial_num)
 
 # Bin spikes
@@ -94,26 +115,31 @@ scaler = StandardScaler()
 # scaler = MinMaxScaler()
 inputs_long = scaler.fit_transform(inputs_long)
 
-# Perform PCA and get 95% explained variance
-pca_obj = PCA(n_components=0.95)
-inputs_pca = pca_obj.fit_transform(inputs_long)
-n_components = inputs_pca.shape[-1]
+if not args.no_pca:
+    print('Performing PCA')
+    # Perform PCA and get 95% explained variance
+    pca_obj = PCA(n_components=0.95)
+    inputs_pca = pca_obj.fit_transform(inputs_long)
+    n_components = inputs_pca.shape[-1]
 
-# Scale the PCA outputs
-pca_scaler = StandardScaler()
-inputs_pca = pca_scaler.fit_transform(inputs_pca)
+    # Scale the PCA outputs
+    pca_scaler = StandardScaler()
+    inputs_pca = pca_scaler.fit_transform(inputs_pca)
 
-inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, n_components)
+    inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, n_components)
 
-# shape: (time, trials, pca_components)
-inputs = inputs_trial_pca.copy()
+    # shape: (time, trials, pca_components)
+    inputs = inputs_trial_pca.copy()
+else:
+    inputs_trial_scaled = inputs_long.reshape(inputs.shape)
+    inputs = inputs_trial_scaled.copy()
 
 ##############################
 
 # Add stim time as external input
 # Shape: (time, trials, 1)
 stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
-stim_time[:, 2000//bin_size] = 1
+stim_time[2000//bin_size, :] = 1
 
 # Also add trial number as external input
 # Scale trial number to be between 0 and 1
@@ -125,9 +151,27 @@ inputs_plus_context = np.concatenate(
         [
             inputs, 
             stim_time[:,:,None],
-			trial_num_broad[:,:,None]
+            trial_num_broad[:,:,None]
             ], 
         axis = -1)
+
+stim_t_input = inputs_plus_context[..., -2]
+plt.imshow(stim_t_input.T, aspect = 'auto')
+plt.title('Stim Time Input')
+plt.savefig(os.path.join(plots_dir, 'input_stim_time.png'))
+plt.close()
+
+# Plot inputs for sanity check
+# vz.firing_overview(inputs.swapaxes(0,1).swapaxes(1,2),
+vz.firing_overview(inputs_plus_context.T,
+                   figsize = (10,10),
+                   cmap = 'viridis',
+                   backend = 'imshow',
+                   zscore_bool = True,)
+fig = plt.gcf()
+plt.suptitle('RNN Inputs')
+fig.savefig(os.path.join(plots_dir, 'inputs.png'))
+plt.close(fig)
 
 ############################################################
 # Train model
@@ -180,7 +224,7 @@ net = autoencoderRNN(
 
 loss_path = os.path.join(artifacts_dir, 'loss.json')
 cross_val_loss_path = os.path.join(artifacts_dir, 'cross_val_loss.json')
-if not os.path.exists(model_save_path):
+if (not os.path.exists(model_save_path)) or args.retrain:
 	net.to(device)
 	net, loss, cross_val_loss = train_model(
 			net, 
@@ -188,7 +232,7 @@ if not os.path.exists(model_save_path):
 			train_labels, 
 			output_size = output_size,
 			lr = 0.001, 
-			train_steps = 15000,
+			train_steps = train_steps,
 			loss = loss_name, 
 			test_inputs = test_inputs,
 			test_labels = test_labels,
@@ -223,13 +267,15 @@ pred_firing = np.moveaxis(outs, 0, -1)
 pred_firing = np.moveaxis(pred_firing, 0, -1).T
 pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
 
-# # Reverse NMF scaling
-# pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
-pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
+# If pca was performed, first reverse PCA, then reverse pca standard scaling
+if not args.no_pca:
+    # # Reverse NMF scaling
+    # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
+    pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
 
-# Reverse NMF transform
-# pred_firing_long = nmf_obj.inverse_transform(pred_firing_long)
-pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
+    # Reverse NMF transform
+    # pred_firing_long = nmf_obj.inverse_transform(pred_firing_long)
+    pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
 
 # Reverse standard scaling
 pred_firing_long = scaler.inverse_transform(pred_firing_long)

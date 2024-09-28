@@ -33,12 +33,31 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
                     #min_val = None, max_val=None, 
                     cmap_lims = 'individual',
                     subplot_labels = None,
-                    zscore_bool = False):
+                    zscore_bool = False,
+                    figsize = None,
+                    backend = 'pcolormesh'):
     """
     Takes 3D numpy array as input and rolls over first dimension
     to generate images over last 2 dimensions
     E.g. (neuron x trial x time) will generate heatmaps of firing
         for every neuron
+
+    Inputs:
+        data: 3D numpy array
+        t_vec: time vector
+        y_values_vec: y values vector
+        cmap: colormap
+        min_val: minimum value for colormap
+        max_val: maximum value for colormap
+        cmap_lims: 'individual' or 'shared'
+        subplot_labels: labels for subplots
+        zscore_bool: zscore data
+        figsize: size of figure
+        backend: 'pcolormesh' or 'imshow
+
+    Outputs:
+        fig: figure handle
+        ax: axis handle
     """
 
     if zscore_bool:
@@ -64,7 +83,11 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
     # Plot firing rates
     square_len = int(np.ceil(np.sqrt(num_nrns)))
     row_count = int(np.ceil(num_nrns/square_len))
-    fig, ax = plt.subplots(row_count, square_len, sharex='all',sharey='all')
+    if figsize is None:
+        fig, ax = plt.subplots(row_count, square_len, sharex='all',sharey='all')
+    else:
+        fig, ax = plt.subplots(row_count, square_len, 
+                               sharex='all',sharey='all',figsize=figsize)
     # Account for case where row and cols are both 1
     if not isinstance(ax,np.array([]).__class__):
         ax = np.array(ax)[np.newaxis, np.newaxis]
@@ -81,9 +104,14 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
     for this_ind,nrn in zip(nd_idx_objs,range(num_nrns)):
         plt.sca(ax[this_ind[0],this_ind[1]])
         plt.gca().set_title('{}:{}'.format(int(subplot_labels[nrn]),nrn))
-        plt.gca().pcolormesh(x, y,
-                data[nrn],cmap=cmap,
-                vmin = min_val[nrn], vmax = max_val[nrn])
+        if backend == 'imshow':
+            plt.gca().imshow(data[nrn], 
+                interpolation=interpolation, aspect='auto', 
+                origin='lower', cmap=cmap)
+        elif backend == 'pcolormesh':
+            plt.gca().pcolormesh(x, y,
+                    data[nrn],cmap=cmap,
+                    vmin = min_val[nrn], vmax = max_val[nrn])
 
     return fig,ax
 
