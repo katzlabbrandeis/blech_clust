@@ -12,6 +12,8 @@ parser.add_argument('--hidden_size', type = int, default = 8,
                     help = 'Hidden size of RNN')
 parser.add_argument('--bin_size', type = int, default = 25,
                     help = 'Bin size for binning spikes')
+parser.add_argument('--train_test_split', type = float, default = 0.75,
+                    help = 'Fraction of data to use for training')
 parser.add_argument('--no_pca', action = 'store_true', 
                     help = 'Do not use PCA for preprocessing')
 parser.add_argument('--retrain', action = 'store_true', 
@@ -27,6 +29,7 @@ data_dir = args.data_dir
 train_steps = args.train_steps
 hidden_size = args.hidden_size
 bin_size = args.bin_size
+train_test_split = args.train_test_split
 # data_dir = sys.argv[1]
 
 ##############################
@@ -195,7 +198,6 @@ labels = torch.from_numpy(inputs).type(torch.float32)
 inputs = torch.from_numpy(inputs_plus_context).type(torch.float)
 
 # Split into train and test
-train_test_split = 0.75
 train_inds = np.random.choice(
         np.arange(inputs.shape[1]), 
         int(train_test_split * inputs.shape[1]), 
@@ -255,6 +257,18 @@ else:
 		loss = json.load(f)
 	with open(cross_val_loss_path, 'r') as f:
 		cross_val_loss = json.load(f)
+
+# If final train loss > cross val loss, issue warning
+if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
+    warning_file_path = os.path.join(artifacts_dir, 'warning.txt')
+    warning_str = """
+    Final training loss is greater than cross validation loss.
+    This indicates something weird is going on (maybe with train-test split or PCA).
+    Try retraining the model (to get a new train-test split) or using the --no-pca flag.
+    """
+    with open(warning_file_path, 'w') as f:
+        f.write(warning_str)
+    print(warning_str)
 
 
 ############################################################
