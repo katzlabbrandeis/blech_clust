@@ -2,32 +2,6 @@
 Use Auto-regressive RNN to infer firing rates from a given data set.
 """
 
-# Check that blechRNN is on the Desktop, if so, add to path
-import os
-import sys
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-import torch
-import matplotlib.pyplot as plt
-from scipy.stats import zscore
-import json
-
-blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
-if os.path.exists(blechRNN_path):
-	sys.path.append(blechRNN_path)
-else:
-	raise FileNotFoundError('blechRNN not found on Desktop')
-from src.model import autoencoderRNN
-from src.train import train_model
-
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
-script_path = os.path.abspath(__file__)
-blech_clust_path = os.path.dirname(os.path.dirname(script_path))
-sys.path.append(blech_clust_path)
-from utils.ephys_data import ephys_data
-from utils.ephys_data import visualize as vz
-
 import argparse
 parser = argparse.ArgumentParser(description = 'Infer firing rates using RNN')
 parser.add_argument('data_dir', help = 'Path to data directory')
@@ -54,6 +28,34 @@ train_steps = args.train_steps
 hidden_size = args.hidden_size
 bin_size = args.bin_size
 # data_dir = sys.argv[1]
+
+##############################
+
+# Check that blechRNN is on the Desktop, if so, add to path
+import os
+import sys
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import torch
+import matplotlib.pyplot as plt
+from scipy.stats import zscore
+import json
+
+blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
+if os.path.exists(blechRNN_path):
+	sys.path.append(blechRNN_path)
+else:
+	raise FileNotFoundError('blechRNN not found on Desktop')
+from src.model import autoencoderRNN
+from src.train import train_model
+
+# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+script_path = os.path.abspath(__file__)
+blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_path)
+from utils.ephys_data import ephys_data
+from utils.ephys_data import visualize as vz
 
 # mse loss performs better than poisson loss
 loss_name = 'mse'
