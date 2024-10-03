@@ -5,6 +5,8 @@ Use Auto-regressive RNN to infer firing rates from a given data set.
 import argparse
 parser = argparse.ArgumentParser(description = 'Infer firing rates using RNN')
 parser.add_argument('data_dir', help = 'Path to data directory')
+parser.add_argument('--override_config', action = 'store_true', 
+                    help = 'Override config file and use provided arguments')
 parser.add_argument('--train_steps', type = int, default = 15000,
                     help = 'Number of training steps')
 # Hidden size of 8 was tested to be optimal across multiple datasets
@@ -18,24 +20,57 @@ parser.add_argument('--no_pca', action = 'store_true',
                     help = 'Do not use PCA for preprocessing')
 parser.add_argument('--retrain', action = 'store_true', 
                     help = 'Force retraining of model. Will overwrite existing model')
+parser.add_argument('--time_lims', type = int, nargs = 2, default = [1500, 4500],
+                    help = 'Time limits inferred firing rates')
 
 # data_dir = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
 # train_steps = 100
 # hidden_size = 8
 # bin_size = 25
-
+import json
+from pprint import pprint
+import os
 args = parser.parse_args()
 data_dir = args.data_dir
-train_steps = args.train_steps
-hidden_size = args.hidden_size
-bin_size = args.bin_size
-train_test_split = args.train_test_split
 # data_dir = sys.argv[1]
+script_path = os.path.abspath(__file__)
+blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+
+if args.override_config:
+    print('Overriding config file\nUsing provided arguments\n')
+    train_steps = args.train_steps
+    hidden_size = args.hidden_size
+    bin_size = args.bin_size
+    train_test_split = args.train_test_split
+    use_pca = not args.no_pca
+    time_lims = args.time_lims
+else:
+    config_path = os.path.join(blech_clust_path, 'params', 'blechrnn_params.json')
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f'BlechRNN Config file not found @ {config_path}')
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    print('Using config file\n')
+    train_steps = config['train_steps']
+    hidden_size = config['hidden_size']
+    bin_size = config['bin_size']
+    train_test_split = config['train_test_split']
+    use_pca = config['use_pca']
+    time_lims = config['time_lims']
+
+params_dict = dict(
+        train_steps = train_steps,
+        hidden_size = hidden_size,
+        bin_size = bin_size,
+        train_test_split = train_test_split,
+        use_pca = use_pca,
+        time_lims = time_lims,
+        )
+pprint(params_dict)
 
 ##############################
 
 # Check that blechRNN is on the Desktop, if so, add to path
-import os
 import sys
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -43,7 +78,6 @@ from sklearn.decomposition import PCA
 import torch
 import matplotlib.pyplot as plt
 from scipy.stats import zscore
-import json
 
 blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
 if os.path.exists(blechRNN_path):
@@ -54,8 +88,6 @@ from src.model import autoencoderRNN
 from src.train import train_model
 
 # script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
-script_path = os.path.abspath(__file__)
-blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_path)
 from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
@@ -87,6 +119,8 @@ data.get_spikes()
 
 spike_array = np.stack(data.spikes)
 cat_spikes = np.concatenate(spike_array)
+# Cut cat_spikes to time limits
+cat_spikes = cat_spikes[..., time_lims[0]:time_lims[1]]
 
 # Trial number
 trial_num = np.stack([np.arange(spike_array.shape[1]) for i in range(spike_array.shape[0])])
@@ -124,7 +158,7 @@ scaler = StandardScaler()
 # scaler = MinMaxScaler()
 inputs_long = scaler.fit_transform(inputs_long)
 
-if not args.no_pca:
+if use_pca: 
     print('Performing PCA')
     # Perform PCA and get 95% explained variance
     pca_obj = PCA(n_components=0.95)
@@ -147,8 +181,11 @@ else:
 
 # Add stim time as external input
 # Shape: (time, trials, 1)
+stim_time_val = 2000 - time_lims[0]
+if stim_time_val < 0:
+    raise ValueError('Stim time is before time limits')
 stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
-stim_time[2000//bin_size, :] = 1
+stim_time[stim_time_val//bin_size, :] = 1
 # Don't use taste_num as external input
 # Network tends to read too much into it
 # stim_time[2000//bin_size, :] = taste_num / taste_num.max()
@@ -188,7 +225,13 @@ plt.close(fig)
 ############################################################
 # Train model
 ############################################################
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device("cuda:0")
+    print("Running on the GPU")
+else:
+    device = torch.device("cpu")
+    print("Running on the CPU")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 input_size = inputs_plus_context.shape[-1] 
 output_size = inputs_plus_context.shape[-1] -2 # We don't want to predict the stim time
@@ -236,36 +279,40 @@ net = autoencoderRNN(
 loss_path = os.path.join(artifacts_dir, 'loss.json')
 cross_val_loss_path = os.path.join(artifacts_dir, 'cross_val_loss.json')
 if (not os.path.exists(model_save_path)) or args.retrain:
-        if args.retrain:
-            print('Retraining model')
-        net.to(device)
-        net, loss, cross_val_loss = train_model(
-                net, 
-                train_inputs, 
-                train_labels, 
-                output_size = output_size,
-                lr = 0.001, 
-                train_steps = train_steps,
-                loss = loss_name, 
-                test_inputs = test_inputs,
-                test_labels = test_labels,
-                )
-        # Save artifacts and plots
-        torch.save(net, model_save_path)
-        # np.save(loss_path, loss)
-        # np.save(cross_val_loss_path, cross_val_loss)
-        with open(loss_path, 'w') as f:
-            json.dump(loss, f)
-        with open(cross_val_loss_path, 'w') as f:
-            json.dump(cross_val_loss, f)
+    if args.retrain:
+        print('Retraining model')
+    net.to(device)
+    net, loss, cross_val_loss = train_model(
+            net, 
+            train_inputs, 
+            train_labels, 
+            output_size = output_size,
+            lr = 0.001, 
+            train_steps = train_steps,
+            loss = loss_name, 
+            test_inputs = test_inputs,
+            test_labels = test_labels,
+            )
+    # Save artifacts and plots
+    torch.save(net, model_save_path)
+    # np.save(loss_path, loss)
+    # np.save(cross_val_loss_path, cross_val_loss)
+    with open(loss_path, 'w') as f:
+        json.dump(loss, f)
+    with open(cross_val_loss_path, 'w') as f:
+        json.dump(cross_val_loss, f)
+    with open(os.path.join(artifacts_dir, 'params.json'), 'w') as f:
+        json.dump(params_dict, f)
 else:
     net = torch.load(model_save_path)
-        # loss = np.load(loss_path, allow_pickle = True)
-        # cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
-        with open(loss_path, 'r') as f:
-            loss = json.load(f)
-        with open(cross_val_loss_path, 'r') as f:
-            cross_val_loss = json.load(f)
+    # loss = np.load(loss_path, allow_pickle = True)
+    # cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
+    with open(loss_path, 'r') as f:
+        loss = json.load(f)
+    with open(cross_val_loss_path, 'r') as f:
+        cross_val_loss = json.load(f)
+    with open(os.path.join(artifacts_dir, 'params.json'), 'r') as f:
+        params_dict = json.load(f)
 
 # If final train loss > cross val loss, issue warning
 if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
@@ -293,7 +340,7 @@ pred_firing = np.moveaxis(pred_firing, 0, -1).T
 pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
 
 # If pca was performed, first reverse PCA, then reverse pca standard scaling
-if not args.no_pca:
+if use_pca: 
     # # Reverse NMF scaling
     # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
     # pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
@@ -420,8 +467,8 @@ for i in range(binned_spikes.shape[1]):
                c = 'k', alpha = 0.1)
     # ax[2].sharey(ax[1])
     for this_ax in ax:
-        this_ax.set_xlim([1500, 4000])
-        this_ax.axvline(2000, c = 'r', linestyle = '--')
+        # this_ax.set_xlim([1500, 4000])
+        this_ax.axvline(stim_time_val, c = 'r', linestyle = '--')
     ax[1].set_title(f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
     ax[2].set_title('RNN Predicted Firing Rate')
     fig.savefig(
@@ -464,8 +511,8 @@ for i in range(binned_spikes.shape[1]):
                 color = cmap(j), alpha = 0.1)
         # ax[2].sharey(ax[1])
     for this_ax in ax:
-        this_ax.set_xlim([1500, 4000])
-        this_ax.axvline(2000, c = 'r', linestyle = '--')
+        # this_ax.set_xlim([1500, 4000])
+        this_ax.axvline(stim_time_val, c = 'r', linestyle = '--')
     ax[1].set_title(f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
     ax[2].set_title('RNN Predicted Firing Rate')
     fig.savefig(
