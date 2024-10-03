@@ -92,6 +92,10 @@ cat_spikes = np.concatenate(spike_array)
 trial_num = np.stack([np.arange(spike_array.shape[1]) for i in range(spike_array.shape[0])])
 trial_num = np.concatenate(trial_num)
 
+# Taste num
+taste_num = np.stack([np.ones(spike_array.shape[1])*i for i in range(spike_array.shape[0])])
+taste_num = np.concatenate(taste_num)
+
 # Bin spikes
 # (tastes x trials, neurons, time)
 # for example : (120, 35, 280)
@@ -127,9 +131,9 @@ if not args.no_pca:
     inputs_pca = pca_obj.fit_transform(inputs_long)
     n_components = inputs_pca.shape[-1]
 
-    # Scale the PCA outputs
-    pca_scaler = StandardScaler()
-    inputs_pca = pca_scaler.fit_transform(inputs_pca)
+    # # Scale the PCA outputs
+    # pca_scaler = StandardScaler()
+    # inputs_pca = pca_scaler.fit_transform(inputs_pca)
 
     inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, n_components)
 
@@ -145,6 +149,9 @@ else:
 # Shape: (time, trials, 1)
 stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
 stim_time[2000//bin_size, :] = 1
+# Don't use taste_num as external input
+# Network tends to read too much into it
+# stim_time[2000//bin_size, :] = taste_num / taste_num.max()
 
 # Also add trial number as external input
 # Scale trial number to be between 0 and 1
@@ -229,34 +236,36 @@ net = autoencoderRNN(
 loss_path = os.path.join(artifacts_dir, 'loss.json')
 cross_val_loss_path = os.path.join(artifacts_dir, 'cross_val_loss.json')
 if (not os.path.exists(model_save_path)) or args.retrain:
-	net.to(device)
-	net, loss, cross_val_loss = train_model(
-			net, 
-			train_inputs, 
-			train_labels, 
-			output_size = output_size,
-			lr = 0.001, 
-			train_steps = train_steps,
-			loss = loss_name, 
-			test_inputs = test_inputs,
-			test_labels = test_labels,
-			)
-	# Save artifacts and plots
-	torch.save(net, model_save_path)
-	# np.save(loss_path, loss)
-	# np.save(cross_val_loss_path, cross_val_loss)
-	with open(loss_path, 'w') as f:
-		json.dump(loss, f)
-	with open(cross_val_loss_path, 'w') as f:
-		json.dump(cross_val_loss, f)
+        if args.retrain:
+            print('Retraining model')
+        net.to(device)
+        net, loss, cross_val_loss = train_model(
+                net, 
+                train_inputs, 
+                train_labels, 
+                output_size = output_size,
+                lr = 0.001, 
+                train_steps = train_steps,
+                loss = loss_name, 
+                test_inputs = test_inputs,
+                test_labels = test_labels,
+                )
+        # Save artifacts and plots
+        torch.save(net, model_save_path)
+        # np.save(loss_path, loss)
+        # np.save(cross_val_loss_path, cross_val_loss)
+        with open(loss_path, 'w') as f:
+            json.dump(loss, f)
+        with open(cross_val_loss_path, 'w') as f:
+            json.dump(cross_val_loss, f)
 else:
-	net = torch.load(model_save_path)
-	# loss = np.load(loss_path, allow_pickle = True)
-	# cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
-	with open(loss_path, 'r') as f:
-		loss = json.load(f)
-	with open(cross_val_loss_path, 'r') as f:
-		cross_val_loss = json.load(f)
+    net = torch.load(model_save_path)
+        # loss = np.load(loss_path, allow_pickle = True)
+        # cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
+        with open(loss_path, 'r') as f:
+            loss = json.load(f)
+        with open(cross_val_loss_path, 'r') as f:
+            cross_val_loss = json.load(f)
 
 # If final train loss > cross val loss, issue warning
 if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
@@ -287,7 +296,7 @@ pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
 if not args.no_pca:
     # # Reverse NMF scaling
     # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
-    pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
+    # pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
 
     # Reverse NMF transform
     # pred_firing_long = nmf_obj.inverse_transform(pred_firing_long)
@@ -297,6 +306,7 @@ if not args.no_pca:
 pred_firing_long = scaler.inverse_transform(pred_firing_long)
 
 pred_firing = pred_firing_long.reshape((*pred_firing.shape[:2], -1))
+# shape: (trials, neurons, time)
 pred_firing = np.moveaxis(pred_firing, 1,2)
 
 ##############################
@@ -329,7 +339,7 @@ plt.close(fig)
 
 # Latent factors
 fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize = (5,10),
-					   sharex = True, sharey = True)
+                       sharex = True, sharey = True)
 for i in range(latent_outs.shape[-1]):
     ax[i].imshow(latent_outs[...,i].T, aspect = 'auto')
 plt.suptitle('Latent Factors')
@@ -358,14 +368,29 @@ fig.savefig(os.path.join(plots_dir, 'mean_firing_zscored.png'))
 plt.close(fig)
 
 # Mean neuron firing
+pred_firing_taste_mean = np.stack(
+        [pred_firing[taste_num == i].mean(axis = 0) \
+                for i in np.unique(taste_num)])
+binned_spikes_taste_mean = np.stack(
+        [binned_spikes[taste_num == i].mean(axis = 0) \
+                for i in np.unique(taste_num)])
+
+cmap = plt.get_cmap('tab10')
 fig, ax = vz.gen_square_subplots(len(pred_firing_mean),
                                  figsize = (10,10),
                                  sharex = True,)
 for i in range(pred_firing.shape[1]):
-    ax.flatten()[i].plot(pred_firing_mean[i], 
-                         alpha = 0.7, label = 'pred')
-    ax.flatten()[i].plot(binned_spikes_mean[i], 
-                         alpha = 0.7, label = 'true')
+    for j, (pred, bin) in enumerate(
+            zip(pred_firing_taste_mean, binned_spikes_taste_mean)
+            ):
+        ax.flatten()[i].plot(pred[i], alpha = 1, c = cmap(j))
+        ax.flatten()[i].plot(bin[i], alpha = 0.3, c = cmap(j))
+    # ax.flatten()[i].plot(pred_firing_taste_mean[:,i].T, 
+                           #                      alpha = 1, label = 'pred',
+                           #                      c = cmap(i))
+    # ax.flatten()[i].plot(binned_spikes_taste_mean[:,i].T, 
+                           #                      alpha = 0.3, label = 'true',
+                           #                      c = cmap(i))
     ax.flatten()[i].set_ylabel(str(i))
 fig.savefig(os.path.join(plots_dir, 'mean_neuron_firing.png'))
 plt.close(fig)
@@ -381,7 +406,7 @@ binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
 conv_kern = np.ones(250) / 250
 conv_rate = np.apply_along_axis(
         lambda m: np.convolve(m, conv_kern, mode = 'valid'),
-                            axis = -1, arr = cat_spikes)*bin_size
+        axis = -1, arr = cat_spikes)*bin_size
 conv_x = np.convolve(
         np.arange(cat_spikes.shape[-1]), conv_kern, mode = 'valid')
 
@@ -470,7 +495,7 @@ for i in range(pred_firing.shape[1]):
     max_val = max(pred_firing[:,i].max(), binned_spikes[:,i].max())
     img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis',
                   }
-                  #'vmin':min_val, 'vmax':max_val}
+    #'vmin':min_val, 'vmax':max_val}
     im0 = ax[0].imshow(pred_firing[:,i], **img_kwargs) 
     im1 = ax[1].imshow(binned_spikes[:,i, 1:], **img_kwargs) 
     ax[0].set_title('Pred')
