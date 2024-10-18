@@ -18,7 +18,7 @@ import shutil
 # Import specific functions in order to filter the data file
 from scipy.signal import butter
 from scipy.signal import filtfilt
-from scipy.stats import median_abs_deviation as MAD
+from scipy.stats import median_absolute_deviation as MAD
 
 # ==============================
 # Define Functions
