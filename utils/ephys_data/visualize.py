@@ -111,6 +111,7 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
         elif backend == 'pcolormesh':
             plt.gca().pcolormesh(x, y,
                     data[nrn],cmap=cmap,
+                    shading = 'nearest',
                     vmin = min_val[nrn], vmax = max_val[nrn])
 
     return fig,ax
