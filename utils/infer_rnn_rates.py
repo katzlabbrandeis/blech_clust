@@ -75,6 +75,7 @@ from sklearn.decomposition import PCA
 import torch
 import matplotlib.pyplot as plt
 from scipy.stats import zscore
+import tables
 
 blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
 if os.path.exists(blechRNN_path):
@@ -474,6 +475,9 @@ for taste_ind, taste_spikes in enumerate(spike_array):
         fig.savefig(os.path.join(trial_latent_dir, f'taste_{taste_ind}_trial_{i}_latent.png'))
         plt.close(fig)
 
+############################################################
+############################################################
+
 # Mean neuron firing
 pred_firing_taste_mean = np.stack(
         [pred_firing_list[i].mean(axis = 0) for i in range(len(pred_firing_list))])
@@ -544,7 +548,7 @@ for i in range(binned_spikes.shape[1]):
     fig.savefig(
             os.path.join(
                 ind_plot_dir, 
-                f'neuron_{i}_taste_{taste_ind}_mean_raster_conv_pred.png'))
+                f'neuron_{i}_mean_raster_conv_pred.png'))
     plt.close(fig)
 
 
@@ -571,3 +575,21 @@ for i in range(pred_firing.shape[1]):
     fig.savefig(os.path.join(ind_plot_dir, f'neuron_{i}_firing.png'))
     plt.close(fig)
 
+
+############################################################
+############################################################
+# Write out firing rates to file
+hdf5_path = data.hdf5_path
+with tables.open_file(hdf5_path, 'r+') as hf5:
+    # Create directory for rnn output
+    hf5.create_group('/', 'rnn_output', 'RNN Output')
+    rnn_output = hf5.get_node('/rnn_output')
+    # Write out latents and predicted firing rates for each
+    # taste in separate arrays
+    for taste_ind, (pred_firing, latent_out) in enumerate(
+            zip(pred_firing_list, latent_out_list)
+            ):
+        taste_grp = hf5.create_group(rnn_output, f'taste_{taste_ind}', f'Taste {taste_ind}')
+        hf5.create_array(taste_grp, 'pred_firing', pred_firing)
+        hf5.create_array(taste_grp, 'latent_out', latent_out)
+        hf5.create_array(taste_grp, 'pred_x', pred_x_list[taste_ind])
