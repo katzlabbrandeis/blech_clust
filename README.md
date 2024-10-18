@@ -139,23 +139,34 @@ bash blech_clust_post.sh       # Perform steps up to PSTH generation
 This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
 
 ```
-usage: infer_rnn_rates.py [-h] [--train_steps TRAIN_STEPS] [--hidden_size HIDDEN_SIZE] [--bin_size BIN_SIZE] [--no_pca] [--retrain] data_dir
+usage: infer_rnn_rates.py [-h] [--override_config] [--train_steps TRAIN_STEPS]
+                          [--hidden_size HIDDEN_SIZE] [--bin_size BIN_SIZE]
+                          [--train_test_split TRAIN_TEST_SPLIT] [--no_pca]
+                          [--retrain] [--time_lims TIME_LIMS TIME_LIMS]
+                          data_dir
 
 Infer firing rates using RNN
 
 positional arguments:
   data_dir              Path to data directory
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
+  --override_config     Override config file and use provided
+                        arguments(default: False)
   --train_steps TRAIN_STEPS
-                        Number of training steps
+                        Number of training steps (default: 15000)
   --hidden_size HIDDEN_SIZE
-                        Hidden size of RNN
-  --bin_size BIN_SIZE   Bin size for binning spikes
-  --no_pca              Do not use PCA for preprocessing
-  --retrain             Force retraining of model. Will overwrite existing model
-
+                        Hidden size of RNN (default: 8)
+  --bin_size BIN_SIZE   Bin size for binning spikes (default: 25)
+  --train_test_split TRAIN_TEST_SPLIT
+                        Fraction of data to use for training (default: 0.75)
+  --no_pca              Do not use PCA for preprocessing (default: False)
+  --retrain             Force retraining of model. Will overwrite existing
+                        model (default: False)
+  --time_lims TIME_LIMS TIME_LIMS
+                        Time limits inferred firing rates (default: [1500,
+                        4500])
 ```
 
 ### Test Dataset
