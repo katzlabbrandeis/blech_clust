@@ -132,7 +132,7 @@ for ind, clust_num in enumerate(clustering_solutions):
 	fig.suptitle(f'Electrode {electrode_num:02} - {clust_num} clusters')
 	fig.tight_layout()
 	fig.subplots_adjust(top=0.95)
-	fig.savefig(f'./Plots/{electrode_num:02}/clusters{clust_num}/' +\
+	fig.savefig(f'./Plots/{electrode_num:02}/clusters{clust_num:02}/' +\
 			f'clustermap.png', dpi=300,
 			 bbox_inches='tight')
 	plt.close()

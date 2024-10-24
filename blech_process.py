@@ -237,4 +237,4 @@ f.close()
 print(f'Electrode {electrode_num} complete.')
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path, 'completed'
+this_pipeline_check.write_to_log(script_path, 'completed')
