@@ -235,14 +235,8 @@ class cluster_handler():
             self.data_dir,
             'Plots',
             f'{self.electrode_num:02}',
-            f'clusters{self.cluster_num}'
+            f'clusters{self.cluster_num:02}'
         )
-        # elif self.fit_type == 'auto':
-        #     clust_plot_dir = os.path.join(
-        #         self.data_dir,
-        #         'Plots',
-        #         f'{self.electrode_num:02}',
-        #     )
         ifisdir_rmdir(clust_results_dir)
         ifisdir_rmdir(clust_plot_dir)
         os.makedirs(clust_results_dir)
@@ -702,7 +696,7 @@ class classifier_handler():
         fig.suptitle('Predicted Spike Waveforms' + '\n' +
                      f'Count : {len(self.pos_spike_dict["waveforms"])}')
         fig.savefig(os.path.join(self.plot_dir,
-                                 f'{self.electrode_num}_pred_spikes.png'),
+                                 f'{self.electrode_num:02}_pred_spikes.png'),
                     bbox_inches='tight')
         plt.close(fig)
 
@@ -720,7 +714,7 @@ class classifier_handler():
                 map_dict,
                 plot_n = 1000,
                 save_path = os.path.join(self.plot_dir, 
-                             f'{self.electrode_num}_pred_spikes_dendogram.png'))
+                                         f'{self.electrode_num:02}_pred_spikes_dendogram.png'))
 
         # Cluster noise and plot waveforms + times on single plot
         # Pull out noise info
@@ -769,7 +763,7 @@ class classifier_handler():
         fig.suptitle('Predicted Noise Waveforms' + '\n' +
                      f'Count : {noise_slices.shape[0]}')
         fig.savefig(os.path.join(self.plot_dir,
-                                 f'{self.electrode_num}_pred_noise.png'),
+                                 f'{self.electrode_num:02}_pred_noise.png'),
                     bbox_inches='tight')
         plt.close(fig)
         # plt.show()
