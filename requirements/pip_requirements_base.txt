@@ -4,3 +4,4 @@ seaborn==0.11.2
 prefect==2.10.5
 pingouin==0.3
 tqdm
+gdown
