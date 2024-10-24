@@ -18,12 +18,19 @@ import pandas as pd
 import pylab as plt
 
 sys.path.append('..')
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 from utils.blech_process_utils import path_handler
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
 data_dir = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(data_dir)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 os.chdir(data_dir)
 print(f'Processing : {data_dir}')
 
@@ -232,3 +239,6 @@ for car_name, car_data in car_group:
     plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_filt.png'),
                 bbox_inches = 'tight')
     plt.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

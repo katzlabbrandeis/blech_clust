@@ -1,27 +1,8 @@
 ############################################################
-# Imports and Settings
+# First handle arguments
+# This allows the -h flag to run without loading imports
 ############################################################
-import os
-import tables
-import numpy as np
-import pylab as plt
-from sklearn.mixture import GaussianMixture
 import argparse
-import pandas as pd
-import matplotlib
-from glob import glob
-import re
-
-matplotlib.rcParams['font.size'] = 6
-
-# Import 3rd party code
-from utils import blech_waveforms_datashader
-from utils.blech_utils import entry_checker, imp_metadata
-import utils.blech_post_process_utils as post_utils
-
-# Set seed to allow inter-run reliability
-# Also allows reusing the same sorting sheets across runs
-np.random.seed(0)
 
 ############################################################
 # Input from user and setup data 
@@ -31,7 +12,7 @@ np.random.seed(0)
 # Create argument parser
 parser = argparse.ArgumentParser(
         description = 'Spike extraction and sorting script')
-parser.add_argument('--dir-name',  '-d', 
+parser.add_argument('dir_name',
                     help = 'Directory containing data files')
 parser.add_argument('--show-plot', '-p', 
         help = 'Show waveforms while iterating (True/False)', default = 'True')
@@ -39,6 +20,29 @@ parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
                     default = None)
 args = parser.parse_args()
 
+############################################################
+# Imports and Settings
+############################################################
+import os
+import tables
+import numpy as np
+import pylab as plt
+from sklearn.mixture import GaussianMixture
+import pandas as pd
+import matplotlib
+from glob import glob
+import re
+
+matplotlib.rcParams['font.size'] = 6
+
+# Import 3rd party code
+from utils import blech_waveforms_datashader
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+import utils.blech_post_process_utils as post_utils
+
+# Set seed to allow inter-run reliability
+# Also allows reusing the same sorting sheets across runs
+np.random.seed(0)
 
 ##############################
 # Instantiate sort_file_handler
@@ -48,6 +52,7 @@ if args.dir_name is not None:
     metadata_handler = imp_metadata([[],args.dir_name])
 else:
     metadata_handler = imp_metadata([])
+
 
 # Extract parameters for automatic processing
 params_dict = metadata_handler.params_dict
@@ -62,9 +67,17 @@ count_threshold = auto_params['cluster_count_threshold']
 chi_square_alpha = auto_params['chi_square_alpha'] 
 
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 os.chdir(dir_name)
 file_list = metadata_handler.file_list
 hdf5_name = metadata_handler.hdf5_name
+
 
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
 repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
@@ -174,6 +187,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 
         # Cluster the data
         g = GaussianMixture(
+                random_state = 0,
                 n_components = n_clusters, 
                 covariance_type = 'full', 
                 tol = thresh, 
@@ -457,6 +471,10 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
                     new_clust_names,
                     )
 
+            # In case first unit is merged, we need to create the autosort_output_dir
+            if not os.path.exists(autosort_output_dir):
+                os.makedirs(autosort_output_dir)
+
             fig.savefig(
                     os.path.join(
                         autosort_output_dir,
@@ -568,3 +586,6 @@ print()
 print('== Post-processing exiting ==')
 # Close the hdf5 file
 hf5.close()
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')

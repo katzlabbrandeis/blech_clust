@@ -35,7 +35,13 @@ assert sum([args.emg, args.spike, args.emg_spike]) == 1, \
 
 # Given flag and directory name, copy info files to directory
 info_dir_list = ['emg_only_info', 'spike_only_info', 'emg_spike_info']
-info_dir = info_dir_list[args.emg + 1*args.spike + 2*args.emg_spike]
+# Get info directory
+if args.emg:
+    info_dir = info_dir_list[0]
+elif args.spike:
+    info_dir = info_dir_list[1]
+elif args.emg_spike:
+    info_dir = info_dir_list[2]
 info_dir_path = os.path.join(dir_name, info_dir)
 
 # Print which info files are being copied
