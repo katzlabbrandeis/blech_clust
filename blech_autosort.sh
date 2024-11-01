@@ -6,7 +6,7 @@ python blech_common_avg_reference.py $DIR &&
 echo === Blech Run Process === 
 bash blech_run_process.sh $DIR &&
 echo === Post Process ===
-python blech_post_process.py -d $DIR &&
+python blech_post_process.py $DIR &&
 echo === Make Arrays ===
 python blech_make_arrays.py $DIR &&
 echo === Quality Assurance === 

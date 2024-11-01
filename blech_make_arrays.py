@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from utils.clustering import get_filtered_electrode
 from utils.blech_process_utils import return_cutoff_values
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 def get_dig_in_data(hf5):
     dig_in_nodes = hf5.list_nodes('/digital_in')
@@ -101,6 +101,13 @@ if __name__ == '__main__':
     # Get name of directory with the data files
 
     metadata_handler = imp_metadata(sys.argv)
+
+    # Perform pipeline graph check 
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
     os.chdir(metadata_handler.dir_name)
     print(f'Processing: {metadata_handler.dir_name}')
 
@@ -291,10 +298,7 @@ if __name__ == '__main__':
     # If sorting hasn't been done, use only emg channels
     # to calculate cutoff...don't need to go through all channels
 
-    if '/raw_emg' in hf5:
-        raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
-    else:
-        raw_emg_electrodes = []
+    raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
 
     if len(raw_emg_electrodes) > 0:
         emg_electrode_names = [x._v_pathname for x in raw_emg_electrodes]
@@ -434,16 +438,15 @@ if __name__ == '__main__':
     else:
         print('No sorted units found...NOT MAKING SPIKE TRAINS')
 
-    if '/raw_emg' in hf5:
-        if len(list(hf5.get_node('/','raw_emg'))) > 0:
-        
-            print('EMG Data found ==> Making EMG Trial Arrays')
+    #Test for EMG Data and then use it
+    if len(raw_emg_electrodes) > 0:
+        print('EMG Data found ==> Making EMG Trial Arrays')
 
-            # Grab the names of the arrays containing emg recordings
-            emg_nodes = hf5.list_nodes('/raw_emg')
-            emg_pathname = []
-            for node in emg_nodes:
-                emg_pathname.append(node._v_pathname)
+        # Grab the names of the arrays containing emg recordings
+        emg_nodes = hf5.list_nodes('/raw_emg')
+        emg_pathname = []
+        for node in emg_nodes:
+            emg_pathname.append(node._v_pathname)
 
         # Delete /emg_data in hf5 file if it exists, and then create it
         if '/emg_data' in hf5:
@@ -470,9 +473,10 @@ if __name__ == '__main__':
             f.write(f'Channels used : {emg_pathname}')
             f.write('\n')
             f.write('Numbers indicate "electrode_ind" in electrode_layout_frame')
-
     else:
         print('No EMG Data Found...NOT MAKING EMG ARRAYS')
 
     hf5.close()
 
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')

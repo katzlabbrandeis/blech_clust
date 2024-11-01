@@ -41,10 +41,10 @@ conda deactivate                                            # Make sure we're in
 conda update -n base conda                                  # Update conda to have the new Libmamba solver
 
 cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda clean --all                                           # Removes unused packages and caches
-conda create --name blech_clust python=3.8.13               # Create "blech_clust" environment with conda requirements
+conda clean --all -y                                        # Removes unused packages and caches
+conda create --name blech_clust python=3.8.13 -y            # Create "blech_clust" environment with conda requirements
 conda activate blech_clust                                  # Activate blech_clust environment
-bash conda_requirements_base.sh                             # Install main packages using conda/mamba
+conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
 bash install_gnu_parallel.sh                                # Install GNU Parallel
 pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
 bash patch_dependencies.sh                                  # Fix issues with dependencies
@@ -53,8 +53,34 @@ bash patch_dependencies.sh                                  # Fix issues with de
 cd ~/Desktop                                                # Relocate to download classifier library
 git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifier library
 pip install -r neuRecommend/requirements.txt
+
+### Install EMG (BSA) requirements (OPTIONAL)
+# Tested with installation after neuRecommend requirements
+cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
+conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
+bash emg_install.sh                                         # Install EMG requirements
+
+### Install BlechRNN for firing rate estimation (OPTIONAL)
+cd ~/Desktop                                                # Relocate to download BlechRNN
+git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
+cd blechRNN                                                 # Move into BlechRNN directory
+pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements 
+**Note: If you'd like to use GPU, you'll need to install CUDA
+-- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
+
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
+
+### Testing
+```
+cd <path_to_blech_clust>                                    # Move to blech_clust directory
+conda activate blech_clust                                  # Activate blech_clust environment
+pip install -U prefect                                      # Update prefect
+python pipeline_testing/prefect_pipeline.py --all           # Run all tests
+```
+
+Use `prefect server start` to start the prefect server in a different terminal window, and monitor the progress of the pipeline in th Prefect UI.
+
 
 ### Convenience scripts
 - blech_clust_pre.sh : Runs steps 2-5  
@@ -105,6 +131,42 @@ While you're there, you should also copy and adapt the other two params template
 bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP  
 python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)  
 bash blech_clust_post.sh       # Perform steps up to PSTH generation
+```
+
+### Utilities
+#### utils/infer_rnn_rates.py
+
+This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
+
+```
+usage: infer_rnn_rates.py [-h] [--override_config] [--train_steps TRAIN_STEPS]
+                          [--hidden_size HIDDEN_SIZE] [--bin_size BIN_SIZE]
+                          [--train_test_split TRAIN_TEST_SPLIT] [--no_pca]
+                          [--retrain] [--time_lims TIME_LIMS TIME_LIMS]
+                          data_dir
+
+Infer firing rates using RNN
+
+positional arguments:
+  data_dir              Path to data directory
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --override_config     Override config file and use provided
+                        arguments(default: False)
+  --train_steps TRAIN_STEPS
+                        Number of training steps (default: 15000)
+  --hidden_size HIDDEN_SIZE
+                        Hidden size of RNN (default: 8)
+  --bin_size BIN_SIZE   Bin size for binning spikes (default: 25)
+  --train_test_split TRAIN_TEST_SPLIT
+                        Fraction of data to use for training (default: 0.75)
+  --no_pca              Do not use PCA for preprocessing (default: False)
+  --retrain             Force retraining of model. Will overwrite existing
+                        model (default: False)
+  --time_lims TIME_LIMS TIME_LIMS
+                        Time limits inferred firing rates (default: [1500,
+                        4500])
 ```
 
 ### Test Dataset

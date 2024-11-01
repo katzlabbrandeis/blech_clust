@@ -13,7 +13,7 @@ import pylab as plt
 # Necessary blech_clust modules
 from utils import read_file
 from utils.qa_utils import channel_corr
-from utils.blech_utils import entry_checker, imp_metadata
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.blech_process_utils import path_handler
 
 # Get blech_clust path
@@ -32,6 +32,12 @@ if not os.path.exists(params_template_path):
 
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
+
+# Perform pipeline graph check
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
+
 print(f'Processing : {dir_name}')
 os.chdir(dir_name)
 
@@ -138,7 +144,7 @@ if file_type == ['one file per channel']:
     # Pull out the digital input channels used,
     # and convert them to integers
     dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
-    dig_in_int = sorted([int(x) for x in dig_in_int])
+    dig_in_int = sorted([(x) for x in dig_in_int])
 
 elif file_type == ['one file per signal type']:
 
@@ -243,7 +249,7 @@ dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
 
 plt.scatter(dig_in_markers[1], dig_in_markers[0], s=50, marker='|', c='k')
 # If there is a laser_dig_in, mark laser trials with axvline
-if laser_dig_in is not None and len(laser_dig_in) > 0:
+if len(laser_dig_in) > 0:
     laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
     for marker in laser_markers:
         plt.axvline(dig_in_markers[1][marker], c='yellow', lw=2, alpha = 0.5,
@@ -303,3 +309,6 @@ f.close()
 
 print('blech_clust.py complete \n')
 print('*** Please check params file to make sure all is good ***\n')
+
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')
