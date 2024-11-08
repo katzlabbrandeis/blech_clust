@@ -1,0 +1,57 @@
+# Description: This is a test workflow for running a Python script on a self-hosted runner
+# Don't chain jobs together as any failure in one job will stop the workflow
+
+name: Python test 
+run-name: python_test 
+on: [pull_request]
+jobs:
+  Preamble:
+    runs-on: self-hosted
+    steps:
+      - run: cd ~/Desktop/blech_clust
+      - run: pwd
+      - run: which python
+      - run: conda info --envs
+      - name: Set up repo
+        uses: actions/checkout@v4
+      - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+  Spike-Only:
+    runs-on: self-hosted
+    needs: Preamble
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v4
+      - name: Prefect SPIKE only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py -s 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  EMG-Only:
+    runs-on: self-hosted
+    needs: Preamble 
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v4
+      - name: Prefect EMG only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  Spike-EMG:
+    runs-on: self-hosted
+    needs: Preamble 
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v4
+      - name: Prefect SPIKE then EMG test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+
