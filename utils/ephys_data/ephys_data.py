@@ -5,7 +5,7 @@ import tables
 import copy
 import multiprocessing as mp
 from scipy.special import gamma
-from scipy.stats import zscore
+from scipy.stats import zscore, spearmanr
 import scipy, scipy.signal
 import glob
 import json
@@ -15,6 +15,9 @@ from tqdm import tqdm
 from itertools import product
 from .BAKS import BAKS
 from . import lfp_processing
+from pprint import pprint as pp
+import numpy as np
+import pandas as pd
 
 #  ______       _                      _____        _         
 # |  ____|     | |                    |  __ \      | |        
@@ -290,14 +293,18 @@ class ephys_data():
         """
         Extract spike arrays from specified HD5 files
         """
+        print('Loading spikes')
         with tables.open_file(self.hdf5_path, 'r+') as hf5: 
             if '/spike_trains' in hf5:
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains') \
                     if 'dig_in' in x.__str__()]
+                self.dig_in_name_list = [x.__str__() for x in dig_in_list]
             else:
                 raise Exception('No spike trains found in HF5')
-            
+
+            print('Spike trains loaded from following dig-ins')
+            print("\n".join([f'{i}. {x}' for i,x in enumerate(self.dig_in_name_list)]))
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
 
     def separate_laser_spikes(self):
@@ -465,9 +472,15 @@ class ephys_data():
         """
         
         if self.spikes is None:
-            raise Exception('Run method "get_spikes" first')
+            # raise Exception('Run method "get_spikes" first')
+            print('No spikes found, getting spikes ...')
+            self.get_spikes()
         if None in self.firing_rate_params.values():
-            raise Exception('Specify "firing_rate_params" first')
+            # raise Exception('Specify "firing_rate_params" first')
+            print('No firing rate params found...using default firing params')
+            pp(self.default_firing_params)
+            print('If you want specific firing params, set them manually')
+            self.firing_rate_params = self.default_firing_params
 
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
@@ -513,8 +526,53 @@ class ephys_data():
                         swapaxes(0,1)
 
         else:
-            raise Exception('Cannot currently handle different'\
-                    'numbers of trials')
+            # raise Exception('Cannot currently handle different'\
+            #         'numbers of trials')
+            print('Uneven numbers of trials...not stacking into firing rates array')
+
+    def calc_palatability(self):
+        """
+        Calculate single neuron (absolute) palatability from firing rates
+
+        Requires:
+            - info_dict
+                - palatability ranks
+                - taste names
+            - firing rates
+
+        Generates:
+            - pal_df : pandas dataframe
+                - shape: tastes x 3 cols (dig_ins, taste_names, pal_ranks)
+            - pal_array : np.array
+                - shape : neurons x time_bins
+        """
+
+        if 'info_dict' not in dir(self):
+            print('Info dict not found...Loading')
+            self.get_info_dict()
+        if 'firing_list' not in dir(self):
+            print('Firing list not found...Loading')
+            self.get_firing_rates()
+        self.taste_names = self.info_dict['taste_params']['tastes']
+        self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
+        print('Calculating palatability with following order:')
+        self.pal_df = pd.DataFrame(
+                dict(
+                    dig_ins = self.dig_in_name_list,
+                    taste_names = self.taste_names,
+                    pal_ranks = self.palatability_ranks,
+                    )
+                )
+        print(self.pal_df)
+        trial_counts = [x.shape[0] for x in self.firing_list]
+        pal_vec = np.concatenate([np.repeat(x,y) for x,y in zip(self.palatability_ranks, trial_counts)])
+        cat_firing = np.concatenate(self.firing_list, axis=0).T
+        inds = list(np.ndindex(cat_firing.shape[:2]))
+        pal_array = np.zeros(cat_firing.shape[:2])
+        for this_ind in tqdm(inds):
+            rho, p_val = spearmanr(cat_firing[tuple(this_ind)], pal_vec)
+            pal_array[tuple(this_ind)] = rho
+        self.pal_array = np.abs(pal_array).T
 
     def separate_laser_firing(self):
         """
