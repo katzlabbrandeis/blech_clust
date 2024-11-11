@@ -211,7 +211,7 @@ if __name__ == '__main__':
             match_ind = np.where(
                     np.abs(taste_info_frame['start'] - this_start) < match_tol
                     )[0]
-            assert len(match_ind) == 1, 'Exact match not found'
+            assert len(match_ind) == 1, f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
             match_trials_ind.append(match_ind[0])
         match_trials = taste_info_frame.iloc[match_trials_ind]['abs_trial_num'].values
         laser_info_frame['abs_trial_num'] = match_trials

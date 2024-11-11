@@ -7,10 +7,8 @@
             "blech_process.py": "blech_common_avg_reference.py",
             "blech_post_process.py": "blech_process.py",
             "blech_units_plot.py": "blech_post_process.py",
-            "blech_make_psth.py": "blech_make_arrays.py",
             "emg/emg_filter.py": "blech_make_arrays.py",
-            "blech_palatability_identity_setup.py": "blech_make_psth.py",
-            "blech_overlay_psth.py": "blech_palatability_identity_setup.py",
+            "blech_unit_characteristics.py": "blech_make_arrays.py",
             "utils/qa_utils/unit_similarity.py": "blech_post_process.py",
             "utils/qa_utils/drift_check.py": "blech_post_process.py"
         },
