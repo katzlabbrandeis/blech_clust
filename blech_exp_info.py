@@ -51,11 +51,21 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # Extract details from name of folder
 splits = dir_name.split("_")
+# Date and Timestamp are given as 2 sets of 6 digits
+# Extract using regex
+time_pattern = re.compile(r'\d{6}')
+time_match = time_pattern.findall(dir_name)
+if len(time_match) != 2:
+    raise ValueError('Timestamp not found in folder name')
+
 this_dict = {
     "name": splits[0],
     "exp_type": splits[1],
-    "date": splits[-2],
-    "timestamp": splits[-1]}
+    # "date": splits[-2],
+    # "timestamp": splits[-1]}
+    "date": time_match[0], 
+    "timestamp": time_match[1],
+    } 
 
 ##################################################
 # Brain Regions and Electrode Layout
@@ -175,9 +185,17 @@ else:
             layout_frame_filled.electrode_ind.isin(orig_emg_electrodes)].\
             unique()
         fin_emg_port = list(fin_emg_port)
+        # Ask for emg muscle
+        emg_muscle_str, continue_bool = entry_checker(
+            msg='Enter EMG muscle name :: ',
+            check_func=lambda x: True,
+            fail_response='Please enter a valid muscle name')
+        if not continue_bool:
+            exit()
     else:
         fin_emg_port = []
         orig_emg_electrodes = []
+        emg_muscle_str = ''
 
     fin_perm = layout_dict
 
@@ -335,8 +353,24 @@ else:
             onset_time, duration = [int(x) for x in nums]
         else:
             exit()
+        # Ask for virus region
+        virus_region_str, continue_bool = entry_checker(
+            msg='Enter virus region :: ',
+            check_func=lambda x: True,
+            fail_response='Please enter a valid region')
+        if not continue_bool:
+            exit()
+        # Ask for opto-fiber location
+        opto_loc_str, continue_bool = entry_checker(
+            msg='Enter opto-fiber location :: ',
+            check_func=lambda x: True,
+            fail_response='Please enter a valid location')
+        if not continue_bool:
+            exit()
     else:
         onset_time, duration = [None, None]
+        virus_region_str = ''
+        opto_loc_str = ''
 
     notes = input('Please enter any notes about the experiment. \n :: ')
 
@@ -360,7 +394,8 @@ else:
                 },
                 'emg': {
                     'port': fin_emg_port,
-                    'electrodes': orig_emg_electrodes},
+                    'electrodes': orig_emg_electrodes,
+                    'muscle': emg_muscle_str},
                 'electrode_layout': fin_perm,
                 'taste_params': {
                     'dig_ins': taste_digins,
@@ -374,7 +409,9 @@ else:
                     'filenames': laser_digin_filenames,
                     'trial_count': laser_digin_trials,
                     'onset': onset_time,
-                    'duration': duration},
+                    'duration': duration,
+                    'virus_region': virus_region_str,
+                    'opto_loc': opto_loc_str},
                 'notes': notes}
 
 
