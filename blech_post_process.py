@@ -96,9 +96,16 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if not '/sorted_units' in hf5:
+if '/sorted_units' in hf5:
+    overwrite_hf5 = input('Saved units detected; remove them? (y/[n]): ') or 'n'
+    if overwrite_hf5.lower() == 'y':
+        hf5.remove_node('/sorted_units', recursive=True)
+        hf5.create_group('/', 'sorted_units')
+        print('==== Cleared saved units. ====\n')
+else:
     hf5.create_group('/', 'sorted_units')
-
+    
+    
 ############################################################
 # Main Processing Loop 
 ############################################################
@@ -167,7 +174,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         ##############################
         # Get clustering parameters from user
         continue_bool, n_clusters, n_iter, thresh, n_restarts = \
-                post_utils.get_clustering_params()
+                post_utils.get_clustering_params(this_sort_file_handler)
         if not continue_bool: continue
 
         # Make data array to be put through the GMM - 5 components: 
@@ -342,8 +349,8 @@ while (not auto_post_process) or (args.sort_file is not None):
     hf5.flush()
 
 
-    print('==== {} Complete ===\n'.format(unit_name))
-    print('==== Iteration Ended ===\n')
+    print('==== {} Complete ====\n'.format(unit_name))
+    print('==== Iteration Ended ====\n')
 
 # Run auto-processing only if clustering was ALSO automatic
 # As currently, this does not have functionality to determine
@@ -386,7 +393,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
         # "good" spikes
 
         # Print out selections
-        print(f'=== Processing Electrode {electrode_num:02} ===')
+        print(f'==== Processing Electrode {electrode_num:02} ====\n')
 
         # Load data from the chosen electrode 
         # We can pick any soluation, but need to know what
@@ -459,9 +466,9 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
             # Rename both to max_clusters
 
             # Print out merge sets
-            print(f'=== Merging {len(final_merge_sets)} Clusters ===')
+            print(f'==== Merging {len(final_merge_sets)} Clusters ====\n')
             for this_merge_set, new_name in zip(final_merge_sets, new_clust_names):
-                print(f'==== {this_merge_set} => {new_name} ====')
+                print(f'==== {this_merge_set} => {new_name} ====\n')
 
             fig, ax = post_utils.gen_plot_auto_merged_clusters(
                     spike_waveforms,
@@ -584,7 +591,7 @@ print(current_unit_table)
 
 
 print()
-print('== Post-processing exiting ==')
+print('==== Post-processing exiting ====\n')
 # Close the hdf5 file
 hf5.close()
 
