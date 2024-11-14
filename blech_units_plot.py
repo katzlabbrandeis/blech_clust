@@ -100,6 +100,38 @@ for unit in range(len(units)):
         fig.savefig('./unit_waveforms_plots/Unit%i.png' % (unit), bbox_inches = 'tight')
         plt.close("all")
 
+
+# Also save datashader and average unit plots separately
+plot_dir = os.path.join('unit_waveforms_plots', 'waveforms_only')
+os.mkdir(plot_dir)
+
+for unit in range(len(units)):
+        waveforms = units[unit].waveforms[:]
+        x = np.arange(waveforms.shape[1]) + 1
+        times = units[unit].times[:]
+        ISIs = np.diff(times)
+
+        fig, ax = blech_waveforms_datashader.\
+                waveforms_datashader(waveforms, x, downsample=False,
+                                     )
+        ax.set_xlabel('Sample (30 samples per ms)')
+        ax.set_ylabel('Voltage (microvolts)')
+        fig.savefig(os.path.join(plot_dir, 'Unit%i_datashader.png' % (unit)), bbox_inches = 'tight')
+        plt.close("all")
+        
+        # Also plot the mean and SD for every unit - 
+        # downsample the waveforms 10 times to remove effects of upsampling during de-jittering
+        #fig = plt.figure()
+        fig, ax = plt.subplots()
+        ax.plot(x, np.mean(waveforms, axis = 0), linewidth = 4.0)
+        ax.fill_between(
+                x, 
+                np.mean(waveforms, axis = 0) - np.std(waveforms, axis = 0), 
+                np.mean(waveforms, axis = 0) + np.std(waveforms, axis = 0), 
+                alpha = 0.4)
+        ax.set_xlabel('Sample (30 samples per ms)')
+        fig.savefig(os.path.join(plot_dir, 'Unit%i_mean_sd.png' % (unit)), bbox_inches = 'tight')
+
 hf5.close()
 
 # Write successful execution to log

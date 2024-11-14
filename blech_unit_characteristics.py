@@ -112,12 +112,15 @@ n_laser_conditions = len(laser_conditions)
 
 # List of len = n_tastes
 # Each element is array of shape: n_trials x n_neurons x n_time_bins
+waveform_dir = os.path.join(dir_name, 'unit_waveforms_plots', 'waveforms_only')
 spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
-	fig, ax = plt.subplots(n_laser_conditions,2, figsize=(10,5*n_laser_conditions),
-						sharex=True, sharey='col')
+	n_rows = np.max([n_laser_conditions, 2])
+	fig, ax = plt.subplots(n_rows,3, figsize=(15,5*n_laser_conditions),
+						# sharex=True, sharey='col')
+	)
 	for i, laser_cond in enumerate(laser_conditions):
 		this_firing = mean_seq_firing.loc[
 				(mean_seq_firing.neuron_num == nrn_ind) &
@@ -155,12 +158,21 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 			block_end = taste_blocks[block_i+1]
 			ax[i,1].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
 					color=colors[block_i])
-		for this_ax in ax[i,:]:
+		for this_ax in ax[i,:-1]:
 			if i == len(ax)-1:
 				this_ax.set_xlabel('Time (ms)')
 			this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
 			this_ax.set_title(f'Laser condition {laser_cond}')
 			this_ax.legend()
+		# Plot waveforms
+		datashader_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_datashader.png')
+		mean_sd_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_mean_sd.png') 
+		datashader_img = plt.imread(datashader_img_path)
+		mean_sd_img = plt.imread(mean_sd_img_path)
+		ax[0, -1].imshow(datashader_img)
+		ax[1, -1].imshow(mean_sd_img)
+		for this_ax in ax[:,-1]:
+			this_ax.axis('off')
 	# g.set_title(f'Neuron {nrn_ind}')
 	fig.suptitle(f'Neuron {nrn_ind}')
 	plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_firing_rate.png'),
@@ -365,7 +377,7 @@ ax[1].set_title('Fraction of responsive neurons\n'+\
 		str(resp_num_laser))
 ax[1].set_ylabel('Fraction')
 ax[1].set_ylim([0,1])
-fig.supxlabel('Taste responsive neurons')
+# fig.supxlabel('Taste responsive neurons')
 plt.tight_layout()
 plt.savefig(os.path.join(agg_plot_dir, 'responsiveness.png'),
 			bbox_inches='tight')
