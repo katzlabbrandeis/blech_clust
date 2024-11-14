@@ -1,5 +1,4 @@
 """
-NO OPTO HANDLING AS OF YET!!!
 
 Analyses to include
 
@@ -25,11 +24,12 @@ from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 import pandas as pd
 from itertools import product
-from scipy.stats import ttest_rel, zscore
+from scipy.stats import ttest_rel, zscore, spearmanr
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pingouin as pg
 from tqdm import tqdm
+tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
@@ -91,6 +91,7 @@ this_dat.firing_rate_params['window_size'] = psth_params['window_size']
 this_dat.firing_rate_params['step_size'] = psth_params['step_size']
 stim_time = params_dict['spike_array_durations'][0]
 this_dat.get_sequestered_data()
+
 
 mean_seq_firing = this_dat.sequestered_firing_frame.groupby(
 		['taste_num','laser_tuple','neuron_num','time_num']).mean()
@@ -201,51 +202,7 @@ if n_laser_conditions > 1:
 				 bbox_inches='tight')
 		plt.close()
 
-# this_dat.get_firing_rates()
-
-# # Plot rasters and psths
-# trial_lens = [x.shape[0] for x in spike_array]
-# cat_spikes = np.concatenate(spike_array, axis=0)
-# cat_firing = np.concatenate(this_dat.firing_list, axis=0)
-# mean_firing = np.stack([x.mean(axis=0) for x in this_dat.firing_list], axis=0)
-# zscore_cat_firing = zscore(cat_firing, axis=(0,2))
-# 
-# cmap = plt.cm.get_cmap('tab10')
-# colors = [cmap(i) for i in range(len(spike_array))]
-# taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
-# for nrn_ind in range(cat_spikes.shape[1]):
-# 	fig, ax = plt.subplots(1,3, figsize=(20,5), sharex=True)
-# 	vz.raster(ax[0], cat_spikes[:,nrn_ind,:], marker = '|', color = 'k')
-# 	ax[0].set_title(f'Raster plot for neuron {nrn_ind}')
-# 	for block_i in range(len(taste_blocks)-1):
-# 		block_start = taste_blocks[block_i]
-# 		block_end = taste_blocks[block_i+1]
-# 		ax[0].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
-# 				color=colors[block_i])
-# 		ax[1].axhline(block_start, color='r', linestyle='--', linewidth=2)
-# 		ax[2].plot(firing_t_vec,
-# 					mean_firing[block_i,nrn_ind],
-# 					color=colors[block_i],
-# 					label=taste_names[block_i],
-# 					linewidth=2)
-# 	ax[1].pcolorfast(
-# 			firing_t_vec,
-# 			np.arange(cat_firing.shape[0]),
-# 			zscore_cat_firing[:,nrn_ind],
-# 			cmap='jet',
-# 			)
-# 	ax[1].set_title(f'PSTH for neuron {nrn_ind}')
-# 	ax[2].set_title(f'Mean PSTH for neuron {nrn_ind}')
-# 	ax[2].legend()
-# 	for this_ax in ax:
-# 		this_ax.set_xlabel('Time (s)')
-# 		this_ax.set_ylabel('Trials')
-# 		this_ax.axvline(stim_time, color='r', linestyle='--', linewidth=2)
-# 	plt.tight_layout()
-# 	plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_raster_psth.png'),
-# 				bbox_inches='tight')
-# 	plt.close()
-
+cat_firing = np.concatenate(this_dat.firing_list)
 trial_lens = [x.shape[0] for x in spike_array]
 taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
 # Plot firing overview
@@ -260,7 +217,7 @@ for this_ax in ax[:,0]:
 for this_ax in ax[-1,:]:
 	this_ax.set_xlabel('Time (ms)')
 for this_ax in ax.flatten():
-	this_ax.axvline(stim_time, color='k', linestyle='--', linewidth=2)
+	this_ax.axvline(0, color='k', linestyle='--', linewidth=2)
 	for block_i in range(len(taste_blocks)-1):
 		block_start = taste_blocks[block_i]
 		block_end = taste_blocks[block_i+1]
@@ -378,55 +335,6 @@ plt.tight_layout()
 plt.savefig(os.path.join(agg_plot_dir, 'responsiveness_heatmap.png'),
 			bbox_inches='tight')
 plt.close()
-
-
-# # Generate dataframe
-# n_tastes = len(spike_array)
-# n_neurons = spike_array[0].shape[1]
-# inds = list(product(np.arange(n_tastes), np.arange(n_neurons)))
-# # spike_list = []
-# post_spikes_list = []
-# pre_count_list = []
-# post_count_list = []
-# raw_spikes = []
-# for this_ind in inds:
-# 	this_spike = spike_array[this_ind[0]][:,this_ind[1]]
-# 	# spike_list.append(this_spike)
-# 	pre_spikes = this_spike[..., stim_time-responsive_window[0]:stim_time]  
-# 	post_spikes = this_spike[..., stim_time:stim_time+responsive_window[1]] 
-# 	pre_count = pre_spikes.mean(axis=-1)
-# 	post_count = post_spikes.mean(axis=-1)
-# 	raw_spikes.append(this_spike)
-# 	post_spikes_list.append(post_spikes)
-# 	pre_count_list.append(pre_count)
-# 	post_count_list.append(post_count)
-# 
-# spike_frame = pd.DataFrame(
-# 		inds,
-# 		columns = ['taste','neuron']
-# 		)
-# spike_frame['raw_spikes'] = raw_spikes
-# spike_frame['post_spikes'] = post_spikes_list
-# spike_frame['pre_count'] = pre_count_list
-# spike_frame['post_count'] = post_count_list
-
-# # Calculate responsivess
-# alpha = 0.05
-# resp_test = ttest_rel
-# pval_list = []
-# for i, this_row in spike_frame.iterrows():
-# 	pre_count = this_row.pre_count
-# 	post_count = this_row.post_count
-# 	_, pval = resp_test(pre_count, post_count)
-# 	pval_list.append(pval)
-# 
-# spike_frame['resp_pval'] = pval_list
-# spike_frame['resp_sig'] = spike_frame.resp_pval < alpha 
-
-# Mark neurons as responsive if any taste is responsive
-# resp_neurons = spike_frame.groupby('neuron').apply(
-# 		lambda x: x.resp_sig.any()
-# 	)
 
 # Plot pvalues for all neurons across tastes and fraction of significant neurons
 resp_num_laser = pd.DataFrame(resp_neurons.groupby('laser_tuple')['resp_pval'].sum())
@@ -589,78 +497,176 @@ plt.savefig(os.path.join(agg_plot_dir, 'discrim_dynamic_heatmap.png'),
 			bbox_inches='tight')
 plt.close()
 
-# # For each row in spike_frame, chop post_spikes into bins
-# taste_list = []
-# neuron_list = []
-# bin_spike_list = []
-# bin_num_list = []
-# trial_num_list = []
-# for i, this_row in spike_frame.iterrows():
-# 	this_spikes = this_row.raw_spikes
-# 	taste_num = this_row.taste
-# 	neuron_num = this_row.neuron
-# 	for bin_ind in range(len(bin_lims)-1):
-# 		bin_spikes = this_spikes[..., bin_lims[bin_ind]:bin_lims[bin_ind+1]]
-# 		sum_bin_spikes = bin_spikes.sum(axis=-1)
-# 		n_trials = len(sum_bin_spikes)
-# 		taste_list.extend([taste_num]*n_trials)
-# 		neuron_list.extend([neuron_num]*n_trials)
-# 		bin_spike_list.extend(sum_bin_spikes)
-# 		bin_num_list.extend([bin_ind]*n_trials)
-# 		trial_num_list.extend(np.arange(n_trials))
-# 
-# discrim_frame = pd.DataFrame(
-# 		dict(
-# 			taste = taste_list,
-# 			neuron = neuron_list,
-# 			spike_count = bin_spike_list,
-# 			bin_num = bin_num_list,
-# 			trial_num = trial_num_list,
-# 			)
-# 		)
+##############################
+# Palatability 
+##############################
+seq_firing_frame = this_dat.sequestered_firing_frame.copy()
+seq_firing_frame['time_val'] = [firing_t_vec[x] for x in seq_firing_frame.time_num]
+pal_ranks = info_dict['taste_params']['pal_rankings']
+# Also print pal_dict
+pal_dict = dict(
+		zip(
+			info_dict['taste_params']['tastes'],
+			pal_ranks
+			)
+		)
+seq_firing_frame['pal_rank'] = [pal_ranks[i] for i in seq_firing_frame.taste_num]
 
-# anova_list = []
-# for nrn_num in discrim_frame.neuron.unique():
-# 	this_frame = discrim_frame.loc[discrim_frame.neuron == nrn_num]
-# 	this_anova = pg.anova(
-# 			data = this_frame,
-# 			dv = 'spike_count',
-# 			between = ['taste','bin_num'],
-# 			)
-# 	anova_list.append(this_anova)
-# p_val_list = []
-# for i, x in enumerate(anova_list):
-# 	this_p = x[['Source','p-unc']] 
-# 	this_p['neuron'] = i
-# 	p_val_list.append(this_p)
-# p_val_frame = pd.concat(p_val_list)
-# p_val_frame = p_val_frame.loc[~p_val_frame.Source.str.contains('Residual')]
-# p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
-# 
-# # Aggregate significance
-# # Drop interaction
-# p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste * bin_num"])] 
-# taste_sig = p_val_frame.loc[p_val_frame.Source.str.contains('taste')].sig
-# bin_sig = p_val_frame.loc[p_val_frame.Source.str.contains('bin')].sig
-# sig_frame = pd.DataFrame(
-# 		dict(
-# 			taste_sig = taste_sig.values,
-# 			bin_sig = bin_sig.values,
-# 			)
-# 		)
-# # sig_frame['neuron'] = p_val_frame.neuron.unique()
-# 
-# plt.figure()
-# g = sns.heatmap(sig_frame, cmap='coolwarm', cbar=True)
-# # cbar label
-# cbar = g.collections[0].colorbar
-# cbar.set_label('Significant (1 = yes, 0 = no)')
-# g.set_title('Significance of taste and time bins\n'+\
-# 		f'alpha={alpha}')
-# ax = g.get_axes()
-# ax.set_xlabel('Variable')
-# ax.set_ylabel('Neuron')
-# plt.tight_layout()
-# plt.savefig(os.path.join(agg_plot_dir, 'discriminability.png'),
-# 			bbox_inches='tight')
-# plt.close()
+group_cols = ['neuron_num','time_val','laser_tuple']
+group_list = list(seq_firing_frame.groupby(group_cols))
+group_inds = [x[0] for x in group_list]
+group_frames = [x[1] for x in group_list]
+
+def palatability_corr(x):
+	rho, p = spearmanr(x.firing, x.pal_rank)
+	return pd.Series({'rho': rho, 'pval' : p})
+pal_frame = seq_firing_frame.groupby(group_cols).progress_apply(palatability_corr)
+pal_frame.reset_index(inplace=True)
+pal_frame['abs_rho'] = pal_frame.rho.abs()
+pal_frame['pal_sig'] = (pal_frame['pval'] < alpha)*1
+
+# For each laser_tuple, generate a pivot frame
+index_var = 'neuron_num'
+col_var = 'time_val'
+value_var_list = ['abs_rho','pal_sig']
+
+pal_len = 250 # ms
+pal_kern_len = pal_len // this_dat.firing_rate_params['step_size']
+pal_kern = np.ones(pal_kern_len) / pal_kern_len
+pal_pivot_list = []
+frame_ind_list = []
+pal_sig_vec_list = []
+laser_conds = pal_frame.laser_tuple.unique()
+for this_value_var in value_var_list:
+	for this_laser in laser_conds:
+		this_pivot = pal_frame.loc[pal_frame.laser_tuple == this_laser]
+		this_pivot = this_pivot.pivot(
+				index = index_var,
+				columns = col_var,
+				values = this_value_var
+				)
+		pal_pivot_list.append(this_pivot)
+		frame_ind_list.append(
+				[this_laser, this_value_var]
+				)
+		if this_value_var == 'pal_sig':
+			pal_conv = np.apply_along_axis(
+				lambda x:np.convolve(x, pal_kern, mode='same'),
+				axis = -1,
+				arr = this_pivot.values
+				)
+			# Cut to after stim
+			stim_ind = firing_t_vec > 0
+			pal_conv = pal_conv[:, stim_ind]
+			pal_sig_vec = np.isclose(pal_conv, 1).sum(axis=-1) > 0
+			pal_sig_vec_list.append(pal_sig_vec*1)
+
+pal_sig_vec_frame = pd.DataFrame(
+		index = pal_frame.neuron_num.unique(),
+		columns = laser_conds,
+		data = np.array(pal_sig_vec_list).T
+		)
+
+# plt.imshow(pal_conv, aspect='auto', interpolation='None')
+# plt.colorbar()
+# plt.show()
+
+# Plot palatability
+min_rho, max_rho = pal_frame.abs_rho.min(), pal_frame.abs_rho.max()
+fig, ax = plt.subplots(
+		len(laser_conds),
+		len(frame_ind_list)//len(laser_conds) + 1,
+		figsize = (15,10),
+		sharey=True
+		)
+stim_ind = np.argmin(np.abs(pal_pivot_list[0].columns - 0))
+comb_inds = list(itertools.product(laser_conds, value_var_list))
+for this_laser, this_var in comb_inds:
+	row_ind = np.where(laser_conds == this_laser)[0][0] 
+	col_ind = value_var_list.index(this_var)
+	pivot_ind = frame_ind_list.index([this_laser, this_var]) 
+	this_pivot = pal_pivot_list[pivot_ind]
+	if this_var == 'abs_rho':
+		cbar_label = 'Abs Spearman rho'
+		vmin, vmax = min_rho, max_rho
+	else:
+		cbar_label = 'Significant (1 = yes, 0 = no)'
+		vmin, vmax = None,None
+	sns.heatmap(
+			this_pivot,
+			vmin = vmin,
+			vmax = vmax,
+			cmap='coolwarm', cbar=True,
+			# linewidth = 0.5,
+			cbar_kws = {'label' : cbar_label},
+			ax = ax[row_ind, col_ind],
+				)
+	ax[row_ind, col_ind].set_title(f'{this_var} {this_laser}')
+	ax[row_ind, col_ind].axvline(stim_ind, c = 'r', linewidth = 2, linestyle = '--',
+							  zorder = 10)
+	cbar_label = 'Significant (1 = yes, 0 = no)'
+	if this_var == 'pal_sig':
+		sns.heatmap(
+				pal_sig_vec_list[row_ind].reshape(-1,1),
+				cmap='coolwarm', cbar=True,
+				cbar_kws = {'label' : cbar_label},
+				linewidth = 0.5,
+				ax = ax[row_ind, -1], 
+				)
+	ax[row_ind,-1].set_title(f'{this_laser} Post-stim Palatability significance')
+plt.suptitle('Palatability of neurons\n'+\
+		f'alpha={alpha}, corrected alpha={corrected_alpha}')
+for this_ax in ax.flatten():
+	this_ax.set_xlabel('Time (ms)')
+	this_ax.set_ylabel('Neuron')
+plt.tight_layout()
+plt.savefig(os.path.join(agg_plot_dir, 'palatability_heatmap.png'),
+			bbox_inches='tight')
+plt.close()
+
+############################################################
+# Aggregate plot
+############################################################
+# Plot of significance for responsiveness, discriminability, palatability, and dynamicity
+# For each opto condition
+
+fig, ax = plt.subplots(len(laser_conds),4, figsize=(10,10))
+for i, this_cond in enumerate(laser_conds):
+	resp_vec = resp_neurons_pivot[this_cond].values.reshape(-1,1)
+	discrim_vec = taste_sig_pivot[this_cond].values.reshape(-1,1)
+	pal_vec = pal_sig_vec_frame[this_cond].values.reshape(-1,1)
+	bin_vec = bin_sig_pivot[this_cond].values.reshape(-1,1)
+	sns.heatmap(
+			resp_vec,
+			cmap='coolwarm', cbar=False,
+			linewidth = 0.5,
+			ax = ax[i,0]
+				)
+	sns.heatmap(
+			discrim_vec,
+			cmap='coolwarm', cbar=False,
+			linewidth = 0.5,
+			ax = ax[i,1]
+				)
+	sns.heatmap(
+			pal_vec,
+			cmap='coolwarm', cbar=False,
+			linewidth = 0.5,
+			ax = ax[i,2]
+				)
+	sns.heatmap(
+			bin_vec,
+			cmap='coolwarm', cbar=True,
+			linewidth = 0.5,
+			ax = ax[i,3],
+			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
+				)
+	ax[i,0].set_title(f'Responsiveness {resp_vec.mean():.2f}\nLaser {this_cond}')
+	ax[i,1].set_title(f'Discriminability {discrim_vec.mean():.2f}\nLaser {this_cond}')
+	ax[i,2].set_title(f'Palatability {pal_vec.mean():.2f}\nLaser {this_cond}')
+	ax[i,3].set_title(f'Dynamicity {bin_vec.mean():.2f}\nLaser {this_cond}')
+plt.suptitle('Aggregated plot of neuron characteristics')
+plt.tight_layout()
+plt.savefig(os.path.join(agg_plot_dir, 'aggregated_characteristics.png'),
+			bbox_inches='tight')
+plt.close()
