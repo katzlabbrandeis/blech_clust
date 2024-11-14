@@ -429,6 +429,12 @@ plt.close()
 # 	)
 
 # Plot pvalues for all neurons across tastes and fraction of significant neurons
+resp_num_laser = pd.DataFrame(resp_neurons.groupby('laser_tuple')['resp_pval'].sum())
+resp_num_laser.reset_index(inplace=True)
+resp_num_laser['total_count'] = resp_neurons.neuron_num.nunique()
+resp_num_laser.rename(columns = {'resp_pval' : 'sig_count'}, inplace=True)
+resp_frac_laser = pd.DataFrame(resp_neurons.groupby('laser_tuple')['resp_pval'].mean())
+resp_frac_laser.reset_index(inplace=True)
 fig, ax = plt.subplots(2,1)
 sns.stripplot(
 		data=resp_frame, 
@@ -440,9 +446,15 @@ ax[0].set_xlabel('Neuron')
 ax[0].set_ylabel('Pvalue')
 ax[0].axhline(alpha, color='r', linestyle='--')
 ax[0].text(0, corrected_alpha, f'bonf alpha={alpha}', color='r')
-ax[1].bar(['Fraction responsive'], [(resp_neurons*1).mean()][0])
+# ax[1].bar(['Fraction responsive'], [(resp_neurons*1).mean()][0])
+sns.barplot(
+		data = resp_frac_laser,
+		x = 'laser_tuple',
+		y = 'resp_pval',
+		ax = ax[1]
+		)
 ax[1].set_title('Fraction of responsive neurons\n'+\
-		f'{(resp_neurons*1).mean()[0]:.2f} ({(resp_neurons*1).sum()[0]}/{resp_neurons.size})')
+		str(resp_num_laser))
 ax[1].set_ylabel('Fraction')
 ax[1].set_ylim([0,1])
 fig.supxlabel('Taste responsive neurons')
@@ -462,78 +474,193 @@ bin_lims = np.vectorize(int)(np.linspace(
 	stim_time + (anova_bin_num*anova_bin_width), 
 	anova_bin_num+1)) 
 
-# For each row in spike_frame, chop post_spikes into bins
-taste_list = []
-neuron_list = []
-bin_spike_list = []
-bin_num_list = []
-trial_num_list = []
-for i, this_row in spike_frame.iterrows():
-	this_spikes = this_row.raw_spikes
-	taste_num = this_row.taste
-	neuron_num = this_row.neuron
-	for bin_ind in range(len(bin_lims)-1):
-		bin_spikes = this_spikes[..., bin_lims[bin_ind]:bin_lims[bin_ind+1]]
-		sum_bin_spikes = bin_spikes.sum(axis=-1)
-		n_trials = len(sum_bin_spikes)
-		taste_list.extend([taste_num]*n_trials)
-		neuron_list.extend([neuron_num]*n_trials)
-		bin_spike_list.extend(sum_bin_spikes)
-		bin_num_list.extend([bin_ind]*n_trials)
-		trial_num_list.extend(np.arange(n_trials))
-
-discrim_frame = pd.DataFrame(
-		dict(
-			taste = taste_list,
-			neuron = neuron_list,
-			spike_count = bin_spike_list,
-			bin_num = bin_num_list,
-			trial_num = trial_num_list,
-			)
+seq_spikes_frame = this_dat.sequestered_spikes_frame.copy()
+min_lim, max_lim = min(bin_lims), max(bin_lims)
+# Cut frame to lims
+seq_spikes_frame = seq_spikes_frame.loc[
+		(seq_spikes_frame.time_num >= min_lim) &
+		(seq_spikes_frame.time_num < max_lim)
+		]
+# Mark bins
+seq_spikes_frame['bin_num'] = pd.cut(
+		seq_spikes_frame.time_num,
+		bin_lims,
+		labels = np.arange(anova_bin_num),
+		include_lowest = True,
 		)
+# Get counts per bin
+seq_spikes_frame['spikes'] = 1
+seq_spike_counts = seq_spikes_frame.groupby(
+		['trial_num','neuron_num','taste_num','laser_tuple','bin_num']).mean()
+seq_spike_counts.reset_index(inplace=True)
+seq_spike_counts.drop(columns = ['time_num'], inplace=True)
+seq_spike_counts.fillna(0, inplace=True)
 
-anova_list = []
-for nrn_num in discrim_frame.neuron.unique():
-	this_frame = discrim_frame.loc[discrim_frame.neuron == nrn_num]
-	this_anova = pg.anova(
+# Make sure all inds are present
+seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
+for this_ind in tqdm(firing_frame_group_inds):
+	# Iterate of post_stim
+	for bin_num in range(anova_bin_num): 
+		fin_ind = tuple((*this_ind, bin_num))
+		if fin_ind not in seq_spike_counts.index:
+			this_row = pd.Series(
+					dict(
+						spikes = 0
+						),
+					name = fin_ind
+					)
+			# seq_spike_counts.loc[this_ind] = 0
+			seq_spike_counts = seq_spike_counts.append(this_row)
+seq_spike_counts.reset_index(inplace=True)
+
+# For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num  
+# as factors
+group_cols = ['neuron_num','laser_tuple']
+group_list = list(seq_spike_counts.groupby(group_cols))
+group_inds = [x[0] for x in group_list]
+group_frames = [x[1] for x in group_list]
+pval_list = []
+for this_frame in tqdm(group_frames):
+	anova_out = pg.anova(
 			data = this_frame,
-			dv = 'spike_count',
-			between = ['taste','bin_num'],
+			dv = 'spikes',
+			between = ['taste_num','bin_num'],
 			)
-	anova_list.append(this_anova)
-p_val_list = []
-for i, x in enumerate(anova_list):
-	this_p = x[['Source','p-unc']] 
-	this_p['neuron'] = i
-	p_val_list.append(this_p)
-p_val_frame = pd.concat(p_val_list)
-p_val_frame = p_val_frame.loc[~p_val_frame.Source.str.contains('Residual')]
-p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
+	anova_out = anova_out.loc[anova_out.Source != 'Residual']
+	this_pval = anova_out[['Source','p-unc']]
+	nrn_num = this_frame.neuron_num.unique()[0]
+	laser_tuple = this_frame.laser_tuple.unique()[0]
+	this_pval['neuron_num'] = nrn_num
+	this_pval['laser_tuple'] = laser_tuple
+	pval_list.append(this_pval)
 
-# Aggregate significance
+p_val_frame = pd.concat(pval_list)
 # Drop interaction
-p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste * bin_num"])] 
-taste_sig = p_val_frame.loc[p_val_frame.Source.str.contains('taste')].sig
-bin_sig = p_val_frame.loc[p_val_frame.Source.str.contains('bin')].sig
-sig_frame = pd.DataFrame(
-		dict(
-			taste_sig = taste_sig.values,
-			bin_sig = bin_sig.values,
-			)
-		)
-# sig_frame['neuron'] = p_val_frame.neuron.unique()
+p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste_num * bin_num"])] 
+alpha = 0.05
+p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
+taste_sig = pd.DataFrame(p_val_frame.loc[p_val_frame.Source.str.contains('taste')].sig)
+bin_sig = pd.DataFrame(p_val_frame.loc[p_val_frame.Source.str.contains('bin')].sig)
+index_col_names = ['neuron_num','laser_tuple']
+index_cols = p_val_frame.loc[p_val_frame.Source.str.contains('bin'), index_col_names]
+for this_col in index_col_names:
+	taste_sig[this_col] = index_cols[this_col].values
+	bin_sig[this_col] = index_cols[this_col].values
+taste_sig.reset_index(inplace=True, drop=True)
+bin_sig.reset_index(inplace=True, drop=True)
 
-plt.figure()
-g = sns.heatmap(sig_frame, cmap='coolwarm', cbar=True)
-# cbar label
-cbar = g.collections[0].colorbar
-cbar.set_label('Significant (1 = yes, 0 = no)')
-g.set_title('Significance of taste and time bins\n'+\
-		f'alpha={alpha}')
-ax = g.get_axes()
-ax.set_xlabel('Variable')
-ax.set_ylabel('Neuron')
+row_var = 'neuron_num'
+col_var = 'laser_tuple'
+val_var = 'sig'
+taste_sig_pivot = taste_sig.pivot(
+		index = row_var,
+		columns = col_var,
+		values = val_var
+		)
+bin_sig_pivot = bin_sig.pivot(
+		index = row_var,
+		columns = col_var,
+		values = val_var
+		)
+
+fig, ax = plt.subplots(1,2, sharex=True, sharey=False,
+					   figsize = (10,10))
+sns.heatmap(taste_sig_pivot, 
+			cmap='coolwarm', cbar=True,
+			linewidth = 0.5,
+			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
+			ax = ax[0]
+				)
+sns.heatmap(bin_sig_pivot, 
+			cmap='coolwarm', cbar=True,
+			linewidth = 0.5,
+			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
+			ax = ax[1]
+				)
+ax[0].set_title('Discriminability ANOVA')
+ax[1].set_title('Dynamic ANOVA')
+plt.suptitle('Discriminability + Dynamicity of neurons\n'+\
+		f'alpha={alpha}, corrected alpha={corrected_alpha}')
+for this_ax in ax:
+	this_ax.set_xlabel('Laser condition\n(lag, duration)')
+	this_ax.set_ylabel('Neuron')
 plt.tight_layout()
-plt.savefig(os.path.join(agg_plot_dir, 'discriminability.png'),
+plt.savefig(os.path.join(agg_plot_dir, 'discrim_dynamic_heatmap.png'),
 			bbox_inches='tight')
 plt.close()
+
+# # For each row in spike_frame, chop post_spikes into bins
+# taste_list = []
+# neuron_list = []
+# bin_spike_list = []
+# bin_num_list = []
+# trial_num_list = []
+# for i, this_row in spike_frame.iterrows():
+# 	this_spikes = this_row.raw_spikes
+# 	taste_num = this_row.taste
+# 	neuron_num = this_row.neuron
+# 	for bin_ind in range(len(bin_lims)-1):
+# 		bin_spikes = this_spikes[..., bin_lims[bin_ind]:bin_lims[bin_ind+1]]
+# 		sum_bin_spikes = bin_spikes.sum(axis=-1)
+# 		n_trials = len(sum_bin_spikes)
+# 		taste_list.extend([taste_num]*n_trials)
+# 		neuron_list.extend([neuron_num]*n_trials)
+# 		bin_spike_list.extend(sum_bin_spikes)
+# 		bin_num_list.extend([bin_ind]*n_trials)
+# 		trial_num_list.extend(np.arange(n_trials))
+# 
+# discrim_frame = pd.DataFrame(
+# 		dict(
+# 			taste = taste_list,
+# 			neuron = neuron_list,
+# 			spike_count = bin_spike_list,
+# 			bin_num = bin_num_list,
+# 			trial_num = trial_num_list,
+# 			)
+# 		)
+
+# anova_list = []
+# for nrn_num in discrim_frame.neuron.unique():
+# 	this_frame = discrim_frame.loc[discrim_frame.neuron == nrn_num]
+# 	this_anova = pg.anova(
+# 			data = this_frame,
+# 			dv = 'spike_count',
+# 			between = ['taste','bin_num'],
+# 			)
+# 	anova_list.append(this_anova)
+# p_val_list = []
+# for i, x in enumerate(anova_list):
+# 	this_p = x[['Source','p-unc']] 
+# 	this_p['neuron'] = i
+# 	p_val_list.append(this_p)
+# p_val_frame = pd.concat(p_val_list)
+# p_val_frame = p_val_frame.loc[~p_val_frame.Source.str.contains('Residual')]
+# p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
+# 
+# # Aggregate significance
+# # Drop interaction
+# p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste * bin_num"])] 
+# taste_sig = p_val_frame.loc[p_val_frame.Source.str.contains('taste')].sig
+# bin_sig = p_val_frame.loc[p_val_frame.Source.str.contains('bin')].sig
+# sig_frame = pd.DataFrame(
+# 		dict(
+# 			taste_sig = taste_sig.values,
+# 			bin_sig = bin_sig.values,
+# 			)
+# 		)
+# # sig_frame['neuron'] = p_val_frame.neuron.unique()
+# 
+# plt.figure()
+# g = sns.heatmap(sig_frame, cmap='coolwarm', cbar=True)
+# # cbar label
+# cbar = g.collections[0].colorbar
+# cbar.set_label('Significant (1 = yes, 0 = no)')
+# g.set_title('Significance of taste and time bins\n'+\
+# 		f'alpha={alpha}')
+# ax = g.get_axes()
+# ax.set_xlabel('Variable')
+# ax.set_ylabel('Neuron')
+# plt.tight_layout()
+# plt.savefig(os.path.join(agg_plot_dir, 'discriminability.png'),
+# 			bbox_inches='tight')
+# plt.close()
