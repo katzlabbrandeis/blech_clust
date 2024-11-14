@@ -191,7 +191,7 @@ class ephys_data():
             self.hdf5_path =    self.get_hdf5_path(data_dir) 
             self.hdf5_name =    os.path.basename(self.hdf5_path) 
 
-            self.spikes = None
+            # self.spikes = None
 
         # Create environemnt variable to allow program to know
         # if file is currently accessed
@@ -305,6 +305,8 @@ class ephys_data():
 
             print('Spike trains loaded from following dig-ins')
             print("\n".join([f'{i}. {x}' for i,x in enumerate(self.dig_in_name_list)]))
+            # list of length n_tastes, each element is a 3D array
+            # array dimensions are (n_trials, n_neurons, n_timepoints)
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
 
     def separate_laser_spikes(self):
@@ -891,3 +893,116 @@ class ephys_data():
                    np.median(self.amplitude_array[:,region],axis=(0,1,2)))
         return np.array(aggregate_amplitude)
 
+    
+    def get_trial_info_frame(self):
+        self.trial_info_frame = pd.read_csv(
+                os.path.join(self.data_dir,'trial_info_frame.csv'))
+
+    def sequester_trial_inds(self):
+        """
+        Sequester trials into different categories:
+            - Tastes
+            - Laser conditions
+        """
+
+        wanted_cols = [
+                'dig_in_num_taste',
+                'dig_in_name_taste',
+                'taste',
+                'laser_duration_ms',
+                'laser_lag_ms',
+                'taste_rel_trial_num',
+                ]
+        group_cols = ['dig_in_num_taste','laser_duration_ms','laser_lag_ms']
+        if 'trial_info_frame' not in dir(self):
+            self.get_trial_info_frame()
+        wanted_frame = self.trial_info_frame[wanted_cols]
+        grouped_frame = wanted_frame.groupby(group_cols)
+        group_list = list(grouped_frame)
+        group_names = [x[0] for x in group_list]
+        group_name_frame = pd.DataFrame(group_names, columns = group_cols) 
+        grouped_frame_list = [x[1] for x in group_list] 
+        # Aggregate 'taste_rel_trial_num' into a list for each group
+        trial_inds = [x['taste_rel_trial_num'].tolist() for x in grouped_frame_list]
+        group_name_frame['trial_inds'] = trial_inds
+        self.trial_inds_frame = group_name_frame
+
+    def get_sequestered_spikes(self):
+        """
+        Sequester spikes into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        if 'trial_inds_frame' not in dir(self):
+            self.sequester_trial_inds()
+        if 'spikes' not in dir(self):
+            self.get_spikes()
+        # Get trial inds for each group
+        trial_inds_frame = self.trial_inds_frame.copy()
+        self.sequestered_spikes = []
+        sequestered_spikes_frame_list = []
+        for i, this_row in trial_inds_frame.iterrows():
+            taste_ind = this_row['dig_in_num_taste']
+            trial_inds = this_row['trial_inds']
+            this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
+            self.sequestered_spikes.append(this_seq_spikes)
+            spike_inds = np.where(this_seq_spikes)
+            this_seq_spikes = pd.DataFrame(
+                    dict(
+                        trial_num = spike_inds[0], 
+                        neuron_num = spike_inds[1],
+                        time_num = spike_inds[2],
+                        )
+                    )
+            this_seq_spikes['taste_num'] = taste_ind
+            this_seq_spikes['laser_tuple'] = str((this_row['laser_lag_ms'], this_row['laser_duration_ms']))
+            sequestered_spikes_frame_list.append(this_seq_spikes)
+        self.trial_inds_frame['spikes'] = self.sequestered_spikes
+        self.sequestered_spikes_frame = pd.concat(sequestered_spikes_frame_list)
+        print('Added sequestered spikes to trial_inds_frame')
+
+    def get_sequestered_firing(self):
+        """
+        Sequester spikes into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        if 'trial_inds_frame' not in dir(self):
+            self.sequester_trial_inds()
+        if 'firing_array' not in dir(self):
+            self.get_firing_rates()
+        group_cols = ['dig_in_num_taste','laser_duration_ms','laser_lag_ms']
+        # Get trial inds for each group
+        trial_inds_frame = self.trial_inds_frame.copy()
+        self.sequestered_firing = []
+        sequestered_firing_frame_list = []
+        for i, this_row in trial_inds_frame.iterrows():
+            taste_ind = this_row['dig_in_num_taste']
+            trial_inds = this_row['trial_inds']
+            laser_tuple = (this_row['laser_lag_ms'], this_row['laser_duration_ms'])
+            this_seq_firing = self.firing_list[taste_ind][trial_inds]
+            self.sequestered_firing.append(this_seq_firing)
+            inds = np.array(list(np.ndindex(this_seq_firing.shape)))
+            this_seq_firing = pd.DataFrame(
+                    dict(
+                        trial_num = inds[:,0],
+                        neuron_num = inds[:,1],
+                        time_num = inds[:,2],
+                        firing = this_seq_firing.flatten(),
+                        )
+                    )
+            this_seq_firing['taste_num'] = taste_ind 
+            this_seq_firing['laser_tuple'] = str(laser_tuple)
+            sequestered_firing_frame_list.append(this_seq_firing)
+        self.trial_inds_frame['firing'] = self.sequestered_firing
+        self.sequestered_firing_frame = pd.concat(sequestered_firing_frame_list)
+        print('Added sequestered firing to trial_inds_frame')
+
+    def get_sequestered_data(self):
+        """
+        Sequester spikes and firing into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        self.get_sequestered_spikes()
+        self.get_sequestered_firing()

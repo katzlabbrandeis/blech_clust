@@ -29,10 +29,13 @@ from scipy.stats import ttest_rel, zscore
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pingouin as pg
+from tqdm import tqdm
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+dir_name = '/media/fastdata/NM_sorted_data/NM51/NM51_2500ms_161030_130155_copy'
+# dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+# dir_name = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
 metadata_handler = imp_metadata([[], dir_name])
 # metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
@@ -46,7 +49,7 @@ if not os.path.exists(agg_plot_dir):
 	os.makedirs(agg_plot_dir)
 
 # Perform pipeline graph check
-script_path = '/home/abuzarmahmood/projects/blech_clust/blech_unit_characteristics.py'
+script_path = '/home/abuzarmahmood/Desktop/blech_clust/blech_unit_characteristics.py'
 # script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
@@ -56,7 +59,12 @@ os.chdir(dir_name)
 
 # Open the hdf5 file
 # hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
+# from importlib import reload
+# reload(ephys_data)
 this_dat = ephys_data.ephys_data(dir_name)
+# this_dat.get_trial_info_frame()
+# this_dat.check_laser()
+# this_dat.separate_laser_data()
 
 # Extract taste dig-ins from experimental info file
 info_dict = metadata_handler.info_dict
@@ -73,6 +81,7 @@ taste_names = info_dict['taste_params']['tastes']
 # identities = [int(dict(zip(tastes_set,range(len(tastes_set))))[x]) for x in taste_names]
 # print(f'Taste identities : {identities}')
 
+
 ##############################
 # Get firing rates
 ##############################
@@ -81,61 +90,170 @@ this_dat.firing_rate_params = this_dat.default_firing_params
 this_dat.firing_rate_params['window_size'] = psth_params['window_size']
 this_dat.firing_rate_params['step_size'] = psth_params['step_size']
 stim_time = params_dict['spike_array_durations'][0]
-this_dat.get_firing_rates()
+this_dat.get_sequestered_data()
+
+mean_seq_firing = this_dat.sequestered_firing_frame.groupby(
+		['taste_num','laser_tuple','neuron_num','time_num']).mean()
+mean_seq_firing = mean_seq_firing.reset_index()
+mean_seq_firing.drop(columns=['trial_num'], inplace=True)
+
+# firing_t_vec = np.arange(cat_firing.shape[-1]) * this_dat.firing_rate_params['step_size']
+firing_t_vec = np.arange(mean_seq_firing.time_num.max()+1) * this_dat.firing_rate_params['step_size']
+firing_t_vec += psth_params['window_size']
+firing_t_vec -= stim_time
+
+mean_seq_firing['time_val'] = [firing_t_vec[x] for x in mean_seq_firing.time_num]
+mean_seq_firing['taste'] = [taste_names[x] for x in mean_seq_firing.taste_num]
+
+# Plot firing rates
+laser_conditions = mean_seq_firing.laser_tuple.unique()
+n_laser_conditions = len(laser_conditions)
+
 # List of len = n_tastes
 # Each element is array of shape: n_trials x n_neurons x n_time_bins
 spike_array = this_dat.spikes
-
-# Plot rasters and psths
-trial_lens = [x.shape[0] for x in spike_array]
-cat_spikes = np.concatenate(spike_array, axis=0)
-cat_firing = np.concatenate(this_dat.firing_list, axis=0)
-mean_firing = np.stack([x.mean(axis=0) for x in this_dat.firing_list], axis=0)
-zscore_cat_firing = zscore(cat_firing, axis=(0,2))
-
-firing_t_vec = np.arange(cat_firing.shape[-1]) * this_dat.firing_rate_params['step_size']
-firing_t_vec += psth_params['window_size']
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
-taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
-for nrn_ind in range(cat_spikes.shape[1]):
-	fig, ax = plt.subplots(1,3, figsize=(20,5), sharex=True)
-	vz.raster(ax[0], cat_spikes[:,nrn_ind,:], marker = '|', color = 'k')
-	ax[0].set_title(f'Raster plot for neuron {nrn_ind}')
-	for block_i in range(len(taste_blocks)-1):
-		block_start = taste_blocks[block_i]
-		block_end = taste_blocks[block_i+1]
-		ax[0].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
-				color=colors[block_i])
-		ax[1].axhline(block_start, color='r', linestyle='--', linewidth=2)
-		ax[2].plot(firing_t_vec,
-					mean_firing[block_i,nrn_ind],
-					color=colors[block_i],
-					label=taste_names[block_i],
-					linewidth=2)
-	ax[1].pcolorfast(
-			firing_t_vec,
-			np.arange(cat_firing.shape[0]),
-			zscore_cat_firing[:,nrn_ind],
-			cmap='jet',
-			)
-	ax[1].set_title(f'PSTH for neuron {nrn_ind}')
-	ax[2].set_title(f'Mean PSTH for neuron {nrn_ind}')
-	ax[2].legend()
-	for this_ax in ax:
-		this_ax.set_xlabel('Time (s)')
-		this_ax.set_ylabel('Trials')
-		this_ax.axvline(stim_time, color='r', linestyle='--', linewidth=2)
-	plt.tight_layout()
-	plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_raster_psth.png'),
-				bbox_inches='tight')
+for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
+	fig, ax = plt.subplots(n_laser_conditions,2, figsize=(10,5*n_laser_conditions),
+						sharex=True, sharey='col')
+	for i, laser_cond in enumerate(laser_conditions):
+		this_firing = mean_seq_firing.loc[
+				(mean_seq_firing.neuron_num == nrn_ind) &
+				(mean_seq_firing.laser_tuple == laser_cond)
+				]
+		this_spikes = this_dat.sequestered_spikes_frame.loc[
+				(this_dat.sequestered_spikes_frame.neuron_num == nrn_ind) &
+				(this_dat.sequestered_spikes_frame.laser_tuple == laser_cond)
+				]
+		this_spikes.sort_values(['taste_num','trial_num'], inplace=True)
+		this_spikes['cum_trial_num'] = \
+				this_spikes['taste_num']*(this_spikes['trial_num'].max()+1) + this_spikes['trial_num'] 
+		this_spikes['cum_trial_num'] += 0.5
+		this_spikes['time_num'] -= stim_time
+		trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
+		taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
+		sns.lineplot(
+				data = this_firing, 
+				x = 'time_val',
+				y = 'firing',
+				hue = 'taste',
+				ax = ax[i,0],
+				)
+		sns.scatterplot(
+				data = this_spikes,
+				x = 'time_num',
+				y = 'cum_trial_num',
+				color = 'k',
+				marker = '|',
+				ax = ax[i,1],
+				legend = False,
+				)
+		for block_i in range(len(taste_blocks)-1):
+			block_start = taste_blocks[block_i]
+			block_end = taste_blocks[block_i+1]
+			ax[i,1].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
+					color=colors[block_i])
+		for this_ax in ax[i,:]:
+			if i == len(ax)-1:
+				this_ax.set_xlabel('Time (ms)')
+			this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
+			this_ax.set_title(f'Laser condition {laser_cond}')
+			this_ax.legend()
+	# g.set_title(f'Neuron {nrn_ind}')
+	fig.suptitle(f'Neuron {nrn_ind}')
+	plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_firing_rate.png'),
+			 bbox_inches='tight')
 	plt.close()
 
+# If more than one laser condition, plot firing rates for each taste separately
+# with laser conditions as hue
+if n_laser_conditions > 1:
+	for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()): 
+		this_firing = mean_seq_firing.loc[
+				mean_seq_firing.neuron_num == nrn_ind
+				]
+		# this_firing = this_dat.sequestered_firing_frame.loc[
+		# 		this_dat.sequestered_firing_frame.neuron_num == nrn_ind
+		# 		]
+		this_firing.reset_index(inplace=True)
+		g = sns.relplot(
+				data = this_firing, 
+				x = 'time_val',
+				y = 'firing',
+				hue = 'laser_tuple',
+				col = 'taste',
+				kind = 'line',
+				linewidth = 3,
+				)
+		# leg = g._legend
+		# leg.set_bbox_to_anchor([0.5, 0.5])
+		# Remove figure legend
+		g._legend.remove()
+		for i, this_ax in enumerate(g.axes.flatten()):
+			this_ax.set_xlabel('Time (ms)')
+			this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
+			if i == 0:
+				this_ax.set_ylabel('Firing rate (Hz)')
+				this_ax.legend(title='Laser condition (lag, duration)')
+		fig.suptitle(f'Neuron {nrn_ind}')
+		plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_opto_overlay.png'),
+				 bbox_inches='tight')
+		plt.close()
+
+# this_dat.get_firing_rates()
+
+# # Plot rasters and psths
+# trial_lens = [x.shape[0] for x in spike_array]
+# cat_spikes = np.concatenate(spike_array, axis=0)
+# cat_firing = np.concatenate(this_dat.firing_list, axis=0)
+# mean_firing = np.stack([x.mean(axis=0) for x in this_dat.firing_list], axis=0)
+# zscore_cat_firing = zscore(cat_firing, axis=(0,2))
+# 
+# cmap = plt.cm.get_cmap('tab10')
+# colors = [cmap(i) for i in range(len(spike_array))]
+# taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
+# for nrn_ind in range(cat_spikes.shape[1]):
+# 	fig, ax = plt.subplots(1,3, figsize=(20,5), sharex=True)
+# 	vz.raster(ax[0], cat_spikes[:,nrn_ind,:], marker = '|', color = 'k')
+# 	ax[0].set_title(f'Raster plot for neuron {nrn_ind}')
+# 	for block_i in range(len(taste_blocks)-1):
+# 		block_start = taste_blocks[block_i]
+# 		block_end = taste_blocks[block_i+1]
+# 		ax[0].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
+# 				color=colors[block_i])
+# 		ax[1].axhline(block_start, color='r', linestyle='--', linewidth=2)
+# 		ax[2].plot(firing_t_vec,
+# 					mean_firing[block_i,nrn_ind],
+# 					color=colors[block_i],
+# 					label=taste_names[block_i],
+# 					linewidth=2)
+# 	ax[1].pcolorfast(
+# 			firing_t_vec,
+# 			np.arange(cat_firing.shape[0]),
+# 			zscore_cat_firing[:,nrn_ind],
+# 			cmap='jet',
+# 			)
+# 	ax[1].set_title(f'PSTH for neuron {nrn_ind}')
+# 	ax[2].set_title(f'Mean PSTH for neuron {nrn_ind}')
+# 	ax[2].legend()
+# 	for this_ax in ax:
+# 		this_ax.set_xlabel('Time (s)')
+# 		this_ax.set_ylabel('Trials')
+# 		this_ax.axvline(stim_time, color='r', linestyle='--', linewidth=2)
+# 	plt.tight_layout()
+# 	plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_raster_psth.png'),
+# 				bbox_inches='tight')
+# 	plt.close()
+
+trial_lens = [x.shape[0] for x in spike_array]
+taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
 # Plot firing overview
 fig, ax = vz.firing_overview(
 		data = cat_firing.swapaxes(0,1),
 		t_vec = firing_t_vec,
 		backend = 'pcolormesh',
+		figsize = (10,10),
 		)
 for this_ax in ax[:,0]:
 	this_ax.set_ylabel('Trials')
@@ -158,67 +276,173 @@ plt.close()
 ##############################
 # Neuron counts as responsive if there is a difference from baseline
 # for any taste
+# (ms of pres-stim, ms of post-stim)
 responsive_window = params_dict['responsiveness_pre_post_durations']
+responsive_inds = ((stim_time-responsive_window[0], stim_time),
+				   (stim_time, stim_time+responsive_window[1]))
+min_ind, max_ind = min(responsive_inds[0]), max(responsive_inds[1])
+seq_spikes_frame = this_dat.sequestered_spikes_frame.copy()
+# Cut to responsive window
+seq_spikes_frame = seq_spikes_frame.loc[
+		(seq_spikes_frame.time_num >= min_ind) &
+		(seq_spikes_frame.time_num < max_ind)
+		]
+seq_spikes_frame['spikes'] = 1
+# mark pre and post stim periods
+seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
+## NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE 
+# OF EQUAL LENGTH
+seq_spike_counts = seq_spikes_frame.groupby(
+		['trial_num','neuron_num','taste_num','laser_tuple','post_stim']).mean()
+seq_spike_counts.reset_index(inplace=True)
+seq_spike_counts.drop(columns = ['time_num'], inplace=True)
 
-# Generate dataframe
-n_tastes = len(spike_array)
-n_neurons = spike_array[0].shape[1]
-inds = list(product(np.arange(n_tastes), np.arange(n_neurons)))
-# spike_list = []
-post_spikes_list = []
-pre_count_list = []
-post_count_list = []
-raw_spikes = []
-for this_ind in inds:
-	this_spike = spike_array[this_ind[0]][:,this_ind[1]]
-	# spike_list.append(this_spike)
-	pre_spikes = this_spike[..., stim_time-responsive_window[0]:stim_time]  
-	post_spikes = this_spike[..., stim_time:stim_time+responsive_window[1]] 
-	pre_count = pre_spikes.mean(axis=-1)
-	post_count = post_spikes.mean(axis=-1)
-	raw_spikes.append(this_spike)
-	post_spikes_list.append(post_spikes)
-	pre_count_list.append(pre_count)
-	post_count_list.append(post_count)
+# Have to add zeros where no spikes were seen
+firing_frame = this_dat.sequestered_firing_frame.copy()
+index_cols = ['trial_num','neuron_num','taste_num','laser_tuple']
+firing_frame_group_list = list(firing_frame.groupby(index_cols))
+firing_frame_group_inds = [x[0] for x in firing_frame_group_list]
+# For each of group_inds, check if it is in seq_spike_counts
+# If not add 0
+seq_spike_counts.set_index(index_cols+['post_stim'], inplace=True)
+for this_ind in tqdm(firing_frame_group_inds):
+	# Iterate of post_stim
+	for this_post_stim in [False, True]:
+		fin_ind = tuple((*this_ind, this_post_stim))
+		if fin_ind not in seq_spike_counts.index:
+			this_row = pd.Series(
+					dict(
+						spikes = 0
+						),
+					name = fin_ind
+					)
+			# seq_spike_counts.loc[this_ind] = 0
+			seq_spike_counts = seq_spike_counts.append(this_row)
+seq_spike_counts.reset_index(inplace=True)
 
-spike_frame = pd.DataFrame(
-		inds,
-		columns = ['taste','neuron']
-		)
-spike_frame['raw_spikes'] = raw_spikes
-spike_frame['post_spikes'] = post_spikes_list
-spike_frame['pre_count'] = pre_count_list
-spike_frame['post_count'] = post_count_list
-
-# Calculate responsivess
-alpha = 0.05
-resp_test = ttest_rel
+# For each neuron_num, taste_num, laser_tuple
+# calculate significance of difference between post_stim groups
+group_cols = ['neuron_num','taste_num','laser_tuple']
+group_list = list(seq_spike_counts.groupby(group_cols))
+group_inds = [x[0] for x in group_list]
+group_frames = [x[1] for x in group_list]
 pval_list = []
-for i, this_row in spike_frame.iterrows():
-	pre_count = this_row.pre_count
-	post_count = this_row.post_count
-	_, pval = resp_test(pre_count, post_count)
-	pval_list.append(pval)
+for this_frame in tqdm(group_frames):
+	this_pval = ttest_rel(
+			this_frame.loc[this_frame.post_stim].spikes,
+			this_frame.loc[~this_frame.post_stim].spikes,
+			)[1]
+	pval_list.append(this_pval)
 
-spike_frame['resp_pval'] = pval_list
-spike_frame['resp_sig'] = spike_frame.resp_pval < alpha 
+resp_frame = pd.DataFrame(
+		columns = group_cols,
+		data = group_inds
+		)
+resp_frame['resp_pval'] = pval_list
+# Fillna with 1
+resp_frame.fillna(1, inplace=True)
+alpha = 0.05
+resp_frame['resp_sig'] = resp_frame.resp_pval < alpha
+n_comparisons = resp_frame.groupby('neuron_num')['resp_sig'].count().unique()
+if len(n_comparisons) > 1:
+	raise ValueError('Number of comparisons not consistent')
+n_comparisons = n_comparisons[0]
+corrected_alpha = alpha # / n_comparisons
+resp_neurons = resp_frame.groupby(['neuron_num','laser_tuple']).agg(
+		{'resp_pval': lambda x: any([y<corrected_alpha for y in x])})
+resp_neurons.reset_index(inplace=True) 
+resp_neurons['resp_pval'] *= 1
+
+# Convert resp_neurons to pivot table
+row_var = 'neuron_num'
+col_var = 'laser_tuple'
+val_var = 'resp_pval'
+
+resp_neurons_pivot = resp_neurons.pivot(
+		index = row_var,
+		columns = col_var,
+		values = val_var
+		)
+
+plt.figure(figsize=(5,10))
+g = sns.heatmap(resp_neurons_pivot, 
+			cmap='coolwarm', cbar=True,
+			linewidth = 0.5,
+			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
+				)
+plt.title('Responsiveness of neurons\n'+\
+		f'alpha={alpha}, corrected alpha={corrected_alpha}')
+plt.xlabel('Laser condition\n(lag, duration)')
+plt.ylabel('Neuron')
+plt.tight_layout()
+plt.savefig(os.path.join(agg_plot_dir, 'responsiveness_heatmap.png'),
+			bbox_inches='tight')
+plt.close()
+
+
+# # Generate dataframe
+# n_tastes = len(spike_array)
+# n_neurons = spike_array[0].shape[1]
+# inds = list(product(np.arange(n_tastes), np.arange(n_neurons)))
+# # spike_list = []
+# post_spikes_list = []
+# pre_count_list = []
+# post_count_list = []
+# raw_spikes = []
+# for this_ind in inds:
+# 	this_spike = spike_array[this_ind[0]][:,this_ind[1]]
+# 	# spike_list.append(this_spike)
+# 	pre_spikes = this_spike[..., stim_time-responsive_window[0]:stim_time]  
+# 	post_spikes = this_spike[..., stim_time:stim_time+responsive_window[1]] 
+# 	pre_count = pre_spikes.mean(axis=-1)
+# 	post_count = post_spikes.mean(axis=-1)
+# 	raw_spikes.append(this_spike)
+# 	post_spikes_list.append(post_spikes)
+# 	pre_count_list.append(pre_count)
+# 	post_count_list.append(post_count)
+# 
+# spike_frame = pd.DataFrame(
+# 		inds,
+# 		columns = ['taste','neuron']
+# 		)
+# spike_frame['raw_spikes'] = raw_spikes
+# spike_frame['post_spikes'] = post_spikes_list
+# spike_frame['pre_count'] = pre_count_list
+# spike_frame['post_count'] = post_count_list
+
+# # Calculate responsivess
+# alpha = 0.05
+# resp_test = ttest_rel
+# pval_list = []
+# for i, this_row in spike_frame.iterrows():
+# 	pre_count = this_row.pre_count
+# 	post_count = this_row.post_count
+# 	_, pval = resp_test(pre_count, post_count)
+# 	pval_list.append(pval)
+# 
+# spike_frame['resp_pval'] = pval_list
+# spike_frame['resp_sig'] = spike_frame.resp_pval < alpha 
 
 # Mark neurons as responsive if any taste is responsive
-resp_neurons = spike_frame.groupby('neuron').apply(
-		lambda x: x.resp_sig.any()
-	)
+# resp_neurons = spike_frame.groupby('neuron').apply(
+# 		lambda x: x.resp_sig.any()
+# 	)
 
 # Plot pvalues for all neurons across tastes and fraction of significant neurons
-fig, ax = plt.subplots(1,2)
-sns.stripplot(data=spike_frame, x='neuron', y='resp_pval', ax=ax[0])
+fig, ax = plt.subplots(2,1)
+sns.stripplot(
+		data=resp_frame, 
+		x='neuron_num', 
+		y='resp_pval', 
+		ax=ax[0])
 ax[0].set_title('Pvalues for responsiveness')
 ax[0].set_xlabel('Neuron')
 ax[0].set_ylabel('Pvalue')
 ax[0].axhline(alpha, color='r', linestyle='--')
-ax[0].text(0, alpha, f'alpha={alpha}', color='r')
-ax[1].bar(['Fraction responsive'], [resp_neurons.mean()])
+ax[0].text(0, corrected_alpha, f'bonf alpha={alpha}', color='r')
+ax[1].bar(['Fraction responsive'], [(resp_neurons*1).mean()][0])
 ax[1].set_title('Fraction of responsive neurons\n'+\
-		f'{resp_neurons.mean()} ({resp_neurons.sum()}/{resp_neurons.size})')
+		f'{(resp_neurons*1).mean()[0]:.2f} ({(resp_neurons*1).sum()[0]}/{resp_neurons.size})')
 ax[1].set_ylabel('Fraction')
 ax[1].set_ylim([0,1])
 fig.supxlabel('Taste responsive neurons')
