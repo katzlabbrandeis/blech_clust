@@ -225,27 +225,9 @@ def units_plot(data_dir):
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
 
-
 @task(log_prints=True)
-def make_psth(data_dir):
-    script_name = 'blech_make_psth.py'
-    process = Popen(["python", script_name, data_dir],
-                               stdout = PIPE, stderr = PIPE)
-    stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
-
-@task(log_prints=True)
-def pal_iden_setup(data_dir):
-    script_name = 'blech_palatability_identity_setup.py'
-    process = Popen(["python", script_name, data_dir],
-                               stdout = PIPE, stderr = PIPE)
-    stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
-
-
-@task(log_prints=True)
-def overlay_psth(data_dir):
-    script_name = 'blech_overlay_psth.py'
+def units_characteristics(data_dir):
+    script_name = 'blech_units_characteristics.py'
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
@@ -342,9 +324,7 @@ def run_spike_test():
     quality_assurance(data_dir)
     units_plot(data_dir)
     make_arrays(data_dir)
-    make_psth(data_dir)
-    pal_iden_setup(data_dir)
-    overlay_psth(data_dir)
+    units_characteristics(data_dir)
 
 @flow(log_prints=True)
 def run_emg_main_test():
@@ -379,9 +359,7 @@ def spike_emg_test():
     quality_assurance(data_dir)
     units_plot(data_dir)
     make_arrays(data_dir)
-    make_psth(data_dir)
-    pal_iden_setup(data_dir)
-    overlay_psth(data_dir)
+    units_characteristics(data_dir)
     # Switch to EMG test without resetting
     # Chop number of trials down to preserve time
     cut_emg_trials(data_dir)
