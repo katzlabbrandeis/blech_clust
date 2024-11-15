@@ -33,10 +33,6 @@ tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-# dir_name = '/media/fastdata/NM_sorted_data/NM51/NM51_2500ms_161030_130155_copy'
-# dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-# dir_name = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
-# metadata_handler = imp_metadata([[], dir_name])
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
@@ -49,7 +45,6 @@ if not os.path.exists(agg_plot_dir):
 	os.makedirs(agg_plot_dir)
 
 # Perform pipeline graph check
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/blech_unit_characteristics.py'
 script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
@@ -57,29 +52,13 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 
-# Open the hdf5 file
-# hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
-# from importlib import reload
-# reload(ephys_data)
 this_dat = ephys_data.ephys_data(dir_name)
-# this_dat.get_trial_info_frame()
-# this_dat.check_laser()
-# this_dat.separate_laser_data()
 
 # Extract taste dig-ins from experimental info file
 info_dict = metadata_handler.info_dict
 params_dict = metadata_handler.params_dict
 
-# # Get the digital inputs/tastes available, 
-# # then ask the user to rank them in order of palatability
-# trains_dig_in = hf5.list_nodes('/spike_trains')
-# palatability_rank = info_dict['taste_params']['pal_rankings']
-# print(f'Palatability ranks : {palatability_rank}')
-# 
 taste_names = info_dict['taste_params']['tastes']
-# tastes_set = set(taste_names)
-# identities = [int(dict(zip(tastes_set,range(len(tastes_set))))[x]) for x in taste_names]
-# print(f'Taste identities : {identities}')
 
 
 ##############################
