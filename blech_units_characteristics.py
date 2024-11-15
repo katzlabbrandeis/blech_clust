@@ -101,6 +101,10 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 	fig, ax = plt.subplots(n_rows,3, figsize=(15,5*n_laser_conditions),
 						# sharex=True, sharey='col')
 	)
+	# Remove axis for lower row if only one laser condition
+	if n_laser_conditions == 1:
+		for this_ax in ax[-1]:
+			this_ax.axis('off')
 	for i, laser_cond in enumerate(laser_conditions):
 		this_firing = mean_seq_firing.loc[
 				(mean_seq_firing.neuron_num == nrn_ind) &
