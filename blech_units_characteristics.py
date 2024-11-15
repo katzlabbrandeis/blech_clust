@@ -33,11 +33,11 @@ tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-dir_name = '/media/fastdata/NM_sorted_data/NM51/NM51_2500ms_161030_130155_copy'
+# dir_name = '/media/fastdata/NM_sorted_data/NM51/NM51_2500ms_161030_130155_copy'
 # dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
 # dir_name = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
-metadata_handler = imp_metadata([[], dir_name])
-# metadata_handler = imp_metadata(sys.argv)
+# metadata_handler = imp_metadata([[], dir_name])
+metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
@@ -49,8 +49,8 @@ if not os.path.exists(agg_plot_dir):
 	os.makedirs(agg_plot_dir)
 
 # Perform pipeline graph check
-script_path = '/home/abuzarmahmood/Desktop/blech_clust/blech_unit_characteristics.py'
-# script_path = os.path.realpath(__file__)
+# script_path = '/home/abuzarmahmood/Desktop/blech_clust/blech_unit_characteristics.py'
+script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
@@ -459,6 +459,7 @@ p_val_frame = pd.concat(pval_list)
 p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste_num * bin_num"])] 
 alpha = 0.05
 p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
+taste_bin_pval_frame = p_val_frame.copy()
 taste_sig = pd.DataFrame(p_val_frame.loc[p_val_frame.Source.str.contains('taste')].sig)
 bin_sig = pd.DataFrame(p_val_frame.loc[p_val_frame.Source.str.contains('bin')].sig)
 index_col_names = ['neuron_num','laser_tuple']
@@ -682,3 +683,36 @@ plt.tight_layout()
 plt.savefig(os.path.join(agg_plot_dir, 'aggregated_characteristics.png'),
 			bbox_inches='tight')
 plt.close()
+
+############################################################
+# Aggregate plot
+############################################################
+# Merge all frames and write out to disk and HDF5
+resp_neurons
+taste_bin_pval_frame
+pal_sig_vec_frame # meelted
+
+this_resp_neurons = resp_neurons.copy()
+this_resp_neurons['Source'] = 'responsiveness'
+this_resp_neurons.rename(columns = {'resp_pval' : 'sig'}, inplace=True)
+
+this_pal_sig_frame = pal_sig_vec_frame.copy()
+this_pal_sig_frame['neuron_num'] = this_pal_sig_frame.index
+this_pal_sig_frame = this_pal_sig_frame.melt(
+		id_vars = 'neuron_num',
+		value_vars = laser_conds,
+		var_name = 'laser_tuple',
+		value_name = 'sig',
+		)
+this_pal_sig_frame['Source'] = 'palatability'
+
+out_frame = pd.concat([this_resp_neurons, taste_bin_pval_frame, this_pal_sig_frame])
+out_frame.drop(columns = ['p-unc'], inplace=True)
+
+out_frame.to_csv(os.path.join(dir_name, 'aggregated_characteristics.csv'),
+				 index=False)
+out_frame.to_hdf(
+		metadata_handler.hdf5_name,
+		key = 'ancillary_analysis/unit_characteristics',
+		mode = 'a',
+		)
