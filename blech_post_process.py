@@ -581,6 +581,11 @@ current_unit_table = this_descriptor_handler.table_to_frame()
 print()
 print('==== Unit Table ====\n')
 print(current_unit_table)
+# Also write to disk
+current_unit_table.to_csv(
+        os.path.join(metadata_handler.dir_name, 'unit_descriptor.csv'),
+        index = False,
+        )
 
 
 print()

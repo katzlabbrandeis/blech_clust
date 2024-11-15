@@ -6,6 +6,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import shutil
+from tqdm import tqdm, trange
 
 # Import 3rd part code
 from utils import blech_waveforms_datashader
@@ -46,7 +47,7 @@ except:
 os.mkdir("unit_waveforms_plots")
 
 # Now plot the waveforms from the units in this directory one by one
-for unit in range(len(units)):
+for unit in trange(len(units)):
         waveforms = units[unit].waveforms[:]
         x = np.arange(waveforms.shape[1]) + 1
         times = units[unit].times[:]
@@ -105,7 +106,7 @@ for unit in range(len(units)):
 plot_dir = os.path.join('unit_waveforms_plots', 'waveforms_only')
 os.mkdir(plot_dir)
 
-for unit in range(len(units)):
+for unit in trange(len(units)):
         waveforms = units[unit].waveforms[:]
         x = np.arange(waveforms.shape[1]) + 1
         times = units[unit].times[:]
