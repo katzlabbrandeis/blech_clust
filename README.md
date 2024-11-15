@@ -87,9 +87,7 @@ Use `prefect server start` to start the prefect server in a different terminal w
 - blech_clust_post.sh : Runs steps 7-14   
 
 ### Operations Workflow Visual 
-![nomnoml](https://github.com/user-attachments/assets/68f4d3b1-9ce7-4f1a-8eb2-b107d5e49308)
-
-
+![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
 
 ### Workflow Walkthrough
 *This section is being expanded, in progress.*
@@ -184,9 +182,7 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_post_process] -> [blech_units_plot]
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
-- - [bash blech_run_QA.sh] -> [blech_make_psth]
-- - [blech_make_psth] -> [blech_palatability_identity_setup]
-- - [blech_palatability_identity_setup] -> [blech_overlay_psth]
+- - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
 
 - **EMG shared**
 - - [blech_clust] -> [blech_make_arrays]
