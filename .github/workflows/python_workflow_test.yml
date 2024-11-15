@@ -20,6 +20,10 @@ jobs:
         run: cp -r . /home/exouser/Desktop/blech_clust 
       - name: Check files in working-directory
         run: ls -R /home/exouser/Desktop/blech_clust
+      - name: Setup params
+        run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
+      - name: Check params
+        run: for f in /home/exouser/Desktop/blech_clust/params/*; do echo $f; cat $f; done
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
