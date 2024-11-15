@@ -14,6 +14,9 @@ jobs:
       - run: conda info --envs
       - name: Set up repo
         uses: actions/checkout@v4
+        working-directory: /home/exouser/Desktop/blech_clust
+      - run: git status
+      - run: tree .
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
   Spike-Only:
     runs-on: self-hosted
@@ -21,6 +24,8 @@ jobs:
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
+        working-directory: /home/exouser/Desktop/blech_clust
+      - run: git status
       - name: Prefect SPIKE only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
@@ -34,6 +39,8 @@ jobs:
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
+        working-directory: /home/exouser/Desktop/blech_clust
+      - run: git status
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
@@ -47,6 +54,8 @@ jobs:
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
+        working-directory: /home/exouser/Desktop/blech_clust
+      - run: git status
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
