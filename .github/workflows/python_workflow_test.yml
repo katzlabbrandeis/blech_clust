@@ -22,7 +22,7 @@ jobs:
       - name: Setup params
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
       - name: Check params
-        run: for f in $(ls /home/exouser/Desktop/blech_clust/params/); do echo $f; cat $f; done
+        run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
