@@ -15,17 +15,15 @@ jobs:
       - name: Set up repo
         uses: actions/checkout@v4
       - run: git status
-      - run: ls -R
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+      - name: Copy files to working-directory
+        run: cp -r . /home/exouser/Desktop/blech_clust 
+      - name: Check files in working-directory
+        run: ls -R /home/exouser/Desktop/blech_clust
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
     steps:
-      - run: cd ~/Desktop/blech_clust
-      - run: pwd
-      - name: Set up repo
-        uses: actions/checkout@v4
-      - run: git status
       - name: Prefect SPIKE only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
@@ -37,11 +35,6 @@ jobs:
     runs-on: self-hosted
     needs: Preamble 
     steps:
-      - run: cd ~/Desktop/blech_clust
-      - run: pwd
-      - name: Set up repo
-        uses: actions/checkout@v4
-      - run: git status
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
@@ -53,11 +46,6 @@ jobs:
     runs-on: self-hosted
     needs: Preamble 
     steps:
-      - run: cd ~/Desktop/blech_clust
-      - run: pwd
-      - name: Set up repo
-        uses: actions/checkout@v4
-      - run: git status
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
