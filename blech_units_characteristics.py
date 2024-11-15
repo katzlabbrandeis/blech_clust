@@ -23,6 +23,7 @@ from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 import pandas as pd
+pd.options.mode.chained_assignment = None
 from itertools import product
 from scipy.stats import ttest_rel, zscore, spearmanr
 import seaborn as sns
@@ -123,6 +124,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 				hue = 'taste',
 				ax = ax[i,0],
 				)
+		ax[i,0].legend()
 		sns.scatterplot(
 				data = this_spikes,
 				x = 'time_num',
@@ -142,7 +144,6 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 				this_ax.set_xlabel('Time (ms)')
 			this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
 			this_ax.set_title(f'Laser condition {laser_cond}')
-			this_ax.legend()
 		# Plot waveforms
 		datashader_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_datashader.png')
 		mean_sd_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_mean_sd.png') 
@@ -426,7 +427,11 @@ for this_frame in tqdm(group_frames):
 			between = ['taste_num','bin_num'],
 			)
 	anova_out = anova_out.loc[anova_out.Source != 'Residual']
-	this_pval = anova_out[['Source','p-unc']]
+	if 'p-unc' in anova_out.columns:
+		this_pval = anova_out[['Source','p-unc']]
+	else:
+		this_pval = anova_out[['Source']]
+		this_pval['p-unc'] = 1
 	nrn_num = this_frame.neuron_num.unique()[0]
 	laser_tuple = this_frame.laser_tuple.unique()[0]
 	this_pval['neuron_num'] = nrn_num
@@ -568,9 +573,12 @@ min_rho, max_rho = pal_frame.abs_rho.min(), pal_frame.abs_rho.max()
 fig, ax = plt.subplots(
 		len(laser_conds),
 		len(frame_ind_list)//len(laser_conds) + 1,
-		figsize = (15,10),
+		figsize = (15,5*len(laser_conds)),
 		sharey=True
 		)
+# If only one laser cond, convert to 2D array
+if len(laser_conds) == 1:
+	ax = ax.reshape(1,-1)
 stim_ind = np.argmin(np.abs(pal_pivot_list[0].columns - 0))
 comb_inds = list(itertools.product(laser_conds, value_var_list))
 for this_laser, this_var in comb_inds:
@@ -623,6 +631,9 @@ plt.close()
 # For each opto condition
 
 fig, ax = plt.subplots(len(laser_conds),4, figsize=(10,10))
+# If only one laser cond, convert to 2D array
+if len(laser_conds) == 1:
+	ax = ax.reshape(1,-1)
 for i, this_cond in enumerate(laser_conds):
 	resp_vec = resp_neurons_pivot[this_cond].values.reshape(-1,1)
 	discrim_vec = taste_sig_pivot[this_cond].values.reshape(-1,1)
