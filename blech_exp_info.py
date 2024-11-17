@@ -23,11 +23,11 @@ import os
 import re
 import argparse
 import pandas as pd
+from tqdm import tqdm
 # When running in Spyder, throws an error,
 # so cd to utils folder and then back out
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-
-
+from utils.importrhdutilities import load_file, read_header
 
 # Get name of directory with the data files
 # Create argument parser
@@ -56,7 +56,9 @@ splits = dir_name.split("_")
 time_pattern = re.compile(r'\d{6}')
 time_match = time_pattern.findall(dir_name)
 if len(time_match) != 2:
-    raise ValueError('Timestamp not found in folder name')
+    # raise ValueError('Timestamp not found in folder name')
+    print('Timestamp not found in folder name')
+    time_match = ['NA', 'NA']
 
 this_dict = {
     "name": splits[0],
@@ -84,10 +86,11 @@ else:
 
     # Find all ports used
     file_list = os.listdir(dir_path)
-    try:
-        file_list.index('auxiliary.dat')
+    if 'auxiliary.dat' in file_list:
         file_type = ['one file per signal type']
-    except:
+    elif len(['rhd' in x for x in file_list]) > 1:
+        file_type = ['traditional']
+    else:
         file_type = ['one file per channel']
 
     if file_type == ['one file per signal type']:
@@ -98,6 +101,14 @@ else:
             name for name in file_list if name.startswith('amp-')]
         dig_in_list = [
             name for name in file_list if name.startswith('board-DI')]
+    else:
+        with open(os.path.join(dir_path , file_list[0]), 'rb') as f:
+            header = read_header(f)
+        # temp_file, data_present = importrhdutilities.load_file(file_list[0])
+        ports = [x['port_prefix'] for x in header['amplifier_channels']]
+        electrode_files = [x['native_channel_name'] for x in header['amplifier_channels']]
+        dig_in_list = [x['native_channel_name'].lower() for x in header['board_dig_in_channels']]
+
     dig_in_list = sorted(dig_in_list)
 
     if file_type == ['one file per channel']:
@@ -120,6 +131,10 @@ else:
         ports = ['A']*num_electrodes
         electrode_num_list = list(np.arange(num_electrodes))
         del amplifier_data, num_electrodes
+    elif file_type == ['traditional']:
+        print("\tTraditional Intan Data Detected")
+        electrode_num_list = [x.split('-')[1] for x in electrode_files]
+        # Port have already been extracted
 
     # Write out file and ask user to define regions in file
     layout_file_path = os.path.join(
@@ -210,22 +225,24 @@ else:
     if file_type == ['one file per channel']:
         dig_in_trials = []
         num_dig_ins = len(dig_in_list)
+        bad_dig_in_inds = []
         for i in range(num_dig_ins):
             dig_inputs = np.array(np.fromfile(
                 dir_path + dig_in_list[i], dtype=np.dtype('uint16')))
             d_diff = np.diff(dig_inputs)
             start_ind = np.where(d_diff == 1)[0]
             if len(start_ind) == 0:
-                print(f"== No deliveries detected for {dig_in_list[i]} ==")
-                print("== blech_clust is sad and can't work under these conditions ==")
-                print(f"== Please delete {dig_in_list[i]} and try again ==")
-                exit()
-            dig_in_trials.append(int(len(start_ind)))
-        indexed_digin_list = list(
-            zip(np.arange(len(dig_in_list)), dig_in_list))
-        dig_in_print_str = "Dig-ins : \n" + \
-            ",\n".join([str(x) for x in indexed_digin_list])
-        dig_in_present_bool = len(dig_in_list) > 0
+                bad_dig_in_inds.append(i)
+            else:
+                dig_in_trials.append(int(len(start_ind)))
+        if len(bad_dig_in_inds) > 0:
+            bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
+            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print('\n'+f"== {bad_dig_in_str} ==" + '\n')
+            print('== They will be REMOVED from the list of dig-ins ==')
+            dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]
+            print('== Remaining dig-ins ==' + '\n')
+            print('\n'.join(dig_in_list))
 
     elif file_type == ['one file per signal type']:
         d_inputs = np.fromfile(
@@ -243,19 +260,60 @@ else:
         for n_i in range(num_dig_ins):
             start_ind = np.where(d_diff == n_i + 1)[0]
             if len(start_ind) == 0:
-                print(f"== No deliveries detected for {dig_in_list[i]} ==")
-                print("== blech_clust is sad and can't work under these conditions ==")
-                print(f"== Please delete {dig_in_list[i]} and try again ==")
-                exit()
-            dig_in_trials.append(int(len(start_ind)))
-        dig_in_print_str = "A total of " + str(num_dig_ins)
-        dig_in_present_bool = num_dig_ins > 0
+                bad_dig_in_inds.append(i)
+            else:
+                dig_in_trials.append(int(len(start_ind)))
+        if len(bad_dig_in_inds) > 0:
+            bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
+            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print('\n'+f"== {bad_dig_in_str} ==" + '\n')
+            print('== They will be REMOVED from the list of dig-ins ==')
+            dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]
+            print('== Remaining dig-ins ==' + '\n')
+            print('\n'.join(dig_in_list))
+
+    elif file_type == ['traditional']:
+        num_dig_ins = len(dig_in_list)
+        bad_dig_in_inds = []
+
+        dig_in_trials = {}
+        rhd_file_list = [x for x in file_list if 'rhd' in x]
+        for this_file in tqdm(rhd_file_list):
+            this_file_data, data_present = load_file(os.path.join(dir_path, this_file))
+            dig_inputs = this_file_data['board_dig_in_data']
+            d_diff = np.diff(dig_inputs, axis=-1)
+            start_ind = np.where(d_diff == 1)
+
+            for this_dig in start_ind[0]:
+                if this_dig not in dig_in_trials.keys():
+                    dig_in_trials[this_dig] = 0
+                dig_in_trials[this_dig] += 1
+
+        for i in range(num_dig_ins):
+            if i not in dig_in_trials.keys():
+                bad_dig_in_inds.append(i)
+
+        if len(bad_dig_in_inds) > 0:
+            bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
+            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print('\n'+f"== {bad_dig_in_str} ==" + '\n')
+            print('== They will be REMOVED from the list of dig-ins ==')
+            dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]
+            print('== Remaining dig-ins ==' + '\n')
+            print('\n'.join(dig_in_list))
+            dig_in_trials = [dig_in_trials[i] for i in dig_in_trials.keys()]
+
+    indexed_digin_list = list(
+        zip(np.arange(len(dig_in_list)), dig_in_list))
+    dig_in_print_str = "Dig-ins : \n" + \
+        ",\n".join([str(x) for x in indexed_digin_list])
+    dig_in_present_bool = len(dig_in_list) > 0
 
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
         print(dig_in_print_str + "\n were found. Please provide the indices.")
         taste_dig_in_str, continue_bool = entry_checker(
-            msg=' Taste dig_ins used (IN ORDER, anything separated) :: ',
+            msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
             check_func=count_check,
             fail_response='Please enter integers only')
         if continue_bool:
