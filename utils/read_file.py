@@ -7,13 +7,7 @@ import tqdm
 # Code for loading traditional intan format from 
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
-# import sys
-# sys.path.append('/home/abuzarmahmood/projects/load-rhd-notebook-python')
 from utils.importrhdutilities import load_file, read_header
-
-# dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659'
-# # dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/trad_intan_test'
-# file_list = sorted([os.path.join(dir_name, x) for x in os.listdir(dir_name) if '.rhd' in x])
 
 def read_traditional_intan(
 		hdf5_name, 

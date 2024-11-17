@@ -26,8 +26,7 @@ from utils.blech_process_utils import path_handler
 from utils.importrhdutilities import read_header
 
 # Get blech_clust path
-script_path = '/home/abuzarmahmood/projects/blech_clust/blech_clust.py'
-# script_path = os.path.realpath(__file__)
+script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(script_path)
 
 # Check that template file is present
@@ -42,12 +41,7 @@ if not os.path.exists(params_template_path):
 
 
 metadata_handler = imp_metadata([[], args.dir_name])
-
-
-# dir_name = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659'
-# metadata_handler = imp_metadata([[], dir_name])
 dir_name = metadata_handler.dir_name
-
 
 # Perform pipeline graph check
 this_pipeline_check = pipeline_graph_check(dir_name)
