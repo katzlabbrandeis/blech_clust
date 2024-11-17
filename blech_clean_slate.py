@@ -15,7 +15,7 @@ dir_name = metadata_handler.dir_name
 file_list = metadata_handler.file_list
 
 # Keep certain files and remove everything else
-keep_pattern = ['*.dat','*.info','*.rhd', '*.csv', "*_info", "*.txt"]
+keep_pattern = ['*.dat','*.info','*.rhd', '*.csv', "*_info", "*.txt", "*.xml"]
 keep_files = []
 for pattern in keep_pattern:
     keep_files.extend(glob.glob(os.path.join(dir_name, pattern)))
