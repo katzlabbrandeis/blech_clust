@@ -1,4 +1,12 @@
 # Necessary python modules
+import argparse
+
+parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
+parser.add_argument('dir_name', type=str, help='Directory name with data files')
+parser.add_argument('--force_run' , action='store_true', help='Force run the script without asking user')
+args = parser.parse_args()
+force_run = args.force_run
+
 import os
 import tables
 import sys
@@ -15,6 +23,7 @@ from utils import read_file
 from utils.qa_utils import channel_corr
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.blech_process_utils import path_handler
+from utils.importrhdutilities import read_header
 
 # Get blech_clust path
 script_path = os.path.realpath(__file__)
@@ -30,11 +39,19 @@ if not os.path.exists(params_template_path):
     exit()
 ############################################################
 
-metadata_handler = imp_metadata(sys.argv)
+
+metadata_handler = imp_metadata([[], args.dir_name])
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
 this_pipeline_check = pipeline_graph_check(dir_name)
+# If info_dict present but execution log is not
+# just create the execution log with blech_exp_info marked
+if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
+    blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
+    this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
+    this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
+    print('Execution log created for blech_exp_info')
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 
@@ -48,6 +65,8 @@ file_list = metadata_handler.file_list
 # Get the type of data files (.rhd or .dat)
 if 'auxiliary.dat' in file_list:
     file_type = ['one file per signal type']
+elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
+    file_type = ['traditional']
 else:
     file_type = ['one file per channel']
 
@@ -67,12 +86,29 @@ else:
     hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
 
 group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+found_list = []
 for this_group in group_list:
     if '/'+this_group in hf5:
-        hf5.remove_node('/', this_group, recursive=True)
-    hf5.create_group('/', this_group)
+        found_list.append(this_group)
+
+if len(found_list) > 0 and not force_run:
+    print(f'Data already present: {found_list}')
+    reload_data_str, continue_bool = entry_checker(
+            msg='Reload data? (yes/y/n/no) ::: ',
+            check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+            fail_response='Please enter (yes/y/n/no)')
+else:
+    continue_bool = True
+    reload_data_str = 'y'
+
+if continue_bool:
+    if reload_data_str in ['y', 'yes']:
+        for this_group in group_list:
+            if '/'+this_group in hf5:
+                hf5.remove_node('/', this_group, recursive=True)
+            hf5.create_group('/', this_group)
+        print('Created nodes in HF5')
 hf5.close()
-print('Created nodes in HF5')
 
 # Create directories to store waveforms, spike times, clustering results, and plots
 # And a directory for dumping files talking about memory usage in blech_process.py
@@ -88,7 +124,7 @@ recreate_msg = f'Following dirs are present :' + '\n' + f'{dir_exists}' + \
     '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
 
 # If dirs exist, check with user
-if len(dir_exists) > 0:
+if len(dir_exists) > 0 and not force_run:
     recreate_str, continue_bool = entry_checker(
         msg=recreate_msg,
         check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
@@ -117,39 +153,62 @@ if file_type == ['one file per signal type']:
 elif file_type == ['one file per channel']:
     electrodes_list = [name for name in file_list if name.startswith('amp-')]
     dig_in_file_list = [name for name in file_list if name.startswith('board-DI')]
+elif file_type == ['traditional']:
+    rhd_file_list = sorted([name for name in file_list if name.endswith('.rhd')])
+    
 
-electrodes_list = sorted(electrodes_list)
-dig_in_file_list = sorted(dig_in_file_list)
+if not file_type == ['traditional']:
+    electrodes_list = sorted(electrodes_list)
+    dig_in_file_list = sorted(dig_in_file_list)
 
-# Use info file for port list calculation
-info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
-sampling_rate = int(info_file[2])
+    # Use info file for port list calculation
+    info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
+    sampling_rate = int(info_file[2])
 
-# Read the time.dat file for use in separating out 
-# the one file per signal type data
-num_recorded_samples = len(np.fromfile(
-    dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
-total_recording_time = num_recorded_samples/sampling_rate  # In seconds
+    # Read the time.dat file for use in separating out 
+    # the one file per signal type data
+    num_recorded_samples = len(np.fromfile(
+        dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
+    total_recording_time = num_recorded_samples/sampling_rate  # In seconds
 
-check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-    f'\nDigital input files: {dig_in_file_list} \n ---------- \n \n'
-print(check_str)
+    check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
+            f'\nDigital input files: {dig_in_file_list} \n ---------- \n \n'
+    print(check_str)
 
-ports = info_dict['ports']
+    ports = info_dict['ports']
+else:
+    with open(rhd_file_list[0], 'rb') as f:
+        header = read_header(f)
+    # temp_file, data_present = importrhdutilities.load_file(file_list[0])
+    amp_channel_ports = [x['port_prefix'] for x in header['amplifier_channels']]
+    amp_channel_names = [x['native_channel_name'] for x in header['amplifier_channels']]
+    dig_in_channels = [x['native_channel_name'] for x in header['board_dig_in_channels']]
+    sampling_rate = int(header['sample_rate'])
+    ports = np.unique(amp_channel_ports)
+
+    check_str = f"""
+    == Amplifier channels: \n{amp_channel_names}\n
+    == Digital input channels: \n{dig_in_channels}\n
+    == Sampling rate: {sampling_rate} Hz\n
+    == Ports: {ports}\n
+    """
+    print(check_str)
+
+
 
 if file_type == ['one file per channel']:
     print("\tOne file per CHANNEL Detected")
-
     # Read dig-in data
     # Pull out the digital input channels used,
     # and convert them to integers
     dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
     dig_in_int = sorted([(x) for x in dig_in_int])
-
 elif file_type == ['one file per signal type']:
-
     print("\tOne file per SIGNAL Detected")
     dig_in_int = np.arange(info_dict['dig_ins']['count'])
+elif file_type == ['traditional']:
+    print('Tranditional INTAN file format detected')
+    dig_in_int = sorted([x.split('-')[-1].split('.')[0] for x in dig_in_channels])
 
 check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
             f'\n digital inputs on intan board: {dig_in_int}'
@@ -175,16 +234,26 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 
 # Read data files, and append to electrode arrays
-if file_type == ['one file per channel']:
-    read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
-    read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
-    if len(emg_channels) > 0:
-        read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
-elif file_type == ['one file per signal type']:
-    read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
-    # This next line takes care of both electrodes and emgs
-    read_file.read_electrode_emg_channels_single_file(
-        hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+if reload_data_str in ['y', 'yes']:
+    if file_type == ['one file per channel']:
+        read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
+        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+        if len(emg_channels) > 0:
+            read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+    elif file_type == ['one file per signal type']:
+        read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
+        # This next line takes care of both electrodes and emgs
+        read_file.read_electrode_emg_channels_single_file(
+            hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+    elif file_type == ['traditional']:
+        read_file.read_traditional_intan(
+                hdf5_name, 
+                rhd_file_list, 
+                electrode_layout_frame,
+                dig_in_int,
+                )
+else:
+    print('Data already present...Not reloading data')
 
 # Write out template params file to directory if not present
 params_template = json.load(open(params_template_path, 'r'))
@@ -204,11 +273,12 @@ else:
 # Test correlation between channels for quality check
 print()
 print('Calculating correlation matrix for quality check')
-qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
+# qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
+n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
 qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
 down_dat_stack, chan_names = channel_corr.get_all_channels(
         hdf5_name, 
-        downsample_rate = qa_down_rate,)
+        n_corr_samples = n_corr_samples)
 corr_mat = channel_corr.intra_corr(down_dat_stack)
 qa_out_path = os.path.join(dir_name, 'QA_output')
 if not os.path.exists(qa_out_path):
@@ -226,11 +296,20 @@ channel_corr.gen_corr_output(corr_mat,
 # Also output a plot with digin and laser info
 
 # Get digin and laser info
-with tables.open_file(hdf5_name, 'r+') as hf5:
-    dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
+print('Getting trial markers from digital inputs')
+dig_in_list = []
+with tables.open_file(hdf5_name, 'r') as hf5:
+    for i, this_dig_in in enumerate(hf5.root.digital_in):
+        this_dig_in = this_dig_in[:]
+        len_dig_in = len(this_dig_in)
+        this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
+        this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
+        dig_in_list.append(this_dig_in)
+        # dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
+dig_in_array = np.stack(dig_in_list)
 # Downsample to 10 seconds
-dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
-dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
+# dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
+# dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
 dig_in_markers = np.where(dig_in_array > 0)
 del dig_in_array
 

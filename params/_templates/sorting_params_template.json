@@ -29,7 +29,7 @@
         }
     },
     "qa_params": {
-        "downsample_rate": 100,
+        "n_corr_samples" : 10000,
         "bridged_channel_threshold" : 0.9,
         "similarity_cutoff": 50,
         "drift_params": {
