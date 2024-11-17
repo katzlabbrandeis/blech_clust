@@ -29,7 +29,12 @@ def get_all_channels(
 	hf5 = tables.open_file(hf5_path, 'r')
 	raw = hf5.list_nodes('/raw')
 	raw_emg = hf5.list_nodes('/raw_emg')
-	n_samples = raw[0].shape[0]
+	if len(raw) > 0:
+		n_samples = raw[0].shape[0]
+	elif len(raw_emg) > 0:
+		n_samples = raw_emg[0].shape[0]
+	else:
+		raise ValueError('No data found in either /raw or /raw_emg')
 	sample_inds = np.random.choice(n_samples, n_corr_samples, replace = False)
 	all_chans = []
 	chan_names = []
