@@ -11,13 +11,16 @@ import pandas as pd
 import tables
 import os
 
-def get_all_channels(hf5_path, downsample_rate = 100):
+def get_all_channels(
+		hf5_path, 
+		n_corr_samples = 10000,
+		):
 	"""
 	Get all channels in a file from nodes ['raw','raw_emg']
 
 	Input:
 		hf5_path: str, path to hdf5 file
-		downsample_rate: int, downsample rate of data
+		n_corr_samples: int, number of samples to use for correlation calculation
 
 	Output:
 		all_chans: np.array (n_chans, n_samples)
@@ -26,11 +29,13 @@ def get_all_channels(hf5_path, downsample_rate = 100):
 	hf5 = tables.open_file(hf5_path, 'r')
 	raw = hf5.list_nodes('/raw')
 	raw_emg = hf5.list_nodes('/raw_emg')
+	n_samples = raw[0].shape[0]
+	sample_inds = np.random.choice(n_samples, n_corr_samples, replace = False)
 	all_chans = []
 	chan_names = []
 	for node in [raw, raw_emg]:
 		for chan in tqdm(node):
-			all_chans.append(chan[:][::downsample_rate])
+			all_chans.append(chan[:][sample_inds])
 			if 'emg' in chan._v_name:
 				chan_names.append(int(chan._v_name.split('emg')[-1]))
 			else:
