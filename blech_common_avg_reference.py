@@ -81,16 +81,16 @@ print(
 common_average_reference = np.zeros(
     (num_groups, raw_electrodes[0][:].shape[0]))
 print('Calculating mean values')
-for group in range(num_groups):
-    print('Processing Group {}'.format(group))
+for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+    print(f"Processing group {group_name}")
     # First add up the voltage values from each electrode to the same array
     # then divide by number of electrodes to get the average
     # This is more memory efficient than loading all the electrode data into
     # a single array and then averaging
-    for electrode_name in tqdm(CAR_electrodes[group]):
-        common_average_reference[group, :] += \
+    for electrode_name in tqdm(CAR_electrodes[group_num]):
+        common_average_reference[group_num, :] += \
             get_electrode_by_name(raw_electrodes, electrode_name)[:]
-    common_average_reference[group, :] /= float(len(CAR_electrodes[group]))
+    common_average_reference[group_num, :] /= float(len(CAR_electrodes[group_num]))
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 
