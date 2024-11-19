@@ -1,46 +1,27 @@
-# Necessary python modules
-import argparse
-
-parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
-parser.add_argument('dir_name', type=str, help='Directory name with data files')
-parser.add_argument('--force_run' , action='store_true', help='Force run the script without asking user')
-args = parser.parse_args()
-force_run = args.force_run
-
 import os
-import tables
-import sys
 import numpy as np
 import multiprocessing
-import json
-import glob
 import pandas as pd
-import shutil
-import pylab as plt
 
-# Necessary blech_clust modules
+# Local imports
 from utils import read_file
-from utils.qa_utils import channel_corr
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.blech_process_utils import path_handler
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 from utils.importrhdutilities import read_header
+import config
+import data_io
+import qa
 
-# Get blech_clust path
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(script_path)
-
-# Check that template file is present
-params_template_path = os.path.join(
-    blech_clust_dir,
-    'params/sorting_params_template.json')
-if not os.path.exists(params_template_path):
-    print('=== Sorting Params Template file not found. ===')
-    print('==> Please copy [[ blech_clust/params/_templates/sorting_params_template.json ]] to [[ blech_clust/params/sorting_params_template.json ]] and update as needed.')
-    exit()
-############################################################
-
-
-metadata_handler = imp_metadata([[], args.dir_name])
+def main():
+    # Parse arguments and setup
+    args = config.parse_args()
+    force_run = args.force_run
+    
+    script_path = os.path.realpath(__file__)
+    blech_clust_dir = os.path.dirname(script_path)
+    
+    # Check template and setup metadata
+    params_template_path = config.check_params_template(blech_clust_dir)
+    metadata_handler = imp_metadata([[], args.dir_name])
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
