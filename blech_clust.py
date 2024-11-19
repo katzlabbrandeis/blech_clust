@@ -98,36 +98,54 @@ class DirectoryManager:
             
         return continue_bool
 
+class Config:
+    """Handles configuration and argument parsing"""
+    
+    @staticmethod
+    def parse_args():
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument('dir_name', help='Directory containing the data files')
+        parser.add_argument('--force-run', action='store_true', 
+                          help='Force run without user prompts')
+        return parser.parse_args()
+
+    @staticmethod
+    def check_params_template(blech_clust_dir):
+        """Check and return path to params template"""
+        template_name = 'blech_params.json'
+        return os.path.join(blech_clust_dir, template_name)
+
 def main():
     # Parse arguments and setup
-    args = config.parse_args()
+    args = Config.parse_args()
     force_run = args.force_run
     
     script_path = os.path.realpath(__file__)
     blech_clust_dir = os.path.dirname(script_path)
     
     # Check template and setup metadata
-    params_template_path = config.check_params_template(blech_clust_dir)
+    params_template_path = Config.check_params_template(blech_clust_dir)
     metadata_handler = imp_metadata([[], args.dir_name])
-dir_name = metadata_handler.dir_name
+    dir_name = metadata_handler.dir_name
 
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(dir_name)
-# If info_dict present but execution log is not
-# just create the execution log with blech_exp_info marked
-if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
-    blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
-    this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
-    this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
-    print('Execution log created for blech_exp_info')
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    # If info_dict present but execution log is not
+    # just create the execution log with blech_exp_info marked
+    if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
+        blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
+        this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
+        this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
+        print('Execution log created for blech_exp_info')
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
-print(f'Processing : {dir_name}')
-os.chdir(dir_name)
+    print(f'Processing : {dir_name}')
+    os.chdir(dir_name)
 
-info_dict = metadata_handler.info_dict
-file_list = metadata_handler.file_list
+    info_dict = metadata_handler.info_dict
+    file_list = metadata_handler.file_list
 
 
 # Get the type of data files (.rhd or .dat)
