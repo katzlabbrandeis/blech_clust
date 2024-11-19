@@ -187,17 +187,17 @@ def main():
         continue_bool = True
         reload_data_str = 'y'
 
-if continue_bool:
-    if reload_data_str in ['y', 'yes']:
-        for this_group in group_list:
-            if '/'+this_group in hf5:
-                hf5.remove_node('/', this_group, recursive=True)
-            hf5.create_group('/', this_group)
-        print('Created nodes in HF5')
-hf5.close()
+    if continue_bool:
+        if reload_data_str in ['y', 'yes']:
+            for this_group in group_list:
+                if '/'+this_group in hf5:
+                    hf5.remove_node('/', this_group, recursive=True)
+                hf5.create_group('/', this_group)
+            print('Created nodes in HF5')
+    hf5.close()
 
-# Create directories to store waveforms, spike times, clustering results, and plots
-# And a directory for dumping files talking about memory usage in blech_process.py
+    # Create directories to store waveforms, spike times, clustering results, and plots
+    # And a directory for dumping files talking about memory usage in blech_process.py
 # Check if dirs are already present, if they are, ask to delete and continue
 # or abort
 dir_list = ['spike_waveforms',
