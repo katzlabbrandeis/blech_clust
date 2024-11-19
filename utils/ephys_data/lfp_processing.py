@@ -1,6 +1,26 @@
 """
-Module for ephys_data to streamline lfp_extraction
-Adapted from blech_clust/LFP_analysis/LFP_Processing_Final.py
+lfp_processing.py - LFP extraction and processing utilities
+
+This module provides functions for extracting and processing Local Field Potential (LFP) 
+data from electrophysiology recordings. Adapted from blech_clust LFP analysis tools.
+
+Key Functions:
+    extract_lfps: Main function for LFP extraction and processing
+    extract_emgs: Similar processing for EMG signals
+    get_filtered_electrode: Apply bandpass filtering to electrode signals
+    return_good_lfp_trials: Quality control for LFP trials
+    return_good_lfp_trial_inds: Get indices of good quality trials
+
+Features:
+    - Automatic trial segmentation based on digital inputs
+    - Configurable filtering parameters
+    - Data quality visualization
+    - EMG-specific processing
+    - Trial quality assessment using MAD thresholds
+
+Dependencies:
+    - numpy, scipy, tables
+    - matplotlib for visualization
 """
 # ==============================
 # Setup

@@ -29,10 +29,28 @@ import pandas as pd
 #        |_|          |___/ 
 
 """
-Class to streamline data analysis from multiple files
-Class has a container for data from different files and functions for analysis
-Functions in class can autoload data from specified files according to specified 
-paramters
+ephys_data.py - Class for streamlined electrophysiology data analysis
+
+This module provides a class for analyzing electrophysiology data from multiple files.
+The class provides containers and functions for data analysis with automatic loading
+capabilities.
+
+Key Features:
+    - Automatic data loading from specified files
+    - Spike train and LFP data processing
+    - Firing rate calculation with multiple methods
+    - Digital input parsing and trial segmentation
+    - Region-based analysis for multi-region recordings
+    - Laser condition handling for optogenetic experiments
+    - Data quality checks and visualization
+
+Classes:
+    ephys_data: Main class for data handling and analysis
+
+Dependencies:
+    - numpy, scipy, tables, pandas
+    - BAKS (Bayesian Adaptive Kernel Smoother)
+    - Custom LFP processing utilities
 """
 
 class ephys_data():
