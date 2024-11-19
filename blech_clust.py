@@ -299,8 +299,6 @@ file_lists = {
 if file_type[0] != 'traditional':
     electrodes_list = file_lists[file_type[0]]['electrodes']
     dig_in_file_list = file_lists[file_type[0]]['dig_in']
-else:
-    rhd_file_list = file_lists[file_type[0]]['rhd']
 
     # Use info file for port list calculation
     info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
@@ -318,6 +316,7 @@ else:
     ports = info_dict['ports']
 
 if file_type[0] == 'traditional':
+    rhd_file_list = file_lists[file_type[0]]['rhd']
     with open(rhd_file_list[0], 'rb') as f:
         header = read_header(f)
     # temp_file, data_present = importrhdutilities.load_file(file_list[0])
