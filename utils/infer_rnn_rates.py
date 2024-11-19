@@ -67,6 +67,7 @@ time_lims = params_dict['time_lims']
 bin_size = params_dict['bin_size']
 use_pca = params_dict['use_pca']
 train_test_split = params_dict['train_test_split']
+train_steps = params_dict['train_steps']
 
 def setup_paths(data_dir):
     output_path = os.path.join(data_dir, 'rnn_output')
