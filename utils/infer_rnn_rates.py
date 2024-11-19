@@ -3,14 +3,16 @@ Use Auto-regressive RNN to infer firing rates from a given data set.
 """
 
 import argparse
+import argparse
 import json
 import os
 import sys
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 from scipy.stats import zscore
 import tables
 from pprint import pprint
@@ -114,7 +116,6 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     model_name = f'taste_{taste_ind}_hidden_{hidden_size}_loss_{loss_name}'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
-    # taste_spikes = np.concatenate(spike_array)
     # Cut taste_spikes to time limits
     # Shape: (trials, neurons, time)
     taste_spikes = taste_spikes[..., time_lims[0]:time_lims[1]]
@@ -147,7 +148,6 @@ for taste_ind, taste_spikes in enumerate(spike_array):
 
     # Perform standard scaling
     scaler = StandardScaler()
-    # scaler = MinMaxScaler()
     inputs_long = scaler.fit_transform(inputs_long)
 
     if use_pca: 
@@ -157,9 +157,6 @@ for taste_ind, taste_spikes in enumerate(spike_array):
         inputs_pca = pca_obj.fit_transform(inputs_long)
         n_components = inputs_pca.shape[-1]
 
-        # # Scale the PCA outputs
-        # pca_scaler = StandardScaler()
-        # inputs_pca = pca_scaler.fit_transform(inputs_pca)
 
         inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, n_components)
 
@@ -287,8 +284,6 @@ for taste_ind, taste_spikes in enumerate(spike_array):
                 )
         # Save artifacts and plots
         torch.save(net, model_save_path)
-        # np.save(loss_path, loss)
-        # np.save(cross_val_loss_path, cross_val_loss)
         with open(loss_path, 'w') as f:
             json.dump(loss, f)
         with open(cross_val_loss_path, 'w') as f:
@@ -335,12 +330,6 @@ for taste_ind, taste_spikes in enumerate(spike_array):
 
     # If pca was performed, first reverse PCA, then reverse pca standard scaling
     if use_pca: 
-        # # Reverse NMF scaling
-        # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
-        # pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
-
-        # Reverse NMF transform
-        # pred_firing_long = nmf_obj.inverse_transform(pred_firing_long)
         pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
 
     # Reverse standard scaling
