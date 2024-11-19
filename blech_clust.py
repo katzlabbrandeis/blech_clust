@@ -198,49 +198,49 @@ def main():
 
     # Create directories to store waveforms, spike times, clustering results, and plots
     # And a directory for dumping files talking about memory usage in blech_process.py
-# Check if dirs are already present, if they are, ask to delete and continue
-# or abort
-dir_list = ['spike_waveforms',
-            'spike_times',
-            'clustering_results',
-            'Plots',
-            'memory_monitor_clustering']
-dir_exists = [x for x in dir_list if os.path.exists(x)]
-recreate_msg = f'Following dirs are present :' + '\n' + f'{dir_exists}' + \
-    '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
+    # Check if dirs are already present, if they are, ask to delete and continue
+    # or abort
+    dir_list = ['spike_waveforms',
+                'spike_times',
+                'clustering_results',
+                'Plots',
+                'memory_monitor_clustering']
+    dir_exists = [x for x in dir_list if os.path.exists(x)]
+    recreate_msg = f'Following dirs are present :' + '\n' + f'{dir_exists}' + \
+        '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
 
-# If dirs exist, check with user
-if len(dir_exists) > 0 and not force_run:
-    recreate_str, continue_bool = entry_checker(
-        msg=recreate_msg,
-        check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-        fail_response='Please enter (yes/y/n/no)')
-# Otherwise, create all of them
-else:
-    continue_bool = True
-    recreate_str = 'y'
+    # If dirs exist, check with user
+    if len(dir_exists) > 0 and not force_run:
+        recreate_str, continue_bool = entry_checker(
+            msg=recreate_msg,
+            check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+            fail_response='Please enter (yes/y/n/no)')
+    # Otherwise, create all of them
+    else:
+        continue_bool = True
+        recreate_str = 'y'
 
-# Break if user said n/no or gave exit signal
-if continue_bool:
-    if recreate_str in ['y', 'yes']:
-        for x in dir_list:
-            if os.path.exists(x):
-                shutil.rmtree(x)
-            os.makedirs(x)
-else:
-    quit()
+    # Break if user said n/no or gave exit signal
+    if continue_bool:
+        if recreate_str in ['y', 'yes']:
+            for x in dir_list:
+                if os.path.exists(x):
+                    shutil.rmtree(x)
+                os.makedirs(x)
+    else:
+        return
 
-print('Created dirs in data folder')
+    print('Created dirs in data folder')
 
-# Get lists of amplifier and digital input files
-if file_type == ['one file per signal type']:
-    electrodes_list = ['amplifier.dat']
-    dig_in_file_list = ['digitalin.dat']
-elif file_type == ['one file per channel']:
-    electrodes_list = [name for name in file_list if name.startswith('amp-')]
-    dig_in_file_list = [name for name in file_list if name.startswith('board-DI')]
-elif file_type == ['traditional']:
-    rhd_file_list = sorted([name for name in file_list if name.endswith('.rhd')])
+    # Get lists of amplifier and digital input files
+    if file_type == ['one file per signal type']:
+        electrodes_list = ['amplifier.dat']
+        dig_in_file_list = ['digitalin.dat']
+    elif file_type == ['one file per channel']:
+        electrodes_list = [name for name in file_list if name.startswith('amp-')]
+        dig_in_file_list = [name for name in file_list if name.startswith('board-DI')]
+    elif file_type == ['traditional']:
+        rhd_file_list = sorted([name for name in file_list if name.endswith('.rhd')])
     
 
 if not file_type == ['traditional']:
