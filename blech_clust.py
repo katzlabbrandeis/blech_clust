@@ -444,48 +444,47 @@ plt.close()
 
 ##############################
 
-    # Write single runner file to data directory
-    script_save_path = os.path.join(dir_name, 'temp')
-    if not os.path.exists(script_save_path):
-        os.mkdir(script_save_path)
+# Write single runner file to data directory
+script_save_path = os.path.join(dir_name, 'temp')
+if not os.path.exists(script_save_path):
+    os.mkdir(script_save_path)
 
-    with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
-        f.write('#!/bin/bash \n')
-        f.write(f'BLECH_DIR={blech_clust_dir} \n')
-        f.write(f'DATA_DIR={dir_name} \n')
-        f.write('ELECTRODE_NUM=$1 \n')
-        f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
-        f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
-
-    # Dump shell file(s) for running GNU parallel job on the user's 
-    # blech_clust folder on the desktop
-    # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
-    num_cpu = multiprocessing.cpu_count()
-
-    electrode_bool = electrode_layout_frame.loc[
-        electrode_layout_frame.electrode_ind.isin(all_electrodes)]
-    not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
-        ["none", "None", 'na'])]
-    not_emg_bool = not_none_bool.loc[
-        ~not_none_bool.CAR_group.str.contains('emg')
-    ]
-    bash_electrode_list = not_emg_bool.electrode_ind.values
-    job_count = np.min(
-            (
-                len(bash_electrode_list), 
-                int(num_cpu-2), 
-                all_params_dict["max_parallel_cpu"]
-                )
-            )
-    f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
+with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
     f.write('#!/bin/bash \n')
-    f.write(f'DIR={dir_name} \n')
-print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
-      "--memfree 4G --ungroup --retry-failed " +
-      f"--joblog $DIR/results.log " +
-      "bash $DIR/temp/blech_process_single.sh " +\
-      f"::: {' '.join([str(x) for x in bash_electrode_list])}",
-      file=f)
+    f.write(f'BLECH_DIR={blech_clust_dir} \n')
+    f.write(f'DATA_DIR={dir_name} \n')
+    f.write('ELECTRODE_NUM=$1 \n')
+    f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
+    f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
+
+# Dump shell file(s) for running GNU parallel job on the user's 
+# blech_clust folder on the desktop
+# First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
+num_cpu = multiprocessing.cpu_count()
+
+electrode_bool = electrode_layout_frame.loc[
+    electrode_layout_frame.electrode_ind.isin(all_electrodes)]
+not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
+    ["none", "None", 'na'])]
+not_emg_bool = not_none_bool.loc[
+    ~not_none_bool.CAR_group.str.contains('emg')
+]
+bash_electrode_list = not_emg_bool.electrode_ind.values
+job_count = np.min(
+        (
+            len(bash_electrode_list), 
+            int(num_cpu-2), 
+            all_params_dict["max_parallel_cpu"]
+            )
+        )
+f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
+f.write('#!/bin/bash \n')
+f.write(f'DIR={dir_name} \n')
+f.write(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
+        "--memfree 4G --ungroup --retry-failed " +
+        f"--joblog $DIR/results.log " +
+        "bash $DIR/temp/blech_process_single.sh " +
+        f"::: {' '.join([str(x) for x in bash_electrode_list])}")
 f.close()
 
     print('blech_clust.py complete \n')
