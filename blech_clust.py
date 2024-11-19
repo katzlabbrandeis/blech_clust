@@ -146,10 +146,10 @@ def main():
     os.chdir(metadata.dir_name)
 
     # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check = pipeline_graph_check(metadata.dir_name)
     # If info_dict present but execution log is not
     # just create the execution log with blech_exp_info marked
-    if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
+    if 'info_dict' in dir(metadata) and not os.path.exists(metadata.dir_name + '/execution_log.json'):
         blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
@@ -157,11 +157,11 @@ def main():
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
-    print(f'Processing : {dir_name}')
-    os.chdir(dir_name)
+    print(f'Processing : {metadata.dir_name}')
+    os.chdir(metadata.dir_name)
 
-    info_dict = metadata_handler.info_dict
-    file_list = metadata_handler.file_list
+    info_dict = metadata.info_dict
+    file_list = metadata.file_list
 
 
     # Get the type of data files (.rhd or .dat)
@@ -183,7 +183,7 @@ def main():
         print(f'HDF5 file found...Using file {hdf5_name}')
         hf5 = tables.open_file(hdf5_name, 'r+')
     else:
-        hdf5_name = str(os.path.dirname(dir_name)).split('/')[-1]+'.h5'
+        hdf5_name = str(os.path.dirname(metadata.dir_name)).split('/')[-1]+'.h5'
         print(f'No HDF5 found...Creating file {hdf5_name}')
         hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
 
@@ -193,7 +193,7 @@ def main():
         if '/'+this_group in hf5:
             found_list.append(this_group)
 
-    if len(found_list) > 0 and not force_run:
+    if len(found_list) > 0 and not args.force_run:
         print(f'Data already present: {found_list}')
         reload_data_str, continue_bool = entry_checker(
                 msg='Reload data? (yes/y/n/no) ::: ',
@@ -226,7 +226,7 @@ def main():
         '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
 
     # If dirs exist, check with user
-    if len(dir_exists) > 0 and not force_run:
+    if len(dir_exists) > 0 and not args.force_run:
         recreate_str, continue_bool = entry_checker(
             msg=recreate_msg,
             check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
@@ -264,13 +264,13 @@ def main():
         dig_in_file_list = sorted(dig_in_file_list)
 
         # Use info file for port list calculation
-        info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
+        info_file = np.fromfile(metadata.dir_name + '/info.rhd', dtype=np.dtype('float32'))
         sampling_rate = int(info_file[2])
 
         # Read the time.dat file for use in separating out 
         # the one file per signal type data
         num_recorded_samples = len(np.fromfile(
-            dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
+            metadata.dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
         total_recording_time = num_recorded_samples/sampling_rate  # In seconds
 
         check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
@@ -331,7 +331,7 @@ def main():
     emg_channels = sorted(emg_info['electrodes'])
 
 
-    layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
+    layout_path = glob.glob(os.path.join(metadata.dir_name, "*layout.csv"))[0]
     electrode_layout_frame = pd.read_csv(layout_path)
 
 
@@ -358,6 +358,7 @@ def main():
         print('Data already present...Not reloading data')
 
     # Write out template params file to directory if not present
+    params_template_path = Config.check_params_template(blech_clust_dir)
     params_template = json.load(open(params_template_path, 'r'))
     # Info on taste digins and laser should be in exp_info file
     all_params_dict = params_template.copy()
@@ -382,7 +383,7 @@ def main():
             hdf5_name, 
             n_corr_samples = n_corr_samples)
     corr_mat = channel_corr.intra_corr(down_dat_stack)
-    qa_out_path = os.path.join(dir_name, 'QA_output')
+    qa_out_path = os.path.join(metadata.dir_name, 'QA_output')
     if not os.path.exists(qa_out_path):
         os.mkdir(qa_out_path)
     else:
@@ -445,14 +446,14 @@ plt.close()
 ##############################
 
 # Write single runner file to data directory
-script_save_path = os.path.join(dir_name, 'temp')
+script_save_path = os.path.join(metadata.dir_name, 'temp')
 if not os.path.exists(script_save_path):
     os.mkdir(script_save_path)
 
 with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
     f.write('#!/bin/bash \n')
     f.write(f'BLECH_DIR={blech_clust_dir} \n')
-    f.write(f'DATA_DIR={dir_name} \n')
+    f.write(f'DATA_DIR={metadata.dir_name} \n')
     f.write('ELECTRODE_NUM=$1 \n')
     f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
     f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
@@ -479,7 +480,7 @@ job_count = np.min(
         )
 f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
 f.write('#!/bin/bash \n')
-f.write(f'DIR={dir_name} \n')
+f.write(f'DIR={metadata.dir_name} \n')
 f.write(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
         "--memfree 4G --ungroup --retry-failed " +
         f"--joblog $DIR/results.log " +
