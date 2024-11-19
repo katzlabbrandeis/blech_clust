@@ -8,32 +8,45 @@ High performance computing cluster at Brandeis
 can be easily modified to work in any parallel environment. Visit the Katz lab
 website at https://sites.google.com/a/brandeis.edu/katzlab/
 
-### Order of operations  
+### Order of operations
+
+**Spike Sorting Pipeline:**
 1. `python blech_exp_info.py`  
-    - Pre-clustering step. Annotate recorded channels and save experimental parameters  
+    - Pre-clustering step. Annotate recorded channels and save experimental parameters
     - Takes template for info and electrode layout as argument
-
 2. `python blech_clust.py`
-    - Setup directories and define clustering parameters  
-3. `python blech_common_avg_reference.py`  
-    - Perform common average referencing to remove large artifacts  
-4. `bash blech_run_process.sh` 
-    - Embarrasingly parallel spike extraction and clustering  
+    - Setup directories and define clustering parameters
+3. `python blech_common_avg_reference.py`
+    - Perform common average referencing to remove large artifacts
+4. `bash blech_run_process.sh`
+    - Parallel spike extraction and clustering
+5. `python blech_post_process.py`
+    - Add selected units to HDF5 file for further processing
+6. `python blech_units_plot.py`
+    - Plot waveforms of selected spikes
+7. `python blech_make_arrays.py`
+    - Generate spike-train arrays
+8. `bash blech_run_QA.sh`
+    - Quality assurance: spike-time collisions and drift analysis
+9. `python blech_unit_characteristics.py`
+    - Analyze unit characteristics
 
-5. `python blech_post_process.py`  
-    - Add selected units to HDF5 file for further processing  
+**EMG Analysis Pipelines:**
 
-6. `python blech_units_plot.py`  
-    - Plot waveforms of selected spikes  
-7. `python blech_make_arrays.py`  
-    - Generate spike-train arrays  
-8. `bash blech_run_QA.sh`  
-    - Run quality asurance steps: 1) spike-time collisions across units, 2) drift within units
-9. `python blech_make_psth.py`  
-    - Plots PSTHs and rasters for all selected units  
-10. `python blech_palatability_identity_setup.py`  
-12. `python blech_overlay_psth.py`  
-    - Plot overlayed PSTHs for units with respective waveforms  
+*Shared Steps:*
+1. Complete spike sorting through `blech_make_arrays.py`
+2. `python emg_filter.py`
+    - Filter EMG signals
+
+*BSA/STFT Branch:*
+1. `python emg_freq_setup.py`
+2. `bash blech_emg_jetstream_parallel.sh`
+3. `python emg_freq_post_process.py`
+4. `python emg_freq_plot.py`
+
+*QDA (Jenn Li) Branch:*
+1. `python emg_freq_setup.py`
+2. `python get_gapes_Li.py`
 
 ### Setup
 ```
