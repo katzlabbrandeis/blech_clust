@@ -274,9 +274,9 @@ else:
     check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
             f'\nDigital input files: {dig_in_file_list} \n ---------- \n \n'
     print(check_str)
-
     ports = info_dict['ports']
-else:
+
+if file_type[0] == 'traditional':
     with open(rhd_file_list[0], 'rb') as f:
         header = read_header(f)
     # temp_file, data_present = importrhdutilities.load_file(file_list[0])
