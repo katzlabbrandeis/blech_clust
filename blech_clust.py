@@ -243,28 +243,28 @@ def main():
         rhd_file_list = sorted([name for name in file_list if name.endswith('.rhd')])
     
 
-if not file_type == ['traditional']:
-    electrodes_list = sorted(electrodes_list)
-    dig_in_file_list = sorted(dig_in_file_list)
+    if not file_type == ['traditional']:
+        electrodes_list = sorted(electrodes_list)
+        dig_in_file_list = sorted(dig_in_file_list)
 
-    # Use info file for port list calculation
-    info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
-    sampling_rate = int(info_file[2])
+        # Use info file for port list calculation
+        info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
+        sampling_rate = int(info_file[2])
 
-    # Read the time.dat file for use in separating out 
-    # the one file per signal type data
-    num_recorded_samples = len(np.fromfile(
-        dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
-    total_recording_time = num_recorded_samples/sampling_rate  # In seconds
+        # Read the time.dat file for use in separating out 
+        # the one file per signal type data
+        num_recorded_samples = len(np.fromfile(
+            dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
+        total_recording_time = num_recorded_samples/sampling_rate  # In seconds
 
-    check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-            f'\nDigital input files: {dig_in_file_list} \n ---------- \n \n'
-    print(check_str)
+        check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
+                f'\nDigital input files: {dig_in_file_list} \n ---------- \n \n'
+        print(check_str)
 
-    ports = info_dict['ports']
-else:
-    with open(rhd_file_list[0], 'rb') as f:
-        header = read_header(f)
+        ports = info_dict['ports']
+    else:
+        with open(rhd_file_list[0], 'rb') as f:
+            header = read_header(f)
     # temp_file, data_present = importrhdutilities.load_file(file_list[0])
     amp_channel_ports = [x['port_prefix'] for x in header['amplifier_channels']]
     amp_channel_names = [x['native_channel_name'] for x in header['amplifier_channels']]
@@ -282,19 +282,19 @@ else:
 
 
 
-if file_type == ['one file per channel']:
-    print("\tOne file per CHANNEL Detected")
-    # Read dig-in data
-    # Pull out the digital input channels used,
-    # and convert them to integers
-    dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
-    dig_in_int = sorted([(x) for x in dig_in_int])
-elif file_type == ['one file per signal type']:
-    print("\tOne file per SIGNAL Detected")
-    dig_in_int = np.arange(info_dict['dig_ins']['count'])
-elif file_type == ['traditional']:
-    print('Tranditional INTAN file format detected')
-    dig_in_int = sorted([x.split('-')[-1].split('.')[0] for x in dig_in_channels])
+    if file_type == ['one file per channel']:
+        print("\tOne file per CHANNEL Detected")
+        # Read dig-in data
+        # Pull out the digital input channels used,
+        # and convert them to integers
+        dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
+        dig_in_int = sorted([(x) for x in dig_in_int])
+    elif file_type == ['one file per signal type']:
+        print("\tOne file per SIGNAL Detected")
+        dig_in_int = np.arange(info_dict['dig_ins']['count'])
+    elif file_type == ['traditional']:
+        print('Tranditional INTAN file format detected')
+        dig_in_int = sorted([x.split('-')[-1].split('.')[0] for x in dig_in_channels])
 
 check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
             f'\n digital inputs on intan board: {dig_in_int}'
