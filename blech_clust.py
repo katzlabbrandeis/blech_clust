@@ -125,6 +125,25 @@ class HDF5Handler:
         self.hf5.close()
         return continue_bool, reload_data_str
 
+    def get_digital_inputs(self, sampling_rate):
+        """Get digital input data from HDF5 file
+        
+        Args:
+            sampling_rate: Sampling rate of the data
+            
+        Returns:
+            numpy array of digital input data
+        """
+        dig_in_list = []
+        with tables.open_file(self.hdf5_name, 'r') as hf5:
+            for i, this_dig_in in enumerate(hf5.root.digital_in):
+                this_dig_in = this_dig_in[:]
+                len_dig_in = len(this_dig_in)
+                this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
+                this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
+                dig_in_list.append(this_dig_in)
+        return np.stack(dig_in_list)
+
 # Create HDF5 handler and initialize groups
 hdf5_handler = HDF5Handler(dir_name, force_run)
 continue_bool, reload_data_str = hdf5_handler.initialize_groups()
@@ -314,25 +333,6 @@ channel_corr.gen_corr_output(corr_mat,
 
 ##############################
 # Also output a plot with digin and laser info
-
-    def get_digital_inputs(self, sampling_rate):
-        """Get digital input data from HDF5 file
-        
-        Args:
-            sampling_rate: Sampling rate of the data
-            
-        Returns:
-            numpy array of digital input data
-        """
-        dig_in_list = []
-        with tables.open_file(self.hdf5_name, 'r') as hf5:
-            for i, this_dig_in in enumerate(hf5.root.digital_in):
-                this_dig_in = this_dig_in[:]
-                len_dig_in = len(this_dig_in)
-                this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
-                this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
-                dig_in_list.append(this_dig_in)
-        return np.stack(dig_in_list)
 
 # Get digin and laser info
 print('Getting trial markers from digital inputs')
