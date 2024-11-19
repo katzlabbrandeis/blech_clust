@@ -309,6 +309,18 @@ def extract_emgs(dir_name,
                  fin_sampling_rate,
                  dig_in_list,
                  trial_durations):
+    """Extract EMG data from raw recordings
+        
+    Args:
+        dir_name: Directory containing data files
+        emg_electrode_nums: List of electrode numbers for EMG channels
+        freq_bounds: [low, high] frequency bounds for filtering
+        sampling_rate: Original sampling rate
+        taste_signal_choice: 'Start' or 'End' for trial alignment
+        fin_sampling_rate: Final sampling rate after downsampling
+        dig_in_list: List of digital input channels to process
+        trial_durations: [pre_trial, post_trial] durations in ms
+    """
 
     if taste_signal_choice == 'Start':
         diff_val = 1
