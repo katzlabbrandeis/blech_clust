@@ -38,9 +38,8 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Required for temporal alignment with neural data
 2. `python emg_filter.py`
     - Filter EMG signals using bandpass filter
-    - Remove motion artifacts and electrical noise
 
-*BSA/STFT Branch:* (Blind Source Analysis/Short-Time Fourier Transform)
+*BSA/STFT Branch:* (Bayesian Spectrum Analysis/Short-Time Fourier Transform)
 1. `python emg_freq_setup.py`
     - Configure parameters for frequency analysis
 2. `bash blech_emg_jetstream_parallel.sh`
