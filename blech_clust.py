@@ -145,105 +145,35 @@ def main():
     print(f'Processing: {metadata.dir_name}')
     os.chdir(metadata.dir_name)
 
-    # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(metadata.dir_name)
-    # If info_dict present but execution log is not
-    # just create the execution log with blech_exp_info marked
+    # Handle pipeline checking
+    pipeline.check_previous(script_path)
+    pipeline.write_to_log(script_path, 'attempted')
+    
+    # Create execution log if needed
     if 'info_dict' in dir(metadata) and not os.path.exists(metadata.dir_name + '/execution_log.json'):
         blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
-        this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
-        this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
+        pipeline.write_to_log(blech_exp_info_path, 'attempted')
+        pipeline.write_to_log(blech_exp_info_path, 'completed')
         print('Execution log created for blech_exp_info')
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
-
-    print(f'Processing : {metadata.dir_name}')
-    os.chdir(metadata.dir_name)
 
     info_dict = metadata.info_dict
     file_list = metadata.file_list
 
 
-    # Get the type of data files (.rhd or .dat)
+    # Determine file type and setup HDF5
     if 'auxiliary.dat' in file_list:
         file_type = ['one file per signal type']
-    elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
+    elif sum(['rhd' in x for x in file_list]) > 1:  # multiple .rhd files
         file_type = ['traditional']
     else:
         file_type = ['one file per channel']
 
-    # Create hdf5 file, and make groups for raw data, raw emgs,
-    # digital outputs and digital inputs, and close
+    # Setup HDF5 file and groups
+    hdf5_name = hdf5_handler.find_or_create_file()
+    continue_bool, reload_data_str = hdf5_handler.setup_groups()
 
-    # Grab directory name to create the name of the hdf5 file
-    # If HDF5 present, use that, otherwise, create new one
-    h5_search = glob.glob('*.h5')
-    if len(h5_search):
-        hdf5_name = h5_search[0]
-        print(f'HDF5 file found...Using file {hdf5_name}')
-        hf5 = tables.open_file(hdf5_name, 'r+')
-    else:
-        hdf5_name = str(os.path.dirname(metadata.dir_name)).split('/')[-1]+'.h5'
-        print(f'No HDF5 found...Creating file {hdf5_name}')
-        hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
-
-    group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
-    found_list = []
-    for this_group in group_list:
-        if '/'+this_group in hf5:
-            found_list.append(this_group)
-
-    if len(found_list) > 0 and not args.force_run:
-        print(f'Data already present: {found_list}')
-        reload_data_str, continue_bool = entry_checker(
-                msg='Reload data? (yes/y/n/no) ::: ',
-                check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-                fail_response='Please enter (yes/y/n/no)')
-    else:
-        continue_bool = True
-        reload_data_str = 'y'
-
-    if continue_bool:
-        if reload_data_str in ['y', 'yes']:
-            for this_group in group_list:
-                if '/'+this_group in hf5:
-                    hf5.remove_node('/', this_group, recursive=True)
-                hf5.create_group('/', this_group)
-            print('Created nodes in HF5')
-    hf5.close()
-
-    # Create directories to store waveforms, spike times, clustering results, and plots
-    # And a directory for dumping files talking about memory usage in blech_process.py
-    # Check if dirs are already present, if they are, ask to delete and continue
-    # or abort
-    dir_list = ['spike_waveforms',
-                'spike_times',
-                'clustering_results',
-                'Plots',
-                'memory_monitor_clustering']
-    dir_exists = [x for x in dir_list if os.path.exists(x)]
-    recreate_msg = f'Following dirs are present :' + '\n' + f'{dir_exists}' + \
-        '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
-
-    # If dirs exist, check with user
-    if len(dir_exists) > 0 and not args.force_run:
-        recreate_str, continue_bool = entry_checker(
-            msg=recreate_msg,
-            check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-            fail_response='Please enter (yes/y/n/no)')
-    # Otherwise, create all of them
-    else:
-        continue_bool = True
-        recreate_str = 'y'
-
-    # Break if user said n/no or gave exit signal
-    if continue_bool:
-        if recreate_str in ['y', 'yes']:
-            for x in dir_list:
-                if os.path.exists(x):
-                    shutil.rmtree(x)
-                os.makedirs(x)
-    else:
+    # Setup analysis directories
+    if not dir_manager.setup_directories(args.force_run):
         return
 
     print('Created dirs in data folder')
