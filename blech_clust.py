@@ -148,44 +148,44 @@ def main():
     file_list = metadata_handler.file_list
 
 
-# Get the type of data files (.rhd or .dat)
-if 'auxiliary.dat' in file_list:
-    file_type = ['one file per signal type']
-elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
-    file_type = ['traditional']
-else:
-    file_type = ['one file per channel']
+    # Get the type of data files (.rhd or .dat)
+    if 'auxiliary.dat' in file_list:
+        file_type = ['one file per signal type']
+    elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
+        file_type = ['traditional']
+    else:
+        file_type = ['one file per channel']
 
-# Create hdf5 file, and make groups for raw data, raw emgs,
-# digital outputs and digital inputs, and close
+    # Create hdf5 file, and make groups for raw data, raw emgs,
+    # digital outputs and digital inputs, and close
 
-# Grab directory name to create the name of the hdf5 file
-# If HDF5 present, use that, otherwise, create new one
-h5_search = glob.glob('*.h5')
-if len(h5_search):
-    hdf5_name = h5_search[0]
-    print(f'HDF5 file found...Using file {hdf5_name}')
-    hf5 = tables.open_file(hdf5_name, 'r+')
-else:
-    hdf5_name = str(os.path.dirname(dir_name)).split('/')[-1]+'.h5'
-    print(f'No HDF5 found...Creating file {hdf5_name}')
-    hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
+    # Grab directory name to create the name of the hdf5 file
+    # If HDF5 present, use that, otherwise, create new one
+    h5_search = glob.glob('*.h5')
+    if len(h5_search):
+        hdf5_name = h5_search[0]
+        print(f'HDF5 file found...Using file {hdf5_name}')
+        hf5 = tables.open_file(hdf5_name, 'r+')
+    else:
+        hdf5_name = str(os.path.dirname(dir_name)).split('/')[-1]+'.h5'
+        print(f'No HDF5 found...Creating file {hdf5_name}')
+        hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
 
-group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
-found_list = []
-for this_group in group_list:
-    if '/'+this_group in hf5:
-        found_list.append(this_group)
+    group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+    found_list = []
+    for this_group in group_list:
+        if '/'+this_group in hf5:
+            found_list.append(this_group)
 
-if len(found_list) > 0 and not force_run:
-    print(f'Data already present: {found_list}')
-    reload_data_str, continue_bool = entry_checker(
-            msg='Reload data? (yes/y/n/no) ::: ',
-            check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-            fail_response='Please enter (yes/y/n/no)')
-else:
-    continue_bool = True
-    reload_data_str = 'y'
+    if len(found_list) > 0 and not force_run:
+        print(f'Data already present: {found_list}')
+        reload_data_str, continue_bool = entry_checker(
+                msg='Reload data? (yes/y/n/no) ::: ',
+                check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+                fail_response='Please enter (yes/y/n/no)')
+    else:
+        continue_bool = True
+        reload_data_str = 'y'
 
 if continue_bool:
     if reload_data_str in ['y', 'yes']:
