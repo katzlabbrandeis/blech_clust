@@ -431,11 +431,11 @@ class ephys_data():
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
 
+        type_list = ['conv','baks']
         type_exists_bool = 'type' in params.keys()
         if not type_exists_bool:
             raise Exception('Firing rate calculation type not specified.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
-        type_list = ['conv','baks']
         if params['type'] not in type_list:
             raise Exception('Firing rate calculation type not recognized.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))

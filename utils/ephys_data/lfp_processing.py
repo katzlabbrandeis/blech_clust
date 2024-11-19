@@ -371,7 +371,7 @@ def extract_emgs(dir_name,
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
         hf5.create_array('/raw_emg', 'electrode{:0>3}'.
-                         format(electrodegroup[i]), filt_el_down)
+                         format(emg_electrode_nums[i]), filt_el_down)
         hf5.flush()
         del data, data_down, filt_el_down
 
@@ -411,7 +411,7 @@ def extract_emgs(dir_name,
     # Code further below simply enumerates arrays in Parsed_LFP
     if "/Parsed_emg_channels" in hf5:
         hf5.remove_node('/Parsed_emg_channels')
-    hf5.create_array('/', 'Parsed_emg_channels', electrodegroup)
+    hf5.create_array('/', 'Parsed_emg_channels', emg_electrode_nums)
     hf5.flush()
 
     # Remove dig_ins which are not relevant
