@@ -90,15 +90,25 @@ class HDF5Handler:
         Returns:
             numpy array of digital input data
         """
-        dig_in_list = []
         with tables.open_file(self.hdf5_name, 'r') as hf5:
-            for i, this_dig_in in enumerate(hf5.root.digital_in):
-                this_dig_in = this_dig_in[:]
-                len_dig_in = len(this_dig_in)
-                this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
-                this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
-                dig_in_list.append(this_dig_in)
+            dig_in_list = [self._process_digital_input(x[:], sampling_rate) 
+                          for x in hf5.root.digital_in]
         return np.stack(dig_in_list)
+    
+    @staticmethod
+    def _process_digital_input(data, sampling_rate):
+        """Process a single digital input channel
+        
+        Args:
+            data: Raw digital input data
+            sampling_rate: Sampling rate
+            
+        Returns:
+            Processed digital input data
+        """
+        len_dig_in = len(data)
+        truncated = data[:(len_dig_in//sampling_rate)*sampling_rate]
+        return np.reshape(truncated, (-1, sampling_rate)).sum(axis=-1)
 
 
 def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame, 
@@ -207,55 +217,49 @@ continue_bool, reload_data_str = hdf5_handler.initialize_groups()
 hdf5_name = hdf5_handler.hdf5_name
 
 # Create directories to store waveforms, spike times, clustering results, and plots
-# And a directory for dumping files talking about memory usage in blech_process.py
-# Check if dirs are already present, if they are, ask to delete and continue
-# or abort
-dir_list = ['spike_waveforms',
-            'spike_times',
-            'clustering_results',
-            'Plots',
-            'memory_monitor_clustering']
-dir_exists = [x for x in dir_list if os.path.exists(x)]
-recreate_msg = f'Following dirs are present :' + '\n' + f'{dir_exists}' + \
-    '\n' + 'Overwrite dirs? (yes/y/n/no) ::: '
+dir_list = ['spike_waveforms', 'spike_times', 'clustering_results', 
+            'Plots', 'memory_monitor_clustering']
 
-# If dirs exist, check with user
-if len(dir_exists) > 0 and not force_run:
+dir_exists = [x for x in dir_list if os.path.exists(x)]
+if dir_exists and not force_run:
+    recreate_msg = f'Following dirs are present:\n{dir_exists}\nOverwrite dirs? (yes/y/n/no) ::: '
     recreate_str, continue_bool = entry_checker(
         msg=recreate_msg,
         check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
         fail_response='Please enter (yes/y/n/no)')
-# Otherwise, create all of them
 else:
     continue_bool = True
     recreate_str = 'y'
 
-# Break if user said n/no or gave exit signal
-if continue_bool:
-    if recreate_str in ['y', 'yes']:
-        for x in dir_list:
-            if os.path.exists(x):
-                shutil.rmtree(x)
-            os.makedirs(x)
-else:
+if not continue_bool:
     quit()
+    
+if recreate_str in ['y', 'yes']:
+    [shutil.rmtree(x) for x in dir_list if os.path.exists(x)]
+    [os.makedirs(x) for x in dir_list]
 
 print('Created dirs in data folder')
 
 # Get lists of amplifier and digital input files
-if file_type == ['one file per signal type']:
-    electrodes_list = ['amplifier.dat']
-    dig_in_file_list = ['digitalin.dat']
-elif file_type == ['one file per channel']:
-    electrodes_list = [name for name in file_list if name.startswith('amp-')]
-    dig_in_file_list = [name for name in file_list if name.startswith('board-DI')]
-elif file_type == ['traditional']:
-    rhd_file_list = sorted([name for name in file_list if name.endswith('.rhd')])
-    
+file_lists = {
+    'one file per signal type': {
+        'electrodes': ['amplifier.dat'],
+        'dig_in': ['digitalin.dat']
+    },
+    'one file per channel': {
+        'electrodes': sorted([name for name in file_list if name.startswith('amp-')]),
+        'dig_in': sorted([name for name in file_list if name.startswith('board-DI')])
+    },
+    'traditional': {
+        'rhd': sorted([name for name in file_list if name.endswith('.rhd')])
+    }
+}
 
-if not file_type == ['traditional']:
-    electrodes_list = sorted(electrodes_list)
-    dig_in_file_list = sorted(dig_in_file_list)
+if file_type[0] != 'traditional':
+    electrodes_list = file_lists[file_type[0]]['electrodes']
+    dig_in_file_list = file_lists[file_type[0]]['dig_in']
+else:
+    rhd_file_list = file_lists[file_type[0]]['rhd']
 
     # Use info file for port list calculation
     info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
