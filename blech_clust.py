@@ -302,135 +302,108 @@ def main():
     else:
         print("Params file already present...not writing a new one")
 
-    ##############################
-    # Test correlation between channels for quality check
-    print()
-    print('Calculating correlation matrix for quality check')
-    # qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
+    # Setup QA output directory
+    qa_out_path = os.path.join(metadata.dir_name, 'QA_output')
+    if not os.path.exists(qa_out_path):
+        os.makedirs(qa_out_path)
+    else:
+        shutil.rmtree(qa_out_path)
+        os.makedirs(qa_out_path)
+
+    # Run correlation analysis
+    print('\nCalculating correlation matrix for quality check')
     n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
     qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
     down_dat_stack, chan_names = channel_corr.get_all_channels(
             hdf5_name, 
-            n_corr_samples = n_corr_samples)
+            n_corr_samples=n_corr_samples)
     corr_mat = channel_corr.intra_corr(down_dat_stack)
-    qa_out_path = os.path.join(metadata.dir_name, 'QA_output')
-    if not os.path.exists(qa_out_path):
-        os.mkdir(qa_out_path)
-    else:
-        # Delete dir and remake
-        shutil.rmtree(qa_out_path)
-        os.mkdir(qa_out_path)
-    channel_corr.gen_corr_output(corr_mat, 
-                       qa_out_path, 
-                       qa_threshold,)
-##############################
+    channel_corr.gen_corr_output(corr_mat, qa_out_path, qa_threshold)
 
-    ##############################
-    # Also output a plot with digin and laser info
+    # Plot digital inputs
+    plotter = DigitalInputPlotter(hdf5_name, sampling_rate, qa_out_path)
+    plotter.plot_digital_inputs(info_dict)
 
-    # Get digin and laser info
-    print('Getting trial markers from digital inputs')
-    dig_in_list = []
-    with tables.open_file(hdf5_name, 'r') as hf5:
-        for i, this_dig_in in enumerate(hf5.root.digital_in):
-            this_dig_in = this_dig_in[:]
-            len_dig_in = len(this_dig_in)
-            this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
-            this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
-            dig_in_list.append(this_dig_in)
-            # dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
-    dig_in_array = np.stack(dig_in_list)
-    # Downsample to 10 seconds
-    # dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
-    # dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
-    dig_in_markers = np.where(dig_in_array > 0)
-    del dig_in_array
+    # Generate processing scripts
+    script_gen = ScriptGenerator(metadata.dir_name, blech_clust_dir)
+    script_gen.generate_single_process_script()
+    script_gen.generate_parallel_script(
+        electrode_layout_frame, 
+        all_electrodes,
+        all_params_dict["max_parallel_cpu"])
 
-    # Check if laser is present
-    laser_dig_in = info_dict['laser_params']['dig_in']
+    print('blech_clust.py complete\n')
+    print('*** Please check params file to make sure all is good ***\n')
 
-    dig_in_map = {}
-    for num, name in zip(info_dict['taste_params']['dig_ins'], info_dict['taste_params']['tastes']):
-        dig_in_map[num] = name
-    for num in laser_dig_in:
-        dig_in_map[num] = 'laser'
+    # Write success to log
+    pipeline.write_to_log(script_path, 'completed')
+class DigitalInputPlotter:
+    """Handles plotting of digital input data"""
+    def __init__(self, hdf5_name, sampling_rate, qa_output_dir):
+        self.hdf5_name = hdf5_name
+        self.sampling_rate = sampling_rate
+        self.qa_output_dir = qa_output_dir
+        
+    def get_digital_inputs(self):
+        """Read and process digital inputs from HDF5"""
+        dig_in_list = []
+        with tables.open_file(self.hdf5_name, 'r') as hf5:
+            for this_dig_in in hf5.root.digital_in:
+                data = this_dig_in[:]
+                len_data = len(data)
+                data = data[:(len_data//self.sampling_rate)*self.sampling_rate]
+                data = np.reshape(data, (-1, self.sampling_rate)).sum(axis=-1)
+                dig_in_list.append(data)
+        return np.stack(dig_in_list)
+        
+    def plot_digital_inputs(self, info_dict):
+        """Plot digital inputs and laser markers"""
+        # Get digin and laser info
+        print('Getting trial markers from digital inputs')
+        dig_in_array = self.get_digital_inputs()
+        dig_in_markers = np.where(dig_in_array > 0)
+        
+        # Create digital input mapping
+        dig_in_map = {}
+        for num, name in zip(info_dict['taste_params']['dig_ins'], 
+                           info_dict['taste_params']['tastes']):
+            dig_in_map[num] = name
+            
+        laser_dig_in = info_dict['laser_params']['dig_in']
+        for num in laser_dig_in:
+            dig_in_map[num] = 'laser'
+            
+        # Sort mapping
+        dig_in_map = {num: dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
+        dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
+        
+        # Create plot
+        plt.figure()
+        plt.scatter(dig_in_markers[1], dig_in_markers[0], s=50, marker='|', c='k')
+        
+        # Mark laser trials
+        if len(laser_dig_in) > 0:
+            laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
+            for marker in laser_markers:
+                plt.axvline(dig_in_markers[1][marker], c='yellow', lw=2, 
+                          alpha=0.5, zorder=-1)
+                          
+        plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
+        plt.title('Digital Inputs')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Digital Input Channel')
+        plt.savefig(os.path.join(self.qa_output_dir, 'digital_inputs.png'))
+        plt.close()
 
-# Sort dig_in_map
-dig_in_map = {num:dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
-dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
-
-plt.scatter(dig_in_markers[1], dig_in_markers[0], s=50, marker='|', c='k')
-# If there is a laser_dig_in, mark laser trials with axvline
-if len(laser_dig_in) > 0:
-    laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
-    for marker in laser_markers:
-        plt.axvline(dig_in_markers[1][marker], c='yellow', lw=2, alpha = 0.5,
-                    zorder = -1)
-plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
-plt.title('Digital Inputs')
-plt.xlabel('Time (s)')
-plt.ylabel('Digital Input Channel')
-plt.savefig(os.path.join(qa_out_path, 'digital_inputs.png'))
-plt.close()
-
-##############################
-
-# Write single runner file to data directory
-script_save_path = os.path.join(metadata.dir_name, 'temp')
-if not os.path.exists(script_save_path):
-    os.mkdir(script_save_path)
-
-with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
-    f.write('#!/bin/bash \n')
-    f.write(f'BLECH_DIR={blech_clust_dir} \n')
-    f.write(f'DATA_DIR={metadata.dir_name} \n')
-    f.write('ELECTRODE_NUM=$1 \n')
-    f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
-    f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
-
-# Dump shell file(s) for running GNU parallel job on the user's 
-# blech_clust folder on the desktop
-# First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
-num_cpu = multiprocessing.cpu_count()
-
-electrode_bool = electrode_layout_frame.loc[
-    electrode_layout_frame.electrode_ind.isin(all_electrodes)]
-not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
-    ["none", "None", 'na'])]
-not_emg_bool = not_none_bool.loc[
-    ~not_none_bool.CAR_group.str.contains('emg')
-]
-bash_electrode_list = not_emg_bool.electrode_ind.values
-job_count = np.min(
-        (
-            len(bash_electrode_list), 
-            int(num_cpu-2), 
-            all_params_dict["max_parallel_cpu"]
-            )
-        )
-f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
-f.write('#!/bin/bash \n')
-f.write(f'DIR={metadata.dir_name} \n')
-f.write(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
-        "--memfree 4G --ungroup --retry-failed " +
-        f"--joblog $DIR/results.log " +
-        "bash $DIR/temp/blech_process_single.sh " +
-        f"::: {' '.join([str(x) for x in bash_electrode_list])}")
-f.close()
-
-print('blech_clust.py complete \n')
-print('*** Please check params file to make sure all is good ***\n')
-
-# Write success to log
-this_pipeline_check.write_to_log(script_path, 'completed')
 class ScriptGenerator:
     """Handles generation of processing scripts"""
-    
     def __init__(self, dir_name, blech_clust_dir):
         self.dir_name = dir_name
         self.blech_clust_dir = blech_clust_dir
         self.script_dir = os.path.join(dir_name, 'temp')
-        
+        if not os.path.exists(self.script_dir):
+            os.makedirs(self.script_dir)
+            
     def generate_single_process_script(self):
         """Generate script for single electrode processing"""
         script_path = os.path.join(self.script_dir, 'blech_process_single.sh')
@@ -441,13 +414,24 @@ class ScriptGenerator:
             f.write('ELECTRODE_NUM=$1\n')
             f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM\n')
             f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM\n')
-        os.chmod(script_path, 0o755)  # Make executable
+        os.chmod(script_path, 0o755)
         
-    def generate_parallel_script(self, electrode_list, max_parallel_cpu):
+    def generate_parallel_script(self, electrode_layout_frame, all_electrodes, max_parallel_cpu):
         """Generate script for parallel processing"""
-        num_cpu = multiprocessing.cpu_count()
-        job_count = min(len(electrode_list), num_cpu-2, max_parallel_cpu)
+        # Filter electrodes
+        electrode_bool = electrode_layout_frame.loc[
+            electrode_layout_frame.electrode_ind.isin(all_electrodes)]
+        not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
+            ["none", "None", 'na'])]
+        not_emg_bool = not_none_bool.loc[
+            ~not_none_bool.CAR_group.str.contains('emg')]
+        bash_electrode_list = not_emg_bool.electrode_ind.values
         
+        # Calculate job count
+        num_cpu = multiprocessing.cpu_count()
+        job_count = min(len(bash_electrode_list), num_cpu-2, max_parallel_cpu)
+        
+        # Generate script
         script_path = os.path.join(self.script_dir, 'blech_process_parallel.sh')
         with open(script_path, 'w') as f:
             f.write('#!/bin/bash\n')
@@ -456,5 +440,5 @@ class ScriptGenerator:
                    '--memfree 4G --ungroup --retry-failed '
                    f'--joblog $DIR/results.log '
                    'bash $DIR/temp/blech_process_single.sh '
-                   f'::: {" ".join(map(str, electrode_list))}')
-        os.chmod(script_path, 0o755)  # Make executable
+                   f'::: {" ".join(map(str, bash_electrode_list))}')
+        os.chmod(script_path, 0o755)
