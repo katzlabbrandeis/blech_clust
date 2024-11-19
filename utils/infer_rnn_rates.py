@@ -3,111 +3,89 @@ Use Auto-regressive RNN to infer firing rates from a given data set.
 """
 
 import argparse
-parser = argparse.ArgumentParser(description = 'Infer firing rates using RNN')
-parser.add_argument('data_dir', help = 'Path to data directory')
-parser.add_argument('--override_config', action = 'store_true', 
-                    help = 'Override config file and use provided arguments'+\
-                            '(default: %(default)s)')
-parser.add_argument('--train_steps', type = int, default = 15000,
-                    help = 'Number of training steps (default: %(default)s)')
-# Hidden size of 8 was tested to be optimal across multiple datasets
-parser.add_argument('--hidden_size', type = int, default = 8,
-                    help = 'Hidden size of RNN (default: %(default)s)')
-parser.add_argument('--bin_size', type = int, default = 25,
-                    help = 'Bin size for binning spikes (default: %(default)s)')
-parser.add_argument('--train_test_split', type = float, default = 0.75,
-                    help = 'Fraction of data to use for training (default: %(default)s)')
-parser.add_argument('--no_pca', action = 'store_true', 
-                    help = 'Do not use PCA for preprocessing (default: %(default)s)')
-parser.add_argument('--retrain', action = 'store_true', 
-                    help = 'Force retraining of model. Will overwrite existing model'+\
-                            ' (default: %(default)s)')
-parser.add_argument('--time_lims', type = int, nargs = 2, default = [1500, 4500],
-                    help = 'Time limits inferred firing rates (default: %(default)s)')
-
 import json
-from pprint import pprint
 import os
-args = parser.parse_args()
+import sys
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from scipy.stats import zscore
+import tables
+from pprint import pprint
+
+from src.model import autoencoderRNN
+from src.train import train_model
+from utils.ephys_data import ephys_data
+from utils.ephys_data import visualize as vz
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
+    parser.add_argument('data_dir', help='Path to data directory')
+    parser.add_argument('--override_config', action='store_true', help='Override config file and use provided arguments (default: %(default)s)')
+    parser.add_argument('--train_steps', type=int, default=15000, help='Number of training steps (default: %(default)s)')
+    parser.add_argument('--hidden_size', type=int, default=8, help='Hidden size of RNN (default: %(default)s)')
+    parser.add_argument('--bin_size', type=int, default=25, help='Bin size for binning spikes (default: %(default)s)')
+    parser.add_argument('--train_test_split', type=float, default=0.75, help='Fraction of data to use for training (default: %(default)s)')
+    parser.add_argument('--no_pca', action='store_true', help='Do not use PCA for preprocessing (default: %(default)s)')
+    parser.add_argument('--retrain', action='store_true', help='Force retraining of model. Will overwrite existing model (default: %(default)s)')
+    parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500], help='Time limits inferred firing rates (default: %(default)s)')
+    return parser.parse_args()
+
+args = parse_arguments()
 data_dir = args.data_dir
 script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 
-if args.override_config:
-    print('Overriding config file\nUsing provided arguments\n')
-    train_steps = args.train_steps
-    hidden_size = args.hidden_size
-    bin_size = args.bin_size
-    train_test_split = args.train_test_split
-    use_pca = not args.no_pca
-    time_lims = args.time_lims
-else:
-    config_path = os.path.join(blech_clust_path, 'params', 'blechrnn_params.json')
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f'BlechRNN Config file not found @ {config_path}')
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    print('Using config file\n')
-    train_steps = config['train_steps']
-    hidden_size = config['hidden_size']
-    bin_size = config['bin_size']
-    train_test_split = config['train_test_split']
-    use_pca = config['use_pca']
-    time_lims = config['time_lims']
+def load_config(args, blech_clust_path):
+    if args.override_config:
+        print('Overriding config file\nUsing provided arguments\n')
+        return {
+            'train_steps': args.train_steps,
+            'hidden_size': args.hidden_size,
+            'bin_size': args.bin_size,
+            'train_test_split': args.train_test_split,
+            'use_pca': not args.no_pca,
+            'time_lims': args.time_lims
+        }
+    else:
+        config_path = os.path.join(blech_clust_path, 'params', 'blechrnn_params.json')
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f'BlechRNN Config file not found @ {config_path}')
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        print('Using config file\n')
+        return config
 
-params_dict = dict(
-        train_steps = train_steps,
-        hidden_size = hidden_size,
-        bin_size = bin_size,
-        train_test_split = train_test_split,
-        use_pca = use_pca,
-        time_lims = time_lims,
-        )
+params_dict = load_config(args, blech_clust_path)
 pprint(params_dict)
 
-##############################
+def setup_paths(data_dir):
+    output_path = os.path.join(data_dir, 'rnn_output')
+    artifacts_dir = os.path.join(output_path, 'artifacts')
+    plots_dir = os.path.join(output_path, 'plots')
 
-# Check that blechRNN is on the Desktop, if so, add to path
-import sys
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-import torch
-import matplotlib.pyplot as plt
-from scipy.stats import zscore
-import tables
+    for path in [output_path, artifacts_dir, plots_dir]:
+        if not os.path.exists(path):
+            os.mkdir(path)
 
-blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
-if os.path.exists(blechRNN_path):
-	sys.path.append(blechRNN_path)
-else:
-	raise FileNotFoundError('blechRNN not found on Desktop')
-from src.model import autoencoderRNN
-from src.train import train_model
+    return output_path, artifacts_dir, plots_dir
 
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+def check_blechRNN_path():
+    blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
+    if os.path.exists(blechRNN_path):
+        sys.path.append(blechRNN_path)
+    else:
+        raise FileNotFoundError('blechRNN not found on Desktop')
+
+check_blechRNN_path()
 sys.path.append(blech_clust_path)
-from utils.ephys_data import ephys_data
-from utils.ephys_data import visualize as vz
 
-# mse loss performs better than poisson loss
 loss_name = 'mse'
-
-output_path = os.path.join(data_dir, 'rnn_output')
-artifacts_dir = os.path.join(output_path, 'artifacts')
-plots_dir = os.path.join(output_path, 'plots')
-
-if not os.path.exists(output_path):
-	os.mkdir(output_path)
-if not os.path.exists(artifacts_dir):
-	os.mkdir(artifacts_dir)
-if not os.path.exists(plots_dir):
-	os.mkdir(plots_dir)
-
-
+output_path, artifacts_dir, plots_dir = setup_paths(data_dir)
 
 print(f'Processing data from {data_dir}')
-
 data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
 
