@@ -341,72 +341,72 @@ def main():
     else:
         print('Data already present...Not reloading data')
 
-# Write out template params file to directory if not present
-params_template = json.load(open(params_template_path, 'r'))
-# Info on taste digins and laser should be in exp_info file
-all_params_dict = params_template.copy()
-all_params_dict['sampling_rate'] = sampling_rate
+    # Write out template params file to directory if not present
+    params_template = json.load(open(params_template_path, 'r'))
+    # Info on taste digins and laser should be in exp_info file
+    all_params_dict = params_template.copy()
+    all_params_dict['sampling_rate'] = sampling_rate
 
-params_out_path = hdf5_name.split('.')[0] + '.params'
-if not os.path.exists(params_out_path):
-    print('No params file found...Creating new params file')
-    with open(params_out_path, 'w') as params_file:
-        json.dump(all_params_dict, params_file, indent=4)
-else:
-    print("Params file already present...not writing a new one")
+    params_out_path = hdf5_name.split('.')[0] + '.params'
+    if not os.path.exists(params_out_path):
+        print('No params file found...Creating new params file')
+        with open(params_out_path, 'w') as params_file:
+            json.dump(all_params_dict, params_file, indent=4)
+    else:
+        print("Params file already present...not writing a new one")
 
+    ##############################
+    # Test correlation between channels for quality check
+    print()
+    print('Calculating correlation matrix for quality check')
+    # qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
+    n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
+    qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
+    down_dat_stack, chan_names = channel_corr.get_all_channels(
+            hdf5_name, 
+            n_corr_samples = n_corr_samples)
+    corr_mat = channel_corr.intra_corr(down_dat_stack)
+    qa_out_path = os.path.join(dir_name, 'QA_output')
+    if not os.path.exists(qa_out_path):
+        os.mkdir(qa_out_path)
+    else:
+        # Delete dir and remake
+        shutil.rmtree(qa_out_path)
+        os.mkdir(qa_out_path)
+    channel_corr.gen_corr_output(corr_mat, 
+                       qa_out_path, 
+                       qa_threshold,)
 ##############################
-# Test correlation between channels for quality check
-print()
-print('Calculating correlation matrix for quality check')
-# qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
-n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
-qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
-down_dat_stack, chan_names = channel_corr.get_all_channels(
-        hdf5_name, 
-        n_corr_samples = n_corr_samples)
-corr_mat = channel_corr.intra_corr(down_dat_stack)
-qa_out_path = os.path.join(dir_name, 'QA_output')
-if not os.path.exists(qa_out_path):
-    os.mkdir(qa_out_path)
-else:
-    # Delete dir and remake
-    shutil.rmtree(qa_out_path)
-    os.mkdir(qa_out_path)
-channel_corr.gen_corr_output(corr_mat, 
-                   qa_out_path, 
-                   qa_threshold,)
-##############################
 
-##############################
-# Also output a plot with digin and laser info
+    ##############################
+    # Also output a plot with digin and laser info
 
-# Get digin and laser info
-print('Getting trial markers from digital inputs')
-dig_in_list = []
-with tables.open_file(hdf5_name, 'r') as hf5:
-    for i, this_dig_in in enumerate(hf5.root.digital_in):
-        this_dig_in = this_dig_in[:]
-        len_dig_in = len(this_dig_in)
-        this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
-        this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
-        dig_in_list.append(this_dig_in)
-        # dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
-dig_in_array = np.stack(dig_in_list)
-# Downsample to 10 seconds
-# dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
-# dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
-dig_in_markers = np.where(dig_in_array > 0)
-del dig_in_array
+    # Get digin and laser info
+    print('Getting trial markers from digital inputs')
+    dig_in_list = []
+    with tables.open_file(hdf5_name, 'r') as hf5:
+        for i, this_dig_in in enumerate(hf5.root.digital_in):
+            this_dig_in = this_dig_in[:]
+            len_dig_in = len(this_dig_in)
+            this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
+            this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
+            dig_in_list.append(this_dig_in)
+            # dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
+    dig_in_array = np.stack(dig_in_list)
+    # Downsample to 10 seconds
+    # dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
+    # dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
+    dig_in_markers = np.where(dig_in_array > 0)
+    del dig_in_array
 
-# Check if laser is present
-laser_dig_in = info_dict['laser_params']['dig_in']
+    # Check if laser is present
+    laser_dig_in = info_dict['laser_params']['dig_in']
 
-dig_in_map = {}
-for num, name in zip(info_dict['taste_params']['dig_ins'], info_dict['taste_params']['tastes']):
-    dig_in_map[num] = name
-for num in laser_dig_in:
-    dig_in_map[num] = 'laser'
+    dig_in_map = {}
+    for num, name in zip(info_dict['taste_params']['dig_ins'], info_dict['taste_params']['tastes']):
+        dig_in_map[num] = name
+    for num in laser_dig_in:
+        dig_in_map[num] = 'laser'
 
 # Sort dig_in_map
 dig_in_map = {num:dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
@@ -428,42 +428,42 @@ plt.close()
 
 ##############################
 
-# Write single runner file to data directory
-script_save_path = os.path.join(dir_name, 'temp')
-if not os.path.exists(script_save_path):
-    os.mkdir(script_save_path)
+    # Write single runner file to data directory
+    script_save_path = os.path.join(dir_name, 'temp')
+    if not os.path.exists(script_save_path):
+        os.mkdir(script_save_path)
 
-with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
-    f.write('#!/bin/bash \n')
-    f.write(f'BLECH_DIR={blech_clust_dir} \n')
-    f.write(f'DATA_DIR={dir_name} \n')
-    f.write('ELECTRODE_NUM=$1 \n')
-    f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
-    f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
+    with open(os.path.join(script_save_path, 'blech_process_single.sh'), 'w') as f:
+        f.write('#!/bin/bash \n')
+        f.write(f'BLECH_DIR={blech_clust_dir} \n')
+        f.write(f'DATA_DIR={dir_name} \n')
+        f.write('ELECTRODE_NUM=$1 \n')
+        f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM \n')
+        f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM \n')
 
-# Dump shell file(s) for running GNU parallel job on the user's 
-# blech_clust folder on the desktop
-# First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
-num_cpu = multiprocessing.cpu_count()
+    # Dump shell file(s) for running GNU parallel job on the user's 
+    # blech_clust folder on the desktop
+    # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel
+    num_cpu = multiprocessing.cpu_count()
 
-electrode_bool = electrode_layout_frame.loc[
-    electrode_layout_frame.electrode_ind.isin(all_electrodes)]
-not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
-    ["none", "None", 'na'])]
-not_emg_bool = not_none_bool.loc[
-    ~not_none_bool.CAR_group.str.contains('emg')
-]
-bash_electrode_list = not_emg_bool.electrode_ind.values
-job_count = np.min(
-        (
-            len(bash_electrode_list), 
-            int(num_cpu-2), 
-            all_params_dict["max_parallel_cpu"]
+    electrode_bool = electrode_layout_frame.loc[
+        electrode_layout_frame.electrode_ind.isin(all_electrodes)]
+    not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
+        ["none", "None", 'na'])]
+    not_emg_bool = not_none_bool.loc[
+        ~not_none_bool.CAR_group.str.contains('emg')
+    ]
+    bash_electrode_list = not_emg_bool.electrode_ind.values
+    job_count = np.min(
+            (
+                len(bash_electrode_list), 
+                int(num_cpu-2), 
+                all_params_dict["max_parallel_cpu"]
+                )
             )
-        )
-f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
-f.write('#!/bin/bash \n')
-f.write(f'DIR={dir_name} \n')
+    f = open(os.path.join(script_save_path, 'blech_process_parallel.sh'), 'w')
+    f.write('#!/bin/bash \n')
+    f.write(f'DIR={dir_name} \n')
 print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
       "--memfree 4G --ungroup --retry-failed " +
       f"--joblog $DIR/results.log " +
@@ -472,8 +472,8 @@ print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
       file=f)
 f.close()
 
-print('blech_clust.py complete \n')
-print('*** Please check params file to make sure all is good ***\n')
+    print('blech_clust.py complete \n')
+    print('*** Please check params file to make sure all is good ***\n')
 
-# Write success to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+    # Write success to log
+    this_pipeline_check.write_to_log(script_path, 'completed')
