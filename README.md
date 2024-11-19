@@ -35,18 +35,27 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 
 *Shared Steps:*
 1. Complete spike sorting through `blech_make_arrays.py`
+    - Required for temporal alignment with neural data
 2. `python emg_filter.py`
-    - Filter EMG signals
+    - Filter EMG signals using bandpass filter
+    - Remove motion artifacts and electrical noise
 
-*BSA/STFT Branch:*
+*BSA/STFT Branch:* (Blind Source Analysis/Short-Time Fourier Transform)
 1. `python emg_freq_setup.py`
+    - Configure parameters for frequency analysis
 2. `bash blech_emg_jetstream_parallel.sh`
+    - Parallel processing of EMG signals using BSA/STFT
 3. `python emg_freq_post_process.py`
+    - Aggregate and process frequency analysis results
 4. `python emg_freq_plot.py`
+    - Generate visualizations of EMG frequency components
 
-*QDA (Jenn Li) Branch:*
+*QDA (Jenn Li) Branch:* (Quadratic Discriminant Analysis)
 1. `python emg_freq_setup.py`
+    - Setup parameters for gape detection
 2. `python get_gapes_Li.py`
+    - Detect gapes using QDA classifier
+    - Based on Li et al.'s methodology for EMG pattern recognition
 
 ### Setup
 ```
