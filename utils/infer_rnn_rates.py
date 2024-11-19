@@ -61,6 +61,13 @@ def load_config(args, blech_clust_path):
 params_dict = load_config(args, blech_clust_path)
 pprint(params_dict)
 
+# Extract parameters from the config
+hidden_size = params_dict['hidden_size']
+time_lims = params_dict['time_lims']
+bin_size = params_dict['bin_size']
+use_pca = params_dict['use_pca']
+train_test_split = params_dict['train_test_split']
+
 def setup_paths(data_dir):
     output_path = os.path.join(data_dir, 'rnn_output')
     artifacts_dir = os.path.join(output_path, 'artifacts')
