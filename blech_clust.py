@@ -70,45 +70,65 @@ elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
 else:
     file_type = ['one file per channel']
 
-# Create hdf5 file, and make groups for raw data, raw emgs,
-# digital outputs and digital inputs, and close
+class HDF5Handler:
+    """Handles HDF5 file operations for blech_clust"""
+    
+    def __init__(self, dir_name, force_run=False):
+        """Initialize HDF5 handler
+        
+        Args:
+            dir_name: Directory containing the data
+            force_run: Whether to force operations without asking user
+        """
+        self.dir_name = dir_name
+        self.force_run = force_run
+        self.group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+        self.setup_hdf5()
+        
+    def setup_hdf5(self):
+        """Setup or load HDF5 file"""
+        h5_search = glob.glob('*.h5')
+        if len(h5_search):
+            self.hdf5_name = h5_search[0]
+            print(f'HDF5 file found...Using file {self.hdf5_name}')
+            self.hf5 = tables.open_file(self.hdf5_name, 'r+')
+        else:
+            self.hdf5_name = str(os.path.dirname(self.dir_name)).split('/')[-1]+'.h5'
+            print(f'No HDF5 found...Creating file {self.hdf5_name}')
+            self.hf5 = tables.open_file(self.hdf5_name, 'w', title=self.hdf5_name[-1])
+            
+    def initialize_groups(self):
+        """Initialize HDF5 groups"""
+        found_list = []
+        for this_group in self.group_list:
+            if '/'+this_group in self.hf5:
+                found_list.append(this_group)
 
-# Grab directory name to create the name of the hdf5 file
-# If HDF5 present, use that, otherwise, create new one
-h5_search = glob.glob('*.h5')
-if len(h5_search):
-    hdf5_name = h5_search[0]
-    print(f'HDF5 file found...Using file {hdf5_name}')
-    hf5 = tables.open_file(hdf5_name, 'r+')
-else:
-    hdf5_name = str(os.path.dirname(dir_name)).split('/')[-1]+'.h5'
-    print(f'No HDF5 found...Creating file {hdf5_name}')
-    hf5 = tables.open_file(hdf5_name, 'w', title=hdf5_name[-1])
+        if len(found_list) > 0 and not self.force_run:
+            print(f'Data already present: {found_list}')
+            reload_data_str, continue_bool = entry_checker(
+                    msg='Reload data? (yes/y/n/no) ::: ',
+                    check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+                    fail_response='Please enter (yes/y/n/no)')
+        else:
+            continue_bool = True
+            reload_data_str = 'y'
 
-group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
-found_list = []
-for this_group in group_list:
-    if '/'+this_group in hf5:
-        found_list.append(this_group)
+        if continue_bool:
+            if reload_data_str in ['y', 'yes']:
+                for this_group in self.group_list:
+                    if '/'+this_group in self.hf5:
+                        self.hf5.remove_node('/', this_group, recursive=True)
+                    self.hf5.create_group('/', this_group)
+                print('Created nodes in HF5')
+        
+        self.hf5.close()
+        return continue_bool, reload_data_str
 
-if len(found_list) > 0 and not force_run:
-    print(f'Data already present: {found_list}')
-    reload_data_str, continue_bool = entry_checker(
-            msg='Reload data? (yes/y/n/no) ::: ',
-            check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-            fail_response='Please enter (yes/y/n/no)')
-else:
-    continue_bool = True
-    reload_data_str = 'y'
-
-if continue_bool:
-    if reload_data_str in ['y', 'yes']:
-        for this_group in group_list:
-            if '/'+this_group in hf5:
-                hf5.remove_node('/', this_group, recursive=True)
-            hf5.create_group('/', this_group)
-        print('Created nodes in HF5')
-hf5.close()
+# Create HDF5 handler and initialize groups
+hdf5_handler = HDF5Handler(dir_name, force_run)
+continue_bool, reload_data_str = hdf5_handler.initialize_groups()
+hdf5_name = hdf5_handler.hdf5_name
 
 # Create directories to store waveforms, spike times, clustering results, and plots
 # And a directory for dumping files talking about memory usage in blech_process.py
@@ -295,18 +315,28 @@ channel_corr.gen_corr_output(corr_mat,
 ##############################
 # Also output a plot with digin and laser info
 
+    def get_digital_inputs(self, sampling_rate):
+        """Get digital input data from HDF5 file
+        
+        Args:
+            sampling_rate: Sampling rate of the data
+            
+        Returns:
+            numpy array of digital input data
+        """
+        dig_in_list = []
+        with tables.open_file(self.hdf5_name, 'r') as hf5:
+            for i, this_dig_in in enumerate(hf5.root.digital_in):
+                this_dig_in = this_dig_in[:]
+                len_dig_in = len(this_dig_in)
+                this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
+                this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
+                dig_in_list.append(this_dig_in)
+        return np.stack(dig_in_list)
+
 # Get digin and laser info
 print('Getting trial markers from digital inputs')
-dig_in_list = []
-with tables.open_file(hdf5_name, 'r') as hf5:
-    for i, this_dig_in in enumerate(hf5.root.digital_in):
-        this_dig_in = this_dig_in[:]
-        len_dig_in = len(this_dig_in)
-        this_dig_in = this_dig_in[:(len_dig_in//sampling_rate)*sampling_rate]
-        this_dig_in = np.reshape(this_dig_in, (-1, sampling_rate)).sum(axis=-1)
-        dig_in_list.append(this_dig_in)
-        # dig_in_array = np.stack([x[:] for x in hf5.root.digital_in])
-dig_in_array = np.stack(dig_in_list)
+dig_in_array = hdf5_handler.get_digital_inputs(sampling_rate)
 # Downsample to 10 seconds
 # dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
 # dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
