@@ -1,5 +1,9 @@
 """
-Use Auto-regressive RNN to infer firing rates from a given data set.
+This module uses an Auto-regressive RNN to infer firing rates from a given data set.
+
+It includes functions for parsing arguments, loading configurations, setting up paths,
+and checking the existence of necessary directories. The main functionality involves
+processing neural spike data, training an RNN model, and visualizing the results.
 """
 
 import argparse
@@ -23,6 +27,12 @@ from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 
 def parse_arguments():
+    """
+    Parse command-line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed command-line arguments.
+    """
     parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
     parser.add_argument('data_dir', help='Path to data directory')
     parser.add_argument('--override_config', action='store_true', help='Override config file and use provided arguments (default: %(default)s)')
@@ -41,6 +51,16 @@ script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 
 def load_config(args, blech_clust_path):
+    """
+    Load configuration parameters from a JSON file or use command-line arguments.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+        blech_clust_path (str): Path to the BlechRNN configuration directory.
+
+    Returns:
+        dict: Configuration parameters.
+    """
     if args.override_config:
         print('Overriding config file\nUsing provided arguments\n')
         return {
@@ -72,6 +92,15 @@ train_test_split = params_dict['train_test_split']
 train_steps = params_dict['train_steps']
 
 def setup_paths(data_dir):
+    """
+    Set up directories for output, artifacts, and plots.
+
+    Args:
+        data_dir (str): Path to the data directory.
+
+    Returns:
+        tuple: Paths for output, artifacts, and plots directories.
+    """
     output_path = os.path.join(data_dir, 'rnn_output')
     artifacts_dir = os.path.join(output_path, 'artifacts')
     plots_dir = os.path.join(output_path, 'plots')
@@ -83,6 +112,12 @@ def setup_paths(data_dir):
     return output_path, artifacts_dir, plots_dir
 
 def check_blechRNN_path():
+    """
+    Check if the blechRNN directory exists on the Desktop and append it to sys.path.
+
+    Raises:
+        FileNotFoundError: If the blechRNN directory is not found.
+    """
     blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
     if os.path.exists(blechRNN_path):
         sys.path.append(blechRNN_path)
