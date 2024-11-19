@@ -28,6 +28,11 @@ import tables
 import numpy as np
 import pylab as plt
 from sklearn.mixture import GaussianMixture
+"""
+Module for post-processing Blech dataset.
+
+This module provides functions for post-processing and analysis of data.
+"""
 import pandas as pd
 import matplotlib
 from glob import glob

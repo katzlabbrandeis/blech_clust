@@ -11,6 +11,11 @@ Analyses to include
 - Dynamic population (ANOVA over time on PCA/other latents)
 """
 
+"""
+Module for analyzing unit characteristics in the Blech dataset.
+
+This module provides functions to compute and analyze characteristics of units.
+"""
 import numpy as np
 import tables
 import easygui

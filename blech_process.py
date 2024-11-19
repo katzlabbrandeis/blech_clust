@@ -35,6 +35,11 @@ from utils import memory_monitor as mm
 import pylab as plt
 import json
 import sys
+"""
+Module for processing Blech dataset.
+
+This module includes functions for data processing and manipulation.
+"""
 import numpy as np
 import warnings
 

@@ -4,6 +4,11 @@
 
 # Import stuff!
 import tables
+"""
+Module for common average referencing in the Blech dataset.
+
+This module includes functions for applying common average reference techniques.
+"""
 import numpy as np
 import os
 import easygui

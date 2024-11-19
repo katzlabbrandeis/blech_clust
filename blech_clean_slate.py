@@ -4,6 +4,11 @@ Deleting (almost) all processing files
 Info file and sorting table (csv) as kept
 """
 # Import stuff!
+"""
+Module for cleaning and resetting the Blech dataset.
+
+This module provides utilities to clean and reset data for analysis.
+"""
 import os
 import shutil
 import sys

@@ -4,6 +4,11 @@ import tables
 import easygui
 import sys
 import os
+"""
+Module for plotting units in the Blech dataset.
+
+This module provides functions to visualize and analyze unit data.
+"""
 import matplotlib.pyplot as plt
 import shutil
 from tqdm import tqdm, trange

@@ -1,4 +1,9 @@
 # Import stuff!
+"""
+Module for creating arrays in the Blech dataset.
+
+This module includes functions to generate and manipulate data arrays.
+"""
 import numpy as np
 import tables
 import sys

@@ -17,6 +17,11 @@ X Laser parameters and dig_in
 X Misc Notes
 """
 
+"""
+Module for handling experimental information in the Blech dataset.
+
+This module includes functions to manage and retrieve experimental metadata.
+"""
 import json
 import numpy as np
 import os
