@@ -14,89 +14,98 @@ from utils.blech_utils import imp_metadata, pipeline_graph_check, entry_checker
 from utils.importrhdutilities import read_header
 from utils.qa_utils import channel_corr
 
-class DataProcessor:
-    """Handles data processing operations for blech_clust"""
+class HDF5Handler:
+    """Handles HDF5 file operations and management"""
     
     def __init__(self, dir_name, force_run=False):
         self.dir_name = dir_name
         self.force_run = force_run
-        self.sampling_rate = None
         self.hdf5_name = None
-        self.file_type = None
+        self.group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
         
-    def setup_hdf5(self):
-        """Create or open HDF5 file and setup basic structure"""
+    def find_or_create_file(self):
+        """Find existing HDF5 file or create new one"""
         h5_search = glob.glob('*.h5')
-        if len(h5_search):
+        if h5_search:
             self.hdf5_name = h5_search[0]
             print(f'HDF5 file found...Using file {self.hdf5_name}')
         else:
-            self.hdf5_name = str(os.path.dirname(self.dir_name)).split('/')[-1]+'.h5'
+            self.hdf5_name = f"{os.path.basename(self.dir_name)}.h5"
             print(f'No HDF5 found...Creating file {self.hdf5_name}')
-            
-        return self.setup_hdf5_groups()
+        return self.hdf5_name
     
-    def setup_hdf5_groups(self):
-        """Setup HDF5 file groups"""
-        hf5 = tables.open_file(self.hdf5_name, 'r+' if os.path.exists(self.hdf5_name) else 'w')
-        group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
-        found_list = [g for g in group_list if '/'+g in hf5]
-        
-        if found_list and not self.force_run:
-            print(f'Data already present: {found_list}')
-            reload_data_str, continue_bool = entry_checker(
-                msg='Reload data? (yes/y/n/no) ::: ',
-                check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
-                fail_response='Please enter (yes/y/n/no)')
-        else:
-            continue_bool = True
-            reload_data_str = 'y'
+    def setup_groups(self):
+        """Setup or reset HDF5 file groups"""
+        with tables.open_file(self.hdf5_name, 'r+' if os.path.exists(self.hdf5_name) else 'w') as hf5:
+            found_groups = [g for g in self.group_list if '/'+g in hf5]
             
-        if continue_bool and reload_data_str in ['y', 'yes']:
-            for group in group_list:
-                if '/'+group in hf5:
-                    hf5.remove_node('/', group, recursive=True)
-                hf5.create_group('/', group)
-            print('Created nodes in HF5')
-            
-        hf5.close()
+            if found_groups and not self.force_run:
+                print(f'Data already present: {found_groups}')
+                reload_data_str, continue_bool = entry_checker(
+                    msg='Reload data? (yes/y/n/no) ::: ',
+                    check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+                    fail_response='Please enter (yes/y/n/no)')
+            else:
+                continue_bool = True
+                reload_data_str = 'y'
+                
+            if continue_bool and reload_data_str in ['y', 'yes']:
+                for group in self.group_list:
+                    if '/'+group in hf5:
+                        hf5.remove_node('/', group, recursive=True)
+                    hf5.create_group('/', group)
+                print('Created nodes in HF5')
+                
         return continue_bool, reload_data_str
+
+    def read_digital_inputs(self, sampling_rate):
+        """Read digital input data from HDF5 file"""
+        dig_in_list = []
+        with tables.open_file(self.hdf5_name, 'r') as hf5:
+            for this_dig_in in hf5.root.digital_in:
+                data = this_dig_in[:]
+                len_data = len(data)
+                data = data[:(len_data//sampling_rate)*sampling_rate]
+                data = np.reshape(data, (-1, sampling_rate)).sum(axis=-1)
+                dig_in_list.append(data)
+        return np.stack(dig_in_list)
 
 class DirectoryManager:
     """Manages directory creation and verification"""
     
-    @staticmethod
-    def setup_directories(force_run=False):
-        """Create necessary directories for analysis outputs"""
-        dir_list = [
+    def __init__(self):
+        self.analysis_dirs = [
             'spike_waveforms',
             'spike_times', 
             'clustering_results',
             'Plots',
-            'memory_monitor_clustering'
+            'memory_monitor_clustering',
+            'QA_output',
+            'temp'
         ]
+    
+    def setup_directories(self, force_run=False):
+        """Create or recreate necessary directories for analysis outputs"""
+        existing_dirs = [d for d in self.analysis_dirs if os.path.exists(d)]
         
-        dir_exists = [x for x in dir_list if os.path.exists(x)]
-        
-        if dir_exists and not force_run:
-            recreate_msg = (f'Following dirs are present:\n{dir_exists}\n'
-                          'Overwrite dirs? (yes/y/n/no) ::: ')
-            recreate_str, continue_bool = entry_checker(
+        should_recreate = True
+        if existing_dirs and not force_run:
+            recreate_msg = (f'Following dirs exist:\n{existing_dirs}\n'
+                          'Overwrite? (yes/y/n/no) ::: ')
+            recreate_str, should_recreate = entry_checker(
                 msg=recreate_msg,
                 check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
                 fail_response='Please enter (yes/y/n/no)')
-        else:
-            continue_bool = True
-            recreate_str = 'y'
+            should_recreate = should_recreate and recreate_str in ['y', 'yes']
+        
+        if should_recreate:
+            for directory in self.analysis_dirs:
+                if os.path.exists(directory):
+                    shutil.rmtree(directory)
+                os.makedirs(directory)
+            print('Created analysis directories')
             
-        if continue_bool and recreate_str in ['y', 'yes']:
-            for x in dir_list:
-                if os.path.exists(x):
-                    shutil.rmtree(x)
-                os.makedirs(x)
-            print('Created dirs in data folder')
-            
-        return continue_bool
+        return should_recreate
 
 class Config:
     """Handles configuration and argument parsing"""
@@ -117,17 +126,24 @@ class Config:
         return os.path.join(blech_clust_dir, template_name)
 
 def main():
-    # Parse arguments and setup
+    """Main execution function"""
+    # Initialize configuration and metadata
     args = Config.parse_args()
-    force_run = args.force_run
-    
     script_path = os.path.realpath(__file__)
     blech_clust_dir = os.path.dirname(script_path)
     
-    # Check template and setup metadata
-    params_template_path = Config.check_params_template(blech_clust_dir)
-    metadata_handler = imp_metadata([[], args.dir_name])
-    dir_name = metadata_handler.dir_name
+    # Setup metadata and pipeline checking
+    metadata = imp_metadata([[], args.dir_name])
+    pipeline = pipeline_graph_check(metadata.dir_name)
+    
+    # Initialize handlers
+    hdf5_handler = HDF5Handler(metadata.dir_name, args.force_run)
+    dir_manager = DirectoryManager()
+    script_gen = ScriptGenerator(metadata.dir_name, blech_clust_dir)
+    
+    # Setup working directory
+    print(f'Processing: {metadata.dir_name}')
+    os.chdir(metadata.dir_name)
 
     # Perform pipeline graph check
     this_pipeline_check = pipeline_graph_check(dir_name)
@@ -477,3 +493,38 @@ f.close()
 
     # Write success to log
     this_pipeline_check.write_to_log(script_path, 'completed')
+class ScriptGenerator:
+    """Handles generation of processing scripts"""
+    
+    def __init__(self, dir_name, blech_clust_dir):
+        self.dir_name = dir_name
+        self.blech_clust_dir = blech_clust_dir
+        self.script_dir = os.path.join(dir_name, 'temp')
+        
+    def generate_single_process_script(self):
+        """Generate script for single electrode processing"""
+        script_path = os.path.join(self.script_dir, 'blech_process_single.sh')
+        with open(script_path, 'w') as f:
+            f.write('#!/bin/bash\n')
+            f.write(f'BLECH_DIR={self.blech_clust_dir}\n')
+            f.write(f'DATA_DIR={self.dir_name}\n')
+            f.write('ELECTRODE_NUM=$1\n')
+            f.write('python $BLECH_DIR/blech_process.py $DATA_DIR $ELECTRODE_NUM\n')
+            f.write('python $BLECH_DIR/utils/cluster_stability.py $DATA_DIR $ELECTRODE_NUM\n')
+        os.chmod(script_path, 0o755)  # Make executable
+        
+    def generate_parallel_script(self, electrode_list, max_parallel_cpu):
+        """Generate script for parallel processing"""
+        num_cpu = multiprocessing.cpu_count()
+        job_count = min(len(electrode_list), num_cpu-2, max_parallel_cpu)
+        
+        script_path = os.path.join(self.script_dir, 'blech_process_parallel.sh')
+        with open(script_path, 'w') as f:
+            f.write('#!/bin/bash\n')
+            f.write(f'DIR={self.dir_name}\n')
+            f.write(f'parallel -k -j {job_count} --noswap --load 100% --progress '
+                   '--memfree 4G --ungroup --retry-failed '
+                   f'--joblog $DIR/results.log '
+                   'bash $DIR/temp/blech_process_single.sh '
+                   f'::: {" ".join(map(str, electrode_list))}')
+        os.chmod(script_path, 0o755)  # Make executable
