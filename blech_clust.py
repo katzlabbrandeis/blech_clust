@@ -487,11 +487,11 @@ f.write(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
         f"::: {' '.join([str(x) for x in bash_electrode_list])}")
 f.close()
 
-    print('blech_clust.py complete \n')
-    print('*** Please check params file to make sure all is good ***\n')
+print('blech_clust.py complete \n')
+print('*** Please check params file to make sure all is good ***\n')
 
-    # Write success to log
-    this_pipeline_check.write_to_log(script_path, 'completed')
+# Write success to log
+this_pipeline_check.write_to_log(script_path, 'completed')
 class ScriptGenerator:
     """Handles generation of processing scripts"""
     
