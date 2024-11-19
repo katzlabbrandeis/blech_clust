@@ -1,15 +1,102 @@
 import os
+import glob
+import json
+import shutil
 import numpy as np
 import multiprocessing
 import pandas as pd
+import tables
+import matplotlib.pyplot as plt
 
 # Local imports
 from utils import read_file
-from utils.blech_utils import imp_metadata, pipeline_graph_check
+from utils.blech_utils import imp_metadata, pipeline_graph_check, entry_checker
 from utils.importrhdutilities import read_header
-import config
-import data_io
-import qa
+from utils.qa_utils import channel_corr
+
+class DataProcessor:
+    """Handles data processing operations for blech_clust"""
+    
+    def __init__(self, dir_name, force_run=False):
+        self.dir_name = dir_name
+        self.force_run = force_run
+        self.sampling_rate = None
+        self.hdf5_name = None
+        self.file_type = None
+        
+    def setup_hdf5(self):
+        """Create or open HDF5 file and setup basic structure"""
+        h5_search = glob.glob('*.h5')
+        if len(h5_search):
+            self.hdf5_name = h5_search[0]
+            print(f'HDF5 file found...Using file {self.hdf5_name}')
+        else:
+            self.hdf5_name = str(os.path.dirname(self.dir_name)).split('/')[-1]+'.h5'
+            print(f'No HDF5 found...Creating file {self.hdf5_name}')
+            
+        return self.setup_hdf5_groups()
+    
+    def setup_hdf5_groups(self):
+        """Setup HDF5 file groups"""
+        hf5 = tables.open_file(self.hdf5_name, 'r+' if os.path.exists(self.hdf5_name) else 'w')
+        group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+        found_list = [g for g in group_list if '/'+g in hf5]
+        
+        if found_list and not self.force_run:
+            print(f'Data already present: {found_list}')
+            reload_data_str, continue_bool = entry_checker(
+                msg='Reload data? (yes/y/n/no) ::: ',
+                check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+                fail_response='Please enter (yes/y/n/no)')
+        else:
+            continue_bool = True
+            reload_data_str = 'y'
+            
+        if continue_bool and reload_data_str in ['y', 'yes']:
+            for group in group_list:
+                if '/'+group in hf5:
+                    hf5.remove_node('/', group, recursive=True)
+                hf5.create_group('/', group)
+            print('Created nodes in HF5')
+            
+        hf5.close()
+        return continue_bool, reload_data_str
+
+class DirectoryManager:
+    """Manages directory creation and verification"""
+    
+    @staticmethod
+    def setup_directories(force_run=False):
+        """Create necessary directories for analysis outputs"""
+        dir_list = [
+            'spike_waveforms',
+            'spike_times', 
+            'clustering_results',
+            'Plots',
+            'memory_monitor_clustering'
+        ]
+        
+        dir_exists = [x for x in dir_list if os.path.exists(x)]
+        
+        if dir_exists and not force_run:
+            recreate_msg = (f'Following dirs are present:\n{dir_exists}\n'
+                          'Overwrite dirs? (yes/y/n/no) ::: ')
+            recreate_str, continue_bool = entry_checker(
+                msg=recreate_msg,
+                check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+                fail_response='Please enter (yes/y/n/no)')
+        else:
+            continue_bool = True
+            recreate_str = 'y'
+            
+        if continue_bool and recreate_str in ['y', 'yes']:
+            for x in dir_list:
+                if os.path.exists(x):
+                    shutil.rmtree(x)
+                os.makedirs(x)
+            print('Created dirs in data folder')
+            
+        return continue_bool
 
 def main():
     # Parse arguments and setup
