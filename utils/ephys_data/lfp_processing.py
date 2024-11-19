@@ -21,6 +21,50 @@ Features:
 Dependencies:
     - numpy, scipy, tables
     - matplotlib for visualization
+
+Usage:
+    >>> from utils.ephys_data import lfp_processing
+    >>> 
+    >>> # Extract LFPs with default parameters
+    >>> lfp_processing.extract_lfps(
+    ...     dir_name='/path/to/data',
+    ...     freq_bounds=[1, 300],          # Frequency range in Hz
+    ...     sampling_rate=30000,           # Original sampling rate
+    ...     taste_signal_choice='Start',   # Trial alignment
+    ...     fin_sampling_rate=1000,        # Final sampling rate
+    ...     dig_in_list=[0,1,2,3],        # Digital inputs to process
+    ...     trial_durations=[2000,5000]    # Pre/post trial durations
+    ... )
+    >>> 
+    >>> # Extract EMGs similarly
+    >>> lfp_processing.extract_emgs(
+    ...     dir_name='/path/to/data',
+    ...     emg_electrode_nums=[0,1],      # EMG electrode numbers
+    ...     freq_bounds=[1, 300],
+    ...     sampling_rate=30000,
+    ...     taste_signal_choice='Start',
+    ...     fin_sampling_rate=1000,
+    ...     dig_in_list=[0,1,2,3],
+    ...     trial_durations=[2000,5000]
+    ... )
+    >>> 
+    >>> # Filter individual electrode data
+    >>> filtered_data = lfp_processing.get_filtered_electrode(
+    ...     data=raw_data,
+    ...     low_pass=1,
+    ...     high_pass=300,
+    ...     sampling_rate=1000
+    ... )
+    >>> 
+    >>> # Get good quality trials
+    >>> good_trials = lfp_processing.return_good_lfp_trials(
+    ...     data=lfp_data,
+    ...     MAD_threshold=3
+    ... )
+
+Installation:
+    Required packages can be installed via pip:
+    $ pip install numpy scipy tables matplotlib
 """
 # ==============================
 # Setup

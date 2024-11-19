@@ -51,6 +51,34 @@ Dependencies:
     - numpy, scipy, tables, pandas
     - BAKS (Bayesian Adaptive Kernel Smoother)
     - Custom LFP processing utilities
+
+Usage:
+    >>> from utils.ephys_data.ephys_data import ephys_data
+    >>> # Initialize with data directory
+    >>> data = ephys_data(data_dir='/path/to/data')
+    >>> 
+    >>> # Load and process data
+    >>> data.get_unit_descriptors()  # Get unit information
+    >>> data.get_spikes()           # Extract spike data
+    >>> data.get_firing_rates()     # Calculate firing rates
+    >>> data.get_lfps()            # Extract LFP data
+    >>> 
+    >>> # Access processed data
+    >>> spikes = data.spikes       # Access spike data
+    >>> firing = data.firing_array # Access firing rate data
+    >>> lfps = data.lfp_array     # Access LFP data
+    >>>
+    >>> # Region-based analysis
+    >>> data.get_region_units()    # Get units by brain region
+    >>> region_spikes = data.return_region_spikes('region_name')
+    >>> 
+    >>> # Handle laser conditions (if present)
+    >>> data.check_laser()         # Check for laser trials
+    >>> data.separate_laser_data() # Split data by laser condition
+
+Installation:
+    Required packages can be installed via pip:
+    $ pip install numpy scipy tables pandas tqdm matplotlib
 """
 
 class ephys_data():
