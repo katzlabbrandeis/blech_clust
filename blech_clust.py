@@ -1,3 +1,44 @@
+"""
+blech_clust.py - Main script for processing and clustering neural recording data
+
+This script handles the initial processing of neural recording data from Intan files,
+creating an HDF5 file structure to store the processed data. It performs several key functions:
+
+1. Data Import and Organization:
+   - Reads raw data files (.rhd or .dat format)
+   - Creates HDF5 file structure for organized data storage
+   - Handles different file formats (one file per channel, one file per signal type, traditional)
+
+2. Directory Setup:
+   - Creates necessary directories for storing:
+     * Spike waveforms
+     * Spike times
+     * Clustering results
+     * Analysis plots
+     * Memory monitoring data
+
+3. Quality Assurance:
+   - Performs channel correlation analysis
+   - Generates QA plots and reports
+   - Validates digital input signals
+
+4. Processing Pipeline:
+   - Sets up parallel processing scripts for spike sorting
+   - Handles parameter file creation and management
+   - Integrates with the broader blech_clust pipeline
+
+Usage:
+    python blech_clust.py <dir_name> [--force_run]
+
+Arguments:
+    dir_name    : Directory containing the raw data files
+    --force_run : Optional flag to bypass user confirmations
+
+Dependencies:
+    - numpy, tables, pandas, matplotlib
+    - Custom utility modules from blech_clust package
+"""
+
 # Necessary python modules
 import argparse
 
