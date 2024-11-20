@@ -6,3 +6,5 @@ requirements/.DS_Store
 blech.dir
 *.swp
 *.Rhistory
+.aider*
+.env
