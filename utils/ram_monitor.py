@@ -9,7 +9,7 @@ def monitor_ram(output_dir):
     """Monitor RAM usage and write to a log file"""
     log_file = os.path.join(output_dir, "ram_usage.log")
     
-    with open(log_file, 'w') as f:
+    with open(log_file, 'a') as f:
         f.write("Timestamp,RAM_Used_GB,RAM_Total_GB,RAM_Percent\n")
         
         while True:
@@ -23,7 +23,7 @@ def monitor_ram(output_dir):
                 f.write(log_line)
                 f.flush()
                 
-                time.sleep(5)  # Log every 5 seconds
+                time.sleep(1)  # Log every 1 seconds
                 
             except KeyboardInterrupt:
                 break
