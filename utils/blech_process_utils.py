@@ -852,10 +852,16 @@ class electrode_handler():
         plt.plot(np.mean(second_data, axis=1))
         plt.axvline(self.recording_cutoff,
                     color='k', linewidth=4.0, linestyle='--')
+        plt.axhline(self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--', 
+                    label='Voltage cutoff')
+        plt.axhline(-self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--')
         plt.xlabel('Recording time (secs)')
         plt.ylabel('Average voltage recorded per sec (microvolts)')
         plt.title(f'Recording length : {len(second_data)}s' + '\n' +
                   f'Cutoff time : {self.recording_cutoff}s')
+        plt.legend()
         fig.savefig(
             f'./Plots/{self.electrode_num:02}/cutoff_time.png',
             bbox_inches='tight')
