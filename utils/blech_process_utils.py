@@ -788,6 +788,7 @@ class electrode_handler():
         hf5.close()
 
     def filter_electrode(self):
+        # Raw units get multiplied by 0.195 to get MICROVOLTS 
         self.filt_el = clust.get_filtered_electrode(
             self.raw_el,
             freq=[self.params_dict['bandpass_lower_cutoff'],
@@ -846,12 +847,22 @@ class electrode_handler():
         recording_cutoff: int
         """
         fig = plt.figure()
+        # filt_el is in microvolts
         second_data = np.reshape(
             self.filt_el,
             (-1, self.params_dict['sampling_rate']))
-        plt.plot(np.mean(second_data, axis=1))
+        mean_data = np.mean(second_data, axis=1)
+        std_data = np.std(second_data, axis=1)
+        plt.plot(mean_data, label = 'Mean')
+        plt.fill_between(
+                x = np.arange(len(mean_data)),
+                y1 = mean_data + std_data,
+                y2 = mean_data - std_data,
+                label = 'STD',
+                )
         plt.axvline(self.recording_cutoff,
-                    color='k', linewidth=4.0, linestyle='--')
+                    color='k', linewidth=2, linestyle='--',
+                    label = 'Recording cutoff')
         plt.axhline(self.params_dict['voltage_cutoff'],
                     color='r', linewidth=2.0, linestyle='--', 
                     label='Voltage cutoff')
@@ -862,6 +873,7 @@ class electrode_handler():
         plt.title(f'Recording length : {len(second_data)}s' + '\n' +
                   f'Cutoff time : {self.recording_cutoff}s')
         plt.legend()
+        plt.yscale('symlog')
         fig.savefig(
             f'./Plots/{self.electrode_num:02}/cutoff_time.png',
             bbox_inches='tight')
@@ -1002,6 +1014,24 @@ def return_cutoff_values(
     max_secs_above_cutoff,
     max_mean_breach_rate_persec
 ):
+    """
+    Return the cutoff values for the electrode recording
+
+    Inputs:
+        filt_el: numpy array (in 
+        sampling_rate: int
+        voltage_cutoff: float
+        max_breach_rate: float
+        max_secs_above_cutoff: float
+        max_mean_breach_rate_persec: float
+
+    Outputs:
+        breach_rate: float
+        breaches_per_sec: numpy array
+        secs_above_cutoff: int
+        mean_breach_rate_persec: float
+        recording_cutoff: int
+    """
 
     breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
                         * int(sampling_rate))/len(filt_el)
