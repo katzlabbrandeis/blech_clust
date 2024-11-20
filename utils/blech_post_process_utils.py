@@ -623,11 +623,20 @@ class unit_descriptor_handler():
 
         return unit_name, max_unit
 
-    def generate_hash(self,):
+    def generate_hash(self, electrode_number, waveform_count):
         """
-        Generate a 10 character hash for the unit
+        Generate a 10 character hash for the unit based on electrode and waveform count
+        
+        Args:
+            electrode_number: int, electrode number 
+            waveform_count: int, number of waveforms in unit
+            
+        Returns:
+            str: 10 character hash
         """
-        return str(uuid.uuid4()).split('-')[0]
+        # Create deterministic hash from inputs
+        hash_input = f"{electrode_number}_{waveform_count}"
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, hash_input)).split('-')[0]
 
     def save_unit(
             self,
@@ -664,7 +673,7 @@ class unit_descriptor_handler():
 
         # Get a hash for the unit to compare stored data 
         # with unit_descriptor table
-        unit_hash = self.generate_hash()
+        unit_hash = self.generate_hash(electrode_num, len(unit_times))
 
         # Add to HDF5
         waveforms = self.hf5.create_array('/sorted_units/%s' % unit_name, 
