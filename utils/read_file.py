@@ -4,6 +4,88 @@ import os
 import numpy as np
 import tqdm
 
+# Code for loading traditional intan format from 
+# https://github.com/Intan-Technologies/load-rhd-notebook-python
+
+from utils.importrhdutilities import load_file, read_header
+
+def read_traditional_intan(
+		hdf5_name, 
+		file_list, 
+		electrode_layout_frame,
+		dig_in_int
+		):
+	"""
+	Reads traditional intan format data and saves to hdf5
+
+	Input:
+		hdf5_name: str
+			Name of hdf5 file to save data to
+		file_list: list
+			List of file names to read
+		electrode_layout_frame: pandas.DataFrame
+			Dataframe containing details of electrode layout
+		dig_in_int: list
+			List of digital input numbers to read (as some may be empty)
+			Note: This is the digital input number, not the index in the array
+
+	Writes:
+		hdf5 file with raw and raw_emg data
+		- raw: amplifier data
+		- raw_emg: EMG data
+		- digital_in: digital input data
+	"""
+	atom = tables.IntAtom()
+	# Read EMG data from amplifier channels
+	# hdf5_path = os.path.join(dir_name, hdf5_name)
+	hf5 = tables.open_file(hdf5_name, 'r+')
+
+	pbar = tqdm.tqdm(total = len(file_list))
+	for this_file in file_list:
+		# Update progress bar with file name
+		pbar.set_description(os.path.basename(this_file))
+		# this_file_data = read_data(this_file)
+		this_file_data, data_present = load_file(this_file)
+		# Get channel details
+		# For each anplifier channel, read data and save to hdf5
+		for i, this_amp in enumerate(this_file_data['amplifier_data']):
+			# If the amplifier channel is an EMG channel, save to raw_emg
+			# Otherwise, save to raw
+			if 'emg' in electrode_layout_frame.loc[i].CAR_group.lower():
+				array_name = f'emg{i:02}'
+				if os.path.join('/raw_emg', array_name) not in hf5: 
+					hf5_el_array = hf5.create_earray('/raw_emg', array_name, atom, (0,))
+				else:
+					hf5_el_array = hf5.get_node('/raw_emg', array_name)
+				hf5_el_array.append(this_amp)
+			else:
+				array_name = f'electrode{i:02}'
+				if os.path.join('/raw', array_name) not in hf5: 
+					hf5_el_array = hf5.create_earray('/raw', array_name, atom, (0,))
+				else:
+					hf5_el_array = hf5.get_node('/raw', array_name)
+				hf5_el_array.append(this_amp)
+			hf5.flush()
+		# Do the same for digital inputs
+		dig_in_channels = [x['native_channel_name'] for x in this_file_data['board_dig_in_channels']]
+		# for i, this_dig_in in enumerate(this_file_data['board_dig_in_data']):
+		for i, this_dig in enumerate(dig_in_channels):
+			this_dig_in_int = int(this_dig.split('-')[-1].split('.')[0]) 
+			if this_dig_in_int not in dig_in_int:
+				continue
+			array_name = f'dig_in_{this_dig_in_int}'
+			array_data = this_file_data['board_dig_in_data'][i]
+			if os.path.join('/digital_in', array_name) not in hf5:
+				hf5_dig_array = hf5.create_earray('/digital_in', array_name, atom, (0,))
+			else:
+				hf5_dig_array = hf5.get_node('/digital_in', array_name)
+			hf5_dig_array.append(array_data)
+			hf5.flush()
+		pbar.update(1)
+	pbar.close()
+	hf5.close()
+
+
 def read_digins(hdf5_name, dig_in_int, dig_in_file_list): 
 	atom = tables.IntAtom()
 	hf5 = tables.open_file(hdf5_name, 'r+')
@@ -19,6 +101,7 @@ def read_digins(hdf5_name, dig_in_int, dig_in_file_list):
 		hf5_dig_array.append(inputs)
 		hf5.flush()
 	hf5.close()
+
 		
 def read_digins_single_file(hdf5_name, dig_in, dig_in_file_list): 
 	num_dig_ins = len(dig_in)

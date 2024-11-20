@@ -1,6 +1,41 @@
-# Run through all the raw electrode data,
-# and subtract a common average reference from every electrode's recording
-# The user specifies the electrodes to be used as a common average group
+"""
+blech_common_avg_reference.py - Common Average Reference (CAR) processing for neural recordings
+
+This script performs common average referencing on raw electrode data to reduce noise and artifacts.
+It processes electrode recordings by:
+
+1. Data Organization:
+   - Groups electrodes based on anatomical regions and recording ports
+   - Excludes EMG channels and electrodes marked as 'none' from CAR processing
+   - Handles multiple CAR groups independently
+
+2. Reference Calculation:
+   - Calculates common average reference for each electrode group
+   - Averages voltage values across all electrodes in a group
+   - Processes groups sequentially to optimize memory usage
+
+3. Signal Processing:
+   - Subtracts appropriate common average reference from each electrode
+   - Updates electrode data in-place in the HDF5 file
+   - Maintains data integrity through careful memory management
+
+Usage:
+    python blech_common_avg_reference.py <dir_name>
+
+Arguments:
+    dir_name : Directory containing the HDF5 file with raw electrode data
+
+Dependencies:
+    - numpy, tables, tqdm
+    - Custom utility modules from blech_clust package
+
+Notes:
+    - Requires properly formatted electrode layout information in the experiment info file
+    - CAR groups are defined by the 'CAR_group' column in the electrode layout
+    - EMG channels and electrodes marked as 'none' are automatically excluded
+
+Author: Abuzar Mahmood
+"""
 
 # Import stuff!
 import tables
@@ -81,16 +116,16 @@ print(
 common_average_reference = np.zeros(
     (num_groups, raw_electrodes[0][:].shape[0]))
 print('Calculating mean values')
-for group in range(num_groups):
-    print('Processing Group {}'.format(group))
+for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+    print(f"Processing group {group_name}")
     # First add up the voltage values from each electrode to the same array
     # then divide by number of electrodes to get the average
     # This is more memory efficient than loading all the electrode data into
     # a single array and then averaging
-    for electrode_name in tqdm(CAR_electrodes[group]):
-        common_average_reference[group, :] += \
+    for electrode_name in tqdm(CAR_electrodes[group_num]):
+        common_average_reference[group_num, :] += \
             get_electrode_by_name(raw_electrodes, electrode_name)[:]
-    common_average_reference[group, :] /= float(len(CAR_electrodes[group]))
+    common_average_reference[group_num, :] /= float(len(CAR_electrodes[group_num]))
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 

@@ -519,33 +519,29 @@ def emg_only_test():
 @flow(log_prints=True)
 def full_test():
     if break_bool:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running full test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_spike_test()
-            run_emg_main_test()
+        spike_only_test()
+        emg_only_test()
+        spike_emg_test()
     else:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running full test with data type : {data_type}')
-            try:
-                prep_data_flow(data_type = data_type)
-            except:
-                print('Failed to prep data')
-            try:
-                run_spike_test()
-            except:
-                print('Failed to run spike test')
-            try:
-                run_emg_main_test()
-            except:
-                print('Failed to run emg test')
+        try:
+            spike_only_test()
+        except:
+            print('Failed to run spike test')
+        try:
+            emg_only_test()
+        except:
+            print('Failed to run emg test')
+        try:
+            spike_emg_test()
+        except:
+            print('Failed to run spike+emg test')
 
 ############################################################
 ## Run Flows
 ############################################################
 # If no individual tests are required, run both
 if args.all: 
-    print('Running spike and emg tests')
+    print('Running all tests')
     full_test(return_state=True)
 elif args.e:
     print('Running emg tests only')

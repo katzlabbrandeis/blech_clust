@@ -29,10 +29,56 @@ import pandas as pd
 #        |_|          |___/ 
 
 """
-Class to streamline data analysis from multiple files
-Class has a container for data from different files and functions for analysis
-Functions in class can autoload data from specified files according to specified 
-paramters
+ephys_data.py - Class for streamlined electrophysiology data analysis
+
+This module provides a class for analyzing electrophysiology data from multiple files.
+The class provides containers and functions for data analysis with automatic loading
+capabilities.
+
+Key Features:
+    - Automatic data loading from specified files
+    - Spike train and LFP data processing
+    - Firing rate calculation with multiple methods
+    - Digital input parsing and trial segmentation
+    - Region-based analysis for multi-region recordings
+    - Laser condition handling for optogenetic experiments
+    - Data quality checks and visualization
+
+Classes:
+    ephys_data: Main class for data handling and analysis
+
+Dependencies:
+    - numpy, scipy, tables, pandas
+    - BAKS (Bayesian Adaptive Kernel Smoother)
+    - Custom LFP processing utilities
+
+Usage:
+    >>> from utils.ephys_data.ephys_data import ephys_data
+    >>> # Initialize with data directory
+    >>> data = ephys_data(data_dir='/path/to/data')
+    >>> 
+    >>> # Load and process data
+    >>> data.get_unit_descriptors()  # Get unit information
+    >>> data.get_spikes()           # Extract spike data
+    >>> data.get_firing_rates()     # Calculate firing rates
+    >>> data.get_lfps()            # Extract LFP data
+    >>> 
+    >>> # Access processed data
+    >>> spikes = data.spikes       # Access spike data
+    >>> firing = data.firing_array # Access firing rate data
+    >>> lfps = data.lfp_array     # Access LFP data
+    >>>
+    >>> # Region-based analysis
+    >>> data.get_region_units()    # Get units by brain region
+    >>> region_spikes = data.return_region_spikes('region_name')
+    >>> 
+    >>> # Handle laser conditions (if present)
+    >>> data.check_laser()         # Check for laser trials
+    >>> data.separate_laser_data() # Split data by laser condition
+
+Installation:
+    Required packages can be installed via pip:
+    $ pip install numpy scipy tables pandas tqdm matplotlib
 """
 
 class ephys_data():
@@ -413,11 +459,11 @@ class ephys_data():
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
 
+        type_list = ['conv','baks']
         type_exists_bool = 'type' in params.keys()
         if not type_exists_bool:
             raise Exception('Firing rate calculation type not specified.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
-        type_list = ['conv','baks']
         if params['type'] not in type_list:
             raise Exception('Firing rate calculation type not recognized.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
