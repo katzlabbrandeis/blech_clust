@@ -675,12 +675,13 @@ class unit_descriptor_handler():
         # with unit_descriptor table
         unit_hash = self.generate_hash(electrode_num, len(unit_times))
 
-        # Check if unit with this hash already exists
-        existing_units = self.get_saved_units_hashes()
-        if unit_hash in existing_units['hash'].values:
-            existing_unit = existing_units[existing_units['hash'] == unit_hash].iloc[0]
-            print(f"Unit already exists as {existing_unit['unit_name']}")
-            return continue_bool, existing_unit['unit_name']
+        # Only check for existing hash if this isn't the first unit
+        if max_unit >= 0:
+            existing_units = self.get_saved_units_hashes()
+            if unit_hash in existing_units['hash'].values:
+                existing_unit = existing_units[existing_units['hash'] == unit_hash].iloc[0]
+                print(f"Unit already exists as {existing_unit['unit_name']}")
+                return continue_bool, existing_unit['unit_name']
 
         print(f"Adding new unit {unit_name}")
         
