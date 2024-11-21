@@ -1345,3 +1345,180 @@ def calculate_merge_sets(
             if fin_bool_dict[key]]
 
     return fin_merge_sets, new_clust_names
+def process_electrode(electrode_num, process_params):
+    """
+    Process a single electrode's data for autosort
+    
+    Args:
+        electrode_num: The electrode number to process
+        process_params: Tuple containing processing parameters:
+            - max_autosort_clusters
+            - auto_params
+            - chi_square_alpha  
+            - count_threshold
+            - sampling_rate
+            - autosort_output_dir
+            - descriptor_handler
+            - sort_file_handler
+            - hf5
+    """
+    (
+        max_autosort_clusters,
+        auto_params,
+        chi_square_alpha,
+        count_threshold,
+        sampling_rate,
+        autosort_output_dir,
+        descriptor_handler,
+        sort_file_handler,
+        hf5
+    ) = process_params
+
+    print(f'=== Processing Electrode {electrode_num:02} ===')
+
+    # Load data from the chosen electrode
+    (
+        spike_waveforms,
+        spike_times,
+        pca_slices,
+        energy,
+        amplitudes,
+        split_predictions,
+    ) = load_data_from_disk(electrode_num, max_autosort_clusters)
+
+    clf_data_paths = [
+        f'./spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
+        f'./spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
+    ]
+    clf_prob, clf_pred = [np.load(this_path) for this_path in clf_data_paths]
+
+    # If auto-clustering was done, data has already been trimmed
+    clf_prob = clf_prob[clf_pred]
+    clf_pred = clf_pred[clf_pred]
+
+    # Get merge parameters
+    mahal_thresh = auto_params['mahalanobis_merge_thresh']
+    isi_threshs = auto_params['ISI_violations_thresholds']
+
+    # Load mahalanobis distances
+    mahal_mat_path = os.path.join(
+        '.',
+        'clustering_results',
+        f'electrode{electrode_num:02}',
+        f'clusters{max_autosort_clusters:02}',
+        'mahalanobis_distances.npy',
+    )
+    mahal_mat = np.load(mahal_mat_path)
+
+    unique_clusters = np.unique(split_predictions)
+    assert len(unique_clusters) == len(mahal_mat), \
+        'Mahalanobis matrix does not match number of clusters'
+
+    # Calculate merge sets
+    (
+        final_merge_sets,
+        new_clust_names,
+    ) = calculate_merge_sets(
+        mahal_mat,
+        mahal_thresh,
+        isi_threshs,
+        split_predictions,
+        spike_waveforms,
+        spike_times,
+        clf_prob,
+        chi_square_alpha,
+        count_threshold,
+        sampling_rate,
+    )
+
+    if len(final_merge_sets) > 0:
+        print(f'=== Merging {len(final_merge_sets)} Clusters ===')
+        for this_merge_set, new_name in zip(final_merge_sets, new_clust_names):
+            print(f'==== {this_merge_set} => {new_name} ====')
+
+        fig, ax = gen_plot_auto_merged_clusters(
+            spike_waveforms,
+            spike_times,
+            split_predictions,
+            sampling_rate,
+            final_merge_sets,
+            new_clust_names,
+        )
+
+        # Create output directory if needed
+        if not os.path.exists(autosort_output_dir):
+            os.makedirs(autosort_output_dir)
+
+        fig.savefig(
+            os.path.join(
+                autosort_output_dir,
+                f'{electrode_num:02}_merged_units.png',
+            ),
+            bbox_inches='tight',
+        )
+        plt.close(fig)
+
+        # Update split_predictions
+        for this_set, this_name in zip(final_merge_sets, new_clust_names):
+            for this_cluster in this_set:
+                split_predictions[split_predictions == this_cluster] = this_name
+
+    # Prepare data
+    data = prepare_data(
+        np.arange(len(spike_waveforms)),
+        pca_slices,
+        energy,
+        amplitudes,
+    )
+
+    # Get cluster properties
+    (
+        subcluster_inds,
+        subcluster_waveforms,
+        subcluster_prob,
+        subcluster_times,
+        mean_waveforms,
+        std_waveforms,
+        chi_out,
+        fin_bool,
+        fin_bool_dict,
+    ) = get_cluster_props(
+        split_predictions,
+        spike_waveforms,
+        clf_prob,
+        spike_times,
+        chi_square_alpha,
+        count_threshold,
+    )
+
+    # Generate plots
+    gen_autosort_plot(
+        subcluster_prob,
+        subcluster_waveforms,
+        chi_out,
+        mean_waveforms,
+        std_waveforms,
+        subcluster_times,
+        fin_bool,
+        np.unique(split_predictions),
+        electrode_num,
+        sampling_rate,
+        autosort_output_dir,
+        n_max_plot=5000,
+    )
+
+    # Save units to HDF5
+    for this_sub in range(len(subcluster_waveforms)):
+        if fin_bool[this_sub]:
+            continue_bool, unit_name = descriptor_handler.save_unit(
+                subcluster_waveforms[this_sub],
+                subcluster_times[this_sub],
+                electrode_num,
+                sort_file_handler,
+                split_or_merge=None,
+                override_ask=True,
+            )
+        else:
+            continue_bool = True
+
+    hf5.flush()

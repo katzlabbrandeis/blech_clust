@@ -83,6 +83,7 @@ import pandas as pd
 import matplotlib
 from glob import glob
 import re
+from multiprocessing import Pool, cpu_count
 
 matplotlib.rcParams['font.size'] = 6
 
@@ -423,195 +424,30 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
             for this_electrode in electrode_list]
     electrode_num_list.sort()
 
-    for electrode_num in electrode_num_list:
-        ############################################################
-        # Get unit details and load data
-        ############################################################
+    # Create processing parameters tuple
+    process_params = (
+        max_autosort_clusters,
+        auto_params,
+        chi_square_alpha,
+        count_threshold,
+        sampling_rate,
+        autosort_output_dir,
+        this_descriptor_handler,
+        this_sort_file_handler,
+        hf5
+    )
 
-        print()
-        print('======================================')
-        print()
-
-        # Iterate over electrodes and pull out spikes
-        # Get classifier probabilities for each spike and use only
-        # "good" spikes
-
-        # Print out selections
-        print(f'=== Processing Electrode {electrode_num:02} ===')
-
-        # Load data from the chosen electrode 
-        # We can pick any soluation, but need to know what
-        # solutions are present
-
-        (
-            spike_waveforms,
-            spike_times,
-            pca_slices,
-            energy,
-            amplitudes,
-            split_predictions,
-        ) = post_utils.load_data_from_disk(electrode_num, max_autosort_clusters) 
-
-        clf_data_paths = [
-                f'./spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
-                f'./spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
-                ]
-        clf_prob, clf_pred = [np.load(this_path) for this_path in clf_data_paths]
-
-        # If auto-clustering was done, data has already been trimmed
-        # Only clf_pred needs to be trimmed
-        clf_prob = clf_prob[clf_pred]
-        clf_pred = clf_pred[clf_pred]
-
-        ############################## 
-        # Calculate whether the cluster is a wanted_unit
-        # This will be useful for merging, so we only merge units
-
-        ############################## 
-        # Merge clusters using mahalanobis distance
-        # If min( mahal a->b, mahal b->a ) < threshold, merge
-        # Unless ISI violations are > threshold
-
-        mahal_thresh = auto_params['mahalanobis_merge_thresh']
-        isi_threshs = auto_params['ISI_violations_thresholds']
-
-        mahal_mat_path = os.path.join(
-                '.',
-                'clustering_results',
-                f'electrode{electrode_num:02}',
-                f'clusters{max_autosort_clusters:02}',
-                'mahalanobis_distances.npy',
-                )
-        mahal_mat = np.load(mahal_mat_path)
-
-        unique_clusters = np.unique(split_predictions)
-        assert len(unique_clusters) == len(mahal_mat), \
-                'Mahalanobis matrix does not match number of clusters'
-
-        (
-                final_merge_sets,
-                new_clust_names,
-                                )=  post_utils.calculate_merge_sets(
-                                        mahal_mat,
-                                        mahal_thresh,
-                                        isi_threshs,
-                                        split_predictions,
-                                        spike_waveforms,
-                                        spike_times,
-                                        clf_prob,
-                                        chi_square_alpha,
-                                        count_threshold,
-                                        sampling_rate,
-                                        )
-
-
-        if len(final_merge_sets) > 0:
-            # Create names for merged clusters
-            # Rename both to max_clusters
-
-            # Print out merge sets
-            print(f'=== Merging {len(final_merge_sets)} Clusters ===')
-            for this_merge_set, new_name in zip(final_merge_sets, new_clust_names):
-                print(f'==== {this_merge_set} => {new_name} ====')
-
-            fig, ax = post_utils.gen_plot_auto_merged_clusters(
-                    spike_waveforms,
-                    spike_times,
-                    split_predictions,
-                    sampling_rate,
-                    final_merge_sets,
-                    new_clust_names,
-                    )
-
-            # In case first unit is merged, we need to create the autosort_output_dir
-            if not os.path.exists(autosort_output_dir):
-                os.makedirs(autosort_output_dir)
-
-            fig.savefig(
-                    os.path.join(
-                        autosort_output_dir,
-                        f'{electrode_num:02}_merged_units.png',
-                        ),
-                    bbox_inches = 'tight',
-                    )
-            plt.close(fig)
-
-            # Update split_predictions
-            for this_set, this_name in zip(final_merge_sets, new_clust_names):
-                for this_cluster in this_set:
-                    split_predictions[split_predictions == this_cluster] = this_name
-
-        ############################## 
-
-        # Take everything
-        data = post_utils.prepare_data(
-                np.arange(len(spike_waveforms)),
-                pca_slices,
-                energy,
-                amplitudes,
-                )
-
-        (
-            subcluster_inds,
-            subcluster_waveforms,
-            subcluster_prob,
-            subcluster_times,
-            mean_waveforms,
-            std_waveforms,
-            chi_out,
-            fin_bool,
-            fin_bool_dict,
-        ) = \
-                post_utils.get_cluster_props(
-                split_predictions,
-                spike_waveforms,
-                clf_prob,
-                spike_times,
-                chi_square_alpha,
-                count_threshold,
-                )
-
-
-        ##############################
-        # Generate plots for each subcluster
-        ##############################
-
-        post_utils.gen_autosort_plot(
-            subcluster_prob,
-            subcluster_waveforms,
-            chi_out,
-            mean_waveforms,
-            std_waveforms,
-            subcluster_times,
-            fin_bool,
-            np.unique(split_predictions),
-            electrode_num,
-            sampling_rate,
-            autosort_output_dir,
-            n_max_plot=5000,
+    # Use multiprocessing to process electrodes in parallel
+    n_cores = cpu_count() - 1  # Leave one core free
+    print(f"Processing {len(electrode_num_list)} electrodes using {n_cores} cores")
+    
+    with Pool(n_cores) as pool:
+        pool.starmap(
+            post_utils.process_electrode,
+            [(electrode_num, process_params) for electrode_num in electrode_num_list]
         )
 
-        ############################################################
-        # Finally, save the unit to the HDF5 file
-        ############################################################  
-
-        ############################################################ 
-        # Subsetting this set of waveforms to include only the chosen split
-
-        for this_sub in range(len(subcluster_waveforms)):
-            if fin_bool[this_sub]:
-                continue_bool, unit_name = this_descriptor_handler.save_unit(
-                        subcluster_waveforms[this_sub],
-                        subcluster_times[this_sub],
-                        electrode_num,
-                        this_sort_file_handler,
-                        split_or_merge = None,
-                        override_ask = True,
-                        )
-            else:
-                continue_bool = True
-
-        hf5.flush()
+    hf5.flush()
 
     print('==== Auto Post-Processing Complete ====\n')
     print('==== Post-Processing Exiting ====\n')
