@@ -5,3 +5,4 @@ prefect==2.10.5
 pingouin==0.3
 tqdm
 gdown
+psutil>=6.1.0

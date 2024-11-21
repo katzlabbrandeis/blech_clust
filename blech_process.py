@@ -31,7 +31,6 @@ os.environ['MKL_NUM_THREADS']='1'
 
 from utils.blech_utils import imp_metadata, pipeline_graph_check
 import utils.blech_process_utils as bpu
-from utils import memory_monitor as mm
 import pylab as plt
 import json
 import sys
@@ -230,10 +229,6 @@ else:
         cluster_handler.create_classifier_plots(classifier_handler)
 
 
-# Make file for dumping info about memory usage
-f= open(f'./memory_monitor_clustering/{electrode_num:02}.txt', 'w')
-print(mm.memory_usage_resource(), file=f)
-f.close()
 print(f'Electrode {electrode_num} complete.')
 
 # Write successful execution to log
