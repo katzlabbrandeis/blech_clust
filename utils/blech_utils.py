@@ -88,12 +88,14 @@ class pipeline_graph_check():
             missing_files = [x for x, y in zip(all_files, all_files_present) if not y]
             raise FileNotFoundError(f'Missing files ::: {missing_files}')
 
-    def check_previous(self, script_path):
+    def check_previous(self, script_path, force_run = False):
         """
         Check that previous run script is present and executed successfully
         """
         # Check that script_path is present in flat_graph
         if script_path in self.flat_graph.keys():
+            if force_run:
+                print(' == Forcing run of script and not checking execution log == ')
             # Check that parent script is present in log
             parent_script = self.flat_graph[script_path]
             # If parent_script is not list, convert to list
@@ -104,10 +106,34 @@ class pipeline_graph_check():
             if os.path.exists(self.log_path):
                 with open(self.log_path, 'r') as log_file_connect:
                     log_dict = json.load(log_file_connect)
-                if any([x in log_dict['completed'].keys() for x in parent_script]):
+                if 'completed' not in log_dict.keys() and not force_run:
+                    print('No completed scripts in log')
+                    print('This is either the first script or the log file is corrupted')
+                    continue_str = 'Continue? (y/n) :: '
+                    while True:
+                        continue_bool = input(continue_str)
+                        if continue_bool == 'y':
+                            return True
+                        elif continue_bool == 'n':
+                            exit()
+                        else:
+                            print('Invalid input')
+                if force_run:
+                    return True
+                elif any([x in log_dict['completed'].keys() for x in parent_script]):
                     return True
                 else:
-                    raise ValueError(f'Parent script [{parent_script}] not found in log')
+                    print(f'Parent script [{parent_script}] not found in log')
+                    continue_str = 'Force run? (y/n) :: '
+                    while True:
+                        continue_bool = input(continue_str)
+                        if continue_bool == 'y':
+                            return True
+                        elif continue_bool == 'n':
+                            exit()
+                        else:
+                            print('Invalid input')
+
         else:
             raise ValueError(f'Script path [{script_path}] not found in flat graph')
 

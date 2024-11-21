@@ -1,4 +1,13 @@
 # Necessary python modules
+import argparse
+
+parser = argparse.ArgumentParser(description='Reload amplifier and digital input data')
+parser.add_argument('dir_name', type=str, help='Directory name')
+parser.add_argument('--amp_only', action='store_true', help='Only reload amplifier data')
+parser.add_argument('--dig_only', action='store_true', help='Only reload digital input data')
+
+args = parser.parse_args()
+
 import os
 import tables
 import sys
@@ -11,7 +20,7 @@ import shutil
 
 # Get blech_clust path
 script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.basename(script_path))
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 import sys
 sys.path.append(blech_clust_dir)
 
@@ -128,12 +137,26 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 # Read data files, and append to electrode arrays
 if file_type == ['one file per channel']:
-    read_file.read_digins(hdf5_name, dig_in, dig_in_list)
-    read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
-    if len(emg_channels) > 0:
-        read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+    if args.dig_only:
+        read_file.read_digins(hdf5_name, dig_in, dig_in_list)
+    elif args.amp_only:
+        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+        if len(emg_channels) > 0:
+            read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+    else:
+        read_file.read_digins(hdf5_name, dig_in, dig_in_list)
+        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+        if len(emg_channels) > 0:
+            read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
 elif file_type == ['one file per signal type']:
-    read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
-    # This next line takes care of both electrodes and emgs
-    read_file.read_electrode_emg_channels_single_file(
-        hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+    if args.dig_only:
+        read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
+    elif args.amp_only:
+        # This next line takes care of both electrodes and emgs
+        read_file.read_electrode_emg_channels_single_file(
+            hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+    else:
+        read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
+        # This next line takes care of both electrodes and emgs
+        read_file.read_electrode_emg_channels_single_file(
+            hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)

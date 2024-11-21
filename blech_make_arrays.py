@@ -1,4 +1,11 @@
 # Import stuff!
+import argparse
+
+parser = argparse.ArgumentParser(description='Make spike-trains and emg-trials for taste and laser dig-ins')
+parser.add_argument('dir_name', type=str, help='Directory containing the data files')
+parser.add_argument('-f', '--force_run', action='store_true', help='Force run the script')
+args = parser.parse_args()
+
 import numpy as np
 import tables
 import sys
@@ -100,12 +107,13 @@ if __name__ == '__main__':
     # Ask for the directory where the hdf5 file sits, and change to that directory
     # Get name of directory with the data files
 
-    metadata_handler = imp_metadata(sys.argv)
+    # metadata_handler = imp_metadata(sys.argv)
+    metadata_handler = imp_metadata([[],args.dir_name])
 
     # Perform pipeline graph check 
     script_path = os.path.realpath(__file__)
     this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
-    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.check_previous(script_path, args.force_run)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
     os.chdir(metadata_handler.dir_name)
@@ -121,6 +129,15 @@ if __name__ == '__main__':
     # Calculate start and end points of pulses
     start_points = [np.where(x==1)[0] for x in dig_in_diff]
     end_points = [np.where(x==-1)[0] for x in dig_in_diff]
+
+    if not all([len(x) == len(y) for x,y in zip(start_points, end_points)]): 
+        print('Number of start and end points do not match')
+        # Check where dig-in starts out open
+        for i, this_dig in enumerate(dig_in_data):
+            if this_dig[0] == 1:
+                print(f'{dig_in_basename[i]} starts open')
+                print('Removing first end point')
+                end_points[i] = end_points[i][1:]
 
     # Extract taste dig-ins from experimental info file
     info_dict = metadata_handler.info_dict
@@ -163,15 +180,20 @@ if __name__ == '__main__':
 
     taste_info_list = []
     for ind, num in enumerate(taste_digin_inds):
-        this_frame = pd.DataFrame(
-                dict(
-                    dig_in_num = num,
-                    dig_in_name = dig_in_basename[num],
-                    taste = info_dict['taste_params']['tastes'][ind],
-                    start = start_points[num],
-                    end = end_points[num],
+        print(f'Processing {dig_in_basename[num]}')
+        print(f'Taste: {info_dict["taste_params"]["tastes"][ind]}')
+        print(f'n_starts: {len(start_points[num])}, n_ends: {len(end_points[num])}')
+        print('=====================')
+        input_dict = dict(
+                        start = start_points[num],
+                        end = end_points[num],
                     )
+        this_frame = pd.DataFrame(
+                input_dict,
                 )
+        this_frame['dig_in_num'] = num
+        this_frame['dig_in_name'] = dig_in_basename[num]
+        this_frame['taste'] = info_dict['taste_params']['tastes'][ind]
         taste_info_list.append(this_frame)
     taste_info_frame = pd.concat(taste_info_list)
     taste_info_frame.sort_values(by=['start'],inplace=True)
@@ -265,6 +287,8 @@ if __name__ == '__main__':
     laser_onset = info_dict['laser_params']['onset']
     laser_duration = info_dict['laser_params']['duration']
 
+    print(f'Using laser onset: {laser_onset} ms, laser duration: {laser_duration} ms')
+
     trial_info_frame['laser_duration_ms'].fillna(0, inplace=True)
     trial_info_frame['laser_lag_ms'].fillna(0, inplace=True)
 
@@ -298,7 +322,10 @@ if __name__ == '__main__':
     # If sorting hasn't been done, use only emg channels
     # to calculate cutoff...don't need to go through all channels
 
-    raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
+    if '/raw_emg' in hf5:
+        raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
+    else:
+        raw_emg_electrodes = []
 
     if len(raw_emg_electrodes) > 0:
         emg_electrode_names = [x._v_pathname for x in raw_emg_electrodes]
