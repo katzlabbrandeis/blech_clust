@@ -17,7 +17,7 @@ X Laser parameters and dig_in
 X Misc Notes
 """
 
-import json
+import json5 as json
 import numpy as np
 import os
 import re

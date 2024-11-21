@@ -11,7 +11,7 @@ import os
 import sys
 import datetime
 from scipy import signal
-import json
+import json5 as json
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path)) 
 sys.path.append(blech_clust_dir)

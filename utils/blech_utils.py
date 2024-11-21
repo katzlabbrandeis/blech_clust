@@ -4,7 +4,7 @@ Utilities to support blech_clust processing
 import easygui
 import os
 import glob
-import json
+import json5 as json
 import pandas as pd
 from datetime import datetime
 

@@ -10,7 +10,6 @@ import easygui
 import os
 import tables
 import glob
-import json
 import sys
 import pandas as pd
 

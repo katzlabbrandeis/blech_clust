@@ -6,7 +6,6 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import glob
-import json
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm, trange

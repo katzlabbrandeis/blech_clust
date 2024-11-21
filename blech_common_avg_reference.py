@@ -45,7 +45,6 @@ import easygui
 import sys
 from tqdm import tqdm
 import glob
-import json
 from utils.blech_utils import imp_metadata, pipeline_graph_check
 
 

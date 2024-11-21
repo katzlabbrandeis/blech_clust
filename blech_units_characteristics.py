@@ -16,7 +16,6 @@ import tables
 import easygui
 import sys
 import os
-import json
 import glob
 import itertools
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check

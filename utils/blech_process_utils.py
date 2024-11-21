@@ -9,7 +9,7 @@ from utils import blech_waveforms_datashader
 import subprocess
 from scipy.stats import zscore
 import pylab as plt
-import json
+import json5 as json
 # import sys
 import numpy as np
 import tables

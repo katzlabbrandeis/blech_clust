@@ -12,7 +12,7 @@ import multiprocessing
 import sys
 import shutil
 from glob import glob
-import json
+import json5 as json
 import tables
 import pandas as pd
 import pylab as plt

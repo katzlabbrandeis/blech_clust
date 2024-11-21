@@ -25,7 +25,7 @@ parser.add_argument('--retrain', action = 'store_true',
 parser.add_argument('--time_lims', type = int, nargs = 2, default = [1500, 4500],
                     help = 'Time limits inferred firing rates (default: %(default)s)')
 
-import json
+import json5 as json
 from pprint import pprint
 import os
 args = parser.parse_args()

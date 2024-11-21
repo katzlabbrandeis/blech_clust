@@ -33,7 +33,7 @@ from utils.blech_utils import imp_metadata, pipeline_graph_check
 import utils.blech_process_utils as bpu
 from utils import memory_monitor as mm
 import pylab as plt
-import json
+import json5 as json
 import sys
 import numpy as np
 import warnings

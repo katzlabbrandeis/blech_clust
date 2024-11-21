@@ -2,7 +2,7 @@
 import numpy as np
 import sys
 import os
-import json
+import json5 as json
 
 bsa_bool = int(sys.argv[1])
 

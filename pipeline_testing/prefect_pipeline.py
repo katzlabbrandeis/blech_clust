@@ -6,7 +6,7 @@ import os
 from subprocess import PIPE, Popen
 from prefect import flow, task
 from glob import glob
-import json
+import json5 as json
 import argparse
 import sys
 

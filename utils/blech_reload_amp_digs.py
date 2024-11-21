@@ -4,7 +4,6 @@ import tables
 import sys
 import numpy as np
 import multiprocessing
-import json
 import glob
 import pandas as pd
 import shutil
