@@ -638,6 +638,28 @@ class unit_descriptor_handler():
         hash_input = f"{electrode_number}_{waveform_count}"
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, hash_input)).split('-')[0]
 
+    def get_saved_units_hashes(self,):
+        """
+        Get the hashes of the saved units
+        Return both hahes and unit names
+        """
+        unit_list = self.hf5.list_nodes('/sorted_units')
+        unit_hashes = []
+        unit_names = []
+        unit_numbers = []
+        for unit in unit_list:
+            metadata = unit.unit_metadata
+            unit_hashes.append(metadata.col('hash')[0])
+            unit_name = unit._v_pathname.split('/')[-1]
+            unit_names.append(unit_name)
+            unit_numbers.append(int(unit_name.split('unit')[-1]))
+        saved_frame = pd.DataFrame({
+            'hash': unit_hashes, 
+            'unit_name': unit_names,
+            'unit_number': unit_numbers,
+            })
+        return saved_frame
+
     def save_unit(
             self,
             unit_waveforms, 
@@ -668,21 +690,21 @@ class unit_descriptor_handler():
 
         if '/sorted_units' not in self.hf5:
             self.hf5.create_group('/', 'sorted_units')
-        unit_name, max_unit = self.get_latest_unit_name()
-        self.hf5.create_group('/sorted_units', unit_name)
 
         # Get a hash for the unit to compare stored data 
         # with unit_descriptor table
         unit_hash = self.generate_hash(electrode_num, len(unit_times))
 
         # Only check for existing hash if this isn't the first unit
-        if max_unit >= 0:
+        unit_name, max_unit = self.get_latest_unit_name()
+        if max_unit > 0:
             existing_units = self.get_saved_units_hashes()
             if unit_hash in existing_units['hash'].values:
                 existing_unit = existing_units[existing_units['hash'] == unit_hash].iloc[0]
                 print(f"Unit already exists as {existing_unit['unit_name']}")
                 return continue_bool, existing_unit['unit_name']
 
+        self.hf5.create_group('/sorted_units', unit_name)
         print(f"Adding new unit {unit_name}")
         
         # Add to HDF5
@@ -711,28 +733,6 @@ class unit_descriptor_handler():
         unit_table.flush()
         self.hf5.flush()
         return continue_bool, unit_name
-
-    def get_saved_units_hashes(self,):
-        """
-        Get the hashes of the saved units
-        Return both hahes and unit names
-        """
-        unit_list = self.hf5.list_nodes('/sorted_units')
-        unit_hashes = []
-        unit_names = []
-        unit_numbers = []
-        for unit in unit_list:
-            metadata = unit.unit_metadata
-            unit_hashes.append(metadata.col('hash')[0])
-            unit_name = unit._v_pathname.split('/')[-1]
-            unit_names.append(unit_name)
-            unit_numbers.append(int(unit_name.split('unit')[-1]))
-        saved_frame = pd.DataFrame({
-            'hash': unit_hashes, 
-            'unit_name': unit_names,
-            'unit_number': unit_numbers,
-            })
-        return saved_frame
 
     def check_unit_descriptor_table(self,):
         if '/unit_descriptor' not in self.hf5:
