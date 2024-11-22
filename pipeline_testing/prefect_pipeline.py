@@ -326,7 +326,15 @@ def run_spike_test():
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     run_CAR(data_dir)
+    
+    # Run with classifier enabled
+    change_waveform_classifier(use_classifier=1)
     run_jetstream_bash(data_dir)
+    
+    # Run with classifier disabled 
+    change_waveform_classifier(use_classifier=0)
+    run_jetstream_bash(data_dir)
+    
     select_clusters(data_dir)
     post_process(data_dir)
     quality_assurance(data_dir)
