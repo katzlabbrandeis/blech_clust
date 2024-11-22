@@ -355,19 +355,7 @@ def spike_emg_test():
     prep_data_flow(data_type = data_type)
     print(f'Running spike+emg test with data type : {data_type}')
     # Spike test
-    os.chdir(blech_clust_dir)
-    reset_blech_clust()
-    run_clean_slate(data_dir)
-    mark_exp_info_success(data_dir)
-    run_blech_clust(data_dir)
-    run_CAR(data_dir)
-    run_jetstream_bash(data_dir)
-    select_clusters(data_dir)
-    post_process(data_dir)
-    quality_assurance(data_dir)
-    units_plot(data_dir)
-    make_arrays(data_dir)
-    units_characteristics(data_dir)
+    run_spike_test()
     # Switch to EMG test without resetting
     # Chop number of trials down to preserve time
     cut_emg_trials(data_dir)
