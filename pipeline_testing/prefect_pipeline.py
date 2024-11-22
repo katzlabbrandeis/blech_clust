@@ -237,6 +237,14 @@ def units_characteristics(data_dir):
 ## EMG Only
 ############################################################
 @task(log_prints=True)
+def change_waveform_classifier(use_classifier = 1):
+    script_name = 'pipeline_testing/change_waveform_classifier.py'
+    process = Popen(["python", script_name, str(use_classifier)],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(process,stderr,stdout)
+
+@task(log_prints=True)
 def change_emg_freq_method(use_BSA = 1):
     script_name = 'pipeline_testing/change_emg_freq_method.py'
     process = Popen(["python", script_name, str(use_BSA)],
