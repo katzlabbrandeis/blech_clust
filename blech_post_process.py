@@ -1,3 +1,54 @@
+"""
+blech_post_process.py - Post-processing and unit sorting for neural recordings
+
+This script handles the final stage of spike sorting, allowing both manual and automatic 
+processing of clustered neural data. Key functionalities include:
+
+1. Unit Processing:
+   - Manual cluster selection and refinement
+   - Splitting of clusters into subclusters
+   - Merging of similar clusters
+   - Automatic unit classification based on quality metrics
+
+2. Quality Metrics:
+   - Inter-spike interval (ISI) violation analysis
+   - Cluster isolation metrics
+   - Waveform consistency checks
+   - Mahalanobis distance calculations between clusters
+
+3. Data Management:
+   - Handles sorted unit data in HDF5 file structure
+   - Maintains unit descriptors and metadata
+   - Supports both interactive and batch processing modes
+   - Optional integration with external sorting files
+
+4. Visualization:
+   - Generates waveform plots for manual inspection
+   - Creates quality metric visualizations
+   - Produces summary plots for merged/split units
+   - Automated report generation for batch processing
+
+Usage:
+    python blech_post_process.py <dir_name> [--show-plot True/False] [--sort-file path/to/file]
+
+Arguments:
+    dir_name    : Directory containing the HDF5 file with clustered data
+    --show-plot : Toggle visualization during processing (default: True)
+    --sort-file : Optional CSV file with pre-defined sorting decisions
+
+Dependencies:
+    - numpy, pandas, tables, sklearn, matplotlib
+    - Custom utility modules from blech_clust package
+    - datashader for large dataset visualization
+
+Notes:
+    - Requires completed execution of blech_clust.py and clustering scripts
+    - Supports both manual and automated quality control
+    - Integrates with the broader blech_clust processing pipeline
+
+Author: Abuzar Mahmood
+"""
+
 ############################################################
 # First handle arguments
 # This allows the -h flag to run without loading imports
@@ -292,6 +343,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         violations1, violations2,_,_ = post_utils.generate_datashader_plot(
                 unit_waveforms, 
                 unit_times,
+                sampling_rate,
                 title = 'Merged Unit',
                 )
 
@@ -580,6 +632,11 @@ current_unit_table = this_descriptor_handler.table_to_frame()
 print()
 print('==== Unit Table ====\n')
 print(current_unit_table)
+# Also write to disk
+current_unit_table.to_csv(
+        os.path.join(metadata_handler.dir_name, 'unit_descriptor.csv'),
+        index = False,
+        )
 
 
 print()

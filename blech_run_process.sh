@@ -40,8 +40,15 @@ if [ ! -d "$DIR" ]; then
     fi
 fi
 
+# Start RAM monitoring in background
+python3 utils/ram_monitor.py "$DIR" &
+RAM_MONITOR_PID=$!
+
 echo "Processing $DIR"
 for i in {1..10}; do
     echo Retry $i
     bash $DIR/temp/blech_process_parallel.sh
 done
+
+# Kill RAM monitor when done
+kill $RAM_MONITOR_PID

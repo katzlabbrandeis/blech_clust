@@ -211,7 +211,7 @@ if __name__ == '__main__':
             match_ind = np.where(
                     np.abs(taste_info_frame['start'] - this_start) < match_tol
                     )[0]
-            assert len(match_ind) == 1, 'Exact match not found'
+            assert len(match_ind) == 1, f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
             match_trials_ind.append(match_ind[0])
         match_trials = taste_info_frame.iloc[match_trials_ind]['abs_trial_num'].values
         laser_info_frame['abs_trial_num'] = match_trials
@@ -298,10 +298,7 @@ if __name__ == '__main__':
     # If sorting hasn't been done, use only emg channels
     # to calculate cutoff...don't need to go through all channels
 
-    if '/raw_emg' in hf5:
-        raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
-    else:
-        raw_emg_electrodes = []
+    raw_emg_electrodes = [x for x in hf5.get_node('/','raw_emg')]
 
     if len(raw_emg_electrodes) > 0:
         emg_electrode_names = [x._v_pathname for x in raw_emg_electrodes]
@@ -441,16 +438,15 @@ if __name__ == '__main__':
     else:
         print('No sorted units found...NOT MAKING SPIKE TRAINS')
 
-    if '/raw_emg' in hf5:
-        if len(list(hf5.get_node('/','raw_emg'))) > 0:
-        
-            print('EMG Data found ==> Making EMG Trial Arrays')
+    #Test for EMG Data and then use it
+    if len(raw_emg_electrodes) > 0:
+        print('EMG Data found ==> Making EMG Trial Arrays')
 
-            # Grab the names of the arrays containing emg recordings
-            emg_nodes = hf5.list_nodes('/raw_emg')
-            emg_pathname = []
-            for node in emg_nodes:
-                emg_pathname.append(node._v_pathname)
+        # Grab the names of the arrays containing emg recordings
+        emg_nodes = hf5.list_nodes('/raw_emg')
+        emg_pathname = []
+        for node in emg_nodes:
+            emg_pathname.append(node._v_pathname)
 
         # Delete /emg_data in hf5 file if it exists, and then create it
         if '/emg_data' in hf5:
@@ -477,7 +473,6 @@ if __name__ == '__main__':
             f.write(f'Channels used : {emg_pathname}')
             f.write('\n')
             f.write('Numbers indicate "electrode_ind" in electrode_layout_frame')
-
     else:
         print('No EMG Data Found...NOT MAKING EMG ARRAYS')
 

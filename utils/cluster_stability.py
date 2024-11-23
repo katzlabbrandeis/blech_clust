@@ -22,18 +22,19 @@ from glob import glob
 import seaborn as sns
 import matplotlib
 
-def load_electrode_data(electrode_num): 
+def load_electrode_data(data_dir, electrode_num): 
     """
     Load data from disk
     """
 
     loading_paths = [\
-        f'./spike_waveforms/electrode{electrode_num:02}/spike_waveforms.npy',
-        f'./spike_times/electrode{electrode_num:02}/spike_times.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/pca_waveforms.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/energy.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/spike_amplitudes.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/spike_waveforms.npy',
+        f'spike_times/electrode{electrode_num:02}/spike_times.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/pca_waveforms.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/energy.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/spike_amplitudes.npy',
         ]
+    loading_paths = [os.path.join(data_dir, x) for x in loading_paths]
 
     loaded_dat = [np.load(x) for x in loading_paths]
 
@@ -78,7 +79,7 @@ clustering_solutions = return_clustering_solutions(electrode_num)
 	pca_slices,
 	energy,
 	amplitudes,
-) = load_electrode_data(electrode_num) 
+) = load_electrode_data(data_dir, electrode_num) 
 
 # Load predictions for all clustering solutions
 predictions = [load_cluster_predictions(electrode_num, x) \
@@ -132,7 +133,7 @@ for ind, clust_num in enumerate(clustering_solutions):
 	fig.suptitle(f'Electrode {electrode_num:02} - {clust_num} clusters')
 	fig.tight_layout()
 	fig.subplots_adjust(top=0.95)
-	fig.savefig(f'./Plots/{electrode_num:02}/clusters{clust_num}/' +\
+	fig.savefig(f'./Plots/{electrode_num:02}/clusters{clust_num:02}/' +\
 			f'clustermap.png', dpi=300,
 			 bbox_inches='tight')
 	plt.close()
