@@ -141,14 +141,19 @@ classifier_params_path = \
 classifier_params = json.load(open(classifier_params_path, 'r'))
 
 
-if classifier_params['use_classifier'] and \
-    classifier_params['use_neuRecommend']:
+if classifier_params['use_neuRecommend']:
+    # If full classification pipeline was not loaded, still load
+    # feature transformation pipeline so it may be used later
     classifier_handler = bpu.classifier_handler(
             data_dir_name, electrode_num, params_dict)
     sys.path.append(classifier_handler.create_pipeline_path)
     from feature_engineering_pipeline import *
-    print(' == Using neuRecommend classifier ==')
     classifier_handler.load_pipelines()
+
+if classifier_params['use_classifier'] and \
+    classifier_params['use_neuRecommend']:
+    print(' == Using neuRecommend classifier ==')
+    # Full classification pipeline also has feature transformation pipeline
     classifier_handler.classify_waveforms(
             spike_set.slices_dejittered,
             spike_set.times_dejittered,
@@ -169,6 +174,8 @@ if classifier_params['use_classifier'] and \
 ############################################################
 
 if classifier_params['use_neuRecommend']:
+    # If full classification pipeline was not loaded, still use
+    # feature transformation pipeline
     print('Using neuRecommend features')
     spike_set.extract_features(
             classifier_handler.feature_pipeline,

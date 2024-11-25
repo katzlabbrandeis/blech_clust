@@ -37,4 +37,7 @@ params['use_classifier'] = bool(args.use_classifier)
 with open(params_file, 'w') as f:
     json.dump(params, f, indent=3)
 
+print("Updated waveform_classifier_params.json:")
+os.system(f"cat {params_file}")
+
 print(f"Updated use_classifier to {bool(args.use_classifier)}")
