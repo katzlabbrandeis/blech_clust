@@ -36,6 +36,9 @@ import json
 import sys
 import numpy as np
 import warnings
+import datetime
+import json
+import pathlib
 
 # Ignore specific warning
 warnings.filterwarnings(action="ignore", category=UserWarning, message="Trying to unpickle estimator")
@@ -63,6 +66,23 @@ os.chdir(metadata_handler.dir_name)
 
 electrode_num = int(sys.argv[2])
 print(f'Processing electrode {electrode_num}')
+
+# Initialize or load processing log
+log_path = pathlib.Path(metadata_handler.dir_name) / 'blech_process.log'
+if log_path.exists():
+    with open(log_path) as f:
+        process_log = json.load(f)
+else:
+    process_log = {}
+
+# Log processing start
+process_log[str(electrode_num)] = {
+    'start_time': datetime.datetime.now().isoformat(),
+    'status': 'processing'
+}
+with open(log_path, 'w') as f:
+    json.dump(process_log, f, indent=2)
+
 params_dict = metadata_handler.params_dict
 auto_params = params_dict['clustering_params']['auto_params']
 auto_cluster = auto_params['auto_cluster']
@@ -239,6 +259,14 @@ else:
 
 
 print(f'Electrode {electrode_num} complete.')
+
+# Update processing log with completion
+with open(log_path) as f:
+    process_log = json.load(f)
+process_log[str(electrode_num)]['end_time'] = datetime.datetime.now().isoformat()
+process_log[str(electrode_num)]['status'] = 'complete'
+with open(log_path, 'w') as f:
+    json.dump(process_log, f, indent=2)
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
