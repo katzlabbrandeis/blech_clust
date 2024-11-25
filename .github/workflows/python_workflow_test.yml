@@ -7,6 +7,9 @@ on: [pull_request]
 jobs:
   Preamble:
     runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} preamble
+      cancel-in-progress: true
     steps:
       - run: pwd
       - run: which python
