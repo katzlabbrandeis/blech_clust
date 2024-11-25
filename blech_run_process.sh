@@ -5,20 +5,40 @@ choose_folder() {
     zenity --file-selection --directory --title="Select data folder" 2>/dev/null
 }
 
-DIR=$1
+# Parse arguments
+DELETE_LOG=false
+DIR=""
 
-# Check if the result log exists, ask whether to overwrite
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --delete-log)
+            DELETE_LOG=true
+            shift
+            ;;
+        *)
+            DIR="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check if the result log exists, handle based on delete-log flag
 LOG_FILE="$DIR/results.log"
 if [ -f "$LOG_FILE" ]; then
-    while true; do
-    	read -p "results.log detected, overwrite existing log? ([y]/n) :: " yn
-        yn=${yn:-y}  # Default to 'y' if no input is provided
-    	case $yn in
-   	    [Yy]* ) echo "Overwriting existing log";rm "$LOG_FILE"; break;;
-    	    [Nn]* ) echo "Using existing log"; break;;
-    	    * ) echo "Please answer yes or no.";;
-    	esac
-    done
+    if [ "$DELETE_LOG" = true ]; then
+        echo "Forcing deletion of existing log"
+        rm "$LOG_FILE"
+    else
+        while true; do
+            read -p "results.log detected, overwrite existing log? ([y]/n) :: " yn
+            yn=${yn:-y}  # Default to 'y' if no input is provided
+            case $yn in
+                [Yy]* ) echo "Overwriting existing log";rm "$LOG_FILE"; break;;
+                [Nn]* ) echo "Using existing log"; break;;
+                * ) echo "Please answer yes or no.";;
+            esac
+        done
+    fi
 fi
 
 
