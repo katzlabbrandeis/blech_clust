@@ -26,6 +26,9 @@ jobs:
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Prefect SPIKE only test
         shell: bash
@@ -37,6 +40,9 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: Preamble 
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Prefect EMG only test
         shell: bash
@@ -48,6 +54,9 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: Preamble 
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
