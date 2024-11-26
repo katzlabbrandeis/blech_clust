@@ -190,9 +190,9 @@ def change_waveform_classifier(use_classifier = 1):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def change_auto_params(use_auto = 1):
+def change_auto_params(data_dir, use_auto = 1):
     script_name = 'pipeline_testing/change_auto_params.py'
-    process = Popen(["python", script_name, str(use_auto), str(use_auto)],
+    process = Popen(["python", script_name, data_dir, str(use_auto), str(use_auto)],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
@@ -340,14 +340,14 @@ def run_spike_test():
     
     # Run with classifier enabled + autosorting
     change_waveform_classifier(use_classifier=1)
-    change_auto_params(use_auto=1)
+    change_auto_params(data_dir, use_auto=1)
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file = False, keep_raw = True)
     
     # Run with classifier disabled and manual sorting 
     change_waveform_classifier(use_classifier=0)
-    change_auto_params(use_auto=0)
+    change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
     post_process(data_dir)
