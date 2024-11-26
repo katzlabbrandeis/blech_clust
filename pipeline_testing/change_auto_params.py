@@ -1,13 +1,11 @@
 import os
 import json
 import argparse
+from glob import glob
 
-def set_auto_params(auto_cluster, auto_post):
+def set_auto_params(data_dir, auto_cluster, auto_post):
     # Get paths
-    script_path = os.path.realpath(__file__)
-    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-    params_dir = os.path.join(blech_clust_dir, 'params')
-    params_file = os.path.join(params_dir, 'sorting_params_template.json')
+    params_file = glob(os.path.join(data_dir, '*.params')
     """Set auto_cluster and auto_post_process parameters in sorting params file"""
    
     # Read the current params
@@ -28,10 +26,12 @@ def set_auto_params(auto_cluster, auto_post):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Set auto clustering parameters')
+    parser.add_argument('data_dir', type=str,
+                    help='Path to data directory')
     parser.add_argument('auto_cluster', type=int, choices=[0, 1],
                     help='Set auto_cluster to True (1) or False (0)')
     parser.add_argument('auto_post', type=int, choices=[0, 1],
                     help='Set auto_post_process to True (1) or False (0)')
     args = parser.parse_args()
     
-    set_auto_params(args.auto_cluster, args.auto_post)
+    set_auto_params(args.data_dir, args.auto_cluster, args.auto_post)
