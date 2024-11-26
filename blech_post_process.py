@@ -65,10 +65,13 @@ parser = argparse.ArgumentParser(
         description = 'Spike extraction and sorting script')
 parser.add_argument('dir_name',
                     help = 'Directory containing data files')
-parser.add_argument('--show-plot', '-p', 
-        help = 'Show waveforms while iterating (True/False)', default = 'True')
 parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
                     default = None)
+parser.add_argument('--show-plot', 
+        help = 'Show waveforms while iterating', 
+                    action = 'store_true')
+parser.add_argument('--keep-raw', help = 'Keep raw data in hdf5 file',
+                    action = 'store_true')
 args = parser.parse_args()
 
 ############################################################
@@ -132,7 +135,11 @@ hdf5_name = metadata_handler.hdf5_name
 
 
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
-repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
+if args.keep_raw == 'False':
+    repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
+else:
+    repacked_bool = False
+    print('=== Keeping raw data in hdf5 file ===')
 
 # Open the hdf5 file
 if repacked_bool:
@@ -193,12 +200,12 @@ while (not auto_post_process) or (args.sort_file is not None):
         energy,
         amplitudes,
         predictions,
-    ) = post_utils.load_data_from_disk(electrode_num, num_clusters)
+    ) = post_utils.load_data_from_disk(dir_name, electrode_num, num_clusters)
 
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
     #if ast.literal_eval(args.show_plot):
-    if args.show_plot == 'True':
+    if args.show_plot: 
         post_utils.gen_select_cluster_plot(electrode_num, num_clusters, clusters)
 
     ############################################################

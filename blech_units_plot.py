@@ -10,7 +10,6 @@ from tqdm import tqdm, trange
 
 # Import 3rd part code
 from utils import blech_waveforms_datashader
-from utils import memory_monitor as mm
 from utils.blech_utils import imp_metadata, pipeline_graph_check
 from utils.blech_process_utils import gen_isi_hist
 
