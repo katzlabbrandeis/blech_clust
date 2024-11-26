@@ -24,8 +24,17 @@ Steps:
 ############################################################
 # Imports
 ############################################################
-
 import os
+import argparse
+parser = argparse.ArgumentParser(description='Process single electrode waveforms')
+parser.add_argument('data_dir', type=str, help='Path to data directory')
+parser.add_argument('electrode_num', type=int, help='Electrode number to process')
+args = parser.parse_args()
+
+# Confirm sys.argv[1] is a path that exists
+if not os.path.exists(args.data_dir):
+    raise ValueError(f'Provided path {args.data_dir} does not exist')
+
 os.environ['OMP_NUM_THREADS']='1'
 os.environ['MKL_NUM_THREADS']='1'
 
@@ -51,9 +60,10 @@ np.random.seed(0)
 # Load Data
 ############################################################
 
+
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
-data_dir_name = sys.argv[1]
+data_dir_name = args.data_dir
 
 # Perform pipeline graph check
 script_path = os.path.realpath(__file__)
@@ -64,7 +74,7 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
 
-electrode_num = int(sys.argv[2])
+electrode_num = int(args.electrode_num)
 print(f'Processing electrode {electrode_num}')
 
 # Initialize or load processing log
@@ -78,7 +88,7 @@ else:
 # Log processing start
 process_log[str(electrode_num)] = {
     'start_time': datetime.datetime.now().isoformat(),
-    'status': 'processing'
+    'status': 'attempted'
 }
 with open(log_path, 'w') as f:
     json.dump(process_log, f, indent=2)
