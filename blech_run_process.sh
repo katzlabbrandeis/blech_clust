@@ -72,3 +72,27 @@ done
 
 # Kill RAM monitor when done
 kill $RAM_MONITOR_PID
+
+# Check all logs for completion status
+echo "Checking completion status of all electrodes..."
+python3 - <<EOF
+import json
+import sys
+import pathlib
+
+log_path = pathlib.Path("$DIR") / 'blech_process.log'
+if not log_path.exists():
+    print("Error: blech_process.log not found")
+    sys.exit(1)
+
+with open(log_path) as f:
+    process_log = json.load(f)
+
+incomplete = [e for e, data in process_log.items() if data['status'] == 'attempted']
+
+if incomplete:
+    print(f"Error: The following electrodes did not complete successfully: {incomplete}")
+    sys.exit(1)
+else:
+    print("All electrodes completed successfully")
+EOF
