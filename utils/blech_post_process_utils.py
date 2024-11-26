@@ -1057,8 +1057,7 @@ def gen_autosort_plot(
 
     if not os.path.exists(autosort_output_dir):
         os.makedirs(autosort_output_dir)
-    print('== Generating autosort plot ==')
-    print(f'== Saving to {autosort_output_dir} ==')
+    print(f'== Generating autosort plot for electrode {electrode_num} ==')
 
     fig, ax = plt.subplots(5, len(subcluster_waveforms),
                            figsize=(5*len(subcluster_prob), 20),

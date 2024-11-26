@@ -85,7 +85,6 @@ from glob import glob
 import re
 from functools import partial
 from multiprocessing import Pool, cpu_count
-from tqdm import tqdm
 
 matplotlib.rcParams['font.size'] = 6
 
@@ -436,7 +435,13 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     )
 
     # Use multiprocessing to process electrodes in parallel
-    n_cores = np.min((len(electrode_num_list), cpu_count() - 1))  # Leave one core free
+    n_cores = np.min(
+            (
+                len(electrode_num_list), 
+                cpu_count() - 1,
+                params_dict['max_parallel_cpu']
+                )
+            )  # Leave one core free
     print(f"Processing {len(electrode_num_list)} electrodes using {n_cores} cores")
     
     # Create partial function
@@ -445,6 +450,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
         process_params = process_params
     )
     
+    print(f'== Saving to {autosort_output_dir} ==')
     with Pool(n_cores) as pool:
         result = pool.starmap(
             auto_process_partial,
@@ -457,7 +463,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     # Get pickling errors when they are included
     # It is also a quick process so it doesn't need to be parallelized
     print('Writing sorted units to file...')
-    for subcluster_waveforms, subcluster_times, fin_bool, electrode_num in tqdm(result):
+    for subcluster_waveforms, subcluster_times, fin_bool, electrode_num in result:
         for this_sub in range(len(subcluster_waveforms)):
             if fin_bool[this_sub]:
                 continue_bool, unit_name = this_descriptor_handler.save_unit(
