@@ -8,7 +8,7 @@ import pylab as plt
 import matplotlib.image as mpimg
 import argparse
 import pandas as pd
-import uuid
+import hashlib
 from utils.blech_utils import entry_checker, imp_metadata
 from utils.blech_process_utils import gen_isi_hist
 from utils import blech_waveforms_datashader
@@ -119,20 +119,21 @@ def get_electrode_details(this_sort_file_handler):
 
     return continue_bool, electrode_num, num_clusters, clusters
 
-def load_data_from_disk(electrode_num, num_clusters):
+def load_data_from_disk(data_dir, electrode_num, num_clusters):
     """
     Load data from disk
     """
 
     loading_paths = [\
-        f'./spike_waveforms/electrode{electrode_num:02}/spike_waveforms.npy',
-        f'./spike_times/electrode{electrode_num:02}/spike_times.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/pca_waveforms.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/energy.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/spike_amplitudes.npy',
-        f'./clustering_results/electrode{electrode_num:02}/'\
+        f'spike_waveforms/electrode{electrode_num:02}/spike_waveforms.npy',
+        f'spike_times/electrode{electrode_num:02}/spike_times.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/pca_waveforms.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/energy.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/spike_amplitudes.npy',
+        f'clustering_results/electrode{electrode_num:02}/'\
                 f'clusters{num_clusters}/predictions.npy',]
 
+    loading_paths = [os.path.join(data_dir, x) for x in loading_paths]
     loaded_dat = [np.load(x) for x in loading_paths]
 
     return loaded_dat
@@ -636,29 +637,10 @@ class unit_descriptor_handler():
         """
         # Create deterministic hash from inputs
         hash_input = f"{electrode_number}_{waveform_count}"
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, hash_input)).split('-')[0]
-
-    def get_saved_units_hashes(self,):
-        """
-        Get the hashes of the saved units
-        Return both hahes and unit names
-        """
-        unit_list = self.hf5.list_nodes('/sorted_units')
-        unit_hashes = []
-        unit_names = []
-        unit_numbers = []
-        for unit in unit_list:
-            metadata = unit.unit_metadata
-            unit_hashes.append(metadata.col('hash')[0])
-            unit_name = unit._v_pathname.split('/')[-1]
-            unit_names.append(unit_name)
-            unit_numbers.append(int(unit_name.split('unit')[-1]))
-        saved_frame = pd.DataFrame({
-            'hash': unit_hashes, 
-            'unit_name': unit_names,
-            'unit_number': unit_numbers,
-            })
-        return saved_frame
+        hash_object = hashlib.sha256(hash_input.encode())
+        hash_value = hash_object.hexdigest()
+        hash_str = str(hash_value)[:10]
+        return hash_str
 
     def save_unit(
             self,
@@ -697,8 +679,9 @@ class unit_descriptor_handler():
 
         # Only check for existing hash if this isn't the first unit
         unit_name, max_unit = self.get_latest_unit_name()
-        if max_unit > 0:
-            existing_units = self.get_saved_units_hashes()
+        if max_unit >= 0: # This is not count...it's ind, 0 means first unit is already there
+            # existing_units = self.get_saved_units_hashes()
+            existing_units = self.get_metadata_from_units() 
             if unit_hash in existing_units['hash'].values:
                 existing_unit = existing_units[existing_units['hash'] == unit_hash].iloc[0]
                 print(f"Unit already exists as {existing_unit['unit_name']}")
@@ -759,6 +742,7 @@ class unit_descriptor_handler():
         table_frame = pd.DataFrame(
                                 data = dict_list,
                                     )
+        table_frame['hash'] = [x.decode() for x in table_frame['hash']]
         return table_frame
 
 
@@ -767,9 +751,10 @@ class unit_descriptor_handler():
         Check that the unit_descriptor table matches the saved units
         """
         table = self.return_unit_descriptor_table() 
-        saved_frame = self.get_saved_units_hashes()
+        # saved_frame = self.get_saved_units_hashes()
+        saved_frame = self.get_metadata_from_units() 
         table_frame = pd.DataFrame({
-            'hash': table.col('hash')[:], 
+            'hash': [str(x.decode()) for x in table.col('hash')[:]], 
             'unit_number': table.col('unit_number')[:]
             })
 
@@ -793,8 +778,15 @@ class unit_descriptor_handler():
         """
         # Rename saved unit
         unit_list = self.hf5.list_nodes('/sorted_units')
-        wanted_unit_list = [unit for unit in unit_list \
-                if unit.unit_metadata[:]['hash'][0] == hash]
+        wanted_unit_list = []
+        for unit in unit_list:
+            metadata = unit.unit_metadata
+            unit_hash = metadata.col('hash')[0]
+            # This needs to be decoded because hf5 files don't 
+            # store strings innately and convert them to bytes
+            unit_hash = str(unit_hash.decode())
+            if unit_hash == hash:
+                wanted_unit_list.append(unit)
         if not len(wanted_unit_list) > 0:
             print('Unit not found')
             return
@@ -821,8 +813,15 @@ class unit_descriptor_handler():
             raise ValueError('No units found in sorted_units directory')
 
         metadata_list = []
+        unit_hashes = []
         for unit in unit_list:
             metadata_list.append(unit.unit_metadata[:])
+            metadata = unit.unit_metadata
+            unit_hash = metadata.col('hash')[0]
+            # This needs to be decoded because hf5 files don't 
+            # store strings innately and convert them to bytes
+            unit_hash = str(unit_hash.decode())
+            unit_hashes.append(unit_hash)
         col_names = unit.unit_metadata.colnames
         saved_frame = pd.DataFrame(
                 data = [dict(zip(col_names, row[0])) for row in metadata_list]
@@ -831,6 +830,7 @@ class unit_descriptor_handler():
                 for unit in unit_list]
         saved_frame['unit_number'] = [int(unit_name.split('unit')[-1])
                 for unit_name in saved_frame['unit_name']]
+        saved_frame['hash'] = unit_hashes
         return saved_frame
 
     def resort_units(self,):
@@ -846,8 +846,7 @@ class unit_descriptor_handler():
         # Rename units
         for row in metadata_table.iterrows():
             this_hash = row[1]['hash']
-            decoded_hash = abs(int(hash(this_hash)))
-            new_name = f'unit{decoded_hash:03d}'
+            new_name = f'unit{str(this_hash)}'
             self._rename_unit(this_hash, new_name)
         # This double step is necessary to avoid renaming conflicts
         for row in metadata_table.iterrows():
@@ -1345,7 +1344,13 @@ def calculate_merge_sets(
             if fin_bool_dict[key]]
 
     return fin_merge_sets, new_clust_names
-def process_electrode(electrode_num, process_params):
+
+# def auto_process_electrode(electrode_num, process_params):
+def auto_process_electrode(
+        electrode_num, 
+        process_params,
+        ):
+
     """
     Process a single electrode's data for autosort
     
@@ -1357,10 +1362,7 @@ def process_electrode(electrode_num, process_params):
             - chi_square_alpha  
             - count_threshold
             - sampling_rate
-            - autosort_output_dir
-            - descriptor_handler
-            - sort_file_handler
-            - hf5
+            - data_dir
     """
     (
         max_autosort_clusters,
@@ -1368,11 +1370,13 @@ def process_electrode(electrode_num, process_params):
         chi_square_alpha,
         count_threshold,
         sampling_rate,
-        autosort_output_dir,
-        descriptor_handler,
-        sort_file_handler,
-        hf5
+        data_dir,
     ) = process_params
+
+    autosort_output_dir = os.path.join(
+        data_dir,
+        'autosort_outputs'
+    )
 
     print(f'=== Processing Electrode {electrode_num:02} ===')
 
@@ -1384,12 +1388,13 @@ def process_electrode(electrode_num, process_params):
         energy,
         amplitudes,
         split_predictions,
-    ) = load_data_from_disk(electrode_num, max_autosort_clusters)
+    ) = load_data_from_disk(data_dir, electrode_num, max_autosort_clusters)
 
     clf_data_paths = [
-        f'./spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
-        f'./spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
+        f'spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
     ]
+    clf_data_paths = [os.path.join(data_dir, x) for x in clf_data_paths]
     clf_prob, clf_pred = [np.load(this_path) for this_path in clf_data_paths]
 
     # If auto-clustering was done, data has already been trimmed
@@ -1507,18 +1512,4 @@ def process_electrode(electrode_num, process_params):
         n_max_plot=5000,
     )
 
-    # Save units to HDF5
-    for this_sub in range(len(subcluster_waveforms)):
-        if fin_bool[this_sub]:
-            continue_bool, unit_name = descriptor_handler.save_unit(
-                subcluster_waveforms[this_sub],
-                subcluster_times[this_sub],
-                electrode_num,
-                sort_file_handler,
-                split_or_merge=None,
-                override_ask=True,
-            )
-        else:
-            continue_bool = True
-
-    hf5.flush()
+    return subcluster_waveforms, subcluster_times, fin_bool, electrode_num

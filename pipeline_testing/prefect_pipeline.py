@@ -182,6 +182,22 @@ def run_CAR(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
+def change_waveform_classifier(use_classifier = 1):
+    script_name = 'pipeline_testing/change_waveform_classifier.py'
+    process = Popen(["python", script_name, str(use_classifier)],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(process,stderr,stdout)
+
+@task(log_prints=True)
+def change_auto_params(use_auto = 1):
+    script_name = 'pipeline_testing/change_auto_params.py'
+    process = Popen(["python", script_name, str(use_auto), str(use_auto)],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(process,stderr,stdout)
+
+@task(log_prints=True)
 def run_jetstream_bash(data_dir):
     script_name = 'blech_run_process.sh'
     process = Popen(["bash", script_name, '--delete-log', data_dir],
@@ -198,12 +214,15 @@ def select_clusters(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def post_process(data_dir):
+def post_process(data_dir, use_file = True):
     script_name = 'blech_post_process.py'
     dir_pos = data_dir
     plot_flag = '-p ' + 'False'
     sorted_units_path = glob(os.path.join(data_dir, '*sorted_units.csv'))[0]
-    file_flag = '-f' + sorted_units_path
+    if use_file:
+        file_flag = '-f' + sorted_units_path
+    else:
+        file_flag = ''
     process = Popen(["python", script_name, dir_pos, plot_flag, file_flag],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
@@ -236,14 +255,6 @@ def units_characteristics(data_dir):
 ############################################################
 ## EMG Only
 ############################################################
-@task(log_prints=True)
-def change_waveform_classifier(use_classifier = 1):
-    script_name = 'pipeline_testing/change_waveform_classifier.py'
-    process = Popen(["python", script_name, str(use_classifier)],
-                               stdout = PIPE, stderr = PIPE)
-    stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
-
 @task(log_prints=True)
 def change_emg_freq_method(use_BSA = 1):
     script_name = 'pipeline_testing/change_emg_freq_method.py'
@@ -327,16 +338,19 @@ def run_spike_test():
     run_blech_clust(data_dir)
     run_CAR(data_dir)
     
-    # Run with classifier enabled
+    # Run with classifier enabled + autosorting
     change_waveform_classifier(use_classifier=1)
+    change_auto_params(use_auto=1)
     run_jetstream_bash(data_dir)
+    post_process(data_dir, use_file = False)
     
-    # Run with classifier disabled 
+    # Run with classifier disabled and manual sorting 
     change_waveform_classifier(use_classifier=0)
+    change_auto_params(use_auto=0)
     run_jetstream_bash(data_dir)
-    
     select_clusters(data_dir)
     post_process(data_dir)
+    
     quality_assurance(data_dir)
     units_plot(data_dir)
     make_arrays(data_dir)

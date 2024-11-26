@@ -83,7 +83,9 @@ import pandas as pd
 import matplotlib
 from glob import glob
 import re
+from functools import partial
 from multiprocessing import Pool, cpu_count
+from tqdm import tqdm
 
 matplotlib.rcParams['font.size'] = 6
 
@@ -104,7 +106,6 @@ if args.dir_name is not None:
     metadata_handler = imp_metadata([[],args.dir_name])
 else:
     metadata_handler = imp_metadata([])
-
 
 # Extract parameters for automatic processing
 params_dict = metadata_handler.params_dict
@@ -168,7 +169,7 @@ while (not auto_post_process) or (args.sort_file is not None):
     ############################################################
 
     print()
-    print('======================================')
+    print('==== Manual Post-Processing ====\n')
     print()
 
     # If sort_file given, iterate through that, otherwise ask user
@@ -431,23 +432,46 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
         chi_square_alpha,
         count_threshold,
         sampling_rate,
-        autosort_output_dir,
-        this_descriptor_handler,
-        this_sort_file_handler,
-        hf5
+        metadata_handler.dir_name,
     )
 
     # Use multiprocessing to process electrodes in parallel
-    n_cores = cpu_count() - 1  # Leave one core free
+    n_cores = np.min((len(electrode_num_list), cpu_count() - 1))  # Leave one core free
     print(f"Processing {len(electrode_num_list)} electrodes using {n_cores} cores")
     
+    # Create partial function
+    auto_process_partial = partial( 
+        post_utils.auto_process_electrode,
+        process_params = process_params
+    )
+    
     with Pool(n_cores) as pool:
-        pool.starmap(
-            post_utils.process_electrode,
-            [(electrode_num, process_params) for electrode_num in electrode_num_list]
+        result = pool.starmap(
+            auto_process_partial,
+            [(electrode_num,) for electrode_num in electrode_num_list]
         )
 
-    hf5.flush()
+    # This last part cannot be incorporated in auto_process_electrode as it
+    # needs passing of classes (descriptor_handler, and sort_file_handler) to
+    # the processes.
+    # Get pickling errors when they are included
+    # It is also a quick process so it doesn't need to be parallelized
+    print('Writing sorted units to file...')
+    for subcluster_waveforms, subcluster_times, fin_bool, electrode_num in tqdm(result):
+        for this_sub in range(len(subcluster_waveforms)):
+            if fin_bool[this_sub]:
+                continue_bool, unit_name = this_descriptor_handler.save_unit(
+                    subcluster_waveforms[this_sub],
+                    subcluster_times[this_sub],
+                    electrode_num,
+                    this_sort_file_handler,
+                    split_or_merge=None,
+                    override_ask=True,
+                )
+            else:
+                continue_bool = True
+
+        hf5.flush()
 
     print('==== Auto Post-Processing Complete ====\n')
     print('==== Post-Processing Exiting ====\n')
