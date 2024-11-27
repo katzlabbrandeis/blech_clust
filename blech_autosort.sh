@@ -13,10 +13,6 @@ echo === Quality Assurance ===
 bash blech_run_QA.sh $DIR &&
 echo === Units Plot ===
 python blech_units_plot.py $DIR &&
-echo === Make PSTHs ===
-python blech_make_psth.py $DIR &&
-echo === Palatability Identity Setup ===
-python blech_palatability_identity_setup.py $DIR &&
-echo === Overlay PSTHs ===
-python blech_overlay_psth.py $DIR &&
+echo === Get unit characteristics ===
+python blech_units_characteristics.py $DIR && 
 echo === Done ===
