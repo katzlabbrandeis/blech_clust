@@ -1,4 +1,7 @@
 
+import os
+os.environ['OMP_NUM_THREADS']='1'
+os.environ['MKL_NUM_THREADS']='1'
 import utils.clustering as clust
 # import subprocess
 from joblib import load
@@ -13,7 +16,6 @@ import json
 # import sys
 import numpy as np
 import tables
-import os
 from glob import glob
 import shutil
 import matplotlib
@@ -235,14 +237,8 @@ class cluster_handler():
             self.data_dir,
             'Plots',
             f'{self.electrode_num:02}',
-            f'clusters{self.cluster_num}'
+            f'clusters{self.cluster_num:02}'
         )
-        # elif self.fit_type == 'auto':
-        #     clust_plot_dir = os.path.join(
-        #         self.data_dir,
-        #         'Plots',
-        #         f'{self.electrode_num:02}',
-        #     )
         ifisdir_rmdir(clust_results_dir)
         ifisdir_rmdir(clust_plot_dir)
         os.makedirs(clust_results_dir)
@@ -702,7 +698,7 @@ class classifier_handler():
         fig.suptitle('Predicted Spike Waveforms' + '\n' +
                      f'Count : {len(self.pos_spike_dict["waveforms"])}')
         fig.savefig(os.path.join(self.plot_dir,
-                                 f'{self.electrode_num}_pred_spikes.png'),
+                                 f'{self.electrode_num:02}_pred_spikes.png'),
                     bbox_inches='tight')
         plt.close(fig)
 
@@ -720,7 +716,7 @@ class classifier_handler():
                 map_dict,
                 plot_n = 1000,
                 save_path = os.path.join(self.plot_dir, 
-                             f'{self.electrode_num}_pred_spikes_dendogram.png'))
+                                         f'{self.electrode_num:02}_pred_spikes_dendogram.png'))
 
         # Cluster noise and plot waveforms + times on single plot
         # Pull out noise info
@@ -769,7 +765,7 @@ class classifier_handler():
         fig.suptitle('Predicted Noise Waveforms' + '\n' +
                      f'Count : {noise_slices.shape[0]}')
         fig.savefig(os.path.join(self.plot_dir,
-                                 f'{self.electrode_num}_pred_noise.png'),
+                                 f'{self.electrode_num:02}_pred_noise.png'),
                     bbox_inches='tight')
         plt.close(fig)
         # plt.show()
@@ -794,6 +790,7 @@ class electrode_handler():
         hf5.close()
 
     def filter_electrode(self):
+        # Raw units get multiplied by 0.195 to get MICROVOLTS 
         self.filt_el = clust.get_filtered_electrode(
             self.raw_el,
             freq=[self.params_dict['bandpass_lower_cutoff'],
@@ -852,16 +849,33 @@ class electrode_handler():
         recording_cutoff: int
         """
         fig = plt.figure()
+        # filt_el is in microvolts
         second_data = np.reshape(
             self.filt_el,
             (-1, self.params_dict['sampling_rate']))
-        plt.plot(np.mean(second_data, axis=1))
+        mean_data = np.mean(second_data, axis=1)
+        std_data = np.std(second_data, axis=1)
+        plt.plot(mean_data, label = 'Mean')
+        plt.fill_between(
+                x = np.arange(len(mean_data)),
+                y1 = mean_data + std_data,
+                y2 = mean_data - std_data,
+                label = 'STD',
+                )
         plt.axvline(self.recording_cutoff,
-                    color='k', linewidth=4.0, linestyle='--')
+                    color='k', linewidth=2, linestyle='--',
+                    label = 'Recording cutoff')
+        plt.axhline(self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--', 
+                    label='Voltage cutoff')
+        plt.axhline(-self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--')
         plt.xlabel('Recording time (secs)')
         plt.ylabel('Average voltage recorded per sec (microvolts)')
         plt.title(f'Recording length : {len(second_data)}s' + '\n' +
                   f'Cutoff time : {self.recording_cutoff}s')
+        plt.legend()
+        plt.yscale('symlog')
         fig.savefig(
             f'./Plots/{self.electrode_num:02}/cutoff_time.png',
             bbox_inches='tight')
@@ -1002,6 +1016,24 @@ def return_cutoff_values(
     max_secs_above_cutoff,
     max_mean_breach_rate_persec
 ):
+    """
+    Return the cutoff values for the electrode recording
+
+    Inputs:
+        filt_el: numpy array (in 
+        sampling_rate: int
+        voltage_cutoff: float
+        max_breach_rate: float
+        max_secs_above_cutoff: float
+        max_mean_breach_rate_persec: float
+
+    Outputs:
+        breach_rate: float
+        breaches_per_sec: numpy array
+        secs_above_cutoff: int
+        mean_breach_rate_persec: float
+        recording_cutoff: int
+    """
 
     breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
                         * int(sampling_rate))/len(filt_el)

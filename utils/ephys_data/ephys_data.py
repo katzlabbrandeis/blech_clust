@@ -5,7 +5,7 @@ import tables
 import copy
 import multiprocessing as mp
 from scipy.special import gamma
-from scipy.stats import zscore
+from scipy.stats import zscore, spearmanr
 import scipy, scipy.signal
 import glob
 import json
@@ -15,6 +15,9 @@ from tqdm import tqdm
 from itertools import product
 from .BAKS import BAKS
 from . import lfp_processing
+from pprint import pprint as pp
+import numpy as np
+import pandas as pd
 
 #  ______       _                      _____        _         
 # |  ____|     | |                    |  __ \      | |        
@@ -26,10 +29,56 @@ from . import lfp_processing
 #        |_|          |___/ 
 
 """
-Class to streamline data analysis from multiple files
-Class has a container for data from different files and functions for analysis
-Functions in class can autoload data from specified files according to specified 
-paramters
+ephys_data.py - Class for streamlined electrophysiology data analysis
+
+This module provides a class for analyzing electrophysiology data from multiple files.
+The class provides containers and functions for data analysis with automatic loading
+capabilities.
+
+Key Features:
+    - Automatic data loading from specified files
+    - Spike train and LFP data processing
+    - Firing rate calculation with multiple methods
+    - Digital input parsing and trial segmentation
+    - Region-based analysis for multi-region recordings
+    - Laser condition handling for optogenetic experiments
+    - Data quality checks and visualization
+
+Classes:
+    ephys_data: Main class for data handling and analysis
+
+Dependencies:
+    - numpy, scipy, tables, pandas
+    - BAKS (Bayesian Adaptive Kernel Smoother)
+    - Custom LFP processing utilities
+
+Usage:
+    >>> from utils.ephys_data.ephys_data import ephys_data
+    >>> # Initialize with data directory
+    >>> data = ephys_data(data_dir='/path/to/data')
+    >>> 
+    >>> # Load and process data
+    >>> data.get_unit_descriptors()  # Get unit information
+    >>> data.get_spikes()           # Extract spike data
+    >>> data.get_firing_rates()     # Calculate firing rates
+    >>> data.get_lfps()            # Extract LFP data
+    >>> 
+    >>> # Access processed data
+    >>> spikes = data.spikes       # Access spike data
+    >>> firing = data.firing_array # Access firing rate data
+    >>> lfps = data.lfp_array     # Access LFP data
+    >>>
+    >>> # Region-based analysis
+    >>> data.get_region_units()    # Get units by brain region
+    >>> region_spikes = data.return_region_spikes('region_name')
+    >>> 
+    >>> # Handle laser conditions (if present)
+    >>> data.check_laser()         # Check for laser trials
+    >>> data.separate_laser_data() # Split data by laser condition
+
+Installation:
+    Required packages can be installed via pip:
+    $ pip install numpy scipy tables pandas tqdm matplotlib
 """
 
 class ephys_data():
@@ -188,7 +237,7 @@ class ephys_data():
             self.hdf5_path =    self.get_hdf5_path(data_dir) 
             self.hdf5_name =    os.path.basename(self.hdf5_path) 
 
-            self.spikes = None
+            # self.spikes = None
 
         # Create environemnt variable to allow program to know
         # if file is currently accessed
@@ -290,14 +339,20 @@ class ephys_data():
         """
         Extract spike arrays from specified HD5 files
         """
+        print('Loading spikes')
         with tables.open_file(self.hdf5_path, 'r+') as hf5: 
             if '/spike_trains' in hf5:
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains') \
                     if 'dig_in' in x.__str__()]
+                self.dig_in_name_list = [x.__str__() for x in dig_in_list]
             else:
                 raise Exception('No spike trains found in HF5')
-            
+
+            print('Spike trains loaded from following dig-ins')
+            print("\n".join([f'{i}. {x}' for i,x in enumerate(self.dig_in_name_list)]))
+            # list of length n_tastes, each element is a 3D array
+            # array dimensions are (n_trials, n_neurons, n_timepoints)
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
 
     def separate_laser_spikes(self):
@@ -404,11 +459,11 @@ class ephys_data():
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
 
+        type_list = ['conv','baks']
         type_exists_bool = 'type' in params.keys()
         if not type_exists_bool:
             raise Exception('Firing rate calculation type not specified.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
-        type_list = ['conv','baks']
         if params['type'] not in type_list:
             raise Exception('Firing rate calculation type not recognized.'\
                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
@@ -465,9 +520,15 @@ class ephys_data():
         """
         
         if self.spikes is None:
-            raise Exception('Run method "get_spikes" first')
+            # raise Exception('Run method "get_spikes" first')
+            print('No spikes found, getting spikes ...')
+            self.get_spikes()
         if None in self.firing_rate_params.values():
-            raise Exception('Specify "firing_rate_params" first')
+            # raise Exception('Specify "firing_rate_params" first')
+            print('No firing rate params found...using default firing params')
+            pp(self.default_firing_params)
+            print('If you want specific firing params, set them manually')
+            self.firing_rate_params = self.default_firing_params
 
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
@@ -513,8 +574,53 @@ class ephys_data():
                         swapaxes(0,1)
 
         else:
-            raise Exception('Cannot currently handle different'\
-                    'numbers of trials')
+            # raise Exception('Cannot currently handle different'\
+            #         'numbers of trials')
+            print('Uneven numbers of trials...not stacking into firing rates array')
+
+    def calc_palatability(self):
+        """
+        Calculate single neuron (absolute) palatability from firing rates
+
+        Requires:
+            - info_dict
+                - palatability ranks
+                - taste names
+            - firing rates
+
+        Generates:
+            - pal_df : pandas dataframe
+                - shape: tastes x 3 cols (dig_ins, taste_names, pal_ranks)
+            - pal_array : np.array
+                - shape : neurons x time_bins
+        """
+
+        if 'info_dict' not in dir(self):
+            print('Info dict not found...Loading')
+            self.get_info_dict()
+        if 'firing_list' not in dir(self):
+            print('Firing list not found...Loading')
+            self.get_firing_rates()
+        self.taste_names = self.info_dict['taste_params']['tastes']
+        self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
+        print('Calculating palatability with following order:')
+        self.pal_df = pd.DataFrame(
+                dict(
+                    dig_ins = self.dig_in_name_list,
+                    taste_names = self.taste_names,
+                    pal_ranks = self.palatability_ranks,
+                    )
+                )
+        print(self.pal_df)
+        trial_counts = [x.shape[0] for x in self.firing_list]
+        pal_vec = np.concatenate([np.repeat(x,y) for x,y in zip(self.palatability_ranks, trial_counts)])
+        cat_firing = np.concatenate(self.firing_list, axis=0).T
+        inds = list(np.ndindex(cat_firing.shape[:2]))
+        pal_array = np.zeros(cat_firing.shape[:2])
+        for this_ind in tqdm(inds):
+            rho, p_val = spearmanr(cat_firing[tuple(this_ind)], pal_vec)
+            pal_array[tuple(this_ind)] = rho
+        self.pal_array = np.abs(pal_array).T
 
     def separate_laser_firing(self):
         """
@@ -833,3 +939,116 @@ class ephys_data():
                    np.median(self.amplitude_array[:,region],axis=(0,1,2)))
         return np.array(aggregate_amplitude)
 
+    
+    def get_trial_info_frame(self):
+        self.trial_info_frame = pd.read_csv(
+                os.path.join(self.data_dir,'trial_info_frame.csv'))
+
+    def sequester_trial_inds(self):
+        """
+        Sequester trials into different categories:
+            - Tastes
+            - Laser conditions
+        """
+
+        wanted_cols = [
+                'dig_in_num_taste',
+                'dig_in_name_taste',
+                'taste',
+                'laser_duration_ms',
+                'laser_lag_ms',
+                'taste_rel_trial_num',
+                ]
+        group_cols = ['dig_in_num_taste','laser_duration_ms','laser_lag_ms']
+        if 'trial_info_frame' not in dir(self):
+            self.get_trial_info_frame()
+        wanted_frame = self.trial_info_frame[wanted_cols]
+        grouped_frame = wanted_frame.groupby(group_cols)
+        group_list = list(grouped_frame)
+        group_names = [x[0] for x in group_list]
+        group_name_frame = pd.DataFrame(group_names, columns = group_cols) 
+        grouped_frame_list = [x[1] for x in group_list] 
+        # Aggregate 'taste_rel_trial_num' into a list for each group
+        trial_inds = [x['taste_rel_trial_num'].tolist() for x in grouped_frame_list]
+        group_name_frame['trial_inds'] = trial_inds
+        self.trial_inds_frame = group_name_frame
+
+    def get_sequestered_spikes(self):
+        """
+        Sequester spikes into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        if 'trial_inds_frame' not in dir(self):
+            self.sequester_trial_inds()
+        if 'spikes' not in dir(self):
+            self.get_spikes()
+        # Get trial inds for each group
+        trial_inds_frame = self.trial_inds_frame.copy()
+        self.sequestered_spikes = []
+        sequestered_spikes_frame_list = []
+        for i, this_row in trial_inds_frame.iterrows():
+            taste_ind = this_row['dig_in_num_taste']
+            trial_inds = this_row['trial_inds']
+            this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
+            self.sequestered_spikes.append(this_seq_spikes)
+            spike_inds = np.where(this_seq_spikes)
+            this_seq_spikes = pd.DataFrame(
+                    dict(
+                        trial_num = spike_inds[0], 
+                        neuron_num = spike_inds[1],
+                        time_num = spike_inds[2],
+                        )
+                    )
+            this_seq_spikes['taste_num'] = taste_ind
+            this_seq_spikes['laser_tuple'] = str((this_row['laser_lag_ms'], this_row['laser_duration_ms']))
+            sequestered_spikes_frame_list.append(this_seq_spikes)
+        self.trial_inds_frame['spikes'] = self.sequestered_spikes
+        self.sequestered_spikes_frame = pd.concat(sequestered_spikes_frame_list)
+        print('Added sequestered spikes to trial_inds_frame')
+
+    def get_sequestered_firing(self):
+        """
+        Sequester spikes into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        if 'trial_inds_frame' not in dir(self):
+            self.sequester_trial_inds()
+        if 'firing_array' not in dir(self):
+            self.get_firing_rates()
+        group_cols = ['dig_in_num_taste','laser_duration_ms','laser_lag_ms']
+        # Get trial inds for each group
+        trial_inds_frame = self.trial_inds_frame.copy()
+        self.sequestered_firing = []
+        sequestered_firing_frame_list = []
+        for i, this_row in trial_inds_frame.iterrows():
+            taste_ind = this_row['dig_in_num_taste']
+            trial_inds = this_row['trial_inds']
+            laser_tuple = (this_row['laser_lag_ms'], this_row['laser_duration_ms'])
+            this_seq_firing = self.firing_list[taste_ind][trial_inds]
+            self.sequestered_firing.append(this_seq_firing)
+            inds = np.array(list(np.ndindex(this_seq_firing.shape)))
+            this_seq_firing = pd.DataFrame(
+                    dict(
+                        trial_num = inds[:,0],
+                        neuron_num = inds[:,1],
+                        time_num = inds[:,2],
+                        firing = this_seq_firing.flatten(),
+                        )
+                    )
+            this_seq_firing['taste_num'] = taste_ind 
+            this_seq_firing['laser_tuple'] = str(laser_tuple)
+            sequestered_firing_frame_list.append(this_seq_firing)
+        self.trial_inds_frame['firing'] = self.sequestered_firing
+        self.sequestered_firing_frame = pd.concat(sequestered_firing_frame_list)
+        print('Added sequestered firing to trial_inds_frame')
+
+    def get_sequestered_data(self):
+        """
+        Sequester spikes and firing into different categories:
+            - Tastes
+            - Laser conditions
+        """
+        self.get_sequestered_spikes()
+        self.get_sequestered_firing()

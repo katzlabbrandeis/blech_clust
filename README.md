@@ -8,32 +8,53 @@ High performance computing cluster at Brandeis
 can be easily modified to work in any parallel environment. Visit the Katz lab
 website at https://sites.google.com/a/brandeis.edu/katzlab/
 
-### Order of operations  
+### Order of operations
+
+**Spike Sorting Pipeline:**
 1. `python blech_exp_info.py`  
-    - Pre-clustering step. Annotate recorded channels and save experimental parameters  
+    - Pre-clustering step. Annotate recorded channels and save experimental parameters
     - Takes template for info and electrode layout as argument
-
 2. `python blech_clust.py`
-    - Setup directories and define clustering parameters  
-3. `python blech_common_avg_reference.py`  
-    - Perform common average referencing to remove large artifacts  
-4. `bash blech_run_process.sh` 
-    - Embarrasingly parallel spike extraction and clustering  
+    - Setup directories and define clustering parameters
+3. `python blech_common_avg_reference.py`
+    - Perform common average referencing to remove large artifacts
+4. `bash blech_run_process.sh`
+    - Parallel spike extraction and clustering
+5. `python blech_post_process.py`
+    - Add selected units to HDF5 file for further processing
+6. `python blech_units_plot.py`
+    - Plot waveforms of selected spikes
+7. `python blech_make_arrays.py`
+    - Generate spike-train arrays
+8. `bash blech_run_QA.sh`
+    - Quality assurance: spike-time collisions and drift analysis
+9. `python blech_unit_characteristics.py`
+    - Analyze unit characteristics
 
-5. `python blech_post_process.py`  
-    - Add selected units to HDF5 file for further processing  
+**EMG Analysis Pipelines:**
 
-6. `python blech_units_plot.py`  
-    - Plot waveforms of selected spikes  
-7. `python blech_make_arrays.py`  
-    - Generate spike-train arrays  
-8. `bash blech_run_QA.sh`  
-    - Run quality asurance steps: 1) spike-time collisions across units, 2) drift within units
-9. `python blech_make_psth.py`  
-    - Plots PSTHs and rasters for all selected units  
-10. `python blech_palatability_identity_setup.py`  
-12. `python blech_overlay_psth.py`  
-    - Plot overlayed PSTHs for units with respective waveforms  
+*Shared Steps:*
+1. Complete spike sorting through `blech_make_arrays.py`
+    - Required for temporal alignment with neural data
+2. `python emg_filter.py`
+    - Filter EMG signals using bandpass filter
+
+*BSA/STFT Branch:* (Bayesian Spectrum Analysis/Short-Time Fourier Transform)
+1. `python emg_freq_setup.py`
+    - Configure parameters for frequency analysis
+2. `bash blech_emg_jetstream_parallel.sh`
+    - Parallel processing of EMG signals using BSA/STFT
+3. `python emg_freq_post_process.py`
+    - Aggregate and process frequency analysis results
+4. `python emg_freq_plot.py`
+    - Generate visualizations of EMG frequency components
+
+*QDA (Jenn Li) Branch:* (Quadratic Discriminant Analysis)
+1. `python emg_freq_setup.py`
+    - Setup parameters for gape detection
+2. `python get_gapes_Li.py`
+    - Detect gapes using QDA classifier
+    - Based on Li et al.'s methodology for EMG pattern recognition
 
 ### Setup
 ```
@@ -59,6 +80,15 @@ pip install -r neuRecommend/requirements.txt
 cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
 conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
 bash emg_install.sh                                         # Install EMG requirements
+
+### Install BlechRNN for firing rate estimation (OPTIONAL)
+cd ~/Desktop                                                # Relocate to download BlechRNN
+git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
+cd blechRNN                                                 # Move into BlechRNN directory
+pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements 
+**Note: If you'd like to use GPU, you'll need to install CUDA
+-- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
+
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
@@ -78,9 +108,7 @@ Use `prefect server start` to start the prefect server in a different terminal w
 - blech_clust_post.sh : Runs steps 7-14   
 
 ### Operations Workflow Visual 
-![nomnoml](https://github.com/user-attachments/assets/68f4d3b1-9ce7-4f1a-8eb2-b107d5e49308)
-
-
+![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
 
 ### Workflow Walkthrough
 *This section is being expanded, in progress.*
@@ -124,6 +152,42 @@ python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)
 bash blech_clust_post.sh       # Perform steps up to PSTH generation
 ```
 
+### Utilities
+#### utils/infer_rnn_rates.py
+
+This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
+
+```
+usage: infer_rnn_rates.py [-h] [--override_config] [--train_steps TRAIN_STEPS]
+                          [--hidden_size HIDDEN_SIZE] [--bin_size BIN_SIZE]
+                          [--train_test_split TRAIN_TEST_SPLIT] [--no_pca]
+                          [--retrain] [--time_lims TIME_LIMS TIME_LIMS]
+                          data_dir
+
+Infer firing rates using RNN
+
+positional arguments:
+  data_dir              Path to data directory
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --override_config     Override config file and use provided
+                        arguments(default: False)
+  --train_steps TRAIN_STEPS
+                        Number of training steps (default: 15000)
+  --hidden_size HIDDEN_SIZE
+                        Hidden size of RNN (default: 8)
+  --bin_size BIN_SIZE   Bin size for binning spikes (default: 25)
+  --train_test_split TRAIN_TEST_SPLIT
+                        Fraction of data to use for training (default: 0.75)
+  --no_pca              Do not use PCA for preprocessing (default: False)
+  --retrain             Force retraining of model. Will overwrite existing
+                        model (default: False)
+  --time_lims TIME_LIMS TIME_LIMS
+                        Time limits inferred firing rates (default: [1500,
+                        4500])
+```
+
 ### Test Dataset
 We are grateful to Brandeis University Google Filestream for hosting this dataset <br>
 Data to test workflow available at:<br>
@@ -139,9 +203,7 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_post_process] -> [blech_units_plot]
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
-- - [bash blech_run_QA.sh] -> [blech_make_psth]
-- - [blech_make_psth] -> [blech_palatability_identity_setup]
-- - [blech_palatability_identity_setup] -> [blech_overlay_psth]
+- - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
 
 - **EMG shared**
 - - [blech_clust] -> [blech_make_arrays]

@@ -90,7 +90,7 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 ## Load Data
 ############################################################
 # Open the hdf5 file
-spike_trains = get_spike_trains(metadata_handler.hdf5_name)
+spike_trains = get_spike_trains(metadata_handler.hdf5_name) #A list of length [# of stimuli], containing arrays with dimensions = [trials, units, samples/trial]
 
 ############################################################
 ## Perform Processing 
@@ -112,18 +112,35 @@ bin_size = drift_params['plot_bin_size']
 ## Plot firing rate across session
 ##############################
 # Flatten out spike trains for each taste
-unit_spike_trains = [np.swapaxes(x, 0, 1) for x in spike_trains]
-long_spike_trains = [x.reshape(x.shape[0],-1) for x in unit_spike_trains]
+unit_spike_trains = [np.swapaxes(x, 0, 1) for x in spike_trains] #A list of length [# of stimuli], containing arrays with dimensions = [units, trials, samples/trial]
+# For sessions with uneven trials/stim, fill shorter stims with NAs
+maxTrials = np.max([UnitN.shape[1] for UnitN in unit_spike_trains])
+# Pad arrays with fewer trials to match maxTrials
+for i, UnitN in enumerate(unit_spike_trains):
+    num_trials = UnitN.shape[1]
+    if num_trials < maxTrials:
+        print('Uneven # of stimulus presentations: filling with NaN')
+        # Calculate how much padding is needed
+        pad_width = ((0, 0), (0, maxTrials - num_trials), (0, 0))
+        unit_spike_trains[i] = np.pad(UnitN, pad_width, mode='constant', constant_values=np.nan)
+
+
+long_spike_trains = [x.reshape(x.shape[0],-1) for x in unit_spike_trains] #A list of length [# of stimuli], containing arrays with dimensions = [units, trials x samples/trial], with all trials/unit concatenated into one vector
 
 # Bin data to plot
-binned_spike_trains = [np.reshape(x, (x.shape[0], -1, bin_size)).sum(axis=2) for x in long_spike_trains]
+binned_spike_trains = [np.reshape(x, (x.shape[0], -1, bin_size)).sum(axis=2) for x in long_spike_trains] #A list of length [stimuli], containing arrays of concatenated trials as long_spike_trains, binned per sorting_params
 
 # Group by neuron across tastes
-plot_spike_trains = list(zip(*binned_spike_trains))
-zscore_binned_spike_trains = [zscore(x, axis=-1) for x in plot_spike_trains]
+plot_spike_trains = list(zip(*binned_spike_trains)) #A list of length [units], containing tuples of length [stimuli], containing the concatenated, binned, spike train vectors.
+zscore_binned_spike_trains = [zscore(x, axis=-1, nan_policy='omit') for x in plot_spike_trains]
+if len(plot_spike_trains) > 9:
+    plotHeight = len(plot_spike_trains)+1
+else:
+    plotHeight = 10
+
 
 # Plot heatmaps of all tastes, both raw data and zscored
-fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, 10))
+fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
 for i in range(len(plot_spike_trains)):
     ax[i, 0].imshow(plot_spike_trains[i], aspect='auto', interpolation='none')
     ax[i, 1].imshow(zscore_binned_spike_trains[i], aspect='auto', interpolation='none')
@@ -136,7 +153,7 @@ plt.savefig(os.path.join(output_dir, 'binned_spike_heatmaps.png'))
 plt.close()
 
 # Plot timeseries of above data as well
-fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, 10))
+fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
 for i in range(len(plot_spike_trains)):
     ax[i, 0].plot(np.array(plot_spike_trains[i]).T, alpha=0.7)
     ax[i, 1].plot(zscore_binned_spike_trains[i].T, alpha=0.7)
