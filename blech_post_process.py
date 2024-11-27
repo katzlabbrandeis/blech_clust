@@ -135,7 +135,7 @@ hdf5_name = metadata_handler.hdf5_name
 
 
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
-if args.keep_raw == 'False':
+if args.keep_raw == False:
     repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
 else:
     repacked_bool = False
