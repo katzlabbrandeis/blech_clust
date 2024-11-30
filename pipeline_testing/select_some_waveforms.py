@@ -89,3 +89,6 @@ sorting_table.to_csv(
         os.path.join(dir_name,basename+'_sorted_units.csv'),
         index = False
         )
+
+print(f'Wrote out {basename}_sorted_units.csv')
+print(sorting_table)

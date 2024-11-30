@@ -1,4 +1,7 @@
 
+import os
+os.environ['OMP_NUM_THREADS']='1'
+os.environ['MKL_NUM_THREADS']='1'
 import utils.clustering as clust
 # import subprocess
 from joblib import load
@@ -13,7 +16,6 @@ import json
 # import sys
 import numpy as np
 import tables
-import os
 from glob import glob
 import shutil
 import matplotlib

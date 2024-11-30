@@ -7,6 +7,9 @@ on: [pull_request]
 jobs:
   Preamble:
     runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} preamble
+      cancel-in-progress: true
     steps:
       - run: pwd
       - run: which python
@@ -26,6 +29,9 @@ jobs:
   Spike-Only:
     runs-on: self-hosted
     needs: Preamble
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} spike
+      cancel-in-progress: true
     steps:
       - name: Prefect SPIKE only test
         shell: bash
@@ -37,6 +43,9 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: Preamble 
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} emg
+      cancel-in-progress: true
     steps:
       - name: Prefect EMG only test
         shell: bash
@@ -48,6 +57,9 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: Preamble 
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
+      cancel-in-progress: true
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash

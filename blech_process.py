@@ -24,8 +24,17 @@ Steps:
 ############################################################
 # Imports
 ############################################################
-
 import os
+import argparse
+parser = argparse.ArgumentParser(description='Process single electrode waveforms')
+parser.add_argument('data_dir', type=str, help='Path to data directory')
+parser.add_argument('electrode_num', type=int, help='Electrode number to process')
+args = parser.parse_args()
+
+# Confirm sys.argv[1] is a path that exists
+if not os.path.exists(args.data_dir):
+    raise ValueError(f'Provided path {args.data_dir} does not exist')
+
 os.environ['OMP_NUM_THREADS']='1'
 os.environ['MKL_NUM_THREADS']='1'
 
@@ -36,6 +45,9 @@ import json
 import sys
 import numpy as np
 import warnings
+import datetime
+import json
+import pathlib
 
 # Ignore specific warning
 warnings.filterwarnings(action="ignore", category=UserWarning, message="Trying to unpickle estimator")
@@ -48,9 +60,10 @@ np.random.seed(0)
 # Load Data
 ############################################################
 
+
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
-data_dir_name = sys.argv[1]
+data_dir_name = args.data_dir
 
 # Perform pipeline graph check
 script_path = os.path.realpath(__file__)
@@ -61,8 +74,25 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
 
-electrode_num = int(sys.argv[2])
+electrode_num = int(args.electrode_num)
 print(f'Processing electrode {electrode_num}')
+
+# Initialize or load processing log
+log_path = pathlib.Path(metadata_handler.dir_name) / 'blech_process.log'
+if log_path.exists():
+    with open(log_path) as f:
+        process_log = json.load(f)
+else:
+    process_log = {}
+
+# Log processing start
+process_log[str(electrode_num)] = {
+    'start_time': datetime.datetime.now().isoformat(),
+    'status': 'attempted'
+}
+with open(log_path, 'w') as f:
+    json.dump(process_log, f, indent=2)
+
 params_dict = metadata_handler.params_dict
 auto_params = params_dict['clustering_params']['auto_params']
 auto_cluster = auto_params['auto_cluster']
@@ -141,13 +171,19 @@ classifier_params_path = \
 classifier_params = json.load(open(classifier_params_path, 'r'))
 
 
-if classifier_params['use_classifier'] and \
-    classifier_params['use_neuRecommend']:
+if classifier_params['use_neuRecommend']:
+    # If full classification pipeline was not loaded, still load
+    # feature transformation pipeline so it may be used later
     classifier_handler = bpu.classifier_handler(
             data_dir_name, electrode_num, params_dict)
     sys.path.append(classifier_handler.create_pipeline_path)
     from feature_engineering_pipeline import *
     classifier_handler.load_pipelines()
+
+if classifier_params['use_classifier'] and \
+    classifier_params['use_neuRecommend']:
+    print(' == Using neuRecommend classifier ==')
+    # Full classification pipeline also has feature transformation pipeline
     classifier_handler.classify_waveforms(
             spike_set.slices_dejittered,
             spike_set.times_dejittered,
@@ -156,6 +192,7 @@ if classifier_params['use_classifier'] and \
     classifier_handler.write_out_recommendations()
 
     if classifier_params['throw_out_noise'] or auto_cluster:
+        print('== Throwing out noise waveforms ==')
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
@@ -167,6 +204,8 @@ if classifier_params['use_classifier'] and \
 ############################################################
 
 if classifier_params['use_neuRecommend']:
+    # If full classification pipeline was not loaded, still use
+    # feature transformation pipeline
     print('Using neuRecommend features')
     spike_set.extract_features(
             classifier_handler.feature_pipeline,
@@ -230,6 +269,14 @@ else:
 
 
 print(f'Electrode {electrode_num} complete.')
+
+# Update processing log with completion
+with open(log_path) as f:
+    process_log = json.load(f)
+process_log[str(electrode_num)]['end_time'] = datetime.datetime.now().isoformat()
+process_log[str(electrode_num)]['status'] = 'complete'
+with open(log_path, 'w') as f:
+    json.dump(process_log, f, indent=2)
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
