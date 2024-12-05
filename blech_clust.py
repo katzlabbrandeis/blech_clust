@@ -102,9 +102,10 @@ class HDF5Handler:
                 found_list.append(this_group)
 
         if len(found_list) > 0 and not self.force_run:
-            print(f'Data already present: {found_list}')
+            reload_msg = f'Data already present: {found_list}' + '\n' +\
+                        'Reload data? (yes/y/n/no) ::: '
             reload_data_str, continue_bool = entry_checker(
-                    msg='Reload data? (yes/y/n/no) ::: ',
+                    msg= reload_msg,
                     check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
                     fail_response='Please enter (yes/y/n/no)')
         else:
