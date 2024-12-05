@@ -154,10 +154,16 @@ class pipeline_graph_check():
             if 'attempted' not in log_dict.keys():
                 log_dict['attempted'] = {}
             log_dict['attempted'][script_path] = current_datetime
+            print('============================================================')
+            print(f'Attempting {os.path.basename(script_path)}, started at {current_datetime}')
+            print('============================================================')
         elif type == 'completed':
             if 'completed' not in log_dict.keys():
                 log_dict['completed'] = {}
             log_dict['completed'][script_path] = current_datetime
+            print('============================================================')
+            print(f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
+            print('============================================================')
             # Close tee when completing
             if hasattr(self, 'tee'):
                 self.tee.close()
