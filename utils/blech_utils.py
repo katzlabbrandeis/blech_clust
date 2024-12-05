@@ -6,7 +6,31 @@ import os
 import glob
 import json
 import pandas as pd
+import sys
 from datetime import datetime
+
+class Tee:
+    """Tee output to both stdout/stderr and a log file"""
+    def __init__(self, data_dir, name='output.log'):
+        self.log_path = os.path.join(data_dir, name)
+        self.file = open(self.log_path, 'a')
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+        sys.stdout = self
+        sys.stderr = self
+    
+    def write(self, data):
+        self.file.write(data)
+        self.stdout.write(data)
+        self.file.flush()
+        
+    def flush(self):
+        self.file.flush()
+        
+    def close(self):
+        sys.stdout = self.stdout
+        sys.stderr = self.stderr
+        self.file.close()
 
 class path_handler():
 
@@ -28,9 +52,10 @@ class pipeline_graph_check():
     """
 
     def __init__(self, data_dir):
+        self.data_dir = data_dir
+        self.tee = Tee(data_dir)
         self.load_graph()
         self.check_graph()
-        self.data_dir = data_dir
 
     def load_graph(self):
         """
@@ -133,6 +158,9 @@ class pipeline_graph_check():
             if 'completed' not in log_dict.keys():
                 log_dict['completed'] = {}
             log_dict['completed'][script_path] = current_datetime
+            # Close tee when completing
+            if hasattr(self, 'tee'):
+                self.tee.close()
         # log_dict[script_path] = current_datetime
         with open(self.log_path, 'w') as log_file_connect:
             json.dump(log_dict, log_file_connect, indent = 4)
