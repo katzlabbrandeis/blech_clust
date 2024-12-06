@@ -1,7 +1,7 @@
 .PHONY: all base emg neurec blechrnn clean
 
 # Default target
-all: base emg neurec blechrnn
+all: base emg neurec blechrnn prefect
 
 # Create and setup base environment
 base: params
@@ -36,6 +36,10 @@ blechrnn:
 params:
 	mkdir -p params
 	cp params/_templates/* params/
+
+# Install Prefect
+prefect:
+	conda run -n blech_clust pip install -U prefect
 
 # Clean up environments 
 clean:
