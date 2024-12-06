@@ -70,7 +70,7 @@ def read_traditional_intan(
 		dig_in_channels = [x['native_channel_name'] for x in this_file_data['board_dig_in_channels']]
 		# for i, this_dig_in in enumerate(this_file_data['board_dig_in_data']):
 		for i, this_dig in enumerate(dig_in_channels):
-			this_dig_in_int = int(this_dig.split('-')[-1].split('.')[0]) 
+			this_dig_in_int = this_dig.split('-')[-1].split('.')[0]
 			if this_dig_in_int not in dig_in_int:
 				continue
 			array_name = f'dig_in_{this_dig_in_int}'
