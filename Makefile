@@ -35,9 +35,7 @@ blechrnn:
 # Copy parameter templates
 params:
 	mkdir -p params
-	cp params/_templates/sorting_params_template.json params/
-	cp params/_templates/emg_params.json params/
-	cp params/_templates/waveform_classifier_params.json params/
+	cp params/_templates/* params/
 
 # Clean up environments 
 clean:
