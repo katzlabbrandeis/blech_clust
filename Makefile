@@ -4,7 +4,7 @@
 all: base emg neurec blechrnn
 
 # Create and setup base environment
-base:
+base: params
 	conda deactivate || true
 	conda update -n base conda -y
 	conda clean --all -y
@@ -32,6 +32,13 @@ blechrnn:
 	cd blechRNN && \
 	conda run -n blech_clust pip install $$(cat requirements.txt | egrep "torch")
 
-# Clean up environments
+# Copy parameter templates
+params:
+	mkdir -p params
+	cp params/_templates/sorting_params_template.json params/
+	cp params/_templates/emg_params.json params/
+	cp params/_templates/waveform_classifier_params.json params/
+
+# Clean up environments 
 clean:
 	conda env remove -n blech_clust -y
