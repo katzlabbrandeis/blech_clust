@@ -352,9 +352,9 @@ def run_spike_test():
     select_clusters(data_dir)
     post_process(data_dir)
     
+    make_arrays(data_dir)
     quality_assurance(data_dir)
     units_plot(data_dir)
-    make_arrays(data_dir)
     units_characteristics(data_dir)
 
 @flow(log_prints=True)

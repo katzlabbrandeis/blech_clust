@@ -517,9 +517,21 @@ class ephys_data():
     def get_firing_rates(self):
         """
         Converts spikes to firing rates
+
+        Requires:
+            - spikes
+            - firing_rate_params
+
+        Generates:
+            - firing_list : list of firing rates for each taste
+                - each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
+            - firing_array : 4D array of firing rates
+            - normalized_firing : 4D array of normalized firing rates
+            - all_firing_array : 3D array of all firing rates
+            - all_normalized_firing : 3D array of all normalized firing rates
         """
         
-        if self.spikes is None:
+        if 'spikes' not in dir(self):
             # raise Exception('Run method "get_spikes" first')
             print('No spikes found, getting spikes ...')
             self.get_spikes()
