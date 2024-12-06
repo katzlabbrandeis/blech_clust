@@ -21,12 +21,15 @@ import pandas as pd
 import pingouin as pg
 import seaborn as sns
 import glob
+from sklearn.decomposition import PCA
+from umap import UMAP
 # Get script path
 script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
 from utils.blech_utils import imp_metadata, pipeline_graph_check
+from utils.ephys_data import ephys_data
 
 def get_spike_trains(hf5_path):
     """
@@ -350,11 +353,49 @@ if np.any(sig_p_val_vec):
         print('Post-stimulus limits: ' + str(stim_t) + ' to ' + str(stim_t+trial_duration) + ' ms', file=f)
         print('Trial Bin Count: ' + str(n_trial_bins), file=f)
         print('alpha: ' + str(alpha), file=f)
-        print('\n', file=f)
+        #print('\n', file=f)
         print(out_rows, file=f)
         print('\n', file=f)
         print('=== End Post-stimulus Drift Warning ===', file=f)
         print('\n', file=f)
+
+############################################################
+# Perform PCA on firing rates across trials
+############################################################
+dat = ephys_data.ephys_data(dir_name)
+dat.get_firing_rates()
+# each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
+firing_list = dat.firing_list
+# Normalize for each neuron
+n_neurons = firing_list[0].shape[1]
+norm_firing_list = []
+for i in range(len(firing_list)):
+    this_firing = firing_list[i]
+    norm_firing = np.zeros_like(this_firing)
+    for j in range(n_neurons):
+        norm_firing[:,j,:] = zscore(this_firing[:,j,:], axis=None)
+    norm_firing_list.append(norm_firing)
+
+# shape: (n_trials, n_neurons * n_timepoints)
+long_firing_list = [x.reshape(x.shape[0],-1) for x in norm_firing_list]
+
+# Perform PCA on long_firing_list
+pca_firing_list = [PCA(n_components=1, whiten=True).fit_transform(x) for x in long_firing_list]
+umap_firing_list = [UMAP(n_components=1).fit_transform(x) for x in long_firing_list]
+umap_zscore = [zscore(x, axis=None) for x in umap_firing_list]
+
+# Plot PCA and UMAP results
+fig, ax = plt.subplots(2, 1, figsize=(5, 5), sharex=True) 
+for i in range(len(pca_firing_list)):
+    ax[0].plot(pca_firing_list[i], alpha=0.7)
+    ax[1].plot(umap_zscore[i], alpha=0.7)
+    ax[0].set_title('PCA')
+    ax[1].set_title('UMAP')
+ax[-1].set_xlabel('Trial num')
+fig.suptitle('PCA and UMAP of Firing Rates \n' + basename)
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir, 'pca_umap_firing_rates.png'))
+plt.close()
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')

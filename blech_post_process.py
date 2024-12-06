@@ -135,7 +135,7 @@ hdf5_name = metadata_handler.hdf5_name
 
 
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
-if args.keep_raw == 'False':
+if args.keep_raw == False:
     repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
 else:
     repacked_bool = False
@@ -415,6 +415,9 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
         'autosort_outputs'
     )
 
+    # Create output directory if needed
+    if not os.path.exists(autosort_output_dir):
+        os.makedirs(autosort_output_dir)
 
     # Since this needs classifier output to run, check if it exists
     clf_list = glob('./spike_waveforms/electrode*/clf_prob.npy')

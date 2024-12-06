@@ -1449,9 +1449,6 @@ def auto_process_electrode(
             new_clust_names,
         )
 
-        # Create output directory if needed
-        if not os.path.exists(autosort_output_dir):
-            os.makedirs(autosort_output_dir)
 
         fig.savefig(
             os.path.join(
