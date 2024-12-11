@@ -399,6 +399,7 @@ else:
 
     fin_dict = {'version': '0.0.2',
                 **this_dict,
+                'file_type': file_type,
                 'regions': list(layout_dict.keys()),
                 'ports': list(np.unique(ports)),
                 'dig_ins': {

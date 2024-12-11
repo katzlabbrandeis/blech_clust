@@ -145,16 +145,18 @@ class DigInHandler:
 	def write_out_frame(self):
 		# Write out the dig-in frame
 		self.dig_in_frame.to_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'))
+		print('Dig-in frame written out to dig_in_frame.csv')
 
 	def load_dig_in_frame(self):
 		# Load the dig-in frame
-		self.dig_in_frame = pd.read_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'))
+		self.dig_in_frame = pd.read_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'),
+								  index_col=0)
+		print('Dig-in frame loaded from dig_in_frame.csv')
 
 def read_traditional_intan(
 		hdf5_name, 
 		file_list, 
 		electrode_layout_frame,
-		dig_in_int
 		):
 	"""
 	Reads traditional intan format data and saves to hdf5
@@ -166,15 +168,11 @@ def read_traditional_intan(
 			List of file names to read
 		electrode_layout_frame: pandas.DataFrame
 			Dataframe containing details of electrode layout
-		dig_in_int: list
-			List of digital input numbers to read (as some may be empty)
-			Note: This is the digital input number, not the index in the array
 
 	Writes:
 		hdf5 file with raw and raw_emg data
 		- raw: amplifier data
 		- raw_emg: EMG data
-		- digital_in: digital input data
 	"""
 	atom = tables.IntAtom()
 	# Read EMG data from amplifier channels
@@ -207,21 +205,21 @@ def read_traditional_intan(
 					hf5_el_array = hf5.get_node('/raw', array_name)
 				hf5_el_array.append(this_amp)
 			hf5.flush()
-		# Do the same for digital inputs
-		dig_in_channels = [x['native_channel_name'] for x in this_file_data['board_dig_in_channels']]
-		# for i, this_dig_in in enumerate(this_file_data['board_dig_in_data']):
-		for i, this_dig in enumerate(dig_in_channels):
-			this_dig_in_int = this_dig.split('-')[-1].split('.')[0]
-			if this_dig_in_int not in dig_in_int:
-				continue
-			array_name = f'dig_in_{this_dig_in_int}'
-			array_data = this_file_data['board_dig_in_data'][i]
-			if os.path.join('/digital_in', array_name) not in hf5:
-				hf5_dig_array = hf5.create_earray('/digital_in', array_name, atom, (0,))
-			else:
-				hf5_dig_array = hf5.get_node('/digital_in', array_name)
-			hf5_dig_array.append(array_data)
-			hf5.flush()
+		# # Do the same for digital inputs
+		# dig_in_channels = [x['native_channel_name'] for x in this_file_data['board_dig_in_channels']]
+		# # for i, this_dig_in in enumerate(this_file_data['board_dig_in_data']):
+		# for i, this_dig in enumerate(dig_in_channels):
+		# 	this_dig_in_int = this_dig.split('-')[-1].split('.')[0]
+		# 	if this_dig_in_int not in dig_in_int:
+		# 		continue
+		# 	array_name = f'dig_in_{this_dig_in_int}'
+		# 	array_data = this_file_data['board_dig_in_data'][i]
+		# 	if os.path.join('/digital_in', array_name) not in hf5:
+		# 		hf5_dig_array = hf5.create_earray('/digital_in', array_name, atom, (0,))
+		# 	else:
+		# 		hf5_dig_array = hf5.get_node('/digital_in', array_name)
+		# 	hf5_dig_array.append(array_data)
+		# 	hf5.flush()
 		pbar.update(1)
 	pbar.close()
 	hf5.close()
