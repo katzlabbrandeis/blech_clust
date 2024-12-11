@@ -88,7 +88,7 @@ else:
     file_list = os.listdir(dir_path)
     if 'auxiliary.dat' in file_list:
         file_type = ['one file per signal type']
-    elif len(['rhd' in x for x in file_list]) > 1:
+    elif sum(['rhd' in x for x in file_list]) > 1:
         file_type = ['traditional']
     else:
         file_type = ['one file per channel']
