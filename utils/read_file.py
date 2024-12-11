@@ -3,11 +3,152 @@ import tables
 import os
 import numpy as np
 import tqdm
+import pandas as pd
 
 # Code for loading traditional intan format from 
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from utils.importrhdutilities import load_file, read_header
+
+class DigInHandler:
+	"""
+	Class to unify handling of digital inputs across different file formats
+
+	Methods:
+		get_dig_in_files: Get digital input
+		get_trial_data: Get trial data (start or end times)
+
+	"""
+	def __init__(self, data_dir, file_type):
+		"""
+		Initializes DigInHandler object
+
+		Input:
+			data_dir: str
+				Directory containing digital input files
+			file_format: str
+				Format of digital input files
+		"""
+		self.data_dir = data_dir
+		self.file_type = file_type
+	
+	def get_dig_in_files(self):
+		"""
+		Get digital input files
+
+		Output:
+			dig_in_files: list
+				List of digital input files
+		"""
+
+		file_list = os.listdir(self.data_dir)
+
+		if self.file_type == 'one file per signal type':
+			dig_in_file_list = ['digitalin.dat']
+		elif self.file_type == 'one file per channel':
+			dig_in_file_list = [
+				name for name in file_list if name.startswith('board-DI')]
+		else:
+			with open(os.path.join(self.data_dir , file_list[0]), 'rb') as f:
+				header = read_header(f)
+			dig_in_file_list = [x['native_channel_name'].lower() for x in header['board_dig_in_channels']]
+
+		dig_in_file_list = sorted(dig_in_file_list)
+		self.dig_in_file_list = dig_in_file_list
+		dig_in_file_str = '\n'.join(dig_in_file_list)
+		print(f'Digital input files found: \n{dig_in_file_str}')
+
+	def get_trial_data(self):
+		"""
+		Get trial data (start or end times)
+
+		Input:
+			trial_type: str
+				Type of trial data to get (start or end)
+
+		Output:
+			trial_data: list
+				List of trial data
+		"""
+		if self.file_type == 'one file per channel':
+			pulse_times = {}
+			for filename in self.dig_in_file_list: 
+				dig_inputs = np.array(np.fromfile(
+					os.path.join(self.data_dir ,filename), 
+					dtype=np.dtype('uint16')))
+				dig_inputs = dig_inputs.astype('int')
+
+				d_diff = np.ediff1d(dig_inputs)
+				start_ind = np.where(d_diff == 1)[0]
+				end_ind = np.where(d_diff == -1)[0]
+				pulse_times[filename] = list(zip(start_ind, end_ind)) 
+
+			dig_in_trials = [len(pulse_times[x]) for x in pulse_times.keys()]
+
+		elif self.file_type == 'one file per signal type':
+			all_dig_ins = np.fromfile(
+					os.path.join(self.data_dir, self.dig_in_file_list[0]), 
+					dtype=np.dtype('uint16'))[:]
+			all_dig_ins = all_dig_ins.astype('int')
+			pulse_times = {}
+			for i, dig_inputs in enumerate(all_dig_ins): 
+				d_diff = np.diff(dig_inputs)
+				start_ind = np.where(d_diff == 1)[0]
+				end_ind = np.where(d_diff == -1)[0]
+				pulse_times[i] = list(zip(start_ind, end_ind)) 
+
+			dig_in_trials = [len(pulse_times[x]) for x in pulse_times.keys()]
+
+		elif self.file_type == 'traditional':
+
+			pulse_times = {}
+			rhd_file_list = [x for x in file_list if 'rhd' in x]
+			for this_file in tqdm(rhd_file_list):
+				this_file_data, data_present = load_file(os.path.join(self.data_dir, this_file))
+				dig_inputs = this_file_data['board_dig_in_data']
+				dig_inputs = dig_inputs.astype('int')
+				d_diff = np.diff(dig_inputs, axis=-1)
+				start_ind = np.where(d_diff == 1)
+				end_ind = np.where(d_diff == -1)
+
+				for i, this_dig_in in enumerate(self.dig_in_file_list):
+					if i not in pulse_times.keys():
+						pulse_times[i] = []
+					pulse_times[i].extend(list(zip(start_ind[i], end_ind[i])))
+
+		dig_in_frame = pd.DataFrame(
+				dict(
+					dig_in_nums = pulse_times.keys(),
+					trial_counts = dig_in_trials,
+					pulse_times = pulse_times.values()
+					)
+				)
+		dig_in_frame['filenames'] = self.dig_in_file_list
+
+		bad_dig_ins = dig_in_frame[dig_in_frame['trial_counts'] == 0]['dig_in_nums'].values
+		fin_dig_in_list = dig_in_frame[dig_in_frame['trial_counts'] > 0]['filenames'].values
+		fin_dig_in_trials = dig_in_frame[dig_in_frame['trial_counts'] > 0].trial_counts.values
+
+		if len(bad_dig_ins) > 0:
+			bad_dig_in_str = '\n'.join(bad_dig_ins)
+			print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+			print('\n'+f"== {bad_dig_in_str} ==" + '\n')
+			print('== They will be REMOVED from the list of dig-ins ==')
+			print('== Remaining dig-ins ==' + '\n')
+
+		dig_in_print_str = "Dig-ins : \n" + str(dig_in_frame[['dig_in_nums','filenames','trial_counts']])
+		print(dig_in_print_str)
+
+		dig_in_frame.reset_index(inplace=True, drop=True)
+		self.dig_in_frame = dig_in_frame
+
+	def write_out_frame(self):
+		# Write out the dig-in frame
+		self.dig_in_frame.to_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'))
+
+	def load_dig_in_frame(self):
+		# Load the dig-in frame
+		self.dig_in_frame = pd.read_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'))
 
 def read_traditional_intan(
 		hdf5_name, 
