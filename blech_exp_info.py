@@ -38,7 +38,26 @@ parser.add_argument('--template', '-t',
                     help='Template (.info) file to copy experimental details from')
 parser.add_argument('--mode', '-m', default='legacy',
                     choices=['legacy', 'updated'])
+parser.add_argument('--interactive', '-i', action='store_true',
+                    help='Use interactive mode for input')
+parser.add_argument('--car-groups', help='CSV string of CAR groups for each electrode')
+parser.add_argument('--emg-muscle', help='Name of EMG muscle')
+parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
+parser.add_argument('--tastes', help='Comma-separated taste names')
+parser.add_argument('--concentrations', help='Comma-separated concentrations in M')
+parser.add_argument('--palatability', help='Comma-separated palatability rankings')
+parser.add_argument('--laser-digin', help='Laser digital input index')
+parser.add_argument('--laser-params', help='Laser onset,duration in ms')
+parser.add_argument('--virus-region', help='Virus region')
+parser.add_argument('--opto-loc', help='Opto-fiber location')
+parser.add_argument('--notes', help='Experiment notes')
 args = parser.parse_args()
+
+# Helper function to parse comma-separated values
+def parse_csv(s, convert=str):
+    if not s:
+        return []
+    return [convert(x.strip()) for x in s.split(',')]
 
 metadata_handler = imp_metadata([[], args.dir_name])
 dir_path = metadata_handler.dir_name
@@ -144,11 +163,13 @@ else:
         return x in ['y', 'yes', 'n', 'no']
 
     if os.path.exists(layout_file_path):
-
-        use_csv_str, continue_bool = entry_checker(
-            msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
-            check_func=yn_check,
-            fail_response='Please [y, yes, n, no]')
+        if args.interactive:
+            use_csv_str, continue_bool = entry_checker(
+                msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
+                check_func=yn_check,
+                fail_response='Please [y, yes, n, no]')
+        else:
+            use_csv_str = 'n' if args.car_groups else 'y'
     else:
         use_csv_str = 'n'
 
@@ -166,21 +187,27 @@ else:
 
         layout_frame.to_csv(layout_file_path, index=False)
 
-        prompt_str = 'Please fill in car groups / regions' + "\n" + \
-            "emg and none are case-specific" + "\n" +\
-            "Indicate different CARS from same region as GC1,GC2...etc"
-        print(prompt_str)
+        if args.car_groups:
+            # Apply CAR groups directly from command line
+            car_groups = parse_csv(args.car_groups)
+            layout_frame['CAR_group'] = car_groups
+            layout_frame.to_csv(layout_file_path, index=False)
+        else:
+            prompt_str = 'Please fill in car groups / regions' + "\n" + \
+                "emg and none are case-specific" + "\n" +\
+                "Indicate different CARS from same region as GC1,GC2...etc"
+            print(prompt_str)
 
-        def confirm_check(x):
-            this_bool = x in ['y', 'yes']
-            return this_bool
-        perm_str, continue_bool = entry_checker(
-            msg='Lemme know when its done (y/yes) :: ',
-            check_func=confirm_check,
-            fail_response='Please say y or yes')
-        if not continue_bool:
-            print('Welp...')
-            exit()
+            def confirm_check(x):
+                this_bool = x in ['y', 'yes']
+                return this_bool
+            perm_str, continue_bool = entry_checker(
+                msg='Lemme know when its done (y/yes) :: ',
+                check_func=confirm_check,
+                fail_response='Please say y or yes')
+            if not continue_bool:
+                print('Welp...')
+                exit()
 
     layout_frame_filled = pd.read_csv(layout_file_path)
     layout_frame_filled['CAR_group'] = \
@@ -200,13 +227,16 @@ else:
             layout_frame_filled.electrode_ind.isin(orig_emg_electrodes)].\
             unique()
         fin_emg_port = list(fin_emg_port)
-        # Ask for emg muscle
-        emg_muscle_str, continue_bool = entry_checker(
-            msg='Enter EMG muscle name :: ',
-            check_func=lambda x: True,
-            fail_response='Please enter a valid muscle name')
-        if not continue_bool:
-            exit()
+        # Get EMG muscle name
+        if args.interactive:
+            emg_muscle_str, continue_bool = entry_checker(
+                msg='Enter EMG muscle name :: ',
+                check_func=lambda x: True,
+                fail_response='Please enter a valid muscle name')
+            if not continue_bool:
+                exit()
+        else:
+            emg_muscle_str = args.emg_muscle or ''
     else:
         fin_emg_port = []
         orig_emg_electrodes = []
@@ -311,65 +341,66 @@ else:
 
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
-        print(dig_in_print_str + "\n were found. Please provide the indices.")
-        taste_dig_in_str, continue_bool = entry_checker(
-            msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
-            check_func=count_check,
-            fail_response='Please enter integers only')
-        if continue_bool:
-            nums = re.findall('[0-9]+', taste_dig_in_str)
-            taste_digins = [int(x) for x in nums]
-            taste_digin_filenames = [dig_in_list[i] for i in taste_digins]
-            print('Selected taste digins: \n' + "\n".join(taste_digin_filenames))
+        if args.interactive:
+            print(dig_in_print_str + "\n were found. Please provide the indices.")
+            taste_dig_in_str, continue_bool = entry_checker(
+                msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
+                check_func=count_check,
+                fail_response='Please enter integers only')
+            if continue_bool:
+                nums = re.findall('[0-9]+', taste_dig_in_str)
+                taste_digins = [int(x) for x in nums]
+            else:
+                exit()
         else:
-            exit()
+            taste_digins = parse_csv(args.taste_digins, int) if args.taste_digins else []
 
-        def float_check(x):
-            global taste_digins
-            return len(x.split(',')) == len(taste_digins)
+        taste_digin_filenames = [dig_in_list[i] for i in taste_digins]
+        print('Selected taste digins: \n' + "\n".join(taste_digin_filenames))
 
-        def taste_check(x):
-            global taste_digins
-            return len(re.findall('[A-Za-z]+', x)) == len(taste_digins)
+        if args.interactive:
+            def float_check(x):
+                global taste_digins
+                return len(x.split(',')) == len(taste_digins)
 
-        taste_str, continue_bool = entry_checker(
-            msg=' Tastes names used (IN ORDER, anything separated)  :: ',
-            check_func=taste_check,
-            fail_response='Please enter as many tastes as digins')
-        if continue_bool:
-            tastes = re.findall('[A-Za-z]+', taste_str)
+            def taste_check(x):
+                global taste_digins
+                return len(re.findall('[A-Za-z]+', x)) == len(taste_digins)
+
+            taste_str, continue_bool = entry_checker(
+                msg=' Tastes names used (IN ORDER, anything separated)  :: ',
+                check_func=taste_check,
+                fail_response='Please enter as many tastes as digins')
+            if continue_bool:
+                tastes = re.findall('[A-Za-z]+', taste_str)
+            else:
+                exit()
+
+            conc_str, continue_bool = entry_checker(
+                msg='Corresponding concs used (in M, IN ORDER, COMMA separated)  :: ',
+                check_func=float_check,
+                fail_response='Please enter as many concentrations as digins')
+            if continue_bool:
+                concs = [float(x) for x in conc_str.split(",")]
+            else:
+                exit()
+
+            taste_fin = str(list(zip(taste_digins, list(zip(tastes, concs)))))
+            palatability_str, continue_bool = \
+                entry_checker(
+                    msg=f' {taste_fin} \n Enter palatability rankings used '
+                    '(anything separated), higher number = more palatable  :: ',
+                    check_func=pal_check,
+                    fail_response='Please enter numbers 1<=x<len(tastes)')
+            if continue_bool:
+                nums = re.findall('[1-9]+', palatability_str)
+                pal_ranks = [int(x) for x in nums]
+            else:
+                exit()
         else:
-            exit()
-
-        conc_str, continue_bool = entry_checker(
-            msg='Corresponding concs used (in M, IN ORDER, COMMA separated)  :: ',
-            check_func=float_check,
-            fail_response='Please enter as many concentrations as digins')
-        if continue_bool:
-            concs = [float(x) for x in conc_str.split(",")]
-        else:
-            exit()
-
-        # Ask user for palatability rankings
-        def pal_check(x):
-            global taste_digins
-            nums = re.findall('[1-9]+', x)
-            return sum([x.isdigit() for x in nums]) == len(nums) and \
-                sum([1 <= int(x) <= len(taste_digins)
-                    for x in nums]) == len(taste_digins)
-
-        taste_fin = str(list(zip(taste_digins, list(zip(tastes, concs)))))
-        palatability_str, continue_bool = \
-            entry_checker(
-                msg=f' {taste_fin} \n Enter palatability rankings used '
-                '(anything separated), higher number = more palatable  :: ',
-                check_func=pal_check,
-                fail_response='Please enter numbers 1<=x<len(tastes)')
-        if continue_bool:
-            nums = re.findall('[1-9]+', palatability_str)
-            pal_ranks = [int(x) for x in nums]
-        else:
-            exit()
+            tastes = parse_csv(args.tastes) if args.tastes else []
+            concs = parse_csv(args.concentrations, float) if args.concentrations else []
+            pal_ranks = parse_csv(args.palatability, int) if args.palatability else []
     else:
         print('No dig-ins found. Please check your data.')
         taste_digins = []
@@ -382,55 +413,68 @@ else:
     ########################################
     # Ask for laser info
     # TODO: Allow for (onset, duration) tuples to be entered
-    laser_select_str, continue_bool = entry_checker(
-        msg='Laser dig_in index, <BLANK> for none :: ',
-        check_func=count_check,
-        fail_response='Please enter a single, valid integer')
-    if continue_bool:
-        if len(laser_select_str) == 0:
-            laser_digin = []
-            laser_digin_filenames = []
-        else:
-            laser_digin = [int(laser_select_str)]
-            laser_digin_filenames = [dig_in_list[i] for i in laser_digin]
-            print('Selected laser digins: \n' +
-                  "\n".join(laser_digin_filenames))
-    else:
-        exit()
-
-    def laser_check(x):
-        nums = re.findall('[0-9]+', x)
-        return sum([x.isdigit() for x in nums]) == 2
-    if laser_digin:
+    if args.interactive:
         laser_select_str, continue_bool = entry_checker(
-            msg='Laser onset_time, duration (ms, IN ORDER, anything separated) :: ',
-            check_func=laser_check,
-            fail_response='Please enter two, valid integers')
+            msg='Laser dig_in index, <BLANK> for none :: ',
+            check_func=count_check,
+            fail_response='Please enter a single, valid integer')
         if continue_bool:
-            nums = re.findall('[0-9]+', laser_select_str)
-            onset_time, duration = [int(x) for x in nums]
+            if len(laser_select_str) == 0:
+                laser_digin = []
+            else:
+                laser_digin = [int(laser_select_str)]
         else:
             exit()
-        # Ask for virus region
-        virus_region_str, continue_bool = entry_checker(
-            msg='Enter virus region :: ',
-            check_func=lambda x: True,
-            fail_response='Please enter a valid region')
-        if not continue_bool:
-            exit()
-        # Ask for opto-fiber location
-        opto_loc_str, continue_bool = entry_checker(
-            msg='Enter opto-fiber location :: ',
-            check_func=lambda x: True,
-            fail_response='Please enter a valid location')
-        if not continue_bool:
-            exit()
+    else:
+        laser_digin = parse_csv(args.laser_digin, int) if args.laser_digin else []
+
+    laser_digin_filenames = [dig_in_list[i] for i in laser_digin] if laser_digin else []
+    if laser_digin_filenames:
+        print('Selected laser digins: \n' + "\n".join(laser_digin_filenames))
+
+    if laser_digin:
+        if args.interactive:
+            def laser_check(x):
+                nums = re.findall('[0-9]+', x)
+                return sum([x.isdigit() for x in nums]) == 2
+
+            laser_select_str, continue_bool = entry_checker(
+                msg='Laser onset_time, duration (ms, IN ORDER, anything separated) :: ',
+                check_func=laser_check,
+                fail_response='Please enter two, valid integers')
+            if continue_bool:
+                nums = re.findall('[0-9]+', laser_select_str)
+                onset_time, duration = [int(x) for x in nums]
+            else:
+                exit()
+
+            virus_region_str, continue_bool = entry_checker(
+                msg='Enter virus region :: ',
+                check_func=lambda x: True,
+                fail_response='Please enter a valid region')
+            if not continue_bool:
+                exit()
+
+            opto_loc_str, continue_bool = entry_checker(
+                msg='Enter opto-fiber location :: ',
+                check_func=lambda x: True,
+                fail_response='Please enter a valid location')
+            if not continue_bool:
+                exit()
+        else:
+            laser_params = parse_csv(args.laser_params, int) if args.laser_params else [None, None]
+            onset_time, duration = laser_params if len(laser_params) == 2 else [None, None]
+            virus_region_str = args.virus_region or ''
+            opto_loc_str = args.opto_loc or ''
     else:
         onset_time, duration = [None, None]
         virus_region_str = ''
         opto_loc_str = ''
 
-    notes = input('Please enter any notes about the experiment. \n :: ')
+    if args.interactive:
+        notes = input('Please enter any notes about the experiment. \n :: ')
+    else:
+        notes = args.notes or ''
 
     ########################################
     # Finalize dictionary
