@@ -218,7 +218,7 @@ def read_traditional_intan(
 	# hdf5_path = os.path.join(dir_name, hdf5_name)
 	hf5 = tables.open_file(hdf5_name, 'r+')
 
-	pbar = tqdm.tqdm(total = len(file_list))
+	pbar = tqdm(total = len(file_list))
 	for this_file in file_list:
 		# Update progress bar with file name
 		pbar.set_description(os.path.basename(this_file))
@@ -254,7 +254,7 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
 	atom = tables.IntAtom()
 	# Read EMG data from amplifier channels
 	hf5 = tables.open_file(hdf5_name, 'r+')
-	for num,row in tqdm.tqdm(electrode_layout_frame.iterrows()):
+	for num,row in tqdm(electrode_layout_frame.iterrows()):
 		# Loading should use file name 
 		# but writing should use channel ind so that channels from 
 		# multiple boards are written into a monotonic sequence
@@ -281,7 +281,7 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
 	atom = tables.IntAtom()
 	# Read EMG data from amplifier channels
 	hf5 = tables.open_file(hdf5_name, 'r+')
-	for num,row in tqdm.tqdm(electrode_layout_frame.iterrows()):
+	for num,row in tqdm(electrode_layout_frame.iterrows()):
 		emg_bool = 'emg' not in row.CAR_group.lower()
 		none_bool = row.CAR_group.lower() not in ['none','na']
 		if emg_bool and none_bool:
@@ -308,7 +308,7 @@ def read_electrode_emg_channels_single_file(
 	amplifier_data = np.fromfile(electrodes_list[0], dtype = np.dtype('int16'))
 	num_electrodes = int(len(amplifier_data)/num_recorded_samples)
 	amp_reshape = np.reshape(amplifier_data,(int(len(amplifier_data)/num_electrodes),num_electrodes)).T
-	for num,row in tqdm.tqdm(electrode_layout_frame.iterrows()):
+	for num,row in tqdm(electrode_layout_frame.iterrows()):
         # Loading should use file name 
         # but writing should use channel ind so that channels from 
         # multiple boards are written into a monotonic sequence
