@@ -367,6 +367,13 @@ else:
                 global taste_digins
                 return len(re.findall('[A-Za-z]+', x)) == len(taste_digins)
 
+            def pal_check(x):
+                nums = re.findall('[1-9]+', x)
+                if not nums:
+                    return False
+                pal_nums = [int(n) for n in nums]
+                return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
+
             taste_str, continue_bool = entry_checker(
                 msg=' Tastes names used (IN ORDER, anything separated)  :: ',
                 check_func=taste_check,
