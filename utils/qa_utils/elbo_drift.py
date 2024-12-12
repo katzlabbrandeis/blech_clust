@@ -16,7 +16,6 @@ import pandas as pd
 import time
 import seaborn as sns
 
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/qa_utils/elbo_drift.py'
 script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
@@ -83,8 +82,6 @@ def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
 ## Initialize 
 ############################################################
 # Get name of directory with the data files
-# data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-# metadata_handler = imp_metadata([[], data_dir])
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
