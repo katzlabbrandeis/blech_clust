@@ -486,7 +486,7 @@ else:
     else:
         laser_digin_trials = []
 
-    fin_dict = {'version': 0.0.1,
+    fin_dict = {'version': '0.0.1',
                 **this_dict,
                 'regions': list(layout_dict.keys()),
                 'ports': list(np.unique(ports)),
