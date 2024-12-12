@@ -276,10 +276,9 @@ else:
             fail_response='Please enter a single, valid integer')
         if continue_bool:
             if len(laser_select_str) == 0:
-                laser_digin = []
-                laser_digin_nums = []
+                laser_digin_ind = []
             else:
-                laser_digin = [int(laser_select_str)]
+                laser_digin_ind = [int(laser_select_str)]
         else:
             exit()
     else:
@@ -289,6 +288,7 @@ else:
             laser_digin = []
 
     if laser_digin:
+        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list()
         this_dig_handler.dig_in_frame.loc[laser_digin, 'laser_bool'] = True
         this_dig_handler.dig_in_frame.laser_bool.fillna(False, inplace=True)
         laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin, 'dig_in_nums'].to_list()
@@ -296,6 +296,8 @@ else:
         print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
         print_df = print_df[print_df.laser_bool]
         print(print_df)
+    else:
+        laser_digin_nums = []
 
     def laser_check(x):
         nums = re.findall('[0-9]+', x)
