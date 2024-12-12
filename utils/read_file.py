@@ -244,65 +244,10 @@ def read_traditional_intan(
 					hf5_el_array = hf5.get_node('/raw', array_name)
 				hf5_el_array.append(this_amp)
 			hf5.flush()
-		# # Do the same for digital inputs
-		# dig_in_channels = [x['native_channel_name'] for x in this_file_data['board_dig_in_channels']]
-		# # for i, this_dig_in in enumerate(this_file_data['board_dig_in_data']):
-		# for i, this_dig in enumerate(dig_in_channels):
-		# 	this_dig_in_int = this_dig.split('-')[-1].split('.')[0]
-		# 	if this_dig_in_int not in dig_in_int:
-		# 		continue
-		# 	array_name = f'dig_in_{this_dig_in_int}'
-		# 	array_data = this_file_data['board_dig_in_data'][i]
-		# 	if os.path.join('/digital_in', array_name) not in hf5:
-		# 		hf5_dig_array = hf5.create_earray('/digital_in', array_name, atom, (0,))
-		# 	else:
-		# 		hf5_dig_array = hf5.get_node('/digital_in', array_name)
-		# 	hf5_dig_array.append(array_data)
-		# 	hf5.flush()
 		pbar.update(1)
 	pbar.close()
 	hf5.close()
 
-
-def read_digins(hdf5_name, dig_in_int, dig_in_file_list): 
-	atom = tables.IntAtom()
-	hf5 = tables.open_file(hdf5_name, 'r+')
-	# Read digital inputs, and append to the respective hdf5 arrays
-	print('Reading dig-ins')
-	for i, (dig_int, dig_in_filename) in \
-			enumerate(zip(dig_in_int, dig_in_file_list)):
-		dig_in_name = f'dig_in_{dig_int}'
-		print(f'Reading {dig_in_name}')
-		inputs = np.fromfile(dig_in_filename,
-					   dtype = np.dtype('uint16'))
-		hf5_dig_array = hf5.create_earray('/digital_in', dig_in_name, atom, (0,))
-		hf5_dig_array.append(inputs)
-		hf5.flush()
-	hf5.close()
-
-		
-def read_digins_single_file(hdf5_name, dig_in, dig_in_file_list): 
-	num_dig_ins = len(dig_in)
-	hf5 = tables.open_file(hdf5_name, 'r+')
-	# Read digital inputs, and append to the respective hdf5 arrays
-	print('Reading dig-ins')
-	atom = tables.IntAtom()
-	for i in dig_in:
-		dig_inputs = hf5.create_earray('/digital_in', 'dig_in_%i' % i, atom, (0,))
-	d_inputs = np.fromfile(dig_in_file_list[0], dtype=np.dtype('uint16'))
-	d_inputs_str = d_inputs.astype('str')
-	d_in_str_int = d_inputs_str.astype('int64')
-	d_diff = np.diff(d_in_str_int)
-	dig_inputs = np.zeros((num_dig_ins,len(d_inputs)))
-	for n_i in range(num_dig_ins):
-		start_ind = np.where(d_diff == n_i + 1)[0]
-		end_ind = np.where(d_diff == -1*(n_i + 1))[0]
-		for s_i in range(len(start_ind)):
-			dig_inputs[n_i,start_ind[s_i]:end_ind[s_i]] = 1
-	for i in tqdm.tqdm(range(num_dig_ins)):		
-		exec("hf5.root.digital_in.dig_in_"+str(i)+".append(dig_inputs[i,:])")
-	hf5.flush()
-	hf5.close()
 
 # TODO: Remove exec statements throughout file
 def read_emg_channels(hdf5_name, electrode_layout_frame):
