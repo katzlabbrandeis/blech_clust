@@ -388,13 +388,9 @@ channel_corr.gen_corr_output(corr_mat,
 # Also output a plot with digin and laser info
 
 # Downsample to 10 seconds
-# dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
-# dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
-# dig_in_markers = np.where(dig_in_array > 0)
 dig_in_pulses = this_dig_handler.dig_in_frame.pulse_times.values
 dig_in_pulses = [literal_eval(x) for x in dig_in_pulses]
-dig_in_markers = np.stack([[x[0] for x in this_list] for this_list in dig_in_pulses])
-dig_in_markers = dig_in_markers / sampling_rate
+dig_in_markers = [np.array(x) / sampling_rate for x in dig_in_pulses] 
 
 # Check if laser is present
 laser_dig_in = info_dict['laser_params']['dig_in_nums']
