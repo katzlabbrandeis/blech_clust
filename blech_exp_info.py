@@ -38,9 +38,10 @@ parser.add_argument('--template', '-t',
                     help='Template (.info) file to copy experimental details from')
 parser.add_argument('--mode', '-m', default='legacy',
                     choices=['legacy', 'updated'])
-parser.add_argument('--interactive', '-i', action='store_true',
-                    help='Use interactive mode for input')
-parser.add_argument('--car-groups', help='CSV string of CAR groups for each electrode')
+parser.add_argument('--programmatic', action='store_true',
+                    help='Run in programmatic mode')
+parser.add_argument('--use-layout-file', action='store_true', 
+                    help='Use existing electrode layout file')
 parser.add_argument('--emg-muscle', help='Name of EMG muscle')
 parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
 parser.add_argument('--tastes', help='Comma-separated taste names')
@@ -129,6 +130,9 @@ else:
         dig_in_list = [x['native_channel_name'].lower() for x in header['board_dig_in_channels']]
 
     dig_in_list = sorted(dig_in_list)
+    dig_in_list_str = "All Dig-ins : \n" + ",\n".join(dig_in_list)
+    print(dig_in_list_str)
+    print()
 
     if file_type == ['one file per channel']:
         electrode_files = sorted(electrodes_list)
@@ -163,13 +167,13 @@ else:
         return x in ['y', 'yes', 'n', 'no']
 
     if os.path.exists(layout_file_path):
-        if args.interactive:
+        if not args.programmatic and not args.use_layout_file:
             use_csv_str, continue_bool = entry_checker(
                 msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
                 check_func=yn_check,
                 fail_response='Please [y, yes, n, no]')
         else:
-            use_csv_str = 'n' if args.car_groups else 'y'
+            use_csv_str = 'y' 
     else:
         use_csv_str = 'n'
 
@@ -187,27 +191,21 @@ else:
 
         layout_frame.to_csv(layout_file_path, index=False)
 
-        if args.car_groups:
-            # Apply CAR groups directly from command line
-            car_groups = parse_csv(args.car_groups)
-            layout_frame['CAR_group'] = car_groups
-            layout_frame.to_csv(layout_file_path, index=False)
-        else:
-            prompt_str = 'Please fill in car groups / regions' + "\n" + \
-                "emg and none are case-specific" + "\n" +\
-                "Indicate different CARS from same region as GC1,GC2...etc"
-            print(prompt_str)
+        prompt_str = 'Please fill in car groups / regions' + "\n" + \
+            "emg and none are case-specific" + "\n" +\
+            "Indicate different CARS from same region as GC1,GC2...etc"
+        print(prompt_str)
 
-            def confirm_check(x):
-                this_bool = x in ['y', 'yes']
-                return this_bool
-            perm_str, continue_bool = entry_checker(
-                msg='Lemme know when its done (y/yes) :: ',
-                check_func=confirm_check,
-                fail_response='Please say y or yes')
-            if not continue_bool:
-                print('Welp...')
-                exit()
+        def confirm_check(x):
+            this_bool = x in ['y', 'yes']
+            return this_bool
+        perm_str, continue_bool = entry_checker(
+            msg='Lemme know when its done (y/yes) :: ',
+            check_func=confirm_check,
+            fail_response='Please say y or yes')
+        if not continue_bool:
+            print('Welp...')
+            exit()
 
     layout_frame_filled = pd.read_csv(layout_file_path)
     layout_frame_filled['CAR_group'] = \
@@ -228,7 +226,7 @@ else:
             unique()
         fin_emg_port = list(fin_emg_port)
         # Get EMG muscle name
-        if args.interactive:
+        if not args.programmatic:
             emg_muscle_str, continue_bool = entry_checker(
                 msg='Enter EMG muscle name :: ',
                 check_func=lambda x: True,
@@ -236,7 +234,10 @@ else:
             if not continue_bool:
                 exit()
         else:
-            emg_muscle_str = args.emg_muscle or ''
+            if args.emg_muscle:
+                emg_muscle_str = args.emg_muscle
+            else:
+                raise ValueError('EMG muscle name not provided, use --emg-muscle')
     else:
         fin_emg_port = []
         orig_emg_electrodes = []
@@ -341,7 +342,7 @@ else:
 
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
-        if args.interactive:
+        if not args.programmatic:
             print(dig_in_print_str + "\n were found. Please provide the indices.")
             taste_dig_in_str, continue_bool = entry_checker(
                 msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
@@ -353,12 +354,15 @@ else:
             else:
                 exit()
         else:
-            taste_digins = parse_csv(args.taste_digins, int) if args.taste_digins else []
+            if args.taste_digins:
+                taste_digins = parse_csv(args.taste_digins, int)
+            else:
+                raise ValueError('Taste dig-ins not provided, use --taste-digins')
 
         taste_digin_filenames = [dig_in_list[i] for i in taste_digins]
         print('Selected taste digins: \n' + "\n".join(taste_digin_filenames))
 
-        if args.interactive:
+        if not args.programmatic:
             def float_check(x):
                 global taste_digins
                 return len(x.split(',')) == len(taste_digins)
@@ -405,9 +409,18 @@ else:
             else:
                 exit()
         else:
-            tastes = parse_csv(args.tastes) if args.tastes else []
-            concs = parse_csv(args.concentrations, float) if args.concentrations else []
-            pal_ranks = parse_csv(args.palatability, int) if args.palatability else []
+            if args.tastes:
+                tastes = parse_csv(args.tastes)
+            else:
+                raise ValueError('Tastes not provided, use --tastes')
+            if args.concentrations:
+                concs = parse_csv(args.concentrations, float)
+            else:
+                raise ValueError('Concentrations not provided, use --concentrations')
+            if args.palatability:
+                pal_ranks = parse_csv(args.palatability, int)
+            else:
+                raise ValueError('Palatability rankings not provided, use --palatability')
     else:
         print('No dig-ins found. Please check your data.')
         taste_digins = []
@@ -420,7 +433,7 @@ else:
     ########################################
     # Ask for laser info
     # TODO: Allow for (onset, duration) tuples to be entered
-    if args.interactive:
+    if not args.programmatic:
         laser_select_str, continue_bool = entry_checker(
             msg='Laser dig_in index, <BLANK> for none :: ',
             check_func=count_check,
@@ -433,14 +446,17 @@ else:
         else:
             exit()
     else:
-        laser_digin = parse_csv(args.laser_digin, int) if args.laser_digin else []
+        if args.laser_digin:
+            laser_digin = parse_csv(args.laser_digin, int)
+        else:
+            laser_digin = []
 
     laser_digin_filenames = [dig_in_list[i] for i in laser_digin] if laser_digin else []
     if laser_digin_filenames:
         print('Selected laser digins: \n' + "\n".join(laser_digin_filenames))
 
     if laser_digin:
-        if args.interactive:
+        if not args.programmatic:
             def laser_check(x):
                 nums = re.findall('[0-9]+', x)
                 return sum([x.isdigit() for x in nums]) == 2
@@ -469,16 +485,25 @@ else:
             if not continue_bool:
                 exit()
         else:
-            laser_params = parse_csv(args.laser_params, int) if args.laser_params else [None, None]
-            onset_time, duration = laser_params if len(laser_params) == 2 else [None, None]
-            virus_region_str = args.virus_region or ''
-            opto_loc_str = args.opto_loc or ''
+            if args.laser_params:
+                laser_params = parse_csv(args.laser_params, int) 
+                onset_time, duration = laser_params
+            else:
+                raise ValueError('Laser parameters not provided, use --laser-params')
+            if args.virus_region:
+                virus_region_str = args.virus_region
+            else:
+                raise ValueError('Virus region not provided, use --virus-region')
+            if args.opto_loc:
+                opto_loc_str = args.opto_loc
+            else:
+                raise ValueError('Opto-fiber location not provided, use --opto-loc')
     else:
         onset_time, duration = [None, None]
         virus_region_str = ''
         opto_loc_str = ''
 
-    if args.interactive:
+    if not args.programmatic:
         notes = input('Please enter any notes about the experiment. \n :: ')
     else:
         notes = args.notes or ''
