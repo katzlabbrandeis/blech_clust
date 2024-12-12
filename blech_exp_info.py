@@ -200,7 +200,7 @@ else:
         else:
             exit()
 
-        taste_digin_files = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'filenames'].to_list()
+        taste_digin_nums = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_nums'].to_list()
         tastes = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste'].to_list()
         concs = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'concentration'].to_list()
         pal_ranks = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'palatability'].to_list()
@@ -208,7 +208,7 @@ else:
     else:
         print('No dig-ins found. Please check your data.')
         taste_digins = []
-        taste_digin_filenames = []
+        taste_digin_nums = []
         tastes = []
         concs = []
         pal_ranks = []
@@ -225,12 +225,12 @@ else:
     if continue_bool:
         if len(laser_select_str) == 0:
             laser_digin = []
-            laser_digin_filenames = []
+            laser_digin_nums = []
         else:
             laser_digin = [int(laser_select_str)]
             this_dig_handler.dig_in_frame.loc[laser_digin, 'laser_bool'] = True
             this_dig_handler.dig_in_frame.laser_bool.fillna(False, inplace=True)
-            laser_digin_filenames = this_dig_handler.dig_in_frame.loc[laser_digin, 'filenames'].to_list()
+            laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin, 'dig_in_nums'].to_list()
             print('Selected laser digins: \n')
             print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
             print_df = print_df[print_df.laser_bool]
@@ -403,7 +403,7 @@ else:
                 'regions': list(layout_dict.keys()),
                 'ports': list(np.unique(ports)),
                 'dig_ins': {
-                    'filenames': this_dig_handler.dig_in_frame.filenames.to_list(),
+                    'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
                     'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
                 },
                 'emg': {
@@ -412,15 +412,13 @@ else:
                     'muscle': emg_muscle_str},
                 'electrode_layout': fin_perm,
                 'taste_params': {
-                    'dig_ins': taste_dig_inds, 
-                    'filenames': taste_digin_files,
+                    'nums': taste_digin_nums,
                     'trial_count': taste_digin_trials,
                     'tastes': tastes,
                     'concs': concs,
                     'pal_rankings': pal_ranks},
                 'laser_params': {
-                    'dig_in': laser_digin,
-                    'filenames': laser_digin_filenames,
+                    'nums': laser_digin_nums,
                     'trial_count': laser_digin_trials,
                     'onset': onset_time,
                     'duration': duration,
