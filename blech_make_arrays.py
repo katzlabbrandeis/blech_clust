@@ -141,21 +141,21 @@ if __name__ == '__main__':
     print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
 
     # Pull out taste dig-ins
-    taste_digin_inds = info_dict['taste_params']['dig_ins']
+    taste_digin_nums = info_dict['taste_params']['dig_in_nums']
     # taste_digin_channels = [dig_in_basename[x] for x in taste_digin_inds]
     # taste_str = "\n".join(taste_digin_channels)
-    taste_str = "\n".join([str(x) for x in taste_digin_inds])
+    taste_str = "\n".join([str(x) for x in taste_digin_nums])
 
     # Extract laser dig-in from params file
-    laser_digin_inds = [info_dict['laser_params']['dig_in']][0]
+    laser_digin_nums = [info_dict['laser_params']['dig_in_nums']][0]
 
     # Pull laser digin from hdf5 file
-    if len(laser_digin_inds) == 0:
+    if len(laser_digin_nums) == 0:
         laser_digin_channels = []
         laser_str = 'None'
     else:
         # laser_digin_channels = [dig_in_basename[x] for x in laser_digin_inds]
-        laser_str = "\n".join([str(x) for x in laser_digin_inds])
+        laser_str = "\n".join([str(x) for x in laser_digin_nums])
 
     print(f'Taste dig_ins ::: \n{taste_str}\n')
     print(f'Laser dig_in ::: \n{laser_str}\n')
@@ -175,19 +175,19 @@ if __name__ == '__main__':
     # 11. Laser duration and lag (in ms)
 
     taste_info_list = []
-    for ind, num in enumerate(taste_digin_inds):
-        pulse_times = this_dig_handler.dig_in_frame['pulse_times'][num]
+    for ind, num in enumerate(taste_digin_nums):
+        this_dig = this_dig_handler.dig_in_frame.loc[
+                this_dig_handler.dig_in_frame['dig_in_nums'] == num]
+        pulse_times = this_dig['pulse_times'].values[0]
         pulse_times = literal_eval(pulse_times)
-        dig_in_name = this_dig_handler.dig_in_frame['dig_in_nums'][num]
+        dig_in_name = this_dig['dig_in_names'].values[0]
         this_frame = pd.DataFrame(
                 dict(
                     dig_in_num = num,
                     dig_in_name = dig_in_name, 
-                    taste = info_dict['taste_params']['tastes'][ind],
+                    taste = this_dig['taste'].values[0],
                     start = [x[0] for x in pulse_times],
                     end = [x[1] for x in pulse_times], 
-                    # start = start_points[num],
-                    # end = end_points[num],
                     )
                 )
         taste_info_list.append(this_frame)
@@ -206,10 +206,15 @@ if __name__ == '__main__':
     taste_info_frame.sort_values(by=['start'],inplace=True)
 
     laser_info_list = []
-    for ind, num in enumerate(laser_digin_inds):
-        pulse_times = this_dig_handler.dig_in_frame['pulse_times'][num]
+    # for ind, num in enumerate(laser_digin_inds):
+    for ind, num in enumerate(laser_digin_nums):
+        this_dig = this_dig_handler.dig_in_frame.loc[
+                this_dig_handler.dig_in_frame['dig_in_nums'] == num]
+        # pulse_times = this_dig_handler.dig_in_frame['pulse_times'][num]
+        pulse_times = this_dig['pulse_times'].values[0] 
         pulse_times = literal_eval(pulse_times)
-        dig_in_name = this_dig_handler.dig_in_frame['dig_in_nums'][num]
+        # dig_in_name = this_dig_handler.dig_in_frame['dig_in_nums'][num]
+        dig_in_name = this_dig['dig_in_names'].values[0]
         this_frame = pd.DataFrame(
                 dict(
                     dig_in_num = num,
@@ -217,8 +222,6 @@ if __name__ == '__main__':
                     laser = True,
                     start = [x[0] for x in pulse_times],
                     end = [x[1] for x in pulse_times],
-                    # start = start_points[num],
-                    # end = end_points[num],
                     )
                 )
         laser_info_list.append(this_frame)
@@ -428,10 +431,11 @@ if __name__ == '__main__':
         hf5.create_group('/', 'spike_trains')
 
         # Pull out spike trains
-        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
-            dig_in_basename = this_dig_handler.dig_in_frame.loc[i, 'dig_in_nums']
+        for num, this_starts in zip(taste_digin_nums, taste_starts_cutoff): 
+            # dig_in_basename = this_dig_handler.dig_in_frame.loc[i, 'dig_in_nums']
+            dig_in_basename = f'dig_in_{num}' 
             # print(f'Creating spike-trains for {dig_in_basename[i]}')
-            print(f'Creating spike-trains for {dig_in_basename}')
+            print(f'Creating spike-trains for dig-in {num}')
             create_spike_trains_for_digin(
                     this_starts,
                     dig_in_basename,
@@ -449,8 +453,10 @@ if __name__ == '__main__':
                 this_group = this_group.sort_values('taste_rel_trial_num')
                 laser_durations = this_group['laser_duration_ms'].values
                 laser_lags = this_group['laser_lag_ms'].values
-                this_dig_in_name = this_group['dig_in_name_taste'].values[0]
-                dig_in_path = f'/spike_trains/{this_dig_in_name}'
+                # this_dig_in_name = this_group['dig_in_name_taste'].values[0]
+                # dig_in_path = f'/spike_trains/{this_dig_in_name}'
+                this_dig_in_num = this_group['dig_in_num_taste'].values[0]
+                dig_in_path = f'/spike_trains/dig_in_{this_dig_in_num}'
                 if f'{dig_in_path}/laser_durations' in hf5:
                         hf5.remove_node(dig_in_path, 'laser_durations')
                 if f'{dig_in_path}/laser_onset_lag' in hf5:
@@ -482,11 +488,14 @@ if __name__ == '__main__':
         hf5.create_group('/', 'emg_data')
 
         # Pull out emg trials 
-        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
-            dig_in_basename = this_dig_handler.dig_in_frame.loc[i, 'dig_in_nums']
-            print(f'Creating emg-trials for {dig_in_basename}')
+        # for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
+        for num, this_starts in zip(taste_digin_nums, taste_starts_cutoff): 
+            # dig_in_basename = this_dig_handler.dig_in_frame.loc[i, 'dig_in_nums']
+            dig_in_basename = f'dig_in_{num}' 
+            print(f'Creating emg-trials for dig-in {num}')
             create_emg_trials_for_digin(
                     this_starts,
+                    # num,
                     dig_in_basename,
                     durations,
                     sampling_rate_ms,

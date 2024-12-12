@@ -397,10 +397,10 @@ dig_in_markers = np.stack([[x[0] for x in this_list] for this_list in dig_in_pul
 dig_in_markers = dig_in_markers / sampling_rate
 
 # Check if laser is present
-laser_dig_in = info_dict['laser_params']['dig_in']
+laser_dig_in = info_dict['laser_params']['dig_in_nums']
 
 dig_in_map = {}
-for num, name in zip(info_dict['taste_params']['dig_ins'], info_dict['taste_params']['tastes']):
+for num, name in zip(info_dict['taste_params']['dig_in_nums'], info_dict['taste_params']['tastes']):
     dig_in_map[num] = name
 for num in laser_dig_in:
     dig_in_map[num] = 'laser'

@@ -412,13 +412,13 @@ else:
                     'muscle': emg_muscle_str},
                 'electrode_layout': fin_perm,
                 'taste_params': {
-                    'nums': taste_digin_nums,
+                    'dig_in_nums': taste_digin_nums,
                     'trial_count': taste_digin_trials,
                     'tastes': tastes,
                     'concs': concs,
                     'pal_rankings': pal_ranks},
                 'laser_params': {
-                    'nums': laser_digin_nums,
+                    'dig_in_nums': laser_digin_nums,
                     'trial_count': laser_digin_trials,
                     'onset': onset_time,
                     'duration': duration,
