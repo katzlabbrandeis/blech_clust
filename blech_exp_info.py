@@ -42,6 +42,7 @@ parser.add_argument('--programmatic', action='store_true',
                     help='Run in programmatic mode')
 parser.add_argument('--use-layout-file', action='store_true', 
                     help='Use existing electrode layout file')
+parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
 parser.add_argument('--emg-muscle', help='Name of EMG muscle')
 parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
 parser.add_argument('--tastes', help='Comma-separated taste names')
@@ -167,11 +168,18 @@ else:
         return x in ['y', 'yes', 'n', 'no']
 
     if os.path.exists(layout_file_path):
-        if not args.programmatic and not args.use_layout_file:
+        # If neither programmatic nor use_layout_file, ask user
+        if not args.programmatic and not args.use_layout_file and not args.car_groups:
             use_csv_str, continue_bool = entry_checker(
                 msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
                 check_func=yn_check,
                 fail_response='Please [y, yes, n, no]')
+        elif args.car_groups:
+            use_csv_str = 'n'
+        # If use_layout_file, use it
+        elif args.use_layout_file:
+            use_csv_str = 'y'
+        # If programmatic, don't use
         else:
             use_csv_str = 'y' 
     else:
@@ -191,27 +199,36 @@ else:
 
         layout_frame.to_csv(layout_file_path, index=False)
 
-        prompt_str = 'Please fill in car groups / regions' + "\n" + \
-            "emg and none are case-specific" + "\n" +\
-            "Indicate different CARS from same region as GC1,GC2...etc"
-        print(prompt_str)
+        if not args.programmatic:
+            prompt_str = 'Please fill in car groups / regions' + "\n" + \
+                "emg and none are case-specific" + "\n" +\
+                "Indicate different CARS from same region as GC1,GC2...etc"
+            print(prompt_str)
 
-        def confirm_check(x):
-            this_bool = x in ['y', 'yes']
-            return this_bool
-        perm_str, continue_bool = entry_checker(
-            msg='Lemme know when its done (y/yes) :: ',
-            check_func=confirm_check,
-            fail_response='Please say y or yes')
-        if not continue_bool:
-            print('Welp...')
-            exit()
+            def confirm_check(x):
+                this_bool = x in ['y', 'yes']
+                return this_bool
+            perm_str, continue_bool = entry_checker(
+                msg='Lemme know when its done (y/yes) :: ',
+                check_func=confirm_check,
+                fail_response='Please say y or yes')
+            if not continue_bool:
+                print('Welp...')
+                exit()
 
     layout_frame_filled = pd.read_csv(layout_file_path)
-    layout_frame_filled['CAR_group'] = \
-            layout_frame_filled['CAR_group'].str.lower()
-    layout_frame_filled['CAR_group'] = [x.strip() for x in
-                                        layout_frame_filled['CAR_group']]
+
+    if not args.programmatic:
+        layout_frame_filled['CAR_group'] = \
+                layout_frame_filled['CAR_group'].str.lower()
+        layout_frame_filled['CAR_group'] = [x.strip() for x in
+                                            layout_frame_filled['CAR_group']]
+    else:
+        if args.car_groups:
+            car_groups = parse_csv(args.car_groups)
+            layout_frame_filled['CAR_group'] = [x.strip().lower() for x in car_groups] 
+        else:
+            raise ValueError('CAR groups not provided, use --car-groups')
     layout_dict = dict(
         list(layout_frame_filled.groupby('CAR_group').electrode_ind))
     for key, vals in layout_dict.items():
