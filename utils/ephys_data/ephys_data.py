@@ -346,6 +346,7 @@ class ephys_data():
                     [x for x in hf5.list_nodes('/spike_trains') \
                     if 'dig_in' in x.__str__()]
                 self.dig_in_name_list = [x.__str__() for x in dig_in_list]
+                self.dig_in_num_list = [int(x.split('_')[-1]) for x in self.dig_in_name_list]
             else:
                 raise Exception('No spike trains found in HF5')
 
@@ -999,10 +1000,10 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
-        dig_in_num_tastes = trial_inds_frame['dig_in_num_taste'].unique()
         for i, this_row in trial_inds_frame.iterrows():
-            # taste_ind = this_row['dig_in_num_taste']
-            taste_ind = np.where(dig_in_num_tastes == this_row['dig_in_num_taste'])[0][0]
+            taste_ind = np.where(
+                    np.array(self.dig_in_num_list) == int(this_row['dig_in_num_taste'])
+                    )[0][0]
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1036,10 +1037,10 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_firing = []
         sequestered_firing_frame_list = []
-        dig_in_num_tastes = trial_inds_frame['dig_in_num_taste'].unique()
         for i, this_row in trial_inds_frame.iterrows():
-            # taste_ind = this_row['dig_in_num_taste']
-            taste_ind = np.where(dig_in_num_tastes == this_row['dig_in_num_taste'])[0][0]
+            taste_ind = np.where(
+                    np.array(self.dig_in_num_list) == int(this_row['dig_in_num_taste'])
+                    )[0][0]
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'], this_row['laser_duration_ms'])
             this_seq_firing = self.firing_list[taste_ind][trial_inds]
