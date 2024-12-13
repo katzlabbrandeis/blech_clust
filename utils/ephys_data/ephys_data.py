@@ -345,7 +345,7 @@ class ephys_data():
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains') \
                     if 'dig_in' in x.__str__()]
-                self.dig_in_name_list = [x.__str__() for x in dig_in_list]
+                self.dig_in_name_list = [x._v_name for x in dig_in_list]
                 self.dig_in_num_list = [int(x.split('_')[-1]) for x in self.dig_in_name_list]
             else:
                 raise Exception('No spike trains found in HF5')
