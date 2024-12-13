@@ -82,7 +82,12 @@ import shutil
 # Import specific functions in order to filter the data file
 from scipy.signal import butter
 from scipy.signal import filtfilt
-from scipy.stats import median_absolute_deviation as MAD
+try:
+    from scipy.stats import median_abs_deviation as MAD
+except:
+    from scipy.stats import median_absolute_deviation as MAD
+else:
+    raise ImportError('MAD not found in scipy.stats')
 
 # ==============================
 # Define Functions
