@@ -287,3 +287,4 @@ if any(best_change_per_taste > 0):
         print('=== End Post-stimulus POPULATION Drift Warning ===', file=f)
         print('\n', file=f)
 
+this_pipeline_check.write_to_log(script_path, 'completed')
