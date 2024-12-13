@@ -999,8 +999,10 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
+        dig_in_num_tastes = trial_inds_frame['dig_in_num_taste'].unique()
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = this_row['dig_in_num_taste']
+            # taste_ind = this_row['dig_in_num_taste']
+            taste_ind = np.where(dig_in_num_tastes == this_row['dig_in_num_taste'])[0][0]
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1034,8 +1036,10 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_firing = []
         sequestered_firing_frame_list = []
+        dig_in_num_tastes = trial_inds_frame['dig_in_num_taste'].unique()
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = this_row['dig_in_num_taste']
+            # taste_ind = this_row['dig_in_num_taste']
+            taste_ind = np.where(dig_in_num_tastes == this_row['dig_in_num_taste'])[0][0]
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'], this_row['laser_duration_ms'])
             this_seq_firing = self.firing_list[taste_ind][trial_inds]
