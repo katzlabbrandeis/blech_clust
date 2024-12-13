@@ -283,15 +283,15 @@ else:
             exit()
     else:
         if args.laser_digin:
-            laser_digin = parse_csv(args.laser_digin, int)
+            laser_digin_ind = parse_csv(args.laser_digin, int)
         else:
-            laser_digin = []
+            laser_digin_ind = []
 
-    if laser_digin:
+    if laser_digin_ind:
         laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list()
-        this_dig_handler.dig_in_frame.loc[laser_digin, 'laser_bool'] = True
+        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_bool'] = True
         this_dig_handler.dig_in_frame.laser_bool.fillna(False, inplace=True)
-        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin, 'dig_in_nums'].to_list()
+        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list()
         print('Selected laser digins: \n')
         print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
         print_df = print_df[print_df.laser_bool]
@@ -303,7 +303,7 @@ else:
         nums = re.findall('[0-9]+', x)
         return sum([x.isdigit() for x in nums]) == 2
 
-    if laser_digin:
+    if laser_digin_ind:
         if not args.programmatic:
             # Ask for laser parameters
             laser_select_str, continue_bool = entry_checker(
@@ -345,7 +345,7 @@ else:
                 raise ValueError('Opto-fiber location not provided, use --opto-loc')
 
         # Fill in laser parameters
-        this_dig_handler.dig_in_frame.loc[laser_digin, 'laser_params'] = str([onset_time, duration])
+        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str([onset_time, duration])
     else:
         onset_time, duration = [None, None]
         virus_region_str = ''
@@ -502,8 +502,8 @@ else:
         notes = args.notes or ''
 
 
-    if laser_digin:
-        laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin, 'trial_counts'].to_list() 
+    if laser_digin_ind:
+        laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list() 
     else:
         laser_digin_trials = []
 
