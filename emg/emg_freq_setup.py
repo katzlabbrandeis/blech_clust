@@ -107,7 +107,7 @@ flat_emg_filt_data = np.stack(
 
 emg_env_df = pd.DataFrame(
         dict(
-            dig_in = fin_dig_list,
+            dig_in = [int(x.split('_')[-1]) for x in fin_dig_list],
             car = fin_car_list,
             trial_inds = trial_inds,
             )
@@ -178,7 +178,7 @@ trial_info_frame = pd.read_csv(os.path.join(data_dir,'trial_info_frame.csv'))
 
 merge_frame = pd.merge(emg_env_df, trial_info_frame, 
                        left_on = ['dig_in', 'trial_inds'], 
-                       right_on = ['dig_in_name_taste', 'taste_rel_trial_num'], 
+                       right_on = ['dig_in_num_taste', 'taste_rel_trial_num'], 
                        how = 'left')
 merge_frame.drop(
         columns = ['dig_in','trial_inds', 
