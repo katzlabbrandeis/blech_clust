@@ -124,9 +124,9 @@ else:
         electrodes_list = [
             name for name in file_list if name.startswith('amp-')]
     else:
-        with open(os.path.join(dir_path , file_list[0]), 'rb') as f:
+        rhd_file_list = [x for x in file_list if 'rhd' in x]
+        with open(os.path.join(dir_path , rhd_file_list[0]), 'rb') as f:
             header = read_header(f)
-        # temp_file, data_present = importrhdutilities.load_file(file_list[0])
         ports = [x['port_prefix'] for x in header['amplifier_channels']]
         electrode_files = [x['native_channel_name'] for x in header['amplifier_channels']]
 

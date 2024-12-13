@@ -70,9 +70,10 @@ class DigInHandler:
 			dig_in_num = [dig_in_num[x] for x in sort_inds]
 
 		else:
-			with open(os.path.join(self.data_dir , file_list[0]), 'rb') as f:
+			rhd_file_list = [x for x in file_list if 'rhd' in x]
+			with open(os.path.join(self.data_dir , rhd_file_list[0]), 'rb') as f:
 				header = read_header(f)
-			dig_in_file_list = sorted([x for x in file_list if 'rhd' in x])
+			dig_in_file_list = sorted([x for x in rhd_file_list if 'rhd' in x])
 			dig_in_name = [x['native_channel_name'].lower() for x in header['board_dig_in_channels']]
 			dig_in_num = [int(x.split('-')[-1]) for x in dig_in_name]
 
@@ -147,7 +148,7 @@ class DigInHandler:
 						pulse_times[this_dig_num] = []
 						this_start = start_ind[1][i]
 						this_end = end_ind[1][i]
-					pulse_times[this_dig_num].extend((this_start, this_end))
+					pulse_times[this_dig_num].append((this_start, this_end))
 
 		dig_in_trials = [len(pulse_times[x]) for x in pulse_times.keys()]
 		dig_in_frame = pd.DataFrame(
