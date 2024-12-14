@@ -16,21 +16,33 @@ base: params
 
 # Install EMG (BSA) requirements
 emg:
-	conda run -n blech_clust conda config --set channel_priority strict
-	conda run -n blech_clust bash requirements/emg_install.sh
+	@if ! conda run -n blech_clust Rscript -e "library(BaSAR)" 2>/dev/null; then \
+		conda run -n blech_clust conda config --set channel_priority strict && \
+		conda run -n blech_clust bash requirements/emg_install.sh; \
+	else \
+		echo "EMG dependencies already installed"; \
+	fi
 
 # Install neuRecommend classifier
 neurec:
-	cd ~/Desktop && \
-	git clone https://github.com/abuzarmahmood/neuRecommend.git && \
-	conda run -n blech_clust pip install -r neuRecommend/requirements.txt
+	@if [ ! -d ~/Desktop/neuRecommend ]; then \
+		cd ~/Desktop && \
+		git clone https://github.com/abuzarmahmood/neuRecommend.git && \
+		conda run -n blech_clust pip install -r neuRecommend/requirements.txt; \
+	else \
+		echo "neuRecommend already installed"; \
+	fi
 
-# Install BlechRNN (optional)
+# Install BlechRNN (optional) 
 blechrnn:
-	cd ~/Desktop && \
-	git clone https://github.com/abuzarmahmood/blechRNN.git && \
-	cd blechRNN && \
-	conda run -n blech_clust pip install $$(cat requirements.txt | egrep "torch")
+	@if [ ! -d ~/Desktop/blechRNN ]; then \
+		cd ~/Desktop && \
+		git clone https://github.com/abuzarmahmood/blechRNN.git && \
+		cd blechRNN && \
+		conda run -n blech_clust pip install $$(cat requirements.txt | egrep "torch"); \
+	else \
+		echo "blechRNN already installed"; \
+	fi
 
 # Copy parameter templates
 params:
