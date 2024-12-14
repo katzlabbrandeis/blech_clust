@@ -1,16 +1,23 @@
 .PHONY: all base emg neurec blechrnn clean
 
+# Store sudo password
+define get_sudo_password
+$(eval SUDO_PASS := $(shell bash -c 'read -s -p "Enter sudo password: " pwd; echo $$pwd'))
+@echo
+endef
+
 # Default target
 all: base emg neurec blechrnn prefect
 
 # Create and setup base environment
 base: params
+	$(call get_sudo_password)
 	conda deactivate || true
 	conda update -n base conda -y
 	conda clean --all -y
 	conda create --name blech_clust python=3.8.13 -y
 	conda run -n blech_clust conda install -c conda-forge -y --file requirements/conda_requirements_base.txt
-	bash requirements/install_gnu_parallel.sh
+	bash requirements/install_gnu_parallel.sh "$(SUDO_PASS)"
 	conda run -n blech_clust pip install -r requirements/pip_requirements_base.txt
 	conda run -n blech_clust bash requirements/patch_dependencies.sh
 
