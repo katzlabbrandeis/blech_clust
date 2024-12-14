@@ -84,10 +84,9 @@ make clean
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
 ### Testing
-```
+```bash
 cd <path_to_blech_clust>                                    # Move to blech_clust directory
-conda activate blech_clust                                  # Activate blech_clust environment
-pip install -U prefect                                      # Update prefect
+make prefect                                                # Install/update Prefect
 python pipeline_testing/prefect_pipeline.py --all           # Run all tests
 ```
 
