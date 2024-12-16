@@ -65,7 +65,7 @@ command_dict['spike_only'] = \
 --tastes a,b,c,d \
 --concentrations 1,1,1,1 \
 --palatability 1,2,3,4 \
---car-groups "gc,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,gc" \
+--car-groups "gc,gc,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
 """
 
 command_dict['emg_spike'] = \
@@ -76,7 +76,7 @@ command_dict['emg_spike'] = \
 --tastes a,b,c,d \
 --concentrations 1,1,1,1 \
 --palatability 1,2,3,4 \
---car-groups "gc,gc,none,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,gc" \
+--car-groups "gc,gc,gc,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
 """
 
 if __name__ == '__main__':
