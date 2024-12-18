@@ -101,9 +101,9 @@ this_dict = {
 if args.template:
     with open(args.template, 'r') as file:
         template_dict = json.load(file)
-        template_keys = template_dict.keys()
+        template_keys = list(template_dict.keys())
         from_template = {
-                template_dict[this_key] for this_key in template_keys \
+                this_key:template_dict[this_key] for this_key in template_keys \
                         if this_key not in this_dict.keys()
                         }
         fin_dict = {**this_dict, **from_template}
