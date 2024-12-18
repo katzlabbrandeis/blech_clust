@@ -195,7 +195,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 
 
     # Load data from the chosen electrode and solution
-    (
+    load_bool, (
         spike_waveforms,
         spike_times,
         pca_slices,
