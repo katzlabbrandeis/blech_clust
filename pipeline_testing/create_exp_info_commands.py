@@ -45,6 +45,14 @@ optional arguments:
   --notes NOTES         Experiment notes
 """
 
+import os
+import sys
+import argparse
+parser = argparse.ArgumentParser(description='Creates files with experiment info')
+parser.add_argument('dir_name', type=str, help='Directory containing data files')
+parser.add_argument('key', type=str, help='Key for command to run',
+                    choices=['emg_only', 'spike_only', 'emg_spike'])
+
 command_dict = {}
 command_dict['emg_only'] = \
 """python blech_exp_info.py $DIR \
@@ -79,14 +87,15 @@ command_dict['emg_spike'] = \
 --car-groups "gc,gc,gc,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
 """
 
+
 if __name__ == '__main__':
-    import os
-    import sys
-    data_dir = sys.argv[1]
-    for key in command_dict:
-        print(f'Running {key} command')
-        this_command = command_dict[key]
-        # Replace $DIR with the directory name
-        this_command = this_command.replace('$DIR', data_dir)
-        os.system(this_command)
-        print('\n')
+    args = parser.parse_args()
+    data_dir =  args.dir_name
+    key = args.key
+
+    print(f'Running {key} command')
+    this_command = command_dict[key]
+    # Replace $DIR with the directory name
+    this_command = this_command.replace('$DIR', data_dir)
+    os.system(this_command)
+    print('\n')
