@@ -72,6 +72,8 @@ parser.add_argument('--show-plot',
                     action = 'store_true')
 parser.add_argument('--keep-raw', help = 'Keep raw data in hdf5 file',
                     action = 'store_true')
+parser.add_argument('--skip-processed', help = 'Skip already processed electrodes',
+                    action = 'store_true')
 args = parser.parse_args()
 
 ############################################################
@@ -434,6 +436,20 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
             for this_electrode in electrode_list]
     electrode_num_list.sort()
 
+    if args.skip_processed:
+        autosort_output_dir = os.path.join(
+            metadata_handler.dir_name,
+            'autosort_outputs'
+        )
+        # Get list of electrodes that have already been processed
+        file_list = glob(os.path.join(autosort_output_dir, '*_subclusters.png'))
+        basenames = [os.path.basename(x) for x in file_list]
+        processed_electrodes = sorted([int(x.split('_')[0]) for x in basenames])
+        print(f'Skipping already processed electrodes: {processed_electrodes}')
+        electrode_num_list = [x for x in electrode_num_list if x not in processed_electrodes]
+        electrode_num_list.sort()
+
+
     # Create processing parameters tuple
     process_params = (
         max_autosort_clusters,
@@ -473,21 +489,25 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     # Get pickling errors when they are included
     # It is also a quick process so it doesn't need to be parallelized
     print('Writing sorted units to file...')
-    for subcluster_waveforms, subcluster_times, fin_bool, electrode_num in result:
-        for this_sub in range(len(subcluster_waveforms)):
-            if fin_bool[this_sub]:
-                continue_bool, unit_name = this_descriptor_handler.save_unit(
-                    subcluster_waveforms[this_sub],
-                    subcluster_times[this_sub],
-                    electrode_num,
-                    this_sort_file_handler,
-                    split_or_merge=None,
-                    override_ask=True,
-                )
-            else:
-                continue_bool = True
+    for this_result in result: 
+        if this_result is None:
+            continue
+        else:
+            subcluster_waveforms, subcluster_times, fin_bool, electrode_num = this_result 
+            for this_sub in range(len(subcluster_waveforms)):
+                if fin_bool[this_sub]:
+                    continue_bool, unit_name = this_descriptor_handler.save_unit(
+                        subcluster_waveforms[this_sub],
+                        subcluster_times[this_sub],
+                        electrode_num,
+                        this_sort_file_handler,
+                        split_or_merge=None,
+                        override_ask=True,
+                    )
+                else:
+                    continue_bool = True
 
-        hf5.flush()
+            hf5.flush()
 
     print('==== Auto Post-Processing Complete ====\n')
     print('==== Post-Processing Exiting ====\n')
