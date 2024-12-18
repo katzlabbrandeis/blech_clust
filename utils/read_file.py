@@ -133,6 +133,7 @@ class DigInHandler:
 		elif self.file_type == 'traditional':
 
 			pulse_times = {}
+			counter = 0
 			for this_file in tqdm(self.dig_in_file_list):
 				this_file_data, data_present = load_file(os.path.join(self.data_dir, this_file))
 				dig_inputs = this_file_data['board_dig_in_data']
@@ -142,13 +143,26 @@ class DigInHandler:
 				start_ind = np.where(d_diff == 1)
 				end_ind = np.where(d_diff == -1)
 
+				# Need to keep track of how many files have been read
+				# to account for pulse index (as pulses detected are simply from the 
+				# start of single files)
+				start_ind = (start_ind[0], start_ind[1] + counter)
+				end_ind = (end_ind[0], end_ind[1] + counter)
+
 				for i, ind in enumerate(start_ind[0]):
 					this_dig_num = self.dig_in_num[ind]
 					if this_dig_num not in pulse_times.keys():
 						pulse_times[this_dig_num] = []
-						this_start = start_ind[1][i]
-						this_end = end_ind[1][i]
+					# In some cases for the traditional format, start and end
+					# might be in different files.
+					# Not dealing with this right now. 
+					# Since we only use start times, we can just append None for end times
+					this_start = start_ind[1][i]
+					# this_end = end_ind[1][i]
+					this_end = None
 					pulse_times[this_dig_num].append((this_start, this_end))
+
+				counter += dig_inputs.shape[1]
 
 		dig_in_trials = [len(pulse_times[x]) for x in pulse_times.keys()]
 		dig_in_frame = pd.DataFrame(
