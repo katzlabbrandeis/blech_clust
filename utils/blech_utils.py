@@ -23,6 +23,7 @@ class Tee:
         self.file.write(data)
         self.stdout.write(data)
         self.file.flush()
+        self.stdout.flush()
         
     def flush(self):
         self.file.flush()
