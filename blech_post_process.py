@@ -195,7 +195,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 
 
     # Load data from the chosen electrode and solution
-    (
+    load_bool, (
         spike_waveforms,
         spike_times,
         pca_slices,
@@ -203,6 +203,11 @@ while (not auto_post_process) or (args.sort_file is not None):
         amplitudes,
         predictions,
     ) = post_utils.load_data_from_disk(dir_name, electrode_num, num_clusters)
+
+    if not load_bool:
+        print(f'Trouble loading data for electrode {electrode_num}.')
+        print('Fix the issue and try again. Skipping this electrode.')
+        continue
 
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
