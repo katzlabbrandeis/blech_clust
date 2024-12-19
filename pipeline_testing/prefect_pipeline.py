@@ -9,6 +9,7 @@ from glob import glob
 import json
 import argparse
 import sys
+from create_exp_info_commands import command_dict
 
 ############################################################
 parser = argparse.ArgumentParser(description='Run tests, default = Run all tests')
@@ -107,11 +108,14 @@ def prep_data_info(data_type = 'emg_spike'):
         data_type (str): Type of data to prepare. Options are 'emg', 'spike', 'emg_spike'
     """
     if data_type == 'emg':
-        flag_str = '-emg'
+        # flag_str = '-emg'
+        key = 'emg_only'
     elif data_type == 'spike':
-        flag_str = '-spike'
+        # flag_str = '-spike'
+        key = 'spike_only'
     elif data_type == 'emg_spike':
-        flag_str = '-emg_spike'
+        # flag_str = '-emg_spike'
+        key = 'emg_spike'
 
     # Write out data_type to file
     current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
@@ -119,12 +123,14 @@ def prep_data_info(data_type = 'emg_spike'):
     with open(current_data_type_path, 'w') as f:
         f.write(data_type)
 
-    script_name = './pipeline_testing/test_data_handling/prep_data_info.py' 
-    # cmd_str = 'python ' + script_name + ' ' + '-emg_spike' + ' ' + data_dir
-    cmd_str = 'python ' + script_name + ' ' + flag_str + ' ' + data_dir
+    cmd_str = command_dict[key]
+    # Replace $DIR with data_dir
+    cmd_str = cmd_str.replace('$DIR', data_dir)
     process = Popen(cmd_str, shell=True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(process,stderr,stdout)
+
+    
 
 ############################################################
 ## Common Scripts

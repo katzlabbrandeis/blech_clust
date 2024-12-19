@@ -134,9 +134,14 @@ def load_data_from_disk(data_dir, electrode_num, num_clusters):
                 f'clusters{num_clusters}/predictions.npy',]
 
     loading_paths = [os.path.join(data_dir, x) for x in loading_paths]
-    loaded_dat = [np.load(x) for x in loading_paths]
-
-    return loaded_dat
+    path_found = [os.path.exists(x) for x in loading_paths]
+    if not all(path_found):
+        print(':: Data not found ::')
+        print('\n'.join([x for x in loading_paths if not os.path.exists(x)]))
+        return False, [None]*len(loading_paths) 
+    else:
+        loaded_dat = [np.load(x) for x in loading_paths]
+        return True, loaded_dat
 
 
 def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
@@ -1380,7 +1385,8 @@ def auto_process_electrode(
     print(f'=== Processing Electrode {electrode_num:02} ===')
 
     # Load data from the chosen electrode
-    (
+
+    load_bool, (
         spike_waveforms,
         spike_times,
         pca_slices,
@@ -1388,6 +1394,11 @@ def auto_process_electrode(
         amplitudes,
         split_predictions,
     ) = load_data_from_disk(data_dir, electrode_num, max_autosort_clusters)
+
+    if not load_bool:
+        print(f'Trouble loading data for electrode {electrode_num}.')
+        print('Fix the issue and try again. Skipping this electrode.')
+        return None
 
     clf_data_paths = [
         f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
