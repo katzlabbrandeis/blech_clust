@@ -204,6 +204,11 @@ while (not auto_post_process) or (args.sort_file is not None):
         predictions,
     ) = post_utils.load_data_from_disk(dir_name, electrode_num, num_clusters)
 
+    if not load_bool:
+        print(f'Trouble loading data for electrode {electrode_num}.')
+        print('Fix the issue and try again. Skipping this electrode.')
+        continue
+
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
     #if ast.literal_eval(args.show_plot):
