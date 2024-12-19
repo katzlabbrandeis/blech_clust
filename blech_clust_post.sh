@@ -1,5 +1,6 @@
 DIR=$1
-BLECH_DIR=$HOME/Desktop/blech_clust
+SCRIPT_DIR=$0
+BLECH_DIR=$(dirname $SCRIPT_DIR)
 echo === Make Arrays ===
 python $BLECH_DIR/blech_make_arrays.py $DIR &&
 echo === Quality Assurance === 
