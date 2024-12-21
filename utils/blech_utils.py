@@ -56,7 +56,27 @@ class pipeline_graph_check():
         self.data_dir = data_dir
         # self.tee = Tee(data_dir)
         self.load_graph()
+        self.get_git_info()
         self.check_graph()
+
+    def get_git_info(self):
+        """
+        Get branch and commit info, and print
+        If not in git repo, print warning
+        """
+        if not hasattr(self, 'blech_clust_dir'):
+            print('Run load_graph() first')
+            exit()
+        pwd = os.getcwd()
+        # Change to blech_clust directory
+        os.chdir(self.blech_clust_dir)
+        git_branch = os.popen('git rev-parse --abbrev-ref HEAD').read().strip()
+        git_commit = os.popen('git rev-parse HEAD').read().strip()
+        if git_branch == '' or git_commit == '':
+            print('Not in git repository, please clone blech_clust rather than downloading zip') 
+        self.git_str = f'Git branch: {git_branch}\nGit commit: {git_commit}'
+        # change back to original directory
+        os.chdir(pwd)
 
     def load_graph(self):
         """
@@ -144,6 +164,8 @@ class pipeline_graph_check():
         type = 'attempted' : script was attempted
         type = 'completed' : script was completed
         """
+        if not hasattr(self, 'git_str'):
+            raise ValueError('Run get_git_info() first')
         self.log_path = os.path.join(self.data_dir, 'execution_log.json')
         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if os.path.exists(self.log_path):
@@ -157,6 +179,7 @@ class pipeline_graph_check():
             log_dict['attempted'][script_path] = current_datetime
             print('============================================================')
             print(f'Attempting {os.path.basename(script_path)}, started at {current_datetime}')
+            print(self.git_str)
             print('============================================================')
         elif type == 'completed':
             if 'completed' not in log_dict.keys():
