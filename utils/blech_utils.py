@@ -54,7 +54,7 @@ class pipeline_graph_check():
 
     def __init__(self, data_dir):
         self.data_dir = data_dir
-        self.tee = Tee(data_dir)
+        # self.tee = Tee(data_dir)
         self.load_graph()
         self.get_git_info()
         self.check_graph()
