@@ -65,15 +65,15 @@ for unit in trange(len(units)):
                                      ax = ax[0,0])
         ax[0,0].set_xlabel('Sample (30 samples per ms)')
         ax[0,0].set_ylabel('Voltage (microvolts)')
-        
-        # Also plot the mean and SD for every unit - 
+
+        # Also plot the mean and SD for every unit -
         # downsample the waveforms 10 times to remove effects of upsampling during de-jittering
         #fig = plt.figure()
         ax[0,1].plot(x, np.mean(waveforms, axis = 0), linewidth = 4.0)
         ax[0,1].fill_between(
-                x, 
-                np.mean(waveforms, axis = 0) - np.std(waveforms, axis = 0), 
-                np.mean(waveforms, axis = 0) + np.std(waveforms, axis = 0), 
+                x,
+                np.mean(waveforms, axis = 0) - np.std(waveforms, axis = 0),
+                np.mean(waveforms, axis = 0) + np.std(waveforms, axis = 0),
                 alpha = 0.4)
         ax[0,1].set_xlabel('Sample (30 samples per ms)')
         # Set ylim same as ax[0,0]
@@ -82,11 +82,11 @@ for unit in trange(len(units)):
         # Also plot time raster and ISI histogram for every unit
         ISI_threshold_ms = 10 # ms
         bin_count = 25
-        bins = np.linspace(min_time, max_time, bin_count) 
+        bins = np.linspace(min_time, max_time, bin_count)
 
         _, ax[1,0] = gen_isi_hist(
-                times, 
-                np.ones(len(times)) > 0, # mark all as selected 
+                times,
+                np.ones(len(times)) > 0, # mark all as selected
                 params_dict['sampling_rate'],
                 ax = ax[1,0],
                 )
@@ -118,16 +118,16 @@ for unit in trange(len(units)):
         ax.set_ylabel('Voltage (microvolts)')
         fig.savefig(os.path.join(plot_dir, 'Unit%i_datashader.png' % (unit)), bbox_inches = 'tight')
         plt.close("all")
-        
-        # Also plot the mean and SD for every unit - 
+
+        # Also plot the mean and SD for every unit -
         # downsample the waveforms 10 times to remove effects of upsampling during de-jittering
         #fig = plt.figure()
         fig, ax = plt.subplots()
         ax.plot(x, np.mean(waveforms, axis = 0), linewidth = 4.0)
         ax.fill_between(
-                x, 
-                np.mean(waveforms, axis = 0) - np.std(waveforms, axis = 0), 
-                np.mean(waveforms, axis = 0) + np.std(waveforms, axis = 0), 
+                x,
+                np.mean(waveforms, axis = 0) - np.std(waveforms, axis = 0),
+                np.mean(waveforms, axis = 0) + np.std(waveforms, axis = 0),
                 alpha = 0.4)
         ax.set_xlabel('Sample (30 samples per ms)')
         fig.savefig(os.path.join(plot_dir, 'Unit%i_mean_sd.png' % (unit)), bbox_inches = 'tight')

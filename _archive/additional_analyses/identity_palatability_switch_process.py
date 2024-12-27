@@ -68,8 +68,3 @@ with open('Trial{:d}_Gelman_Rubin.pickle'.format(trial + 1), 'wb') as handle:
 	pickle.dump(pm.gelman_rubin(tr), handle, protocol = pickle.HIGHEST_PROTOCOL)
 
 hf5.close()
-
-
-
-
-

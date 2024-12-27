@@ -6,7 +6,7 @@ from ephys_data import ephys_data
 
 dat = \
 ephys_data('/media/bigdata/Abuzar_Data/AM11/AM11_4Tastes_191030_114043_copy')
-dat.firing_rate_params = dat.default_firing_params 
+dat.firing_rate_params = dat.default_firing_params
 
 dat.get_unit_descriptors()
 dat.get_spikes()

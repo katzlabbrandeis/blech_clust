@@ -20,7 +20,7 @@ dirs = []
 while True:
 	dir_name = easygui.diropenbox(msg = 'Choose a directory with a hdf5 file, hit cancel to stop choosing')
 	try:
-		if len(dir_name) > 0:	
+		if len(dir_name) > 0:
 			dirs.append(dir_name)
 	except:
 		break
@@ -80,12 +80,12 @@ for condition in range(mean_firing_rates.shape[1]):
 
 		# Now plot the distribution of these proportions across the units in the population
 		sns.kdeplot(proportion_below_zero, cumulative = True, label = 'Taste {}'.format(taste))
-		#plt.hist(proportion_below_zero, histtype = 'step', normed = 1, cumulative = True, label = 'Taste {}'.format(taste), linewidth = 2.0)		
+		#plt.hist(proportion_below_zero, histtype = 'step', normed = 1, cumulative = True, label = 'Taste {}'.format(taste), linewidth = 2.0)
 		plt.xlabel('P{(laser_off firing - laser_on firing) >= 0}')
 		plt.ylabel('Proportion of units (Total = {})'.format(mean_firing_rates.shape[0]))
 		#plt.tick_params(axis='both', which='major', labelsize=20)
 		plt.xlim([0.0, 1.0])
-		plt.title('Proportion of units against P{(laser_off firing - laser_on firing) >= 0}') 
+		plt.title('Proportion of units against P{(laser_off firing - laser_on firing) >= 0}')
 	plt.legend(loc = 'upper left', fontsize = 15)
 	#fig.set_size_inches(18.5, 10.5)
 	plt.tight_layout()
@@ -104,12 +104,12 @@ for taste in range(mean_firing_rates.shape[2]):
 
 		# Now plot the distribution of these proportions across the units in the population
 		sns.kdeplot(proportion_below_zero, cumulative = True, label = 'Dur:{}ms,Lag:{}ms'.format(lasers[condition + 1, 0], lasers[condition + 1, 1]))
-		#plt.hist(proportion_below_zero, histtype = 'step', normed = 1, cumulative = True, label = 'duration:{},lag:{}'.format(lasers[condition + 1, 0], lasers[condition + 1, 1]), linewidth = 2.0)		
+		#plt.hist(proportion_below_zero, histtype = 'step', normed = 1, cumulative = True, label = 'duration:{},lag:{}'.format(lasers[condition + 1, 0], lasers[condition + 1, 1]), linewidth = 2.0)
 		plt.xlabel('P{(laser_off firing - laser_on firing) >= 0}')
 		plt.ylabel('Number of units (Total = {})'.format(mean_firing_rates.shape[0]))
 		#plt.tick_params(axis='both', which='major', labelsize=20)
 		plt.xlim([0.0, 1.0])
-		plt.title('Proportion of units against P{(laser_off firing - laser_on firing) >= 0}') 
+		plt.title('Proportion of units against P{(laser_off firing - laser_on firing) >= 0}')
 	plt.legend(loc = 'upper left', fontsize = 15)
 	plt.tight_layout()
 	#fig.set_size_inches(18.5, 10.5)
@@ -166,11 +166,3 @@ plt.legend(loc = 'upper left', fontsize = 15)
 plt.tight_layout(h_pad=3)
 fig.savefig('Percent_change_firing_rate.png', bbox_inches = 'tight')
 plt.close('all')
-
-
-
- 
-
-
-
-		

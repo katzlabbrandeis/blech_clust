@@ -12,7 +12,7 @@ from scipy.signal import savgol_filter as savgol
 import easygui
 import os
 import pylab as plt
-from tqdm import tqdm 
+from tqdm import tqdm
 import sys
 sys.path.append('/media/bigdata/firing_space_plot/ephys_data')
 import visualize as vz
@@ -93,7 +93,7 @@ log_spectrum = 20*np.log10(np.abs(stft))
 fig,ax = plt.subplots(3,1, sharex=True)
 ax[0].plot(x, dat)
 ax[1].pcolormesh(t_vec, freq_vec, mag)
-ax[2].pcolormesh(t_vec, freq_vec, max_mag) 
+ax[2].pcolormesh(t_vec, freq_vec, max_mag)
 ax[0].set_xlim(*stft_params['time_range_tuple'])
 plt.show()
 
@@ -147,7 +147,7 @@ plot_dir = '/media/bigdata/firing_space_plot/NM_gape_analysis/plots'
 
 ind = (2,0)
 fig,ax = plt.subplots(5,1, sharex=True, figsize = (7,7))
-ax[0].pcolormesh(bsa_time, bsa_freq, bsa_out[ind]) 
+ax[0].pcolormesh(bsa_time, bsa_freq, bsa_out[ind])
 ax[1].pcolormesh(t_vec, freq_vec, max_mag[ind])
 ax[0].set_ylim([0,13])
 ax[1].set_ylim([0,13])
@@ -171,4 +171,3 @@ plt.tight_layout()
 plt.show()
 #fig.savefig(os.path.join(plot_dir, f'stft_bsa_comparison_{ind}.png'))
 #plt.close(fig)
-

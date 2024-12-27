@@ -98,7 +98,7 @@ class cluster_handler():
         max_k = 1000
 
         if len(train_set) > max_k:
-            kmean_obj = KMeans(n_clusters = max_k)	
+            kmean_obj = KMeans(n_clusters = max_k)
             kmean_obj.fit(train_set)
             bgm_train_data = kmean_obj.cluster_centers_
         else:
@@ -129,7 +129,7 @@ class cluster_handler():
         """
         return model.predict(data)
 
-    def perform_prediction(self): 
+    def perform_prediction(self):
         """
         Perform clustering
         Model needs to be saved for calculation of mahalanobis distances
@@ -165,7 +165,7 @@ class cluster_handler():
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
         # Make sure cluster labels are continuous numbers
-        # as auto-model can return non-continuous numbers 
+        # as auto-model can return non-continuous numbers
         # (e.g. 0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
         # This is not a problem for manual model
         # Rename all but label=-1
@@ -196,7 +196,7 @@ class cluster_handler():
         cluster_labels = np.unique(self.labels)
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
         full_data = self.spike_set.spike_features
-        for i, clust_i in enumerate(cluster_labels): 
+        for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels
                 this_cluster_data = \
@@ -615,7 +615,7 @@ class classifier_handler():
 
         # Write out both prob and pred
         out_dir = os.path.join(
-                self.data_dir, 
+                self.data_dir,
                 'spike_waveforms',
                 f'electrode{self.electrode_num:02}'
                 )
@@ -655,7 +655,7 @@ class classifier_handler():
                     df.loc[self.electrode_num, columns] = data
                 else:
                     # Append new data to df
-                    df = pd.concat([df, new_df]) 
+                    df = pd.concat([df, new_df])
                 # Write out updated frame
                 df.sort_index(inplace=True)
                 df[round_cols] = df[round_cols].round(3)
@@ -707,15 +707,15 @@ class classifier_handler():
         features = self.feature_pipeline.transform(data)
         cut_label_array, map_dict, clust_range = \
                 perform_agg_clustering(
-                        features, 
+                        features,
                         max_clusters = 4)
         plot_waveform_dendogram(
-                data, 
-                cut_label_array, 
-                clust_range, 
+                data,
+                cut_label_array,
+                clust_range,
                 map_dict,
                 plot_n = 1000,
-                save_path = os.path.join(self.plot_dir, 
+                save_path = os.path.join(self.plot_dir,
                                          f'{self.electrode_num:02}_pred_spikes_dendogram.png'))
 
         # Cluster noise and plot waveforms + times on single plot
@@ -790,7 +790,7 @@ class electrode_handler():
         hf5.close()
 
     def filter_electrode(self):
-        # Raw units get multiplied by 0.195 to get MICROVOLTS 
+        # Raw units get multiplied by 0.195 to get MICROVOLTS
         self.filt_el = clust.get_filtered_electrode(
             self.raw_el,
             freq=[self.params_dict['bandpass_lower_cutoff'],
@@ -866,7 +866,7 @@ class electrode_handler():
                     color='k', linewidth=2, linestyle='--',
                     label = 'Recording cutoff')
         plt.axhline(self.params_dict['voltage_cutoff'],
-                    color='r', linewidth=2.0, linestyle='--', 
+                    color='r', linewidth=2.0, linestyle='--',
                     label='Voltage cutoff')
         plt.axhline(-self.params_dict['voltage_cutoff'],
                     color='r', linewidth=2.0, linestyle='--')
@@ -1020,7 +1020,7 @@ def return_cutoff_values(
     Return the cutoff values for the electrode recording
 
     Inputs:
-        filt_el: numpy array (in 
+        filt_el: numpy array (in
         sampling_rate: int
         voltage_cutoff: float
         max_breach_rate: float
@@ -1260,7 +1260,7 @@ def sort_label_array(label_array):
             this_child = label_array[y][label_array[x] == this_parent]
             this_child = np.unique(this_child)
             wanted_labels = np.arange(highest_so_far, highest_so_far + len(this_child))
-            highest_so_far = np.max(wanted_labels) + 1 
+            highest_so_far = np.max(wanted_labels) + 1
             for i in range(len(this_child)):
                 child_map[this_child[i]] = wanted_labels[i]
         # Remap
@@ -1281,13 +1281,13 @@ def perform_agg_clustering(features, max_clusters = 8):
     """
     clust_range = np.arange(1, max_clusters+1)
     ward = AgglomerativeClustering(
-            distance_threshold =0, 
-            n_clusters = None, 
+            distance_threshold =0,
+            n_clusters = None,
             linkage="ward").fit(features)
     linkage = calc_linkage(ward)
     clust_label_list = [
             cut_tree(
-                linkage, 
+                linkage,
                 n_clusters = this_num
                 ).flatten()
             for this_num in clust_range
@@ -1304,9 +1304,9 @@ def perform_agg_clustering(features, max_clusters = 8):
                 )
     return cut_label_array, map_dict, clust_range
 
-def plot_waveform_dendogram(data, 
-                            cut_label_array, 
-                            clust_range, 
+def plot_waveform_dendogram(data,
+                            cut_label_array,
+                            clust_range,
                             map_dict,
                             plot_n = 1000,
                             save_path = None):
@@ -1332,7 +1332,7 @@ def plot_waveform_dendogram(data,
         parent_ax_inds = parent_unique_labels - parent_med_label + center
         ax[row,0].set_ylabel(f'{clust_range[row]} Clusters')
         for x in unique_labels:
-            this_dat = data[labels==x] 
+            this_dat = data[labels==x]
             if len(this_dat) > plot_n:
                 plot_dat = this_dat[np.random.choice(len(this_dat), plot_n)]
             else:
@@ -1340,7 +1340,7 @@ def plot_waveform_dendogram(data,
             ax[row, ax_inds[x]].plot(plot_dat.T,
                 color = 'k', alpha = 0.01)
             ax[row, ax_inds[x]].set_ylim(amp_lims)
-        if row > 0: 
+        if row > 0:
             this_map = map_dict[row-1]
             for key,val in this_map.items():
                 for child in val:
@@ -1361,7 +1361,7 @@ def trim_data(data, n_max = 20000):
     """
     Agglomerative clustering doesn't like large datasets
     If we have more than n_max samples, we will randomly sample n_max samples
-    
+
     Input:
         data: samples x features
         n_max: maximum number of samples to use

@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description = 'Spike extraction and sorting scr
 parser.add_argument('dir_name', help = 'Directory containing data files')
 args = parser.parse_args()
 
-if args.dir_name is not None: 
+if args.dir_name is not None:
     dir_name = os.path.abspath(args.dir_name)
     if dir_name[-1] != '/':
         dir_name += '/'
@@ -84,8 +84,8 @@ if trim_bool:
             )
     new_trial_number = int(new_trial_number)
 
-# Grab array information for each digital input channel, 
-# split into first and last sections, 
+# Grab array information for each digital input channel,
+# split into first and last sections,
 # place in corresponding digitial input group array
 for node in dig_in_nodes:
     spike_array = node.spike_array[:new_trial_number]
@@ -103,5 +103,4 @@ pprint(dict(zip(dig_in_names, trial_counts)), indent = 4, width = 1)
 print('========================================')
 
 hf5.flush()
-hf5.close()    
- 
+hf5.close()

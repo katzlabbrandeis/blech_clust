@@ -65,9 +65,9 @@ this_dict = {
     "exp_type": splits[1],
     # "date": splits[-2],
     # "timestamp": splits[-1]}
-    "date": time_match[0], 
+    "date": time_match[0],
     "timestamp": time_match[1],
-    } 
+    }
 
 ##################################################
 # Brain Regions and Electrode Layout
@@ -237,7 +237,7 @@ else:
                 dig_in_trials.append(int(len(start_ind)))
         if len(bad_dig_in_inds) > 0:
             bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
-            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print(f"== No deliveries detected for following dig-ins ==" + '\n')
             print('\n'+f"== {bad_dig_in_str} ==" + '\n')
             print('== They will be REMOVED from the list of dig-ins ==')
             dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]
@@ -265,7 +265,7 @@ else:
                 dig_in_trials.append(int(len(start_ind)))
         if len(bad_dig_in_inds) > 0:
             bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
-            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print(f"== No deliveries detected for following dig-ins ==" + '\n')
             print('\n'+f"== {bad_dig_in_str} ==" + '\n')
             print('== They will be REMOVED from the list of dig-ins ==')
             dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]
@@ -295,7 +295,7 @@ else:
 
         if len(bad_dig_in_inds) > 0:
             bad_dig_in_str = '\n'.join([dig_in_list[i] for i in bad_dig_in_inds])
-            print(f"== No deliveries detected for following dig-ins ==" + '\n') 
+            print(f"== No deliveries detected for following dig-ins ==" + '\n')
             print('\n'+f"== {bad_dig_in_str} ==" + '\n')
             print('== They will be REMOVED from the list of dig-ins ==')
             dig_in_list = [x for i,x in enumerate(dig_in_list) if i not in bad_dig_in_inds]

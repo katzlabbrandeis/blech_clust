@@ -70,7 +70,7 @@ results = []
 
 # Make a file to store the eventual results for all units in this dataset
 # Reports the number of units under each column
-# f = open('laser_effects_results.txt', 'w') 
+# f = open('laser_effects_results.txt', 'w')
 # print("Taste" + '\t' + "Laser condition" + '\t' + "Decrease firing" + '\t' + "Increase firing" + '\t' + , file = f)
 
 # We will make 2 tables in the HDF5 file to store the results from this analysis
@@ -78,13 +78,13 @@ results = []
 # 2.) A table adding all these results across units, showing number of units suppresed, enhanced or unchanged in every laser condition
 # Both these sets of tables can be made from the same class definition
 class laser_effects(tables.IsDescription):
-	laser = tables.Int32Col()	
+	laser = tables.Int32Col()
 	taste = tables.Int32Col()
 	suppressed = tables.Int32Col()
 	enhanced = tables.Int32Col()
 	unchanged = tables.Int32Col()
 	# Add a column that is 1 if the control condition shows firing that is not different from zero - suppression effects of the laser cannot be observed in this case
-	control_zero = tables.Int32Col() 
+	control_zero = tables.Int32Col()
 
 # Make a folder to store kdeplots for the units from the analysis
 try:
@@ -103,8 +103,8 @@ hf5.create_group('/', 'laser_effects_bayesian')
 # Make another node under /root/laser_effects_bayesian to save the tables for every unit's results
 hf5.create_group('/laser_effects_bayesian', 'unit_summaries')
 
-# Make an array to tally up these results across units - the number of rows = num of tastes x num of laser conditions and num of columns = 4 (suppressed, enhanced, unchanged, control_zero) - same 
-# as in the laser_effects class above 
+# Make an array to tally up these results across units - the number of rows = num of tastes x num of laser conditions and num of columns = 4 (suppressed, enhanced, unchanged, control_zero) - same
+# as in the laser_effects class above
 combined_units_effects = np.zeros(((lasers.shape[0] - 1) * len(trains_dig_in), 4))
 
 # Run through the chosen units
@@ -123,7 +123,7 @@ for unit in range(len(chosen_units)):
 		# And finally, run through the tastes and pull all the data into respective arrays
 		for stimulus in range(len(trains_dig_in)):
 			# Get the correct trial numbers and controls for this laser condition
-			trials = np.where((trains_dig_in[stimulus].laser_durations[:] == condition[0])*(trains_dig_in[stimulus].laser_onset_lag[:] == condition[1]))[0]	
+			trials = np.where((trains_dig_in[stimulus].laser_durations[:] == condition[0])*(trains_dig_in[stimulus].laser_onset_lag[:] == condition[1]))[0]
 			controls = np.where((trains_dig_in[stimulus].laser_durations[:] == 0.0)*(trains_dig_in[stimulus].laser_onset_lag[:] == 0.0))[0]
 
 			# Append the data from these trials to spikes
@@ -151,7 +151,7 @@ for unit in range(len(chosen_units)):
 		sigma_b_l = pm.HalfCauchy('sigma_b_l', 1)
 		mu_b_t_l = pm.Normal('mu_b_t_l', mu = 0, sd = 10)
 		sigma_b_t_l = pm.HalfCauchy('sigma_b_t_l', 1)
-		
+
 		b_t_offset = pm.Normal('b_t_offset', mu = 0, sd = 1, shape = len(trains_dig_in))
 		b_t = pm.Deterministic('b_t', mu_b_t + b_t_offset*sigma_b_t)
 
@@ -170,7 +170,7 @@ for unit in range(len(chosen_units)):
 	# The logic of using ADVI here follows from: https://pymc-devs.github.io/pymc3/notebooks/bayesian_neural_network_opvi-advi.html
 	# And also from: https://pymc-devs.github.io/pymc3/notebooks/variational_api_quickstart.html
 	# Here we aren't scaling the variance of the gradient as it doesn't seem to give much improvement in simple models (look at the first link above)
-	
+
 	# We also use callbacks similar to those used in the 'init' portion of pm.sample - this stops ADVI once it has converged/ELBO doesn't change beyond a threshold
 	cb = [pm.callbacks.CheckParametersConvergence(diff='absolute', tolerance = 1e-4), pm.callbacks.CheckParametersConvergence(diff='relative', tolerance = 1e-4),]
 	with model:
@@ -250,21 +250,21 @@ for unit in range(len(chosen_units)):
 
 	# Now run through the tastes and laser conditions
 	for laser in range(diff.shape[0]):
-		for taste in range(diff.shape[1]):	
-			# Get a new row for this taste and laser condition		
+		for taste in range(diff.shape[1]):
+			# Get a new row for this taste and laser condition
 			this_condition_results = unit_table.row
 
 			# Fill in the taste and laser conditions
-			this_condition_results['laser'] = laser + 1		
+			this_condition_results['laser'] = laser + 1
 			this_condition_results['taste'] = taste + 1
-		
-		
+
+
 			# First check if the control firing was close to zero for this taste/laser combo (comparing it to a sufficiently small number because the control firing rate is always > 0 by definition)
 			if pm.hpd(bayesian_results[laser, taste, :, 0], alpha = sig_level)[0] <= 1e-4:
 				this_condition_results['control_zero'] = 1.0
 			else:
 				this_condition_results['control_zero'] = 0.0
-			
+
 			# Then check if the laser condition has no effect on firing (the diff HPD will overlap zero)
 			diff_hpd = pm.hpd(diff[laser, taste, :], alpha = sig_level)
 			if diff_hpd[0] * diff_hpd[1] < 0:
@@ -276,7 +276,7 @@ for unit in range(len(chosen_units)):
 				this_condition_results['unchanged'] = 0.0
 				this_condition_results['enhanced'] = 1.0
 				this_condition_results['suppressed'] = 0.0
-			# Firing is suppressed if the diff (control-laser) lies consistently above zero 
+			# Firing is suppressed if the diff (control-laser) lies consistently above zero
 			else:
 				this_condition_results['unchanged'] = 0.0
 				this_condition_results['enhanced'] = 0.0
@@ -286,7 +286,7 @@ for unit in range(len(chosen_units)):
 			combined_units_effects[diff.shape[1] * laser + taste, 0] += this_condition_results['suppressed']
 			combined_units_effects[diff.shape[1] * laser + taste, 1] += this_condition_results['enhanced']
 			combined_units_effects[diff.shape[1] * laser + taste, 2] += this_condition_results['unchanged']
-			combined_units_effects[diff.shape[1] * laser + taste, 3] += this_condition_results['control_zero'] 
+			combined_units_effects[diff.shape[1] * laser + taste, 3] += this_condition_results['control_zero']
 
 			# Append this row to the table
 			this_condition_results.append()
@@ -312,12 +312,12 @@ combined_units_table = hf5.create_table('/laser_effects_bayesian', 'combined_uni
 
 # Run through the laser and taste conditions
 for laser in range(diff.shape[0]):
-	for taste in range(diff.shape[1]):	
-		# Get a new row for this taste and laser condition		
+	for taste in range(diff.shape[1]):
+		# Get a new row for this taste and laser condition
 		this_condition_results = combined_units_table.row
 
 		# Fill in the taste and laser conditions
-		this_condition_results['laser'] = laser + 1		
+		this_condition_results['laser'] = laser + 1
 		this_condition_results['taste'] = taste + 1
 
 		# Fill up the data
@@ -332,5 +332,3 @@ for laser in range(diff.shape[0]):
 		hf5.flush()
 
 hf5.close()
-	
-	

@@ -79,7 +79,7 @@ def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
     return model
 
 ############################################################
-## Initialize 
+## Initialize
 ############################################################
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
@@ -125,7 +125,7 @@ for taste_ind in range(n_tastes):
 
     print(f'Processing {basename}, Taste {taste_ind}')
     this_taste = spike_trains[taste_ind]
-    
+
     # 1) Cut by time_lims
     this_taste_cut = this_taste[:,:,time_lims[0]:time_lims[1]]
 
@@ -156,11 +156,11 @@ for taste_ind in range(n_tastes):
                 # Note: Stick to very high fit for now
                 # lower values like 1e4 don't converge / don't work well (i.e. no change comes out best)
                 approx = pm.fit(
-                        n=int(1e5), 
+                        n=int(1e5),
                         method=inference,
                         callbacks=[
                             CheckParametersConvergence(
-                                diff='absolute', 
+                                diff='absolute',
                                 tolerance=1e-2, # This will change based on model + data size
                                 # As is, this is a very high (coarse) tolerance
                                 )
@@ -172,7 +172,7 @@ for taste_ind in range(n_tastes):
             tau_samples = trace.posterior['tau'].values
             tau_hists = np.stack([np.histogram(
                 tau.flatten(), bins=np.arange(n_bins+1))[0] \
-                        for tau in tau_samples.T]) 
+                        for tau in tau_samples.T])
             ppc_samples = ppc.posterior_predictive.obs.values
             mean_ppc = np.squeeze(ppc_samples.mean(axis=1))
 
@@ -203,12 +203,12 @@ for taste_ind in range(n_tastes):
     # Plot everything
     vmin = min([x.min() for x in ppc_list] + [this_taste_pca.min()])
     vmax = max([x.max() for x in ppc_list] + [this_taste_pca.max()])
-    img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
+    img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis',
                   'vmin':vmin, 'vmax':vmax}
     change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
     fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,3*len(changes_vec)),
                            sharex=False)
-    ax[0,0].imshow(this_taste_pca.T, **img_kwargs) 
+    ax[0,0].imshow(this_taste_pca.T, **img_kwargs)
     ax[0,0].set_title('Actual Data PCA')
     ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
                  linewidth = 1, facecolor='none', edgecolor='black')
@@ -216,7 +216,7 @@ for taste_ind in range(n_tastes):
     ax[0,1].legend()
     ax[0,1].set_xlabel('n_changes')
     ax[0,1].set_ylabel('ELBO')
-    for i, n_change in enumerate(changes_vec): 
+    for i, n_change in enumerate(changes_vec):
         this_frame = run_frame[run_frame.changes == n_change]
         mean_mean_ppc = np.stack(this_frame.ppc.values).mean(axis=0)
         # mean_elbo = this_frame.elbo.mean()
@@ -254,9 +254,9 @@ median_elbo_df = full_frame.groupby(['changes', 'taste_ind']).elbo.median()
 median_elbo_df = median_elbo_df.reset_index()
 
 sns.lineplot(
-        data=full_frame, 
-        x='changes', 
-        y='elbo', 
+        data=full_frame,
+        x='changes',
+        y='elbo',
         hue='taste_ind',
         style='taste_ind',
         markers=True,
@@ -286,4 +286,3 @@ if any(best_change_per_taste > 0):
         print('\n', file=f)
         print('=== End Post-stimulus POPULATION Drift Warning ===', file=f)
         print('\n', file=f)
-

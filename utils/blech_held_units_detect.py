@@ -24,7 +24,7 @@ def calculate_J2(wf_day1, wf_day2):
 	# Get the mean PCA waveforms on days 1 and 2
 	day1_mean = np.mean(wf_day1, axis = 0)
 	day2_mean = np.mean(wf_day2, axis = 0)
-	
+
 	# Get the overall inter-day mean
 	overall_mean = np.mean(np.concatenate((wf_day1, wf_day2), axis = 0), axis = 0)
 
@@ -34,7 +34,7 @@ def calculate_J2(wf_day1, wf_day2):
 
 	# Multiply the distances by the number of points on both days and sum to get J2
 	J2 = wf_day1.shape[0]*np.sum(dist1) + wf_day2.shape[0]*np.sum(dist2)
-	return J2 
+	return J2
 
 #@jit(nogil = True)
 def calculate_J1(wf_day1, wf_day2):
@@ -49,7 +49,7 @@ def calculate_J1(wf_day1, wf_day2):
 	# Sum up the distances to get J1
 	J1 = np.sum(day1_dists) + np.sum(day2_dists)
 	return J1
-	
+
 
 # Ask for the directory where the first hdf5 file sits, and change to that directory
 dir_name = easygui.diropenbox(msg = 'Where is the hdf5 file from the first day?', title = 'First day of data')
@@ -188,12 +188,12 @@ f.close()
 
 
 '''
-intra_J3 = []					
+intra_J3 = []
 for unit1 in range(len(hf51.root.unit_descriptor[:])):
 	if hf51.root.unit_descriptor[unit1]['single_unit'] == 1:
 		exec("wf_day1 = hf51.root.sorted_units.unit%03d.waveforms[:]" % (unit1 + 1))
-		
-		
+
+
 		#for run in range(num_random_runs):
 		# Do it for day 1
 		x = np.arange(wf_day1.shape[0])
@@ -201,24 +201,24 @@ for unit1 in range(len(hf51.root.unit_descriptor[:])):
 		#print wf_day1[x[:wf_day1.shape[0]/2], :].shape, len(x)
 		intra_J3.append(calculate_J3(wf_day1[x[:int(wf_day1.shape[0]*0.5)], :], wf_day1[x[int(wf_day1.shape[0]*0.5):], :]))
 
-intra_J3 = []					
+intra_J3 = []
 for unit1 in range(len(hf52.root.unit_descriptor[:])):
 	J3 = []
 	if hf52.root.unit_descriptor[unit1]['single_unit'] == 1:
 		exec("wf_day1 = hf52.root.sorted_units.unit%03d.waveforms[:]" % (unit1 + 1))
-		
-		
+
+
 		for run in range(num_random_runs):
 		# Do it for day 1
 			x = np.arange(wf_day1.shape[0])
 			np.random.shuffle(x)
 		#print wf_day1[x[:wf_day1.shape[0]/2], :].shape, len(x)
-			J3.append(calculate_J3(wf_day1[x[:int(wf_day1.shape[0]*0.33)], :], wf_day1[x[int(wf_day1.shape[0]*0.67):], :]))	
+			J3.append(calculate_J3(wf_day1[x[:int(wf_day1.shape[0]*0.33)], :], wf_day1[x[int(wf_day1.shape[0]*0.67):], :]))
 
 		x = np.arange(wf_day1.shape[0])
 		J3.append(calculate_J3(wf_day1[x[:int(wf_day1.shape[0]*0.33)], :], wf_day1[x[int(wf_day1.shape[0]*0.67):], :]))
 
-		intra_J3.append(J3)			
+		intra_J3.append(J3)
 '''
 '''
 				# Divide the waveforms for unit1 and unit2 in equal splits - do this randomly num_random_runs times
@@ -246,5 +246,3 @@ Out[76]: [<matplotlib.lines.Line2D at 0x7ff731304190>]
 In [77]: plt.show()
 
 '''
-
-

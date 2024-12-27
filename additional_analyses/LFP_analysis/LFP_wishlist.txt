@@ -25,6 +25,6 @@
 		--Sliding window across time option for KDe
 		--Autodetect and enlarge bin if no spikes in timebins
 	--Paired phase-locking Chi-squared correlation coefficients --> Refer to Brad
-	
+
 --Trial split for recording cutoff					[X]
 --Channel check for aberrations 					[X]

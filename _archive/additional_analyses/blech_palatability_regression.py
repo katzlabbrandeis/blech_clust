@@ -14,7 +14,7 @@ dirs = []
 while True:
 	dir_name = easygui.diropenbox(msg = 'Choose a directory with a hdf5 file, hit cancel to stop choosing')
 	try:
-		if len(dir_name) > 0:	
+		if len(dir_name) > 0:
 			dirs.append(dir_name)
 	except:
 		break
@@ -68,7 +68,7 @@ else:
 # We don't really need to do this as the laser conditions have already been sorted into order when the ancillary analysis node was made
 laser_order = []
 for i in range(len(unique_lasers)):
-	# The first file defines the order	
+	# The first file defines the order
 	if i == 0:
 		laser_order.append(np.arange(unique_lasers[i].shape[0]))
 	# And everyone else follows
@@ -83,12 +83,12 @@ for i in range(len(unique_lasers)):
 # Ask the user for the time window they want to run the regression analysis on
 # First get an array of x (aka raw time) values
 x = np.arange(0, unscaled_neural_response[0].shape[0]*params[0][1], params[0][1]) - pre_stim[0]
-time_limits = easygui.multenterbox(msg = 'Enter the time limits for performing palatability regression analysis', fields = ['Start time (ms)', 'End time (ms)']) 
+time_limits = easygui.multenterbox(msg = 'Enter the time limits for performing palatability regression analysis', fields = ['Start time (ms)', 'End time (ms)'])
 for i in range(len(time_limits)):
 	time_limits[i] = int(time_limits[i])
 analyze_indices = np.where((x>=time_limits[0])*(x<=time_limits[1]))[0]
 
-# Target: A pandas dataframe with time, neuron, palatability, and laser condition as columns. 
+# Target: A pandas dataframe with time, neuron, palatability, and laser condition as columns.
 # To make this dataframe, we first need to expand out those variables in 1D arrays, and finally concatenate the arrays from all the data files
 time = []
 palatability_array = []
@@ -117,12 +117,12 @@ for i in range(len(unique_lasers)):
 	for condition in range(unique_lasers[i].shape[0]):
 		laser_condition[(laser[i][analyze_indices, :, :, 0].flatten() == unique_lasers[i][laser_order[i][condition]][0])*(laser[i][analyze_indices, :, :, 1].flatten() == unique_lasers[i][laser_order[i][condition]][1])] = condition
 
-	# Standardize the firing/response data by the mean firing for every neuron in every time bin - multiply by the sign of the average spearman correlation here	
+	# Standardize the firing/response data by the mean firing for every neuron in every time bin - multiply by the sign of the average spearman correlation here
 	this_response_mean = np.tile(np.mean(unscaled_neural_response[i][analyze_indices, :, :]*sign_corr, axis = -1).reshape((len(analyze_indices), unscaled_neural_response[i].shape[1], 1)), (1, 1, unscaled_neural_response[i].shape[2]))
 	this_response_std = np.tile(np.std(unscaled_neural_response[i][analyze_indices, :, :]*sign_corr, axis = -1).reshape((len(analyze_indices), unscaled_neural_response[i].shape[1], 1)), (1, 1, unscaled_neural_response[i].shape[2]))
 	this_response = (unscaled_neural_response[i][analyze_indices, :, :]*sign_corr - this_response_mean)/this_response_std
 	# If the firing on all trials in a time bin is zero, its std would be 0 and that would give nans in this_response. Change nans to 0 if they occur
-	this_response[np.isnan(this_response)] = 0.0 
+	this_response[np.isnan(this_response)] = 0.0
 
 	# Now append these data to the respective arrays
 	time.append(this_time.flatten())

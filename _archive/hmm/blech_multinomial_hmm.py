@@ -90,10 +90,10 @@ for i in range(spikes.shape[0]):
 		time.append(k - pre_stim_hmm)
 		n_firing_units = np.where(np.sum(spikes[i, :, k:k+bin_size], axis = 1) > 0)[0]
 		if n_firing_units.size:
-			n_firing_units = n_firing_units + 1 
+			n_firing_units = n_firing_units + 1
 		else:
 			n_firing_units = [0]
-		binned_spikes[i, int(k/bin_size)] = np.random.choice(n_firing_units) 
+		binned_spikes[i, int(k/bin_size)] = np.random.choice(n_firing_units)
 
 # Implement a Multinomial HMM for no. of states defined by min_states and max_states - run all the trials through the HMM
 hmm_results = []
@@ -121,19 +121,19 @@ hf5.flush()
 try:
 	os.system("rm -r ./HMM_plots/dig_in_%i/Multinomial" % taste)
 except:
-	pass	
+	pass
 
 # Make a folder for plots of Multinomial HMM analysis
 os.mkdir("HMM_plots/dig_in_%i/Multinomial" % taste)
 
 # Go through the HMM results, and make plots for each state and each trial
 for result in hmm_results:
-	
+
 	# Make a directory for this number of states
 	os.mkdir("HMM_plots/dig_in_%i/Multinomial/states_%i" % (taste, result[0]))
-		
+
 	# Make a group under multinomial_hmm_results for this number of states
-	hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results' % taste, 'states_%i' % (result[0])) 
+	hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results' % taste, 'states_%i' % (result[0]))
 	# Write the emission and transition probabilties to this group
 	emission_labels = hf5.create_array('/spike_trains/dig_in_%i/multinomial_hmm_results/states_%i' % (taste, result[0]), 'emission_labels', np.array(list(result[1][4][0].keys())))
 	emission_matrix = []
@@ -178,7 +178,7 @@ for result in hmm_results:
 		fig.savefig('HMM_plots/dig_in_%i/Multinomial/states_%i/Trial_%i.png' % (taste, result[0], (i+1)))
 		plt.close("all")
 
-# Check if the laser_array exists - if it does, perform a 2nd round of HMM training on 
+# Check if the laser_array exists - if it does, perform a 2nd round of HMM training on
 # 1.) just the non-laser trials, 2.) just the laser trials
 exec('dig_in = hf5.root.spike_trains.dig_in_%i' % taste)
 laser_exists = []
@@ -189,7 +189,7 @@ except:
 if len(laser_exists) > 0:
 	on_trials = np.where(dig_in.laser_durations[:] > 0.0)[0]
 	off_trials = np.where(dig_in.laser_durations[:] == 0.0)[0]
-	
+
 	# Implement a Multinomial HMM for no. of states defined by min_states and max_states, on just the laser off trials
 	hmm_results = []
 	for n_states in range(min_states, max_states + 1):
@@ -214,19 +214,19 @@ if len(laser_exists) > 0:
 	try:
 		os.system("rm -r ./HMM_plots/dig_in_%i/Multinomial/laser_off" % taste)
 	except:
-		pass	
+		pass
 
 	# Make a folder for plots of Multinomial HMM analysis on laser off trials
 	os.mkdir("HMM_plots/dig_in_%i/Multinomial/laser_off" % taste)
-	
+
 	# Go through the HMM results, and make plots for each state and each trial
 	for result in hmm_results:
-		
+
 		# Make a directory for this number of states
 		os.mkdir("HMM_plots/dig_in_%i/Multinomial/laser_off/states_%i" % (taste, result[0]))
-		
+
 		# Make a group under multinomial_hmm_results for this number of states
-		hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_off' % taste, 'states_%i' % (result[0])) 
+		hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_off' % taste, 'states_%i' % (result[0]))
 		# Write the emission and transition probabilties to this group
 		emission_labels = hf5.create_array('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_off/states_%i' % (taste, result[0]), 'emission_labels', np.array(list(result[1][4][0].keys())))
 		emission_matrix = []
@@ -299,19 +299,19 @@ if len(laser_exists) > 0:
 	try:
 		os.system("rm -r ./HMM_plots/dig_in_%i/Multinomial/laser_on" % taste)
 	except:
-		pass	
+		pass
 
 	# Make a folder for plots of Multinomial HMM analysis on laser on trials
 	os.mkdir("HMM_plots/dig_in_%i/Multinomial/laser_on" % taste)
-	
+
 	# Go through the HMM results, and make plots for each state and each trial
 	for result in hmm_results:
-		
+
 		# Make a directory for this number of states
 		os.mkdir("HMM_plots/dig_in_%i/Multinomial/laser_on/states_%i" % (taste, result[0]))
-		
+
 		# Make a group under multinomial_hmm_results for this number of states
-		hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_on' % taste, 'states_%i' % (result[0])) 
+		hf5.create_group('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_on' % taste, 'states_%i' % (result[0]))
 		# Write the emission and transition probabilties to this group
 		emission_labels = hf5.create_array('/spike_trains/dig_in_%i/multinomial_hmm_results/laser_on/states_%i' % (taste, result[0]), 'emission_labels', np.array(list(result[1][4][0].keys())))
 		emission_matrix = []
@@ -359,7 +359,5 @@ if len(laser_exists) > 0:
 			plt.title('Trial %i, Dur: %ims, Lag:%ims' % (i+1, dig_in.laser_durations[i], dig_in.laser_onset_lag[i]) + '\n' + 'RSU: red, FS: blue, Multi: black')
 			fig.savefig('HMM_plots/dig_in_%i/Multinomial/laser_on/states_%i/%sTrial_%i.png' % (taste, result[0], label, (i+1)))
 			plt.close("all")
-		
+
 hf5.close()
-
-

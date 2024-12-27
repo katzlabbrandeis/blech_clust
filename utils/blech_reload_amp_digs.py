@@ -77,7 +77,7 @@ dig_in_list = sorted(dig_in_list)
 info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
 sampling_rate = int(info_file[2])
 
-# Read the time.dat file for use in separating out 
+# Read the time.dat file for use in separating out
 # the one file per signal type data
 num_recorded_samples = len(np.fromfile(
     dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))

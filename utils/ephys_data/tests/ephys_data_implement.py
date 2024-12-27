@@ -11,7 +11,7 @@ dat = \
 ephys_data('/media/bigdata/Abuzar_Data/AM34/AM34_4Tastes_201215_115133')
 #ephys_data('/media/bigdata/Abuzar_Data/AM37/AM37_4Tastes_210112_121908')
 
-dat.firing_rate_params = dat.default_firing_params 
+dat.firing_rate_params = dat.default_firing_params
 
 #dat.extract_and_process()
 dat.get_spikes()

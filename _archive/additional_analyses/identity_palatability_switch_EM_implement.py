@@ -101,7 +101,7 @@ for i in range(spikes.shape[0]):
 			# Get the spikes for these trials
 			these_spikes = trains_dig_in[j].spike_array[these_trials, :, :]
 			these_spikes = these_spikes[:, chosen_units, :]
-					
+
 			palatability[i, num_laser_trials*j : num_laser_trials*(j + 1)] = palatability_rank[j] * np.ones(num_laser_trials)
 			identity[i, num_laser_trials*j : num_laser_trials*(j + 1)] = identities[j] * np.ones(num_laser_trials)
 
@@ -171,7 +171,7 @@ firing = []
 inactivated_spikes = []
 
 # More lists to save 1.) the (posterior) probability that the palatability switchpoint came before the laser came on, 2.) posterior probability of the switchpoints, 3.) entire array of potential switchpoints
-p_pal_before_laser = [] 
+p_pal_before_laser = []
 posterior_prob_switchpoints = []
 switchpoint_array = []
 
@@ -476,17 +476,17 @@ for laser in range(len(inactivated_spikes)):
 	for unit in range(inactivated_spikes[0].shape[-1]):
 		# Calculate palatability correlation in epoch 1
 		r_pearson[laser, 0, unit], p_pearson[laser, 0, unit] = pearsonr(firing[laser][:, 0, unit], pal[laser])
-		# If NaNs are produced (happens when firing rate is 0 for all palatability conditions), say that r = 0 and p = 1 (no correlation with palatability)		
+		# If NaNs are produced (happens when firing rate is 0 for all palatability conditions), say that r = 0 and p = 1 (no correlation with palatability)
 		if np.isnan(r_pearson[laser, 0, unit]):
 			r_pearson[laser, 0, unit] = 0.0
 			p_pearson[laser, 0, unit] = 1.0
 
 		# Calculate palatability correlation in epoch 2
 		r_pearson[laser, 1, unit], p_pearson[laser, 1, unit] = pearsonr(firing[laser][:, 1, unit], pal[laser])
-		# If NaNs are produced (happens when firing rate is 0 for all palatability conditions), say that r = 0 and p = 1 (no correlation with palatability)		
+		# If NaNs are produced (happens when firing rate is 0 for all palatability conditions), say that r = 0 and p = 1 (no correlation with palatability)
 		if np.isnan(r_pearson[laser, 1, unit]):
 			r_pearson[laser, 1, unit] = 0.0
-			p_pearson[laser, 1, unit] = 1.0			
+			p_pearson[laser, 1, unit] = 1.0
 
 # Save these correlation arrays to the hdf5 file
 hf5.create_array('/EM_switch', 'r_pearson', r_pearson)
@@ -494,4 +494,4 @@ hf5.create_array('/EM_switch', 'p_pearson', p_pearson)
 hf5.flush()
 # ---------------------------End Palatability correlation calculation-----------------------------------------------
 
-hf5.close() 
+hf5.close()

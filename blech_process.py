@@ -134,7 +134,7 @@ electrode.cutoff_electrode()
 #############################################################
 
 # Extract spike times and waveforms from filtered data
-spike_set = bpu.spike_handler(electrode.filt_el, 
+spike_set = bpu.spike_handler(electrode.filt_el,
                               params_dict, data_dir_name, electrode_num)
 spike_set.extract_waveforms()
 
@@ -232,8 +232,8 @@ if auto_cluster == False:
     max_clusters = params_dict['clustering_params']['max_clusters']
     for cluster_num in range(2, max_clusters+1):
         cluster_handler = bpu.cluster_handler(
-                params_dict, 
-                data_dir_name, 
+                params_dict,
+                data_dir_name,
                 electrode_num,
                 cluster_num,
                 spike_set,
@@ -251,10 +251,10 @@ else:
     print('=== Performing auto_clustering ===')
     max_clusters = auto_params['max_autosort_clusters']
     cluster_handler = bpu.cluster_handler(
-            params_dict, 
-            data_dir_name, 
+            params_dict,
+            data_dir_name,
             electrode_num,
-            max_clusters, 
+            max_clusters,
             spike_set,
             fit_type = 'auto',
             )

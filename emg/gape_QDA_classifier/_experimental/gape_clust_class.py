@@ -265,7 +265,7 @@ for this_ind in inds:
         segment_dat, segment_starts, segment_ends)
 
     segment_bounds = list(zip(segment_starts, segment_ends))
-    merged_dat = [feature_array, segment_dat, segment_bounds] 
+    merged_dat = [feature_array, segment_dat, segment_bounds]
     segment_dat_list.append(merged_dat)
 
     # Get the indices, in the smoothed signal,
@@ -346,7 +346,7 @@ for this_ind in inds:
 
 
 ############################################################
-## Cluster waveforms 
+## Cluster waveforms
 ############################################################
 # For each cluster, return:
 # 1) Features
@@ -354,7 +354,7 @@ for this_ind in inds:
 # 3) Fraction of classifier gapes
 
 # Convert segment_dat and gapes_Li to pandas dataframe for easuer handling
-gape_frame = pd.DataFrame(data = inds, 
+gape_frame = pd.DataFrame(data = inds,
                           columns = ['channel', 'taste', 'trial'])
 # Standardize features
 gape_frame['features'] = [x[0] for x in segment_dat_list]
@@ -460,10 +460,10 @@ for this_clust in range(n_components):
 # Plot
 fig = plt.figure(constrained_layout=True)
 gs = fig.add_gridspec(1, 10)
-ax = [fig.add_subplot(gs[0, :1]), 
+ax = [fig.add_subplot(gs[0, :1]),
       fig.add_subplot(gs[0, 2:7]),
       fig.add_subplot(gs[0, 8:])]
-im = ax[1].imshow(plot_dat, 
+im = ax[1].imshow(plot_dat,
           aspect='auto', cmap='viridis', interpolation='none',
           vmin=-5, vmax=5, origin='lower')
 plt.colorbar(im, ax=ax[1])
@@ -480,7 +480,7 @@ ax[2].set_ylabel('Cluster')
 im = ax[0].imshow(sorted_labels[::-1, None], aspect='auto', cmap='tab20', interpolation='none',)
 # Plot number of each cluster at center of cluster
 for this_clust in range(n_components):
-    ax[0].text(0, len(sorted_labels) - np.mean(np.where(sorted_labels == this_clust)), this_clust, 
+    ax[0].text(0, len(sorted_labels) - np.mean(np.where(sorted_labels == this_clust)), this_clust,
                ha='center', va='center', color='k', fontsize=12)
 ax[0].set_title('Cluster labels')
 fig.suptitle('Gape cluster breakdown')

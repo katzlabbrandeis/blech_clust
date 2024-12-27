@@ -268,7 +268,7 @@ for this_ind in inds:
         segment_dat, segment_starts, segment_ends)
 
     segment_bounds = list(zip(segment_starts, segment_ends))
-    merged_dat = [feature_array, segment_dat, segment_bounds] 
+    merged_dat = [feature_array, segment_dat, segment_bounds]
     segment_dat_list.append(merged_dat)
 
     #scaled_feature_array = StandardScaler().fit_transform(feature_array)
@@ -405,7 +405,7 @@ for trial_num in range(len(trial_inds)):
     this_starts, this_ends = list(zip(*segment_dat_list[trial_num][-1]))
     this_starts = np.array(this_starts)
     this_ends = np.array(this_ends)
-    gape_segment_inds = find_segment(wanted_gapes_loc[trial_num], this_starts, this_ends) 
+    gape_segment_inds = find_segment(wanted_gapes_loc[trial_num], this_starts, this_ends)
     #print(gape_segment_inds)
     not_nan_inds = np.where(~np.isnan(gape_segment_inds))[0]
     gape_segment_inds = gape_segment_inds[not_nan_inds]
@@ -419,7 +419,7 @@ for trial_num in range(len(trial_inds)):
     all_non_gape_features.append(non_gape_features)
     all_locs.append(temp_wanted_gapes)
     all_gape_features.append(gape_segment_features)
-all_locs = np.concatenate(all_locs) 
+all_locs = np.concatenate(all_locs)
 all_gape_features = np.concatenate(all_gape_features)
 all_non_gape_features = np.concatenate(all_non_gape_features)
 gape_starts = np.concatenate(gape_starts)
@@ -451,16 +451,16 @@ for i, group_pair in enumerate(group_pairs):
     scores = cross_val_score(clf, this_X, this_y, cv=5)
     #print('Accuracy for {} vs {}: {:.2f} +/- {:.2f}'.format(
     #    this_labels[0], this_labels[1], np.mean(scores), np.std(scores)))
-    scatter = ax[i].scatter(X_nca[:, 0], X_nca[:, 1], 
+    scatter = ax[i].scatter(X_nca[:, 0], X_nca[:, 1],
                             c=this_y, cmap='rainbow', alpha = 0.7)
-    ax[i].legend(handles=scatter.legend_elements()[0], 
+    ax[i].legend(handles=scatter.legend_elements()[0],
                labels=this_labels)
     ax[i].set_title('Accuracy: {:.2f} +/- {:.2f}'.format(
         np.mean(scores), np.std(scores)))
 plt.show()
 
 ############################################################
-# Run XGBoost with SHAP analysis to see which features are most important 
+# Run XGBoost with SHAP analysis to see which features are most important
 # for differentiating early vs late gapes
 ############################################################
 clf = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
@@ -526,12 +526,12 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(X_nca[:, 0], X_nca[:, 1], X_nca[:, 2], c=y, cmap='rainbow')
 plt.show()
 
-plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y, 
+plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y,
             cmap='rainbow', alpha = 0.5)
 plt.show()
 
 ############################################################
-## Include time as a feature 
+## Include time as a feature
 ############################################################
 X_raw = np.concatenate((all_gape_features, all_non_gape_features))
 all_times = np.concatenate((gape_starts, non_gape_starts))
@@ -579,12 +579,12 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(X_nca[:, 0], X_nca[:, 1], X_nca[:, 2], c=y, cmap='rainbow')
 plt.show()
 
-#plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y, 
+#plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y,
 #            cmap='rainbow', alpha = 0.5)
 #plt.show()
 
 ############################################################
-## Cluster X and check if gapes are clustered together 
+## Cluster X and check if gapes are clustered together
 ############################################################
 # Uses GMM to cluster X
 gmm = GaussianMixture(n_components=8, random_state=42)

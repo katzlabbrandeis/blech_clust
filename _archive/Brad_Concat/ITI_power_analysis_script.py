@@ -10,12 +10,12 @@ Edits:
     X Plots resized to be large
 """
 
-# ___                            _   
-#|_ _|_ __ ___  _ __   ___  _ __| |_ 
+# ___                            _
+#|_ _|_ __ ___  _ __   ___  _ __| |_
 # | || '_ ` _ \| '_ \ / _ \| '__| __|
-# | || | | | | | |_) | (_) | |  | |_ 
+# | || | | | | | |_) | (_) | |  | |_
 #|___|_| |_| |_| .__/ \___/|_|   \__|
-#              |_|                   
+#              |_|
 
 ## Import required modules
 import os
@@ -28,7 +28,7 @@ import easygui
 import scipy
 from scipy.signal import spectrogram
 import numpy as np
-from scipy.signal import hilbert, butter, filtfilt,freqs 
+from scipy.signal import hilbert, butter, filtfilt,freqs
 from tqdm import tqdm, trange
 from itertools import product
 import pandas as pd
@@ -47,7 +47,7 @@ import shutil
 ############################
 
 def get_whole_session_lfp(hdf5_name):
-    with tables.open_file(hdf5_name, 'r+') as hf5: 
+    with tables.open_file(hdf5_name, 'r+') as hf5:
         whole_lfp = hf5.get_node('/Whole_session_raw_LFP/WS_LFP')[:]
     return whole_lfp
 
@@ -66,8 +66,8 @@ def get_delivery_times(hdf5_name):
     delivery_times['chronological'] = np.argsort(delivery_times.delivery_time)
     return delivery_times
 
-# _                    _   ____        _        
-#| |    ___   __ _  __| | |  _ \  __ _| |_ __ _ 
+# _                    _   ____        _
+#| |    ___   __ _  __| | |  _ \  __ _| |_ __ _
 #| |   / _ \ / _` |/ _` | | | | |/ _` | __/ _` |
 #| |__| (_) | (_| | (_| | | |_| | (_| | || (_| |
 #|_____\___/ \__,_|\__,_| |____/ \__,_|\__\__,_|
@@ -145,12 +145,12 @@ for file_num, this_file in enumerate(file_list):
         h5.create_array('/Whole_session_raw_LFP','ITI_array',iti_array_list[file_num])
         h5.flush()
 
-#    _                _           _     
-#   / \   _ __   __ _| |_   _ ___(_)___ 
+#    _                _           _
+#   / \   _ __   __ _| |_   _ ___(_)___
 #  / _ \ | '_ \ / _` | | | | / __| / __|
 # / ___ \| | | | (_| | | |_| \__ \ \__ \
 #/_/   \_\_| |_|\__,_|_|\__, |___/_|___/
-#                       |___/           
+#                       |___/
 
 # Bandpass filter lfp into relevant bands
 
@@ -177,13 +177,13 @@ band_freqs = [(1,4),
 iti_lfp_bandpassed  = \
             [np.asarray([
                     butter_bandpass_filter(
-                        data = data, 
+                        data = data,
                         lowcut = band[0],
                         highcut = band[1],
                         fs = Fs) \
                                 for band in tqdm(band_freqs)])\
                 for data in iti_array_list]
-    
+
 # Remove to preserve memory
 del iti_array_list, taste_whole_lfp
 
@@ -191,12 +191,12 @@ del iti_array_list, taste_whole_lfp
 iti_lfp_hilbert = [hilbert(data) for data in tqdm(iti_lfp_bandpassed)]
 iti_lfp_amplitude = [np.abs(data) for data in tqdm(iti_lfp_hilbert)]
 
-# ____                                             _             
-#|  _ \ _ __ ___ _ __  _ __ ___   ___ ___  ___ ___(_)_ __   __ _ 
+# ____                                             _
+#|  _ \ _ __ ___ _ __  _ __ ___   ___ ___  ___ ___(_)_ __   __ _
 #| |_) | '__/ _ \ '_ \| '__/ _ \ / __/ _ \/ __/ __| | '_ \ / _` |
 #|  __/| | |  __/ |_) | | | (_) | (_|  __/\__ \__ \ | | | | (_| |
 #|_|   |_|  \___| .__/|_|  \___/ \___\___||___/___/_|_| |_|\__, |
-#               |_|                                        |___/ 
+#               |_|                                        |___/
 
 # Create array index identifiers
 # Used to convert array to pandas dataframe
@@ -209,7 +209,7 @@ def make_array_identifiers(array):
                 np.broadcast_to(
                     np.reshape(
                         np.arange(array.shape[dim]),
-                                this_shape.astype('int')), 
+                                this_shape.astype('int')),
                     array.shape).flatten())
     return nd_idx_objs
 
@@ -224,7 +224,7 @@ mean_iti_lfp_amplitude = [np.mean(data,axis=(2)) for data in mean_channel_iti_lf
 zscore_trials_power = np.asarray([\
         [zscore(band,axis = None) for band in data] for data in mean_iti_lfp_amplitude])
 
-# Plot zscore trial averaged power so 
+# Plot zscore trial averaged power so
 fig, ax = plt.subplots(len(zscore_trials_power),1,sharex=True)
 for num, this_ax in enumerate(ax):
    this_ax.plot(zscore_trials_power[num].T,'x')
@@ -237,7 +237,7 @@ plt.show()
 file_str = ("".join(['{}) {} \n'.format(file_num,os.path.basename(file_name)) \
         for file_num,file_name in enumerate(file_list)]))
 thresh_string = 'Please enter threshold zscore for the following files'\
-        '\n(separated by commas e.g. 0.6,0.3):\n{}'.format(file_str) 
+        '\n(separated by commas e.g. 0.6,0.3):\n{}'.format(file_str)
 user_check = 'n'
 while 'y' not in user_check:
     try:
@@ -265,12 +265,12 @@ plt.tight_layout()
 fig.savefig(os.path.join(fin_output_dir,'{}_trial_removal.png'.format(fin_animal_name)))
 plt.show()
 
-#    _    _   _  _____     ___    
-#   / \  | \ | |/ _ \ \   / / \   
-#  / _ \ |  \| | | | \ \ / / _ \  
-# / ___ \| |\  | |_| |\ V / ___ \ 
+#    _    _   _  _____     ___
+#   / \  | \ | |/ _ \ \   / / \
+#  / _ \ |  \| | | | \ \ / / _ \
+# / ___ \| |\  | |_| |\ V / ___ \
 #/_/   \_\_| \_|\___/  \_/_/   \_\
-#                                 
+#
 
 # This comparison can be done without using zscored power but it is used here
 # to be consistent with the trials that are removed above
@@ -363,7 +363,7 @@ taste_trial_anova_df = [ [\
 
 taste_trial_anova_df = pd.concat(list(chain(*taste_trial_anova_df)))
 # Write output to HDF5 file
-taste_trial_anova_df.to_hdf(output_hf5_name, '/taste_trial_two_way_anova') 
+taste_trial_anova_df.to_hdf(output_hf5_name, '/taste_trial_two_way_anova')
 
 # Show statistically significant values
 #taste_trial_anova_df.loc[taste_trial_anova_df['p-unc'] < 0.01]
@@ -393,7 +393,7 @@ session_trial_anova_df = pd.concat([\
             for band_num,band in enumerate(session_trial_anova)])
 
 # Write output to HDF5 file
-session_trial_anova_df.to_hdf(output_hf5_name, '/across_session_one_way_anova') 
+session_trial_anova_df.to_hdf(output_hf5_name, '/across_session_one_way_anova')
 
 # Check which bands have significant differences
 #session_trial_anova_df.loc[session_trial_anova_df['p-unc'] < 0.01]
@@ -404,13 +404,13 @@ session_trial_anova_df.to_hdf(output_hf5_name, '/across_session_one_way_anova')
 
 # Perform pairwise comparisons for for each combination of band and trial-bin
 pairwise_comparisons_list = list(mean_band_df_cat_dataset.groupby(['band','trial_bin_total']))
-pairwise_session_trial_ttests = [ pg.pairwise_ttests( 
+pairwise_session_trial_ttests = [ pg.pairwise_ttests(
                                     dv = 'raw_power',
-                                    between = ['dataset'], 
-                                    padjust = 'holm', 
+                                    between = ['dataset'],
+                                    padjust = 'holm',
                                     parametric = 'False',
                                     data = data[1]) \
-                            for data in pairwise_comparisons_list] 
+                            for data in pairwise_comparisons_list]
 
 pairwise_session_ttest_frame = pd.concat(
         [pd.DataFrame(
@@ -420,17 +420,17 @@ pairwise_session_ttest_frame = pd.concat(
             )
         for ind,dat in zip(pairwise_comparisons_list,pairwise_session_trial_ttests)])
 # Write output to HDF5 file
-pairwise_session_ttest_frame.to_hdf(output_hf5_name, '/band_trial_pairwise_ttests') 
+pairwise_session_ttest_frame.to_hdf(output_hf5_name, '/band_trial_pairwise_ttests')
 
 # Report significant values
 #pairwise_session_ttest_frame.loc[pairwise_session_ttest_frame.p_val < 0.01]
 
-# ____  _       _       
-#|  _ \| | ___ | |_ ___ 
+# ____  _       _
+#|  _ \| | ___ | |_ ___
 #| |_) | |/ _ \| __/ __|
 #|  __/| | (_) | |_\__ \
 #|_|   |_|\___/ \__|___/
-#                       
+#
 
 ########################################
 # Test plot to confirm correct intervals are being selected from lfp
@@ -438,18 +438,18 @@ pairwise_session_ttest_frame.to_hdf(output_hf5_name, '/band_trial_pairwise_ttest
 #mean_taste_whole_lfp = [np.mean(dat,axis=0) for dat in taste_whole_lfp]
 #fig,ax = plt.subplots(2,1)
 #ax[0].plot(mean_taste_whole_lfp[0])
-#ax[0].vlines(delivery_time_list[0], np.min(mean_taste_whole_lfp[0]),np.max(mean_taste_whole_lfp[0])) 
+#ax[0].vlines(delivery_time_list[0], np.min(mean_taste_whole_lfp[0]),np.max(mean_taste_whole_lfp[0]))
 #for interval in iti_intervals[0]:
 #    ax[0].axvspan(interval[0],interval[1],alpha=0.5,color='r')
 #ax[1].plot(mean_taste_whole_lfp[1])
-#ax[1].vlines(delivery_time_list[1], np.min(mean_taste_whole_lfp[1]),np.max(mean_taste_whole_lfp[1])) 
+#ax[1].vlines(delivery_time_list[1], np.min(mean_taste_whole_lfp[1]),np.max(mean_taste_whole_lfp[1]))
 #for interval in iti_intervals[1]:
 #    ax[1].axvspan(interval[0],interval[1],alpha=0.5,color='r')
 #plt.show()
 
 
 ########################################
-# Plot mean power for trial bins for every band in both datasets 
+# Plot mean power for trial bins for every band in both datasets
 ########################################
 g = sns.FacetGrid(data = mean_band_df_cat_dataset,
             row = 'dataset', col = 'band', hue = 'taste', sharey = 'col')
@@ -463,7 +463,7 @@ g.savefig(os.path.join(fin_output_dir,'{}_trialbin_iti_power.png'.format(fin_ani
 ########################################
 # Plot mean power chronologically for both days overlayed
 ########################################
-g = sns.FacetGrid(data = mean_band_df_cat_dataset, 
+g = sns.FacetGrid(data = mean_band_df_cat_dataset,
         row = 'band', hue='dataset',sharey=False, size = 4, aspect = 3)
 g.map(sns.pointplot, 'chronological', 'raw_power')
 g.savefig(os.path.join(fin_output_dir,'{}_chronological_iti_power.png'.format(fin_animal_name)))
@@ -537,4 +537,3 @@ for num,data in enumerate(zscore_taste_band_power):
             os.path.join(
                 fin_output_dir,
                 '{}_taste_band_iti_power.png'.format(fin_animal_name + '_' + str(num))))
-

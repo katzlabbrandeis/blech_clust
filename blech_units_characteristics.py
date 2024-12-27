@@ -116,13 +116,13 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 				]
 		this_spikes.sort_values(['taste_num','trial_num'], inplace=True)
 		this_spikes['cum_trial_num'] = \
-				this_spikes['taste_num']*(this_spikes['trial_num'].max()+1) + this_spikes['trial_num'] 
+				this_spikes['taste_num']*(this_spikes['trial_num'].max()+1) + this_spikes['trial_num']
 		this_spikes['cum_trial_num'] += 0.5
 		this_spikes['time_num'] -= stim_time
 		trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
 		taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
 		sns.lineplot(
-				data = this_firing, 
+				data = this_firing,
 				x = 'time_val',
 				y = 'firing',
 				hue = 'taste',
@@ -150,7 +150,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 			this_ax.set_title(f'Laser condition {laser_cond}')
 		# Plot waveforms
 		datashader_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_datashader.png')
-		mean_sd_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_mean_sd.png') 
+		mean_sd_img_path = os.path.join(waveform_dir, f'Unit{nrn_ind}_mean_sd.png')
 		datashader_img = plt.imread(datashader_img_path)
 		mean_sd_img = plt.imread(mean_sd_img_path)
 		ax[0, -1].imshow(datashader_img)
@@ -166,7 +166,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 # If more than one laser condition, plot firing rates for each taste separately
 # with laser conditions as hue
 if n_laser_conditions > 1:
-	for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()): 
+	for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 		this_firing = mean_seq_firing.loc[
 				mean_seq_firing.neuron_num == nrn_ind
 				]
@@ -175,7 +175,7 @@ if n_laser_conditions > 1:
 		# 		]
 		this_firing.reset_index(inplace=True)
 		g = sns.relplot(
-				data = this_firing, 
+				data = this_firing,
 				x = 'time_val',
 				y = 'firing',
 				hue = 'laser_tuple',
@@ -225,7 +225,7 @@ plt.close()
 
 
 ##############################
-# Responsiveness 
+# Responsiveness
 ##############################
 # Neuron counts as responsive if there is a difference from baseline
 # for any taste
@@ -243,7 +243,7 @@ seq_spikes_frame = seq_spikes_frame.loc[
 seq_spikes_frame['spikes'] = 1
 # mark pre and post stim periods
 seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
-## NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE 
+## NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE
 # OF EQUAL LENGTH
 seq_spike_counts = seq_spikes_frame.groupby(
 		['trial_num','neuron_num','taste_num','laser_tuple','post_stim']).mean()
@@ -303,7 +303,7 @@ n_comparisons = n_comparisons[0]
 corrected_alpha = alpha # / n_comparisons
 resp_neurons = resp_frame.groupby(['neuron_num','laser_tuple']).agg(
 		{'resp_pval': lambda x: any([y<corrected_alpha for y in x])})
-resp_neurons.reset_index(inplace=True) 
+resp_neurons.reset_index(inplace=True)
 resp_neurons['resp_pval'] *= 1
 
 # Convert resp_neurons to pivot table
@@ -318,7 +318,7 @@ resp_neurons_pivot = resp_neurons.pivot(
 		)
 
 plt.figure(figsize=(5,10))
-g = sns.heatmap(resp_neurons_pivot, 
+g = sns.heatmap(resp_neurons_pivot,
 			cmap='coolwarm', cbar=True,
 			linewidth = 0.5,
 			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
@@ -341,9 +341,9 @@ resp_frac_laser = pd.DataFrame(resp_neurons.groupby('laser_tuple')['resp_pval'].
 resp_frac_laser.reset_index(inplace=True)
 fig, ax = plt.subplots(2,1)
 sns.stripplot(
-		data=resp_frame, 
-		x='neuron_num', 
-		y='resp_pval', 
+		data=resp_frame,
+		x='neuron_num',
+		y='resp_pval',
 		ax=ax[0])
 ax[0].set_title('Pvalues for responsiveness')
 ax[0].set_xlabel('Neuron')
@@ -368,15 +368,15 @@ plt.savefig(os.path.join(agg_plot_dir, 'responsiveness.png'),
 plt.close()
 
 ##############################
-# Discriminability 
+# Discriminability
 ##############################
 # 2 way ANOVA for each neuron over time and tastes
 anova_bin_width = params_dict['discrim_analysis_params']['bin_width']
 anova_bin_num = params_dict['discrim_analysis_params']['bin_num']
 bin_lims = np.vectorize(int)(np.linspace(
-	stim_time, 
-	stim_time + (anova_bin_num*anova_bin_width), 
-	anova_bin_num+1)) 
+	stim_time,
+	stim_time + (anova_bin_num*anova_bin_width),
+	anova_bin_num+1))
 
 seq_spikes_frame = this_dat.sequestered_spikes_frame.copy()
 min_lim, max_lim = min(bin_lims), max(bin_lims)
@@ -404,7 +404,7 @@ seq_spike_counts.fillna(0, inplace=True)
 seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
 for this_ind in tqdm(firing_frame_group_inds):
 	# Iterate of post_stim
-	for bin_num in range(anova_bin_num): 
+	for bin_num in range(anova_bin_num):
 		fin_ind = tuple((*this_ind, bin_num))
 		if fin_ind not in seq_spike_counts.index:
 			this_row = pd.Series(
@@ -417,7 +417,7 @@ for this_ind in tqdm(firing_frame_group_inds):
 			seq_spike_counts = seq_spike_counts.append(this_row)
 seq_spike_counts.reset_index(inplace=True)
 
-# For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num  
+# For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num
 # as factors
 group_cols = ['neuron_num','laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
@@ -444,7 +444,7 @@ for this_frame in tqdm(group_frames):
 
 p_val_frame = pd.concat(pval_list)
 # Drop interaction
-p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste_num * bin_num"])] 
+p_val_frame = p_val_frame.loc[~p_val_frame.Source.isin(["taste_num * bin_num"])]
 alpha = 0.05
 p_val_frame['sig'] = (p_val_frame['p-unc'] < alpha)*1
 taste_bin_pval_frame = p_val_frame.copy()
@@ -474,13 +474,13 @@ bin_sig_pivot = bin_sig.pivot(
 
 fig, ax = plt.subplots(1,2, sharex=True, sharey=False,
 					   figsize = (10,10))
-sns.heatmap(taste_sig_pivot, 
+sns.heatmap(taste_sig_pivot,
 			cmap='coolwarm', cbar=True,
 			linewidth = 0.5,
 			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
 			ax = ax[0]
 				)
-sns.heatmap(bin_sig_pivot, 
+sns.heatmap(bin_sig_pivot,
 			cmap='coolwarm', cbar=True,
 			linewidth = 0.5,
 			cbar_kws = {'label' : 'Significant (1 = yes, 0 = no)'},
@@ -499,7 +499,7 @@ plt.savefig(os.path.join(agg_plot_dir, 'discrim_dynamic_heatmap.png'),
 plt.close()
 
 ##############################
-# Palatability 
+# Palatability
 ##############################
 seq_firing_frame = this_dat.sequestered_firing_frame.copy()
 seq_firing_frame['time_val'] = [firing_t_vec[x] for x in seq_firing_frame.time_num]
@@ -586,9 +586,9 @@ if len(laser_conds) == 1:
 stim_ind = np.argmin(np.abs(pal_pivot_list[0].columns - 0))
 comb_inds = list(itertools.product(laser_conds, value_var_list))
 for this_laser, this_var in comb_inds:
-	row_ind = np.where(laser_conds == this_laser)[0][0] 
+	row_ind = np.where(laser_conds == this_laser)[0][0]
 	col_ind = value_var_list.index(this_var)
-	pivot_ind = frame_ind_list.index([this_laser, this_var]) 
+	pivot_ind = frame_ind_list.index([this_laser, this_var])
 	this_pivot = pal_pivot_list[pivot_ind]
 	if this_var == 'abs_rho':
 		cbar_label = 'Abs Spearman rho'
@@ -615,7 +615,7 @@ for this_laser, this_var in comb_inds:
 				cmap='coolwarm', cbar=True,
 				cbar_kws = {'label' : cbar_label},
 				linewidth = 0.5,
-				ax = ax[row_ind, -1], 
+				ax = ax[row_ind, -1],
 				)
 	ax[row_ind,-1].set_title(f'{this_laser} Post-stim Palatability significance')
 plt.suptitle('Palatability of neurons\n'+\

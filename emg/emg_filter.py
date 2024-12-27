@@ -56,7 +56,7 @@ c, d = butter(2, 2.0*15.0/1000.0, 'lowpass')
 ## todo: This can be pulled from info file
 ## check how many EMG channels used in this experiment
 layout_path = glob.glob(os.path.join(dir_name,"*layout.csv"))[0]
-electrode_layout_frame = pd.read_csv(layout_path) 
+electrode_layout_frame = pd.read_csv(layout_path)
 
 # Change CAR_group col to lower
 electrode_layout_frame['CAR_group'] = electrode_layout_frame['CAR_group'].str.lower()
@@ -83,13 +83,13 @@ for x in emg_car_groups:
     print()
 
 # TODO: This question can go into an EMG params file
-# Bandpass filter the emg signals, and store them in a numpy array. 
+# Bandpass filter the emg signals, and store them in a numpy array.
 # Low pass filter the bandpassed signals, and store them in another array
 # Take difference between pairs of channels
 # emg_data = List of arrays (per dig-in) of shape : channels x trials x time
 # emg_data_grouped = list of lists
-#       outer list : emg CAR groups 
-#       inner list : dig-ins 
+#       outer list : emg CAR groups
+#       inner list : dig-ins
 #       element_array : channels x trials x time
 emg_data_grouped = [[dat[x] for dat in emg_data] for x in emg_car_inds]
 # Make sure all element arrays are 3D with shape: channels x trials x time
@@ -142,10 +142,10 @@ ind_frame = pd.DataFrame(
 ind_frame = ind_frame.explode('trial_len')
 
 sig_trials_list = []
-for i, this_row in ind_frame.iterrows(): 
+for i, this_row in ind_frame.iterrows():
     this_ind = this_row.values
     this_dat = emg_filt_list[this_ind[0]][this_ind[1]][this_ind[2]]
-    ## Get mean and std of baseline emg activity, 
+    ## Get mean and std of baseline emg activity,
     ## and use it to select trials that have significant post stimulus activity
     # sig_trials (assumed shape) : tastes x trials
     pre_m = np.mean(np.abs(this_dat[:pre_stim]))
@@ -166,9 +166,9 @@ for i, this_row in ind_frame.iterrows():
 
 ind_frame['sig_trials'] = sig_trials_list
 
-# Save the highpass filtered signal, 
+# Save the highpass filtered signal,
 # the envelope and the indicator of significant trials as a np array
-# Iterate over channels and save them in different directories 
+# Iterate over channels and save them in different directories
 ind_frame.to_hdf(metadata_handler.hdf5_name, '/emg_data/emg_sig_trials')
 
 with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
@@ -177,10 +177,10 @@ with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
         if f'{digin_path}/processed_emg' in hf5:
             hf5.remove_node(f'{digin_path}/processed_emg', recursive = True)
         hf5.create_group(f'{digin_path}', 'processed_emg')
-        for car_ind , this_car_name in enumerate(emg_car_names): 
+        for car_ind , this_car_name in enumerate(emg_car_names):
             hf5.create_array(
-                    f'{digin_path}/processed_emg', 
-                    f'{this_car_name}_emg_filt', 
+                    f'{digin_path}/processed_emg',
+                    f'{this_car_name}_emg_filt',
                     emg_filt_list[car_ind][digin_ind]
                     )
             hf5.create_array(

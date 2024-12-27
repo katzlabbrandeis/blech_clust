@@ -47,7 +47,7 @@ if split_response == 0:
     #Convert all values to integers
     trial_split = list(map(int,trial_split))
     total_sessions = int(total_trials/int(trial_split[0]))
-else:    
+else:
     #if int(trial_split[0]) == 0:
     total_sessions = 1
     trial_split = list(map(int,[total_trials for node in dig_in_LFP_nodes]))
@@ -57,9 +57,9 @@ LFP_data = {}
 
 if trial_check == "Yes":
     for sessions in range(total_sessions):
-    
+
         LFP_data['Session_%i' % sessions] = [np.array(dig_in_channels[node][-8:]) for node in range(len(dig_in_LFP_nodes))]
-    
+
         #LFP_data['Session_%i' % sessions] = np.zeros(len(trial_split))
         for node in range(len(dig_in_LFP_nodes)):
             exec("LFP_array = hf5.root.Parsed_LFP.dig_in_%i_LFPs[:] " % node)
@@ -67,20 +67,20 @@ if trial_check == "Yes":
                 LFP_data['Session_%i' % sessions][node] = LFP_array[:,0:trial_split[node],:]
             else:
                 LFP_data['Session_%i' % sessions][node] = LFP_array[:,trial_split[node]:int((total_trials/int(trial_split[0]))*(trial_split[node])),:]
-    
+
         #Save arrays into .mat format for processing in MATLAB
         sio.savemat(hdf5_name[:-12] + '_all_tastes.mat', {'all_tastes':LFP_data})
-        
+
 if trial_check == "No":
     # Ask if this is for drug or saline
     msg   = "Are you using dig_in_4 (Saline) or dig_in_5 (Drug)?"
     LFP_dig_in = easygui.buttonbox(msg,choices = ["4","5"])
-    
+
     #Put LFP data into dictionary
     LFP_data['Session_%i' % 0] = [np.array(dig_in_LFP_nodes[0])]
     exec("LFP_array = hf5.root.Parsed_LFP.dig_in_%i_LFPs[:] " % int(LFP_dig_in[0]))
     LFP_data['Session_%i' % 0][0] = LFP_array[:,0:trial_split[0],:]
-    
+
     #Save arrays into .mat format for processing in MATLAB
     sio.savemat(hdf5_name[:-12] + '_affective_session.mat', {'affective_states':LFP_data})
 
@@ -89,4 +89,4 @@ print('*.mat files saved')
 
 #Close file
 hf5.flush()
-hf5.close() 
+hf5.close()

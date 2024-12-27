@@ -12,7 +12,7 @@ def poisson_hmm_implement(n_states, threshold, max_iterations, seeds, n_cpu, bin
 		results = [pool.apply_async(poisson_hmm, args = (n_states, threshold, max_iterations, binned_spikes, seed, off_trials, edge_inertia, dist_inertia,)) for seed in range(seeds)]
 	else:
 		results = [pool.apply_async(poisson_hmm_feedforward, args = (n_states, threshold, max_iterations, binned_spikes, seed, off_trials, edge_inertia, dist_inertia,)) for seed in range(seeds)]
-		
+
 	output = [p.get() for p in results]
 
 	# Remove any threads that didn't converge - these will have NaN's as the log likelihood
@@ -26,7 +26,7 @@ def poisson_hmm_implement(n_states, threshold, max_iterations, seeds, n_cpu, bin
 	# Find the process that ended up with the highest log likelihood, and return it as the solution. If several processes ended up with the highest log likelihood, just pick the earliest one
 	log_probs = [cleaned_output[i][1] for i in range(len(cleaned_output))]
 	maximum_pos = np.where(log_probs == np.max(log_probs))[0][0]
-	return cleaned_output[maximum_pos]	
+	return cleaned_output[maximum_pos]
 
 def multinomial_hmm_implement(n_states, threshold, max_iterations, seeds, n_cpu, binned_spikes, off_trials, edge_inertia, dist_inertia):
 
@@ -46,7 +46,7 @@ def multinomial_hmm_implement(n_states, threshold, max_iterations, seeds, n_cpu,
 	# Find the process that ended up with the highest log likelihood, and return it as the solution. If several processes ended up with the highest log likelihood, just pick the earliest one
 	log_probs = [cleaned_output[i][1] for i in range(len(cleaned_output))]
 	maximum_pos = np.where(log_probs == np.max(log_probs))[0][0]
-	return cleaned_output[maximum_pos]		
+	return cleaned_output[maximum_pos]
 
 def poisson_hmm(n_states, threshold, max_iterations, binned_spikes, seed, off_trials, edge_inertia, dist_inertia):
 
@@ -54,14 +54,14 @@ def poisson_hmm(n_states, threshold, max_iterations, binned_spikes, seed, off_tr
 	np.random.seed(seed)
 
 	# Make a pomegranate HiddenMarkovModel object
-	model = HiddenMarkovModel('%i' % seed) 
+	model = HiddenMarkovModel('%i' % seed)
 	states = []
 	# Make a pomegranate independent components distribution object and represent every unit with a Poisson distribution - 1 for each state
 	for i in range(n_states):
 		#emission_slice = (int((float(i)/n_states)*binned_spikes.shape[1]), int((float(i+1)/n_states)*binned_spikes.shape[1]))
-		#initial_emissions = np.mean(binned_spikes[off_trials, emission_slice[0]:emission_slice[1], :], axis = (0, 1)) 
+		#initial_emissions = np.mean(binned_spikes[off_trials, emission_slice[0]:emission_slice[1], :], axis = (0, 1))
 		states.append(State(IndependentComponentsDistribution([PoissonDistribution(np.random.rand()) for unit in range(binned_spikes.shape[2])]), name = 'State%i' % (i+1)))
-		
+
 	model.add_states(states)
 	# Add transitions from model.start to each state (equal probabilties)
 	for state in states:
@@ -75,7 +75,7 @@ def poisson_hmm(n_states, threshold, max_iterations, binned_spikes, seed, off_tr
 				model.add_transition(states[i], states[j], not_transitioning_prob)
 			else:
 				model.add_transition(states[i], states[j], float((1.0 - not_transitioning_prob)/(n_states - 1)))
-	
+
 	# Bake the model
 	model.bake()
 
@@ -84,7 +84,7 @@ def poisson_hmm(n_states, threshold, max_iterations, binned_spikes, seed, off_tr
 	log_prob = [model.log_probability(binned_spikes[i, :, :]) for i in off_trials]
 	log_prob = np.sum(log_prob)
 
-	# Set up things to return the parameters of the model - the state emission and transition matrix 
+	# Set up things to return the parameters of the model - the state emission and transition matrix
 	state_emissions = []
 	state_transitions = np.exp(model.dense_transition_matrix())
 	for i in range(n_states):
@@ -109,16 +109,16 @@ def poisson_hmm_feedforward(n_states, threshold, max_iterations, binned_spikes, 
 	np.random.seed(seed)
 
 	# Make a pomegranate HiddenMarkovModel object
-	model = HiddenMarkovModel('%i' % seed) 
+	model = HiddenMarkovModel('%i' % seed)
 	states = []
 	# Make a pomegranate independent components distribution object and represent every unit with a Poisson distribution - 1 for each state
 	for i in range(n_states):
 		emission_slice = (int((float(i)/n_states)*binned_spikes.shape[1]), int((float(i+1)/n_states)*binned_spikes.shape[1]))
-		initial_emissions = np.mean(binned_spikes[off_trials, emission_slice[0]:emission_slice[1], :], axis = (0, 1)) 
+		initial_emissions = np.mean(binned_spikes[off_trials, emission_slice[0]:emission_slice[1], :], axis = (0, 1))
 		states.append(State(IndependentComponentsDistribution([PoissonDistribution(initial_emissions[unit]) for unit in range(binned_spikes.shape[2])]), name = 'State%i' % (i+1)))
-		
+
 	model.add_states(states)
-	# Add a transition from model.start to state 0 with p = 1, all other transitions from model.start are p = 0 
+	# Add a transition from model.start to state 0 with p = 1, all other transitions from model.start are p = 0
 	for i in range(len(states)):
 		if i == 0:
 			model.add_transition(model.start, states[i], 1.0)
@@ -137,7 +137,7 @@ def poisson_hmm_feedforward(n_states, threshold, max_iterations, binned_spikes, 
 				model.add_transition(states[i], model.end, 1.0 - not_transitioning_prob)
 			else:
 				model.add_transition(states[i], states[j], 0.0)
-	
+
 	# Bake the model
 	model.bake()
 
@@ -146,7 +146,7 @@ def poisson_hmm_feedforward(n_states, threshold, max_iterations, binned_spikes, 
 	log_prob = [model.log_probability(binned_spikes[i, :, :]) for i in off_trials]
 	log_prob = np.sum(log_prob)
 
-	# Set up things to return the parameters of the model - the state emission and transition matrix 
+	# Set up things to return the parameters of the model - the state emission and transition matrix
 	state_emissions = []
 	state_transitions = np.exp(model.dense_transition_matrix())
 	for i in range(n_states):
@@ -164,14 +164,14 @@ def poisson_hmm_feedforward(n_states, threshold, max_iterations, binned_spikes, 
 	model_json = model.to_json()
 
 	return model_json, log_prob, 2*((n_states)**2 + n_states*binned_spikes.shape[2]) - 2*log_prob, (np.log(len(off_trials)*binned_spikes.shape[1]))*((n_states)**2 + n_states*binned_spikes.shape[2]) - 2*log_prob, state_emissions, state_transitions, posterior_proba
-	
+
 def multinomial_hmm(n_states, threshold, max_iterations, binned_spikes, seed, off_trials, edge_inertia, dist_inertia):
 
 	# Seed the random number generator
 	np.random.seed(seed)
 
 	# Make a pomegranate HiddenMarkovModel object
-	model = HiddenMarkovModel('%i' % seed) 
+	model = HiddenMarkovModel('%i' % seed)
 	states = []
 	# Make a pomegranate Discrete distribution object with emissions = range(n_units + 1) - 1 for each state
 	n_units = int(np.max(binned_spikes))
@@ -180,7 +180,7 @@ def multinomial_hmm(n_states, threshold, max_iterations, binned_spikes, seed, of
 		prob_list = np.random.random(n_units + 1)
 		prob_list = prob_list/np.sum(prob_list)
 		for unit in range(n_units + 1):
-			dist_dict[unit] = prob_list[unit]	
+			dist_dict[unit] = prob_list[unit]
 		states.append(State(DiscreteDistribution(dist_dict), name = 'State%i' % (i+1)))
 
 	model.add_states(states)
@@ -205,12 +205,12 @@ def multinomial_hmm(n_states, threshold, max_iterations, binned_spikes, seed, of
 	log_prob = [model.log_probability(binned_spikes[i, :]) for i in off_trials]
 	log_prob = np.sum(log_prob)
 
-	# Set up things to return the parameters of the model - the state emission dicts and transition matrix 
+	# Set up things to return the parameters of the model - the state emission dicts and transition matrix
 	state_emissions = []
 	state_transitions = np.exp(model.dense_transition_matrix())
 	for i in range(n_states):
 		state_emissions.append(model.states[i].distribution.parameters[0])
-	
+
 	# Get the posterior probability sequence to return
 	posterior_proba = np.zeros((binned_spikes.shape[0], binned_spikes.shape[1], n_states))
 	for i in range(binned_spikes.shape[0]):
@@ -219,5 +219,5 @@ def multinomial_hmm(n_states, threshold, max_iterations, binned_spikes, seed, of
 
 	# Get the json representation of the model - will be needed if we need to reload the model anytime
 	model_json = model.to_json()
-	
-	return model_json, log_prob, 2*((n_states)**2 + n_states*(n_units + 1)) - 2*log_prob, (np.log(len(off_trials)*binned_spikes.shape[1]))*((n_states)**2 + n_states*(n_units + 1)) - 2*log_prob, state_emissions, state_transitions, posterior_proba	
+
+	return model_json, log_prob, 2*((n_states)**2 + n_states*(n_units + 1)) - 2*log_prob, (np.log(len(off_trials)*binned_spikes.shape[1]))*((n_states)**2 + n_states*(n_units + 1)) - 2*log_prob, state_emissions, state_transitions, posterior_proba

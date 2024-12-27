@@ -89,7 +89,7 @@ for n_states in range(min_states, max_states + 1):
 	try:
 		result = poisson_hmm_implement(n_states, threshold, seeds, n_cpu, binned_spikes, off_trials, edge_inertia, dist_inertia, hmm_type)
 		hmm_results.append((n_states, result))
-	except: 
+	except:
 		continue
 
 # Delete the poisson_hmm_results node under /spike_trains/dig_in_(taste)/ if it exists
@@ -107,7 +107,7 @@ hf5.flush()
 try:
 	os.system("rm -r ./HMM_plots/dig_in_%i/%s_Poisson" % (taste, hmm_type))
 except:
-	pass	
+	pass
 
 # Make a folder for plots of Poisson HMM analysis
 os.mkdir("HMM_plots/dig_in_%i/%s_Poisson" % (taste, hmm_type))
@@ -116,9 +116,9 @@ os.mkdir("HMM_plots/dig_in_%i/%s_Poisson" % (taste, hmm_type))
 for result in hmm_results:
 	# Make a directory for this number of states
 	os.mkdir("HMM_plots/dig_in_%i/%s_Poisson/states_%i" % (taste, hmm_type, result[0]))
-		
+
 	# Make a group under poisson_hmm_results for this number of states
-	hf5.create_group('/spike_trains/dig_in_%i/%s_poisson_hmm_results' % (taste, hmm_type), 'states_%i' % (result[0])) 
+	hf5.create_group('/spike_trains/dig_in_%i/%s_poisson_hmm_results' % (taste, hmm_type), 'states_%i' % (result[0]))
 	# Write the emission and transition probabilties to this group
 	emission_probs = hf5.create_array('/spike_trains/dig_in_%i/%s_poisson_hmm_results/states_%i' % (taste, hmm_type, result[0]), 'emission_probs', result[1][4])
 	transition_probs = hf5.create_array('/spike_trains/dig_in_%i/%s_poisson_hmm_results/states_%i' % (taste, hmm_type, result[0]), 'transition_probs', result[1][5])
@@ -192,19 +192,19 @@ if len(laser_exists) > 0:
 	try:
 		os.system("rm -r ./HMM_plots/dig_in_%i/%s_Poisson/laser" % (taste, hmm_type))
 	except:
-		pass	
+		pass
 
 	# Make a folder for plots of Poisson HMM analysis
 	os.mkdir("HMM_plots/dig_in_%i/%s_Poisson/laser" % (taste, hmm_type))
-	
+
 	# Go through the HMM results, and make plots for each state and each trial
 	for result in hmm_results:
-		
+
 		# Make a directory for this number of states
 		os.mkdir("HMM_plots/dig_in_%i/%s_Poisson/laser/states_%i" % (taste, hmm_type, result[0]))
-		
+
 		# Make a group under poisson_hmm_results for this number of states
-		hf5.create_group('/spike_trains/dig_in_%i/%s_poisson_hmm_results/laser' % (taste, hmm_type), 'states_%i' % (result[0])) 
+		hf5.create_group('/spike_trains/dig_in_%i/%s_poisson_hmm_results/laser' % (taste, hmm_type), 'states_%i' % (result[0]))
 		# Write the emission and transition probabilties to this group
 		emission_probs = hf5.create_array('/spike_trains/dig_in_%i/%s_poisson_hmm_results/laser/states_%i' % (taste, hmm_type, result[0]), 'emission_probs', result[1][4])
 		transition_probs = hf5.create_array('/spike_trains/dig_in_%i/%s_poisson_hmm_results/laser/states_%i' % (taste, hmm_type, result[0]), 'transition_probs', result[1][5])
@@ -247,7 +247,5 @@ if len(laser_exists) > 0:
 			plt.title('Trial %i, Dur: %ims, Lag: %ims' % (i+1, dig_in.laser_durations[i], dig_in.laser_onset_lag[i]) + '\n' + 'RSU: red, FS: blue, Multi: black')
 			fig.savefig('HMM_plots/dig_in_%i/%s_Poisson/laser/states_%i/%sTrial_%i.png' % (taste, hmm_type, result[0], label, (i+1)))
 			plt.close("all")
-		
-hf5.close()	
 
-	
+hf5.close()

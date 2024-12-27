@@ -70,7 +70,7 @@ emg_port = emg_info['port']
 emg_channels = sorted(emg_info['electrodes'])
 
 layout_path = glob.glob(os.path.join(dir_name,"*layout.csv"))[0]
-electrode_layout_frame = pd.read_csv(layout_path) 
+electrode_layout_frame = pd.read_csv(layout_path)
 
 read_file.read_emg_channels(
         hdf5_name,
@@ -82,8 +82,8 @@ read_file.read_emg_channels(
 # emg_counter = 0
 # #for port in ports:
 # for num,row in tqdm(electrode_layout_frame.iterrows()):
-#     # Loading should use file name 
-#     # but writing should use channel ind so that channels from 
+#     # Loading should use file name
+#     # but writing should use channel ind so that channels from
 #     # multiple boards are written into a monotonic sequence
 #     if 'emg' in row.CAR_group.lower():
 #         print(f'Reading : {row.filename, row.CAR_group}')
@@ -95,5 +95,5 @@ read_file.read_emg_channels(
 #                 "append(data[:])")
 #         emg_counter += 1
 #         hf5.flush()
-# 
+#
 # hf5.close()

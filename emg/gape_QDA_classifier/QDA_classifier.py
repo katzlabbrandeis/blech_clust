@@ -1,5 +1,5 @@
 # from scipy.io import loadmat
-# 
+#
 # # Load the gape algorithm results from Li et al. 2016
 # a = loadmat('QDA_nostd_no_first.mat')
 # a = a['important_coefficients'][0]

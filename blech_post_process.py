@@ -1,7 +1,7 @@
 """
 blech_post_process.py - Post-processing and unit sorting for neural recordings
 
-This script handles the final stage of spike sorting, allowing both manual and automatic 
+This script handles the final stage of spike sorting, allowing both manual and automatic
 processing of clustered neural data. Key functionalities include:
 
 1. Unit Processing:
@@ -56,7 +56,7 @@ Author: Abuzar Mahmood
 import argparse
 
 ############################################################
-# Input from user and setup data 
+# Input from user and setup data
 ############################################################
 # Get directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
@@ -67,8 +67,8 @@ parser.add_argument('dir_name',
                     help = 'Directory containing data files')
 parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
                     default = None)
-parser.add_argument('--show-plot', 
-        help = 'Show waveforms while iterating', 
+parser.add_argument('--show-plot',
+        help = 'Show waveforms while iterating',
                     action = 'store_true')
 parser.add_argument('--keep-raw', help = 'Keep raw data in hdf5 file',
                     action = 'store_true')
@@ -104,7 +104,7 @@ np.random.seed(0)
 # Instantiate sort_file_handler
 this_sort_file_handler = post_utils.sort_file_handler(args.sort_file)
 
-if args.dir_name is not None: 
+if args.dir_name is not None:
     metadata_handler = imp_metadata([[],args.dir_name])
 else:
     metadata_handler = imp_metadata([])
@@ -119,7 +119,7 @@ if auto_cluster:
     max_autosort_clusters = auto_params['max_autosort_clusters']
 auto_post_process = auto_params['auto_post_process']
 count_threshold = auto_params['cluster_count_threshold']
-chi_square_alpha = auto_params['chi_square_alpha'] 
+chi_square_alpha = auto_params['chi_square_alpha']
 
 dir_name = metadata_handler.dir_name
 
@@ -151,7 +151,7 @@ hf5 = tables.open_file(hdf5_name, 'r+')
 this_descriptor_handler = post_utils.unit_descriptor_handler(hf5, dir_name)
 
 # Clean up the memory monitor files, pass if clean up has been done already
-post_utils.clean_memory_monitor_data()  
+post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
@@ -159,12 +159,12 @@ if not '/sorted_units' in hf5:
     hf5.create_group('/', 'sorted_units')
 
 ############################################################
-# Main Processing Loop 
+# Main Processing Loop
 ############################################################
-# Run an infinite loop as long as the user wants to 
-# pick clusters from the electrodes   
+# Run an infinite loop as long as the user wants to
+# pick clusters from the electrodes
 
-# Providing a sort file will force use of the sort file and 
+# Providing a sort file will force use of the sort file and
 # skip auto_post_process
 
 # This section will run if not auto_post_process
@@ -205,7 +205,7 @@ while (not auto_post_process) or (args.sort_file is not None):
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
     #if ast.literal_eval(args.show_plot):
-    if args.show_plot: 
+    if args.show_plot:
         post_utils.gen_select_cluster_plot(electrode_num, num_clusters, clusters)
 
     ############################################################
@@ -213,14 +213,14 @@ while (not auto_post_process) or (args.sort_file is not None):
     ############################################################
 
     this_split_merge_signal = post_utils.split_merge_signal(
-            clusters, 
+            clusters,
             this_sort_file_handler,)
     split_or_merge = np.logical_or(this_split_merge_signal.split,
                                    this_split_merge_signal.merge)
 
-    # If the user asked to split/re-cluster, 
+    # If the user asked to split/re-cluster,
     # ask them for the clustering parameters and perform clustering
-    if this_split_merge_signal.split: 
+    if this_split_merge_signal.split:
         ##############################
         ## Split sequence
         ##############################
@@ -229,7 +229,7 @@ while (not auto_post_process) or (args.sort_file is not None):
                 post_utils.get_clustering_params()
         if not continue_bool: continue
 
-        # Make data array to be put through the GMM - 5 components: 
+        # Make data array to be put through the GMM - 5 components:
         # 3 PCs, scaled energy, amplitude
         # Clusters is a list, and for len(clusters) == 1,
         # the code below will always work
@@ -247,21 +247,21 @@ while (not auto_post_process) or (args.sort_file is not None):
         # Cluster the data
         g = GaussianMixture(
                 random_state = 0,
-                n_components = n_clusters, 
-                covariance_type = 'full', 
-                tol = thresh, 
-                max_iter = n_iter, 
+                n_components = n_clusters,
+                covariance_type = 'full',
+                tol = thresh,
+                max_iter = n_iter,
                 n_init = n_restarts)
         g.fit(data)
-    
+
         # Show the cluster plots if the solution converged
         if g.converged_:
             split_predictions = g.predict(data)
             post_utils.generate_cluster_plots(
-                            split_predictions, 
-                            spike_waveforms, 
-                            spike_times, 
-                            n_clusters, 
+                            split_predictions,
+                            spike_waveforms,
+                            spike_times,
+                            n_clusters,
                             this_cluster_inds,
                             sampling_rate,
                             )
@@ -287,18 +287,18 @@ while (not auto_post_process) or (args.sort_file is not None):
         fin_inds = np.concatenate(subcluster_inds)
 
 
-        ############################################################ 
+        ############################################################
         # Subsetting this set of waveforms to include only the chosen split
         unit_waveforms = this_cluster_waveforms[fin_inds]
 
         # Do the same thing for the spike times
-        unit_times = this_cluster_times[fin_inds] 
-        ############################################################ 
+        unit_times = this_cluster_times[fin_inds]
+        ############################################################
 
 
         # Plot selected clusters again after merging splits
         post_utils.generate_datashader_plot(
-                unit_waveforms, 
+                unit_waveforms,
                 unit_times,
                 sampling_rate,
                 title = 'Merged Splits',
@@ -308,7 +308,7 @@ while (not auto_post_process) or (args.sort_file is not None):
                 subcluster_waveforms,
                 chosen_split,
                 unit_times, # Using unit_times rather than "subcluster_times"
-                            # because times for each cluster don't need to 
+                            # because times for each cluster don't need to
                             # be separated
                 sampling_rate,
                 max_n_per_cluster = 1000,
@@ -318,12 +318,12 @@ while (not auto_post_process) or (args.sort_file is not None):
 
     ##################################################
 
-    # If only 1 cluster was chosen (and it wasn't split), 
-    # add that as a new unit in /sorted_units. 
+    # If only 1 cluster was chosen (and it wasn't split),
+    # add that as a new unit in /sorted_units.
     # Ask if the isolated unit is an almost-SURE single unit
     elif not split_or_merge:
         ##############################
-        ## Single cluster selected 
+        ## Single cluster selected
         ##############################
         fin_inds = np.where(predictions == int(clusters[0]))[0]
 
@@ -331,9 +331,9 @@ while (not auto_post_process) or (args.sort_file is not None):
         unit_times = spike_times[fin_inds]
 
 
-    elif this_split_merge_signal.merge: 
+    elif this_split_merge_signal.merge:
         ##############################
-        ## Merge Sequence 
+        ## Merge Sequence
         ##############################
         # If the chosen units are going to be merged, merge them
         cluster_inds = [np.where(predictions == int(this_cluster))[0] \
@@ -344,12 +344,12 @@ while (not auto_post_process) or (args.sort_file is not None):
 
         fin_inds = np.concatenate(cluster_inds)
 
-        unit_waveforms = spike_waveforms[fin_inds, :] 
+        unit_waveforms = spike_waveforms[fin_inds, :]
         unit_times = spike_times[fin_inds]
 
         # Generate plot for merged unit
         violations1, violations2,_,_ = post_utils.generate_datashader_plot(
-                unit_waveforms, 
+                unit_waveforms,
                 unit_times,
                 sampling_rate,
                 title = 'Merged Unit',
@@ -367,7 +367,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 
         plt.show()
 
-        # Warn the user about the frequency of ISI violations 
+        # Warn the user about the frequency of ISI violations
         # in the merged unit
         continue_bool, proceed = \
                     post_utils.generate_violations_warning(
@@ -377,15 +377,15 @@ while (not auto_post_process) or (args.sort_file is not None):
                             )
         if not continue_bool: continue
 
-        # Create unit if the user agrees to proceed, 
-        # else abort and go back to start of the loop 
-        if not proceed:     
+        # Create unit if the user agrees to proceed,
+        # else abort and go back to start of the loop
+        if not proceed:
             continue
 
 
-    ############################################################  
+    ############################################################
     # Finally, save the unit to the HDF5 file
-    ############################################################  
+    ############################################################
 
     continue_bool, unit_name = this_descriptor_handler.save_unit(
             unit_waveforms,
@@ -447,19 +447,19 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     # Use multiprocessing to process electrodes in parallel
     n_cores = np.min(
             (
-                len(electrode_num_list), 
+                len(electrode_num_list),
                 cpu_count() - 1,
                 params_dict['max_parallel_cpu']
                 )
             )  # Leave one core free
     print(f"Processing {len(electrode_num_list)} electrodes using {n_cores} cores")
-    
+
     # Create partial function
-    auto_process_partial = partial( 
+    auto_process_partial = partial(
         post_utils.auto_process_electrode,
         process_params = process_params
     )
-    
+
     print(f'== Saving to {autosort_output_dir} ==')
     with Pool(n_cores) as pool:
         result = pool.starmap(

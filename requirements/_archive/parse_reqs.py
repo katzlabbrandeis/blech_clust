@@ -33,7 +33,7 @@ import_statements = [x for x,first_word in zip(input_dat,first_words) \
 # If ',' in statement, mark as multi-import
 multi_import = [x for x in import_statements if ',' in x] # None, so moving on
 single_import = [x for x in import_statements if ',' not in x]
-single_import_libs = [x.split(' ')[1] for x in single_import] 
+single_import_libs = [x.split(' ')[1] for x in single_import]
 
 import_libs_set = np.unique(single_import_libs)
 

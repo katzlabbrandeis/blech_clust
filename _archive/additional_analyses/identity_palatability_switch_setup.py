@@ -99,7 +99,7 @@ for i in range(spikes.shape[0]):
 			# Get the spikes for these trials
 			these_spikes = trains_dig_in[j].spike_array[these_trials, :, :]
 			these_spikes = these_spikes[:, chosen_units, :]
-					
+
 			palatability[i, num_laser_trials*j : num_laser_trials*(j + 1)] = palatability_rank[j] * np.ones(num_laser_trials)
 			identity[i, num_laser_trials*j : num_laser_trials*(j + 1)] = identities[j] * np.ones(num_laser_trials)
 
@@ -185,7 +185,7 @@ f = open('blech_MCMC.dir', 'w')
 print(dir_name, file=f)
 f.close()
 
-# Also drop the GNU parallel shell file in the blech_clust/additional_analyses folder 
+# Also drop the GNU parallel shell file in the blech_clust/additional_analyses folder
 f = open('identity_palatability_switch_parallel.sh', 'w')
 # First get number of CPUs - parallel be asked to run num_cpu-1 threads in parallel - assign 2 cores per job (for sampling 2 chains)
 num_cpu = multiprocessing.cpu_count()

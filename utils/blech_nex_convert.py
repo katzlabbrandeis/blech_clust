@@ -94,8 +94,8 @@ for i in range(len(dig_in_channels)):
 			spikes[k, spike_times] = 1
 			#for l in range(durations[0] + durations[1]):
 			#	spikes[k, l] = len(np.where((units[k].times[:] >= end_points[dig_in_channel_nums[i]][j] - (durations[0]-l)*30)*(units[k].times[:] < end_points[dig_in_channel_nums[i]][j] - (durations[0]-l-1)*30))[0])
-					
-		# Append the spikes array to spike_train 
+
+		# Append the spikes array to spike_train
 		spike_train.append(spikes)
 	# And add spike_train to the hdf5 file
 	hf5.create_group('/spike_trains', 'dig_in_%i' % i)
@@ -129,7 +129,7 @@ if emg_array.any():
 	# First axis of this array has two elements because we always put in two unipolar EMG electrodes in the new Intan system. The old Plexon system had a single bipolar electrode instead
 	# So, we just keep the second element along this axis as 0 when reading the old data - when the downstream filtering code subtracts the 2 unipolar voltages (when we only have a single bipolar voltage), the 0 value doesn't affect things
 	emg_data = np.zeros((2, len(dig_in_channels), seg.events[dig_in_channel_nums[0]].times.shape[0], durations[0] + durations[1]))
-	
+
 	# Now fill in the data
 	for i in range(len(dig_in_channels)):
 		# Run through the trials of each digital input
@@ -146,10 +146,6 @@ if emg_array.any():
 			emg_data[0, i, j, :] = data[:durations[0] + durations[1], 0]
 
 # Save the emg_data
-np.save('emg_data.npy', emg_data) 		
+np.save('emg_data.npy', emg_data)
 
 hf5.close()
-
-
-
-

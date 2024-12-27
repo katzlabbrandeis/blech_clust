@@ -15,7 +15,7 @@ import pylab as plt
 from scipy.stats import median_absolute_deviation as MAD
 
 ############################################################
-## Load Data 
+## Load Data
 ############################################################
 
 dir_list_path = '/media/bigdata/projects/pytau/pytau/data/fin_inter_list_3_14_22.txt'
@@ -44,33 +44,33 @@ wanted_lfp_electrodes = np.array([x[:,y] \
 
 # Plot mean ERP and per trial data for each region
 flat_lfp = wanted_lfp_electrodes.reshape(
-                wanted_lfp_electrodes.shape[0], 
-                -1, 
+                wanted_lfp_electrodes.shape[0],
+                -1,
                 wanted_lfp_electrodes.shape[-1])
 mean_lfp = np.mean(flat_lfp, axis=1)
 
 # Plot mean ERP and per trial data for each region
 fig, ax = plt.subplots(2, len(region_names), sharex=True, sharey = 'row')
 for region_ind, (this_region, this_name) in enumerate(zip(flat_lfp, region_names)):
-    ax[0,region_ind].imshow(this_region, 
-                            interpolation = 'nearest', aspect = 'auto') 
+    ax[0,region_ind].imshow(this_region,
+                            interpolation = 'nearest', aspect = 'auto')
     ax[0,region_ind].set_title(this_name)
     ax[1,region_ind].plot(mean_lfp[region_ind], color='k', linewidth=3)
     ax[1,region_ind].set_title(this_name)
 plt.show()
 
 ############################################################
-## Artifact Removal 
+## Artifact Removal
 ############################################################
 # Can do this in two ways:
 # 1) Use something like:
-# 1.1) MAD, or 
+# 1.1) MAD, or
 # 1.2) deviation from t-distribution
 # 2) Use ICA to decompose and manually remove components
 
 # 1.1) MAD
 lfp_median = np.median(flat_lfp, axis=1)
-lfp_MAD = MAD(flat_lfp, axis=1) 
+lfp_MAD = MAD(flat_lfp, axis=1)
 MAD_threshold = 3
 
 # Plot per_trial data with MAD threshold
@@ -122,7 +122,7 @@ good_lfp_data[:,~good_trials_bool] = np.nan
 #good_lfp_data = dat.lfp_processing.return_good_lfp_trial_inds(dat.all_lfp_array)
 
 # Plot full and good lfp trial data
-fig, ax = plt.subplots(2, len(region_names), sharex=True, sharey=True) 
+fig, ax = plt.subplots(2, len(region_names), sharex=True, sharey=True)
 for region_ind, (this_region, this_name) in enumerate(zip(flat_lfp, region_names)):
     ax[region_ind,0].imshow(this_region,
                             interpolation = 'nearest', aspect = 'auto')

@@ -1,7 +1,7 @@
-# Sets up emg data for running the envelope of emg recordings (env.npy) through 
-# a local Bayesian Spectrum Analysis (BSA). 
-# Needs an installation of R (installing Rstudio on Ubuntu is enough) - 
-# in addition, the R library BaSAR needs to be installed from the CRAN 
+# Sets up emg data for running the envelope of emg recordings (env.npy) through
+# a local Bayesian Spectrum Analysis (BSA).
+# Needs an installation of R (installing Rstudio on Ubuntu is enough) -
+# in addition, the R library BaSAR needs to be installed from the CRAN
 # archives (https://cran.r-project.org/src/contrib/Archive/BaSAR/)
 # This is the starting step for emg_local_BSA_execute.py
 
@@ -120,7 +120,7 @@ if not os.path.exists(plot_dir):
     os.makedirs(plot_dir)
 
 print(f'emg_output_dir: {emg_output_dir}')
-os.chdir(emg_output_dir)  
+os.chdir(emg_output_dir)
 
 # Write the emg_env data to a file
 emg_env_df.to_csv('emg_env_df.csv')
@@ -136,19 +136,19 @@ print('Deleting results.log')
 if os.path.exists('results.log'):
     os.remove('results.log')
 
-# Dump shell file(s) for running GNU parallel job on the 
+# Dump shell file(s) for running GNU parallel job on the
 # user's blech_clust folder on the desktop
-# First get number of CPUs - parallel be asked to run num_cpu-1 
+# First get number of CPUs - parallel be asked to run num_cpu-1
 # threads in parallel
 num_cpu = multiprocessing.cpu_count()
 # Then produce the file generating the parallel command
 f = open(os.path.join(blech_emg_dir,'blech_emg_jetstream_parallel.sh'), 'w')
 format_args = (
-        int(num_cpu)-1, 
-        data_dir, 
+        int(num_cpu)-1,
+        data_dir,
         len(emg_env_df)-1)
 print(
-        "parallel -k -j {:d} --noswap --load 100% --progress --ungroup --joblog {:s}/results.log bash blech_emg_jetstream_parallel1.sh ::: {{0..{:d}}}".format(*format_args), 
+        "parallel -k -j {:d} --noswap --load 100% --progress --ungroup --joblog {:s}/results.log bash blech_emg_jetstream_parallel1.sh ::: {{0..{:d}}}".format(*format_args),
         file = f)
 f.close()
 
@@ -176,12 +176,12 @@ f.close()
 # Also get trial_info_frame
 trial_info_frame = pd.read_csv(os.path.join(data_dir,'trial_info_frame.csv'))
 
-merge_frame = pd.merge(emg_env_df, trial_info_frame, 
-                       left_on = ['dig_in', 'trial_inds'], 
-                       right_on = ['dig_in_name_taste', 'taste_rel_trial_num'], 
+merge_frame = pd.merge(emg_env_df, trial_info_frame,
+                       left_on = ['dig_in', 'trial_inds'],
+                       right_on = ['dig_in_name_taste', 'taste_rel_trial_num'],
                        how = 'left')
 merge_frame.drop(
-        columns = ['dig_in','trial_inds', 
+        columns = ['dig_in','trial_inds',
                    'start_taste','end_taste',
                    'start_laser','end_laser',
                    'laser_duration','laser_lag',
@@ -200,18 +200,18 @@ merge_frame.to_csv(os.path.join(data_dir, 'emg_output/emg_env_merge_df.csv'))
 
 car_group = list(merge_frame.groupby('car'))
 
-max_trials = merge_frame.taste_rel_trial_num.max() + 1 
+max_trials = merge_frame.taste_rel_trial_num.max() + 1
 
 for car_name, car_data in car_group:
     n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs, 
+    fig, ax = plt.subplots(max_trials, n_digs,
                            sharex = True, sharey = True,
                            figsize = (n_digs*4, max_trials)
                            )
     for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
         ax[0, i].set_title(dig_name)
         dat_inds = dig_data.index.values
-        dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]] 
+        dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
         for j, trial in enumerate(dig_filt):
             ax[j, i].plot(time_vec, trial)
             ax[j, i].axvline(0, color = 'r', linestyle = '--')
@@ -223,14 +223,14 @@ for car_name, car_data in car_group:
 
 for car_name, car_data in car_group:
     n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs, 
+    fig, ax = plt.subplots(max_trials, n_digs,
                            sharex = True, sharey = True,
                            figsize = (n_digs*4, max_trials)
                            )
     for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
         ax[0, i].set_title(dig_name)
         dat_inds = dig_data.index.values
-        dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]] 
+        dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
         for j, trial in enumerate(dig_filt):
             ax[j, i].plot(time_vec, trial)
             ax[j, i].axvline(0, color = 'r', linestyle = '--')

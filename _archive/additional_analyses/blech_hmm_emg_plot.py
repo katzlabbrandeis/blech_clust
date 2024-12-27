@@ -69,7 +69,7 @@ for dig_in in trains_dig_in:
 	# Get the spike array from the required taste/input
 	spikes = dig_in.spike_array[:]
 	# Take only the units that were chosen while fitting the HMM
-	spikes = spikes[:, chosen_units, :]	
+	spikes = spikes[:, chosen_units, :]
 
 	# Make a directory for this digital input
 	os.mkdir('./HMM_EMG_plots/dig_in_{:d}'.format(taste_num))
@@ -88,7 +88,7 @@ for dig_in in trains_dig_in:
 			if str.split(node._v_pathname, '/')[-1] == 'laser':
 				# Get the nodes with the laser results
 				laser_nodes = hf5.list_nodes('/spike_trains/dig_in_{:d}/multinomial_hmm_results/laser'.format(taste_num))
-				
+
 				# Run through the laser_nodes, make folders for each of them, and plot the posterior probabilities
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/multinomial/laser'.format(taste_num))
 				for laser_node in laser_nodes:
@@ -97,7 +97,7 @@ for dig_in in trains_dig_in:
 					# Change to this directory
 					os.chdir('./HMM_EMG_plots/dig_in_{:d}/multinomial/laser/{:s}'.format(taste_num, str.split(laser_node._v_pathname, '/')[-1]))
 
-					# Get the HMM time 
+					# Get the HMM time
 					time = laser_node.time[:]
 					# And the posterior probability to plot
 					posterior_proba = laser_node.posterior_proba[:]
@@ -128,7 +128,7 @@ for dig_in in trains_dig_in:
 
 						# Fill up the final_proba array
 						final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
-						
+
 						# Plot the gapes, gapes_Li and posterior_proba
 						fig = plt.figure()
 						for j in range(posterior_proba.shape[2]):
@@ -228,7 +228,7 @@ for dig_in in trains_dig_in:
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/multinomial/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
 				# Change to this directory
 				os.chdir('./HMM_EMG_plots/dig_in_{:d}/multinomial/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
-				# Get the HMM time 
+				# Get the HMM time
 				time = node.time[:]
 				# And the posterior probability to plot
 				posterior_proba = node.posterior_proba[:]
@@ -249,7 +249,7 @@ for dig_in in trains_dig_in:
 					laser_condition = int(np.where(trials == posterior_proba.shape[0]*taste_num + i)[0][0])
 					this_taste_trials = np.where((trials[laser_condition] >= posterior_proba.shape[0]*taste_num) * (trials[laser_condition] <= posterior_proba.shape[0]*(taste_num + 1)))
 					this_trial = int(np.where(trials[laser_condition, this_taste_trials][0] == posterior_proba.shape[0]*taste_num + i)[0])
-					
+
 					# Fill up the final_proba array
 					final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
 
@@ -330,7 +330,7 @@ for dig_in in trains_dig_in:
 			if str.split(node._v_pathname, '/')[-1] == 'laser':
 				# Get the nodes with the laser results
 				laser_nodes = hf5.list_nodes('/spike_trains/dig_in_{:d}/generic_poisson_hmm_results/laser'.format(taste_num))
-				
+
 				# Run through the laser_nodes, make folders for each of them, and plot the posterior probabilities
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/generic_poisson/laser'.format(taste_num))
 				for laser_node in laser_nodes:
@@ -339,7 +339,7 @@ for dig_in in trains_dig_in:
 					# Change to this directory
 					os.chdir('./HMM_EMG_plots/dig_in_{:d}/generic_poisson/laser/{:s}'.format(taste_num, str.split(laser_node._v_pathname, '/')[-1]))
 
-					# Get the HMM time 
+					# Get the HMM time
 					time = laser_node.time[:]
 					# And the posterior probability to plot
 					posterior_proba = laser_node.posterior_proba[:]
@@ -370,7 +370,7 @@ for dig_in in trains_dig_in:
 
 						# Fill up the final_proba array
 						final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
-						
+
 						# Plot the gapes, gapes_Li and posterior_proba
 						fig = plt.figure()
 						for j in range(posterior_proba.shape[2]):
@@ -469,7 +469,7 @@ for dig_in in trains_dig_in:
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/generic_poisson/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
 				# Change to this directory
 				os.chdir('./HMM_EMG_plots/dig_in_{:d}/generic_poisson/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
-				# Get the HMM time 
+				# Get the HMM time
 				time = node.time[:]
 				# And the posterior probability to plot
 				posterior_proba = node.posterior_proba[:]
@@ -490,7 +490,7 @@ for dig_in in trains_dig_in:
 					laser_condition = int(np.where(trials == posterior_proba.shape[0]*taste_num + i)[0][0])
 					this_taste_trials = np.where((trials[laser_condition] >= posterior_proba.shape[0]*taste_num) * (trials[laser_condition] <= posterior_proba.shape[0]*(taste_num + 1)))
 					this_trial = int(np.where(trials[laser_condition, this_taste_trials][0] == posterior_proba.shape[0]*taste_num + i)[0])
-					
+
 					# Fill up the final_proba array
 					final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
 
@@ -571,7 +571,7 @@ for dig_in in trains_dig_in:
 			if str.split(node._v_pathname, '/')[-1] == 'laser':
 				# Get the nodes with the laser results
 				laser_nodes = hf5.list_nodes('/spike_trains/dig_in_{:d}/feedforward_poisson_hmm_results/laser'.format(taste_num))
-				
+
 				# Run through the laser_nodes, make folders for each of them, and plot the posterior probabilities
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/feedforward_poisson/laser'.format(taste_num))
 				for laser_node in laser_nodes:
@@ -580,7 +580,7 @@ for dig_in in trains_dig_in:
 					# Change to this directory
 					os.chdir('./HMM_EMG_plots/dig_in_{:d}/feedforward_poisson/laser/{:s}'.format(taste_num, str.split(laser_node._v_pathname, '/')[-1]))
 
-					# Get the HMM time 
+					# Get the HMM time
 					time = laser_node.time[:]
 					# And the posterior probability to plot
 					posterior_proba = laser_node.posterior_proba[:]
@@ -608,7 +608,7 @@ for dig_in in trains_dig_in:
 
 						# Fill up the final_proba array
 						final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
-						
+
 						# Plot the gapes, gapes_Li and posterior_proba
 						fig = plt.figure()
 						for j in range(posterior_proba.shape[2]):
@@ -681,7 +681,7 @@ for dig_in in trains_dig_in:
 				os.mkdir('./HMM_EMG_plots/dig_in_{:d}/feedforward_poisson/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
 				# Change to this directory
 				os.chdir('./HMM_EMG_plots/dig_in_{:d}/feedforward_poisson/{:s}'.format(taste_num, str.split(node._v_pathname, '/')[-1]))
-				# Get the HMM time 
+				# Get the HMM time
 				time = node.time[:]
 				# And the posterior probability to plot
 				posterior_proba = node.posterior_proba[:]
@@ -702,7 +702,7 @@ for dig_in in trains_dig_in:
 					laser_condition = int(np.where(trials == posterior_proba.shape[0]*taste_num + i)[0][0])
 					this_taste_trials = np.where((trials[laser_condition] >= posterior_proba.shape[0]*taste_num) * (trials[laser_condition] <= posterior_proba.shape[0]*(taste_num + 1)))
 					this_trial = int(np.where(trials[laser_condition, this_taste_trials][0] == posterior_proba.shape[0]*taste_num + i)[0])
-					
+
 					# Fill up the final_proba array
 					final_proba[laser_condition, this_trial, :, :] = posterior_proba[i, :, :]
 
@@ -768,13 +768,13 @@ for dig_in in trains_dig_in:
 
 				# Go back to the data directory
 				os.chdir(dir_name)
-	
+
 # Finally plot out the trial-averaged gaping and ltp power by laser conditions
 # Ask the user for the post-stimulus time to plot
 post_stim = easygui.multenterbox(msg = 'Fill in the post-stimulus period you want to plot for the average gapes and ltps', fields = ['Post-stimulus time (ms)'])
 post_stim = int(post_stim[0])
 
-# Now run through the laser conditions 
+# Now run through the laser conditions
 for i in range(lasers.shape[0]):
 	# And plot all the tastes on the same graph
 	fig_gape = plt.figure()
@@ -788,8 +788,8 @@ for i in range(lasers.shape[0]):
 		ax_ltp.legend()
 		ax_gape.set_xlabel('Time post stimlus (ms)')
 		ax_ltp.set_xlabel('Time post stimlus (ms)')
-		ax_gape.set_ylabel('Trial averaged power in 4.15-5.95 Hz')		
-		ax_ltp.set_ylabel('Trial averaged power in 5.95-8.65 Hz')		
+		ax_gape.set_ylabel('Trial averaged power in 4.15-5.95 Hz')
+		ax_ltp.set_ylabel('Trial averaged power in 5.95-8.65 Hz')
 		ax_gape.set_title('Dur: %ims, Lag: %ims' % (int(lasers[i, 0]), int(lasers[i, 1])))
 		ax_ltp.set_title('Dur: %ims, Lag: %ims' % (int(lasers[i, 0]), int(lasers[i, 1])))
 		fig_gape.savefig('./HMM_EMG_plots/average_gape_Dur%i_Lag%i.png' % (int(lasers[i, 0]), int(lasers[i, 1])), bbox_inches = 'tight')
@@ -797,16 +797,3 @@ for i in range(lasers.shape[0]):
 		plt.close('all')
 
 hf5.close()
-				
-				
-	
-
-	
-
-	
-
-
-
-
-
-

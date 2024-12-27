@@ -14,7 +14,7 @@ import pandas as pd
 
 # 3rd-party libraries
 import numpy as np # module for low-level scientific computing
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.stats import chisquare
 from scipy.stats import chi2_contingency
@@ -43,14 +43,14 @@ if dir_check == "No":
     while True:
     	dir_name = easygui.diropenbox(msg = 'Choose first condition directory with a hdf5 file, hit cancel to stop choosing')
     	try:
-    		if len(dir_name) > 0:	
+    		if len(dir_name) > 0:
     			dirs_1.append(dir_name)
     	except:
-    		break   
+    		break
 
     #Dump the directory names into chosen output location for each condition
     #condition 1
-    completeName_1 = os.path.join(save_name, 'dirs_cond1.dir') 
+    completeName_1 = os.path.join(save_name, 'dirs_cond1.dir')
     f_1 = open(completeName_1, 'w')
     for item in dirs_1:
         f_1.write("%s\n" % item)
@@ -64,14 +64,14 @@ if dir_check == "Yes":
     dirs_1_file = open(dirs_1_path,'r')
     dirs_1 = dirs_1_file.read().splitlines()
     dirs_1_file.close()
-	
+
 	#condition 1
     dirs_2_path = os.path.join(save_name, 'dirs_cond2.dir')
     dirs_2_file = open(dirs_2_path,'r')
     dirs_2 = dirs_2_file.read().splitlines()
     dirs_2_file.close()
-	
-# Make directory to store all phaselocking plots. Delete and 
+
+# Make directory to store all phaselocking plots. Delete and
 # remake the directory if it exists
 os.chdir(save_name)
 
@@ -88,7 +88,7 @@ conditions = easygui.multenterbox(msg = 'Input condition names:', fields = ['Con
 grouped_df=pd.DataFrame()
 
 #Flip through files and extract dataframes and store into large one
-for dir_name in dirs_1:	
+for dir_name in dirs_1:
 	#Change to the directory
 	os.chdir(dir_name)
 	#Locate the hdf5 file
@@ -99,22 +99,22 @@ for dir_name in dirs_1:
 			hdf5_name = files
 
 	#Open the hdf5 file
-	hf5 = tables.open_file(hdf5_name, 'r+')	
+	hf5 = tables.open_file(hdf5_name, 'r+')
 	freq_dframe = pd.read_hdf(hdf5_name,'Spike_Phase_Dframe/freq_keys','r+')
-	
+
 	dframe = pd.read_hdf(hdf5_name,'Spike_Phase_Dframe/dframe','r+')
-		
+
 	#Add column name for Animal and Condition and fill in appropriately
 	dframe.insert(0,'Animal',hdf5_name[0:4])
 	dframe.insert(1,'Condition',conditions[0])
-	
+
 	#Stack dataframes onto eachother
 	grouped_df = pd.concat([grouped_df,dframe],sort=False)
-	
+
 	#Close the hdf5 file
 	hf5.close()
 
-for dir_name in dirs_2:	
+for dir_name in dirs_2:
 	#Change to the directory
 	os.chdir(dir_name)
 	#Locate the hdf5 file
@@ -125,18 +125,18 @@ for dir_name in dirs_2:
 			hdf5_name = files
 
 	#Open the hdf5 file
-	hf5 = tables.open_file(hdf5_name, 'r+')	
+	hf5 = tables.open_file(hdf5_name, 'r+')
 	freq_dframe = pd.read_hdf(hdf5_name,'Spike_Phase_Dframe/freq_keys','r+')
-	
+
 	dframe = pd.read_hdf(hdf5_name,'Spike_Phase_Dframe/dframe','r+')
-		
+
 	#Add column name for Animal and Condition and fill in appropriately
 	dframe.insert(0,'Animal',hdf5_name[0:4])
 	dframe.insert(1,'Condition',conditions[1])
-	
+
 	#Stack dataframes onto eachother
 	grouped_df = pd.concat([grouped_df,dframe],sort=False)
-	
+
 	#Close the hdf5 file
 	hf5.close()
 
@@ -147,7 +147,7 @@ clean_check = easygui.buttonbox(msg,choices = ["Yes","No"])
 if clean_check == "Yes":
 	clean_animal = easygui.multchoicebox(msg = 'Which Animals would you like to update (select as many as you want, or Cancel)?',
 	choices = ([i for i in sorted(grouped_df.Animal.unique())]))
-	
+
 	if len(clean_animal)<0:
 		print("I do not think you are understanding how this code works.")
 		pass
@@ -175,7 +175,7 @@ else:
 held_dir_name = easygui.diropenbox(msg = 'Choose directory with all "_held_units.txt" files in it.',default = save_name)
 
 #Create empty arrays for storing FRH later
-#held_FRs_cond1 = []; held_FRs_cond2 = []; 
+#held_FRs_cond1 = []; held_FRs_cond2 = [];
 held_FRs_cond1_2 = []; held_FRs_cond2_2 = []
 
 #Flip through all files and create a held_units list
@@ -196,25 +196,25 @@ for file in held_dir_name:
 					day1.append(columns[0]);	day2.append(columns[1])
 				all_day1.append(day1); all_day2.append(day2)
 				day1 = []; day2 = []    #Clear day array
-				
+
 #Remove 'Day' from all lists
 for sublist in all_day1:
     del sublist[0]
-	
+
 for sublist in all_day2:
     del sublist[0]
-	
+
 #Account for out of order units
 sorted_day1 = [];sorted_day2=[]
 for animal in range(np.size(all_day1)):
 	sorted_day1.append(sorted(all_day1[animal], key=int))
-	sorted_day2.append(sorted(all_day2[animal], key=int))	
-	
+	sorted_day2.append(sorted(all_day2[animal], key=int))
+
 
 #Insert Pre/Post identifier
 time_params = easygui.multenterbox(msg = 'Enter the parameters for grouped' +\
         'bars', fields = ['Pre-stimulus time (ms)','Post-stimulus time (ms)'],
-        values = ['2000','2000'])	
+        values = ['2000','2000'])
 
 grouped_df['comp_time'] = ''
 grouped_df.loc[(grouped_df['time'] <= int(time_params[0])), 'comp_time'] = int(0)
@@ -231,7 +231,7 @@ held_df = pd.DataFrame()
 
 for animal in range(len(dirs_1)):
 	animal_name = sorted(grouped_df.Animal.unique())[animal]
-	
+
 	for unit in range(len(all_day1[animal])):
 		#Extract appropriate held cell for further analyses
 		held_unit_1 = all_day1[animal][unit]
@@ -245,27 +245,27 @@ for animal in range(len(dirs_1)):
 								'Animal == @animal_name and unit ==@held_unit_2 and '\
 								'Condition == @conditions[1]')
 		FR_df_query2['held_unit'] = unit
-		
-		
+
+
 		held_df = pd.concat([held_df,FR_df_query1],sort=False)
 		held_df = pd.concat([held_df,FR_df_query2],sort=False)
 
 #Update dataframe
 held_df = held_df.rename(columns={"time":"spike_count"})
-held_df = held_df.replace({'comp_time': {0: 'Pre', 1: 'Post'}})		
+held_df = held_df.replace({'comp_time': {0: 'Pre', 1: 'Post'}})
 
 #Set formating colors
 pal = {conditions[0]:"seagreen", conditions[1]:"gray"}
 for animal in range(len(held_df.Animal.unique())):
 	animal_name = sorted(grouped_df.Animal.unique())[animal]
-			
+
 	g = sns.FacetGrid(held_df.query('Animal == @animal_name'), col = 'held_unit', row = 'taste',
              sharey=True)
-	g = g.map(sns.swarmplot, 'comp_time', 'spike_count', 'Condition', order=['Pre','Post'],dodge=True,color = 'black',alpha=0.3)	
+	g = g.map(sns.swarmplot, 'comp_time', 'spike_count', 'Condition', order=['Pre','Post'],dodge=True,color = 'black',alpha=0.3)
 	g = (g.map(sns.barplot, 'comp_time', 'spike_count', 'Condition', palette=pal,order=['Pre','Post']).add_legend())
-	
+
 	plt.savefig('./Grouped_FR_analyses/' + \
-            '/{}_Conditional_FRs.png'.format(animal_name))	
+            '/{}_Conditional_FRs.png'.format(animal_name))
 	plt.close()
 
 #Create dataframe to store only held data information
@@ -273,7 +273,7 @@ Phase_df = pd.DataFrame()
 
 for animal in range(len(dirs_1)):
 	animal_name = sorted(grouped_df.Animal.unique())[animal]
-	
+
 	for unit in range(len(all_day1[animal])):
 		#Extract appropriate held cell for further analyses
 		held_unit_1 = all_day1[animal][unit]
@@ -287,8 +287,8 @@ for animal in range(len(dirs_1)):
 								'Animal == @animal_name and unit ==@held_unit_2 and '\
 								'Condition == @conditions[1]')
 		Phase_df_query2['held_unit'] = unit
-		
-		
+
+
 		Phase_df = pd.concat([Phase_df,Phase_df_query1],sort=False)
 		Phase_df = pd.concat([Phase_df,Phase_df_query2],sort=False)
 
@@ -296,39 +296,29 @@ for animal in range(len(dirs_1)):
 # #Perform grouping
 # Phase_df = grouped_df.groupby(['Animal','trial','unit','taste','Condition','comp_time']).count()
 # Phase_df = Phase_df.reset_index()
-# 
+#
 # =============================================================================
 for animal in range(len(held_df.Animal.unique())):
 	animal_name = sorted(grouped_df.Animal.unique())[animal]
-			
+
 	g = sns.FacetGrid(Phase_df.query('Animal == @animal_name and comp_time == 1'), col = 'held_unit', row = 'band',
              sharey=True)
-	g = g.map(sns.violinplot, 'taste', 'phase', 'Condition', dodge=True)	
+	g = g.map(sns.violinplot, 'taste', 'phase', 'Condition', dodge=True)
 	g = (g.map(sns.violinplot, 'taste', 'phase', 'Condition', palette=pal).add_legend())
-		
+
 	plt.savefig('./Grouped_FR_analyses/' + \
-            '/{}_Conditional_Phasic_Hists.png'.format(animal_name))	
+            '/{}_Conditional_Phasic_Hists.png'.format(animal_name))
 	plt.close()
-	
+
 # =============================================================================
-# 	
+#
 # 	g = sns.FacetGrid(Phase_df.query('Animal == @animal_name and comp_time == 1 and taste == 0'), col = 'held_unit', row = 'band',
 #              subplot_kws=dict(projection='polar'), hue="phase", despine=False,sharey=True)
-# 	
+#
 # 	g = g.map(plt.scatter,'phase', 'time')
-# 	
+#
 # 	df1 = pd.melt(Phase_df.query('Animal == @animal_name and comp_time == 1 and taste == 0'), id_vars=['phase'], var_name='phase', value_name='band')
-# 	
-# 
-# 
+#
+#
+#
 # =============================================================================
-
-
-
-
-
-
-
-
-
-

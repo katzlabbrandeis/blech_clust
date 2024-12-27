@@ -16,7 +16,7 @@ dirs = []
 while True:
 	dir_name = easygui.diropenbox(msg = 'Choose a directory with a hdf5 file, hit cancel to stop choosing')
 	try:
-		if len(dir_name) > 0:	
+		if len(dir_name) > 0:
 			dirs.append(dir_name)
 	except:
 		break
@@ -65,7 +65,7 @@ for dir_name in dirs:
 	this_converged_trials = []
 	# Now run through the laser conditions to get the switchpoints and converged trials
 	for laser in range(num_lasers):
-		exec("this_switchpoints.append(hf5.root.MCMC_switch.switchpoints.laser_condition_{:d}[:])".format(laser)) 	
+		exec("this_switchpoints.append(hf5.root.MCMC_switch.switchpoints.laser_condition_{:d}[:])".format(laser))
 		exec("this_converged_trials.append(hf5.root.MCMC_switch.converged_trial_nums.laser_condition_{:d}[:])".format(laser))
 	# Now append these lists to the big switchpoints and converged_trials lists
 	switchpoints.append(this_switchpoints)
@@ -84,7 +84,7 @@ else:
 # Now first set the ordering of laser trials straight across data files
 laser_order = []
 for i in range(len(unique_lasers)):
-	# The first file defines the order	
+	# The first file defines the order
 	if i == 0:
 		laser_order.append(np.arange(unique_lasers[i].shape[0]))
 	# And everyone else follows
@@ -199,11 +199,11 @@ for split in plot_switch:
 		fig = plt.figure()
 		plt.plot(np.mean(gapes_before[2][:, :post_stim], axis = 0), label = tastes[2])
 		std_error = np.std(gapes_before[2][:, :post_stim], axis = 0)/np.sqrt(gapes_before[2].shape[0])
-		plt.fill_between(np.arange(post_stim), np.mean(gapes_before[2][:, :post_stim], axis = 0) - std_error, np.mean(gapes_before[2][:, :post_stim], axis = 0) + std_error, alpha = 0.3)		
+		plt.fill_between(np.arange(post_stim), np.mean(gapes_before[2][:, :post_stim], axis = 0) - std_error, np.mean(gapes_before[2][:, :post_stim], axis = 0) + std_error, alpha = 0.3)
 		plt.plot(np.mean(gapes_before[i][3, :post_stim], axis = 0), label = tastes[3])
 		std_error = np.std(gapes_before[3][:, :post_stim], axis = 0)/np.sqrt(gapes_before[3].shape[0])
 		plt.fill_between(np.arange(post_stim), np.mean(gapes_before[3][:, :post_stim], axis = 0) - std_error, np.mean(gapes_before[3][:, :post_stim], axis = 0) + std_error, alpha = 0.3)
-		plt.legend()		
+		plt.legend()
 		plt.xlabel("Time post stimulus (ms)")
 		plt.ylabel("Mean fraction of power in 4-6Hz")
 		plt.title("Palatability switchpoint < {:d}ms".format(split*10) + "\n" + "Dur: {:d}ms, Lag: {:d}ms, Trials: {}".format(int(unique_lasers[0][laser, 0]), int(unique_lasers[0][laser, 1]), [gapes_before[i+2].shape[0] for i in range(2)]))
@@ -213,11 +213,11 @@ for split in plot_switch:
 		fig = plt.figure()
 		plt.plot(np.mean(gapes_after[2][:, :post_stim], axis = 0), label = tastes[2])
 		std_error = np.std(gapes_after[2][:, :post_stim], axis = 0)/np.sqrt(gapes_after[2].shape[0])
-		plt.fill_between(np.arange(post_stim), np.mean(gapes_after[2][:, :post_stim], axis = 0) - std_error, np.mean(gapes_after[2][:, :post_stim], axis = 0) + std_error, alpha = 0.3)		
+		plt.fill_between(np.arange(post_stim), np.mean(gapes_after[2][:, :post_stim], axis = 0) - std_error, np.mean(gapes_after[2][:, :post_stim], axis = 0) + std_error, alpha = 0.3)
 		plt.plot(np.mean(gapes_after[i][3, :post_stim], axis = 0), label = tastes[3])
 		std_error = np.std(gapes_after[3][:, :post_stim], axis = 0)/np.sqrt(gapes_after[3].shape[0])
 		plt.fill_between(np.arange(post_stim), np.mean(gapes_after[3][:, :post_stim], axis = 0) - std_error, np.mean(gapes_after[3][:, :post_stim], axis = 0) + std_error, alpha = 0.3)
-		plt.legend()		
+		plt.legend()
 		plt.xlabel("Time post stimulus (ms)")
 		plt.ylabel("Mean fraction of power in 4-6Hz")
 		plt.title("Palatability switchpoint > {:d}ms".format(split*10) + "\n" + "Dur: {:d}ms, Lag: {:d}ms, Trials: {}".format(int(unique_lasers[0][laser, 0]), int(unique_lasers[0][laser, 1]), [gapes_after[i+2].shape[0] for i in range(2)]))
@@ -267,21 +267,21 @@ for dataset in range(len(converged_trials)):
 			# Do not correct the switchpoint if it happened before the laser inactivation starts
 			else:
 				gapes_plot2[laser][int(converged_trials[dataset][laser][trial]/num_trials[dataset])].append(gapes[dataset][laser, int(converged_trials[dataset][laser][trial]/num_trials[dataset]), int(converged_trials[dataset][laser][trial] % num_trials[dataset]), switchpoints[dataset][laser][trial, 1]*10 - pre_switch : switchpoints[dataset][laser][trial, 1]*10 + post_switch])
-				ltps_plot2[laser][int(converged_trials[dataset][laser][trial]/num_trials[dataset])].append(ltps[dataset][laser, int(converged_trials[dataset][laser][trial]/num_trials[dataset]), int(converged_trials[dataset][laser][trial] % num_trials[dataset]), switchpoints[dataset][laser][trial, 1]*10 - pre_switch : switchpoints[dataset][laser][trial, 1]*10 + post_switch])				
+				ltps_plot2[laser][int(converged_trials[dataset][laser][trial]/num_trials[dataset])].append(ltps[dataset][laser, int(converged_trials[dataset][laser][trial]/num_trials[dataset]), int(converged_trials[dataset][laser][trial] % num_trials[dataset]), switchpoints[dataset][laser][trial, 1]*10 - pre_switch : switchpoints[dataset][laser][trial, 1]*10 + post_switch])
 
 # Convert these lists into numpy arrays to help in averaging across trials while plotting
 for i in range(num_lasers):
-	gapes_plot1[i] = [np.array(gapes_plot1[i][j]) for j in range(num_tastes)]		
-	gapes_plot2[i] = [np.array(gapes_plot2[i][j]) for j in range(num_tastes)]		
-	ltps_plot1[i] = [np.array(ltps_plot1[i][j]) for j in range(num_tastes)]		
+	gapes_plot1[i] = [np.array(gapes_plot1[i][j]) for j in range(num_tastes)]
+	gapes_plot2[i] = [np.array(gapes_plot2[i][j]) for j in range(num_tastes)]
+	ltps_plot1[i] = [np.array(ltps_plot1[i][j]) for j in range(num_tastes)]
 	ltps_plot2[i] = [np.array(ltps_plot2[i][j]) for j in range(num_tastes)]
 
 # Now plot the results by laser conditions
 for laser in range(num_lasers):
 	# Make 4 separate figures - 2 each for gapes and ltps
-	fig_gapes1, ax_gapes1 = plt.subplots() 		
-	fig_gapes2, ax_gapes2 = plt.subplots() 		
-	fig_ltps1, ax_ltps1 = plt.subplots() 		
+	fig_gapes1, ax_gapes1 = plt.subplots()
+	fig_gapes2, ax_gapes2 = plt.subplots()
+	fig_ltps1, ax_ltps1 = plt.subplots()
 	fig_ltps2, ax_ltps2 = plt.subplots()
 
 	# Now run through the tastes
@@ -311,7 +311,7 @@ for laser in range(num_lasers):
 	fig_gapes2.savefig("Gapes_Switchpoint2_Dur{:d}_Lag{:d}.png".format(int(unique_lasers[0][laser, 0]), int(unique_lasers[0][laser, 1])), bbox_inches = "tight")
 	fig_ltps1.savefig("LTP_Switchpoint1_Dur{:d}_Lag{:d}.png".format(int(unique_lasers[0][laser, 0]), int(unique_lasers[0][laser, 1])), bbox_inches = "tight")
 	fig_ltps2.savefig("LTP_Switchpoint2_Dur{:d}_Lag{:d}.png".format(int(unique_lasers[0][laser, 0]), int(unique_lasers[0][laser, 1])), bbox_inches = "tight")
-	plt.close("all")		
+	plt.close("all")
 
 #----------------------------Plotting EMG data lined up by switchpoints done------------------------------------------
 
@@ -332,7 +332,7 @@ switch = [[] for i in range(4)]
 	trains_dig_in = hf5.list_nodes('/spike_trains')
 	num_tastes = len(trains_dig_in)
 	num_trials = int(np.array(hf5.root.MCMC_switch.inactivated_spikes[:]).shape[1] / num_tastes)
-	gapes_Li = hf5.root.ancillary_analysis.gapes_Li[:] 
+	gapes_Li = hf5.root.ancillary_analysis.gapes_Li[:]
 	for i in range(converged_trials.shape[0]):
 		if switchpoints[i, 1] < 90.0:
 			switch[int(converged_trials[i]/num_trials)].append([switchpoints[i, 0], switchpoints[i, 1]])
@@ -356,5 +356,3 @@ switch = [[] for i in range(4)]
 				gapes_Li_more_700[int(converged_trials[i]/num_trials)].append(-1.0)
 
 '''
-
-

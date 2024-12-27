@@ -24,12 +24,12 @@ for line in f.readlines():
 f.close()
 os.chdir(dir_name[0][:-1])
 
-# Pull out SGE_TASK_ID # - this will be the electrode number to be looked at. 
+# Pull out SGE_TASK_ID # - this will be the electrode number to be looked at.
 try:
 	electrode_num = int(os.getenv('SGE_TASK_ID')) - 1
 except:
 # Alternatively, if running on jetstream (or personal computer) using GNU parallel, get sys.argv[1]
-	electrode_num = int(sys.argv[1]) - 1 
+	electrode_num = int(sys.argv[1]) - 1
 
 # Check if the directories for this electrode number exist - if they do, delete them (existence of the directories indicates a job restart on the cluster, so restart afresh)
 if os.path.isdir('./Plots/'+str(electrode_num)):
@@ -106,7 +106,7 @@ else:
 # And if they all exceed the cutoffs, assume that the headstage fell off mid-experiment
 recording_cutoff = int(len(filt_el)/sampling_rate)
 if breach_rate >= max_breach_rate and secs_above_cutoff >= max_secs_above_cutoff and mean_breach_rate_persec >= max_mean_breach_rate_persec:
-	# Find the first 1 second epoch where the number of cutoff breaches is higher than the maximum allowed mean breach rate 
+	# Find the first 1 second epoch where the number of cutoff breaches is higher than the maximum allowed mean breach rate
 	recording_cutoff = np.where(breaches_per_sec > max_mean_breach_rate_persec)[0][0]
 
 # Dump a plot showing where the recording was cut off at
@@ -120,7 +120,7 @@ fig.savefig('./Plots/%i/Plots/cutoff_time.png' % electrode_num, bbox_inches='tig
 plt.close("all")
 
 # Then cut the recording accordingly
-filt_el = filt_el[:recording_cutoff*int(sampling_rate)]	
+filt_el = filt_el[:recording_cutoff*int(sampling_rate)]
 
 # Slice waveforms out of the filtered electrode recordings
 slices, spike_times = extract_waveforms(filt_el, spike_snapshot = [spike_snapshot_before, spike_snapshot_after], sampling_rate = sampling_rate)
@@ -179,7 +179,7 @@ for i in range(max_clusters-1):
                 continue
         print(time() - start)
 
-        # Sometimes large amplitude noise waveforms cluster with the spike waveforms because the amplitude has been factored out of the scaled slices.   
+        # Sometimes large amplitude noise waveforms cluster with the spike waveforms because the amplitude has been factored out of the scaled slices.
         # Run through the clusters and find the waveforms that are more than wf_amplitude_sd_cutoff larger than the cluster mean. Set predictions = -1 at these points so that they aren't picked up by blech_post_process
         for cluster in range(i+2):
                 cluster_points = np.where(predictions[:] == cluster)[0]
@@ -189,7 +189,7 @@ for i in range(max_clusters-1):
                 cluster_amplitude_sd = np.std(cluster_amplitudes)
                 reject_wf = np.where(cluster_amplitudes <= cluster_amplitude_mean - wf_amplitude_sd_cutoff*cluster_amplitude_sd)[0]
                 this_cluster[reject_wf] = -1
-                predictions[cluster_points] = this_cluster	  
+                predictions[cluster_points] = this_cluster
 
         # Make folder for results of i+2 clusters, and store results there
         os.mkdir('./clustering_results/electrode%i/clusters%i' % (electrode_num, i+2))
@@ -208,7 +208,7 @@ for i in range(max_clusters-1):
         #			for cluster in range(i+2):
         #				plot_data = np.where(predictions[:] == cluster)[0]
         #				plt_names.append(plt.scatter(data[plot_data, feature1], data[plot_data, feature2], color = colors[cluster], s = 0.8))
-        #									
+        #
         #			plt.xlabel("Feature %i" % feature1)
         #			plt.ylabel("Feature %i" % feature2)
         #			# Produce figure legend
@@ -220,7 +220,7 @@ for i in range(max_clusters-1):
         #for cluster in range(i+2):
         #	fig = plt.figure()
         #	cluster_points = np.where(predictions[:] == cluster)[0]
-        #	
+        #
         #	for other_cluster in range(i+2):
         #		mahalanobis_dist = []
         #		other_cluster_mean = model.means_[other_cluster, :]
@@ -230,18 +230,18 @@ for i in range(max_clusters-1):
         #		# Plot histogram of Mahalanobis distances
         #		y,binEdges=np.histogram(mahalanobis_dist)
         #		bincenters = 0.5*(binEdges[1:] + binEdges[:-1])
-        #		plt.plot(bincenters, y, label = 'Dist from cluster %i' % other_cluster)	
-        #					
+        #		plt.plot(bincenters, y, label = 'Dist from cluster %i' % other_cluster)
+        #
         #	plt.xlabel('Mahalanobis distance')
         #	plt.ylabel('Frequency')
         #	plt.legend(loc = 'upper right', fontsize = 8)
         #	plt.title('Mahalanobis distance of Cluster %i from all other clusters' % cluster)
         #	fig.savefig('./Plots/%i/Plots/%i_clusters/Mahalonobis_cluster%i.png' % (electrode_num, i+2, cluster))
         #	plt.close("all")
-        
-        
+
+
         # Create file, and plot spike waveforms for the different clusters. Plot 10 times downsampled dejittered/smoothed waveforms.
-        # Additionally plot the ISI distribution of each cluster 
+        # Additionally plot the ISI distribution of each cluster
         os.mkdir('./Plots/%i/Plots/%i_clusters_waveforms_ISIs' % (electrode_num, i+2))
         x = np.arange(len(slices_dejittered[0])/10) + 1
         for cluster in range(i+2):
@@ -260,7 +260,7 @@ for i in range(max_clusters-1):
                 ax.set_title('Cluster%i' % cluster)
                 fig.savefig('./Plots/%i/Plots/%i_clusters_waveforms_ISIs/Cluster%i_waveforms' % (electrode_num, i+2, cluster))
                 plt.close("all")
-                
+
                 fig = plt.figure()
                 cluster_times = times_dejittered[cluster_points]
                 ISIs = np.ediff1d(np.sort(cluster_times))
@@ -269,9 +269,9 @@ for i in range(max_clusters-1):
                 plt.xlim([0.0, 10.0])
                 plt.title("2ms ISI violations = %.1f percent (%i/%i)" %((float(len(np.where(ISIs < 2.0)[0]))/float(len(cluster_times)))*100.0, len(np.where(ISIs < 2.0)[0]), len(cluster_times)) + '\n' + "1ms ISI violations = %.1f percent (%i/%i)" %((float(len(np.where(ISIs < 1.0)[0]))/float(len(cluster_times)))*100.0, len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
                 fig.savefig('./Plots/%i/Plots/%i_clusters_waveforms_ISIs/Cluster%i_ISIs' % (electrode_num, i+2, cluster))
-                plt.close("all")		
+                plt.close("all")
 
 # Make file for dumping info about memory usage
 f = open('./memory_monitor_clustering/%i.txt' % electrode_num, 'w')
 print(mm.memory_usage_resource(), file=f)
-f.close()	
+f.close()

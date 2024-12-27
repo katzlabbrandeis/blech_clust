@@ -28,7 +28,7 @@ hf5 = tables.open_file(hdf5_name, 'r+')
 # Get electrode number from user
 electrode_num = easygui.multenterbox(msg = 'Which electrode do you want to choose? Hit cancel to exit', fields = ['Electrode #'])
 electrode_num = int(electrode_num[0])
-	
+
 # Get the number of clusters in the chosen solution
 num_clusters = easygui.multenterbox(msg = 'Which solution do you want to choose for electrode %i?' % electrode_num, fields = ['Number of clusters in the solution'])
 num_clusters = int(num_clusters[0])
@@ -72,14 +72,14 @@ cluster_num = TextInput(title = 'Cluster Number', value = '0')
 #freq = Slider(title="frequency", value=1.0, start=0.1, end=5.1)
 
 def update_data(attrname, old, new):
-    
+
     os.chdir(dir_name)
-    
+
     # Get text values
     electrode_num = int(electrode.value)
     num_clusters = int(clusters.value)
     cluster = int(cluster_num.value)
-    
+
     # Now get new data
     spike_waveforms = np.load('./spike_waveforms/electrode%i/spike_waveforms.npy' % electrode_num)
     predictions = np.load('./clustering_results/electrode%i/clusters%i/predictions.npy' % (electrode_num, num_clusters))
@@ -87,7 +87,7 @@ def update_data(attrname, old, new):
 
     # Get the current slider values
     b = offset.value
-    
+
     # Generate the new curve
     x = np.arange(len(plot_data[b])/10)
     #y = a*np.sin(k*x + w) + b
@@ -101,6 +101,3 @@ for w in [offset]:
 inputs = widgetbox(children=[offset, electrode, clusters, cluster_num])
 
 curdoc().add_root(row(children=[inputs, plot], width=800))
-	
-
-

@@ -13,7 +13,7 @@ from visualize import firing_overview, imshow
 
 dat = \
     ephys_data('/media/bigdata/Abuzar_Data/gc_only/AM34/AM34_4Tastes_201215_115133')
-dat.firing_rate_params = dat.default_firing_params 
+dat.firing_rate_params = dat.default_firing_params
 
 dat.get_unit_descriptors()
 dat.get_spikes()
@@ -39,7 +39,7 @@ stim_time = 2
 fig,ax = plt.subplots(1,len(aggregate_amplitude))
 for num,(region,this_ax) in enumerate(zip(aggregate_amplitude, ax.flatten())):
     this_ax.imshow(zscore(
-                    normalize_timeseries(region, time_vec, stim_time),axis=-1), 
+                    normalize_timeseries(region, time_vec, stim_time),axis=-1),
             aspect='auto', origin = 'lower')
     this_ax.set_title(dat.region_names[num])
     this_ax.set_yticks(np.arange(len(dat.freq_vec)))

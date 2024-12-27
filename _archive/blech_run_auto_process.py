@@ -37,16 +37,16 @@ import utils.blech_post_process_utils as post_utils
 np.random.seed(0)
 
 ############################################################
-# Input from user and setup data 
+# Input from user and setup data
 ############################################################
 # Get directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
 # Create argument parser
 parser = argparse.ArgumentParser(
         description = 'Spike extraction and sorting script')
-parser.add_argument('--dir-name',  '-d', 
+parser.add_argument('--dir-name',  '-d',
                     help = 'Directory containing data files')
-parser.add_argument('--show-plot', '-p', 
+parser.add_argument('--show-plot', '-p',
         help = 'Show waveforms while iterating (True/False)', default = 'True')
 parser.add_argument('--sort-file', '-f', help = 'CSV with sorted units',
                     default = None)
@@ -56,7 +56,7 @@ args = parser.parse_args()
 # Instantiate sort_file_handler
 this_sort_file_handler = post_utils.sort_file_handler(args.sort_file)
 
-if args.dir_name is not None: 
+if args.dir_name is not None:
     metadata_handler = imp_metadata([[],args.dir_name])
 else:
     metadata_handler = imp_metadata([])
@@ -80,7 +80,7 @@ if len(clf_list) == 0:
 	exit()
 
 # Clean up the memory monitor files, pass if clean up has been done already
-post_utils.clean_memory_monitor_data()  
+post_utils.clean_memory_monitor_data()
 # Delete the raw node, if it exists in the hdf5 file, to cut down on file size
 repacked_bool = post_utils.delete_raw_recordings(hdf5_name)
 
@@ -102,10 +102,10 @@ if not os.path.isdir(autosort_output_dir):
 	os.mkdir(autosort_output_dir)
 
 ############################################################
-# Main Processing Loop 
+# Main Processing Loop
 ############################################################
-# Run an infinite loop as long as the user wants to 
-# pick clusters from the electrodes   
+# Run an infinite loop as long as the user wants to
+# pick clusters from the electrodes
 
 electrode_list = os.listdir('./spike_waveforms/')
 electrode_num_list = [int(re.findall(r'\d+', this_electrode)[0]) \
@@ -179,7 +179,7 @@ for electrode_num in electrode_num_list:
 	max_k = 1000
 	n_max_train = 10000
 	if len(data) > max_k:
-		kmean_obj = KMeans(n_clusters = max_k)	
+		kmean_obj = KMeans(n_clusters = max_k)
 		if len(data) < n_max_train:
 			kmean_obj.fit(data)
 		else:
@@ -215,7 +215,7 @@ for electrode_num in electrode_num_list:
 	g.fit(train_data)
 	split_predictions = g.predict(data)
 
-	##############################	
+	##############################
 	# If any cluster has less than threshold weight, drop it
 	cluster_weights = g.weights_
 
@@ -232,7 +232,7 @@ for electrode_num in electrode_num_list:
 			 bbox_inches = 'tight')
 	plt.close()
 
-	##############################	
+	##############################
 
 	# Once selections have been made, save data
 	# Waveforms of originally chosen cluster
@@ -268,7 +268,7 @@ for electrode_num in electrode_num_list:
 	# 2. Histogram of spikes over time
 	# 3. Mean +/- std of waveform
 	n_max_plot = 5000
-	fig, ax = plt.subplots(5, len(subcluster_waveforms), 
+	fig, ax = plt.subplots(5, len(subcluster_waveforms),
 						figsize = (5*len(subcluster_prob), 20),
 						sharex = False, sharey = False)
 	for this_ax, this_waveforms in zip(ax[0], subcluster_waveforms):
@@ -280,14 +280,14 @@ for electrode_num in electrode_num_list:
 		this_ax.set_title('Waveform Count: {}'.format(waveform_count))
 	for this_ax, this_dist, this_chi in zip(ax[2], subcluster_prob, chi_out):
 		this_ax.hist(this_dist, bins = 10, alpha = 0.5, density = True)
-		this_ax.hist(this_dist, bins = 10, alpha = 0.5, density = True, 
+		this_ax.hist(this_dist, bins = 10, alpha = 0.5, density = True,
 			   histtype = 'step', color = 'k', linewidth = 3)
 		this_ax.set_title('Chi-Square p-value: {:.3f}'.format(this_chi.pvalue))
 		this_ax.set_xlabel('Classifier Probability')
 		this_ax.set_xlim([0, 1])
 	# If chi-square p-value is less than alpha, create green border around subplots
-	for i in range(len(subcluster_prob)): 
-		if fin_bool[i]: 
+	for i in range(len(subcluster_prob)):
+		if fin_bool[i]:
 			for this_ax in ax[:,i]:
 				for this_spine in this_ax.spines.values():
 					this_spine.set_edgecolor('green')
@@ -326,7 +326,7 @@ for electrode_num in electrode_num_list:
 	plt.close()
 	#plt.show()
 
-	############################################################ 
+	############################################################
 	# Subsetting this set of waveforms to include only the chosen split
 
 	# for this_sub in range(len(subcluster_waveforms)):

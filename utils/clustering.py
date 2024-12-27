@@ -10,23 +10,23 @@ from sklearn.cluster import KMeans
 
 def get_filtered_electrode(data, freq = [300.0, 3000.0], sampling_rate = 30000.0):
 		el = 0.195*(data)
-		m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0*freq[1]/sampling_rate], btype = 'bandpass') 
+		m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0*freq[1]/sampling_rate], btype = 'bandpass')
 		filt_el = filtfilt(m, n, el)
 		return filt_el
 
-def extract_waveforms_abu(filt_el, spike_snapshot = [0.5, 1.0], 
+def extract_waveforms_abu(filt_el, spike_snapshot = [0.5, 1.0],
 								    sampling_rate = 30000.0,
 								    threshold_mult = 5.0):
 
 		m = np.mean(filt_el)
 		th = threshold_mult*np.median(np.abs(filt_el)/0.6745)
 
-		negative = np.where(filt_el <= m-th)[0] 
-		positive = np.where(filt_el >= m+th)[0] 
-		# Marking breaks in detected threshold crossings 
+		negative = np.where(filt_el <= m-th)[0]
+		positive = np.where(filt_el >= m+th)[0]
+		# Marking breaks in detected threshold crossings
 		neg_changes = np.concatenate(([0],np.where(np.diff(negative) > 1)[0]+1))
 		pos_changes = np.concatenate(([0],np.where(np.diff(positive) > 1)[0]+1))
-		
+
 		# Mark indices to be extracted
 		neg_inds = [(negative[neg_changes[x]],negative[neg_changes[x+1]-1]) \
 				for x in range(len(neg_changes)-1)]
@@ -57,7 +57,7 @@ def extract_waveforms_abu(filt_el, spike_snapshot = [0.5, 1.0],
 
 		return slices, spike_times[relevant_inds], polarity[relevant_inds], m, th
 
-def extract_waveforms_hannah(filt_el, spike_snapshot = [0.5, 1.0], 
+def extract_waveforms_hannah(filt_el, spike_snapshot = [0.5, 1.0],
 								    sampling_rate = 30000.0,
 								    threshold_mult = 5.0):
 		#Sliding thresholding
@@ -75,14 +75,14 @@ def extract_waveforms_hannah(filt_el, spike_snapshot = [0.5, 1.0],
 			pos_clip = np.where(filt_el_clip >= m_clip+th_clip)[0]
 			negative.extend(list(neg_clip+s_t))
 			positive.extend(list(pos_clip+s_t))
-	
+
 		m = np.mean(filt_el)
 		th = threshold_mult*np.median(np.abs(filt_el)/0.6745)
 
-		# Marking breaks in detected threshold crossings 
+		# Marking breaks in detected threshold crossings
 		neg_changes = np.concatenate(([0],np.where(np.diff(negative) > 1)[0]+1))
 		pos_changes = np.concatenate(([0],np.where(np.diff(positive) > 1)[0]+1))
-		
+
 		# Mark indices to be extracted
 		neg_inds = [(negative[neg_changes[x]],negative[neg_changes[x+1]-1]) \
 				for x in range(len(neg_changes)-1)]
@@ -118,7 +118,7 @@ def extract_waveforms(filt_el, spike_snapshot = [0.5, 1.0], sampling_rate = 3000
 		th = 5.0*np.median(np.abs(filt_el)/0.6745)
 		#pos = np.where(filt_el <= m-th)[0]
 		pos = np.where( (filt_el <= m-th) | (filt_el > m+th) )[0]
-		
+
 		changes = []
 		for i in range(len(pos)-1):
 				if pos[i+1] - pos[i] > 1:
@@ -133,8 +133,8 @@ def extract_waveforms(filt_el, spike_snapshot = [0.5, 1.0], sampling_rate = 3000
 						np.min(filt_el[pos[changes[i]:changes[i+1]]]))[0]
 
 				#print minimum, len(slices), len(changes), len(filt_el)
-				# try slicing out the putative waveform, 
-				# only do this if there are 10ms of data points 
+				# try slicing out the putative waveform,
+				# only do this if there are 10ms of data points
 				# (waveform is not too close to the start or end of the recording)
 				if pos[minimum[0]+changes[i]] \
 						- int((spike_snapshot[0] + 0.1)*(sampling_rate/1000.0))> 0 \
@@ -156,7 +156,7 @@ def dejitter(slices, spike_times, spike_snapshot = [0.5, 1.0], sampling_rate = 3
 		# Calculate the number of samples to be sliced out around each spike's minimum
 		before = int((sampling_rate/1000.0)*(spike_snapshot[0]))
 		after = int((sampling_rate/1000.0)*(spike_snapshot[1]))
-		
+
 		#slices_dejittered = []
 		slices_dejittered = np.zeros((slices.shape[0],(before+after)*10))
 		spike_times_dejittered = []
@@ -167,13 +167,13 @@ def dejitter(slices, spike_times, spike_snapshot = [0.5, 1.0], sampling_rate = 3
 				# Find minimum only around the center of the waveform
 				# Since we're slicing around the waveform as well
 				minimum = np.where(ynew == np.min(ynew))[0][0]
-				# Only accept spikes if the interpolated minimum has 
-				# shifted by less than 1/10th of a ms 
-				# (3 samples for a 30kHz recording, 
+				# Only accept spikes if the interpolated minimum has
+				# shifted by less than 1/10th of a ms
+				# (3 samples for a 30kHz recording,
 				# 30 samples after interpolation)
-				# If minimum hasn't shifted at all, 
-				# then minimum - 5ms should be equal to zero 
-				# (because we sliced out 5 ms before the minimum 
+				# If minimum hasn't shifted at all,
+				# then minimum - 5ms should be equal to zero
+				# (because we sliced out 5 ms before the minimum
 				# in extract_waveforms())
 				# We use this property in the if statement below
 				cond1 = np.abs(minimum - \
@@ -182,10 +182,10 @@ def dejitter(slices, spike_times, spike_snapshot = [0.5, 1.0], sampling_rate = 3
 						    <= int(10.0*(sampling_rate/10000.0))
 				y_temp = ynew[minimum - before*10 : minimum + after*10]
 				# Or slices which (SOMEHOW) don't have the expected size
-				cond2 = len(y_temp) == slices_dejittered.shape[-1] 
+				cond2 = len(y_temp) == slices_dejittered.shape[-1]
 				if cond1 and cond2:
 						#slices_dejittered.append(ynew[minimum - before*10 : minimum + after*10])
-						slices_dejittered[i] = y_temp 
+						slices_dejittered[i] = y_temp
 						spike_times_dejittered.append(spike_times[i])
 
 		# Remove placeholder for slices which didnt meet the condition criteria
@@ -194,16 +194,16 @@ def dejitter(slices, spike_times, spike_snapshot = [0.5, 1.0], sampling_rate = 3
 
 		return slices_dejittered, np.array(spike_times_dejittered)
 
-def dejitter_abu3(slices, 
-				spike_times, 
+def dejitter_abu3(slices,
+				spike_times,
 				polarity,
-				spike_snapshot = [0.5, 1.0], 
+				spike_snapshot = [0.5, 1.0],
 				sampling_rate = 30000.0):
 
 		"""
 		Dejitter without interpolation and see what breaks :P
 		"""
-		# Calculate the number of samples to be sliced 
+		# Calculate the number of samples to be sliced
 		#out around each spike's minimum
 		before = int((sampling_rate/1000.0)*(spike_snapshot[0]))
 		after = int((sampling_rate/1000.0)*(spike_snapshot[1]))
@@ -219,16 +219,16 @@ def dejitter_abu3(slices,
 
 		# Cut out part around focus of spike snapshot to use
 		# for finding minima
-		# 3 bins (0.1 ms) is the wiggle room we gave ourselves 
+		# 3 bins (0.1 ms) is the wiggle room we gave ourselves
 		# when extracting spikes, therefore, each spike is organized as
 		#   0.1 ms |-| Before |-| Minimum |-| After |-| 0.1 ms
-		# We will use 0.1ms around the minimum to dejitter the spike 
+		# We will use 0.1ms around the minimum to dejitter the spike
 		cut_radius = 3
-		cut_tuple = (int((before) + (cut_radius/2)), 
+		cut_tuple = (int((before) + (cut_radius/2)),
 				int(flipped_slices.shape[1] - (after) - (cut_radius/2)))
 		# minima will tell us how much each spike needs to be shifted
 		minima = np.argmin(flipped_slices[:,cut_tuple[0]:cut_tuple[1]],
-						axis=-1) + (before) + (cut_radius/2) 
+						axis=-1) + (before) + (cut_radius/2)
 
 		# Extract windows AROUND minima
 		slices_dejittered = np.array([this_slice[\
@@ -250,18 +250,18 @@ def scale_waveforms(slices_dejittered):
 
 def implement_pca(scaled_slices):
 		pca = PCA()
-		pca_slices = pca.fit_transform(scaled_slices)   
+		pca_slices = pca.fit_transform(scaled_slices)
 		return pca_slices, pca.explained_variance_ratio_
 
 def clusterKMeans(data, n_clusters, n_iter, restarts, threshold):
-    kmeans = KMeans(n_clusters = n_clusters, 
+    kmeans = KMeans(n_clusters = n_clusters,
 				    n_init = restarts,
 				    max_iter = n_iter,
 				    tol = threshold).fit(data)
     return kmeans.labels_
 
 def clusterGMM(data, n_clusters, n_iter, restarts, threshold):
-		
+
 
 		g = []
 		bayesian = []
@@ -279,7 +279,7 @@ def clusterGMM(data, n_clusters, n_iter, restarts, threshold):
 		#print len(akaike)
 		bayesian = np.array(bayesian)
 		best_fit = np.where(bayesian == np.min(bayesian))[0][0]
-		
+
 		predictions = g[best_fit].predict(data)
 
 		return g[best_fit], predictions, np.min(bayesian)

@@ -109,7 +109,7 @@ def blech_process(electrode_num):
     # And if they all exceed the cutoffs, assume that the headstage fell off mid-experiment
     recording_cutoff = int(len(filt_el)/sampling_rate)
     if breach_rate >= max_breach_rate and secs_above_cutoff >= max_secs_above_cutoff and mean_breach_rate_persec >= max_mean_breach_rate_persec:
-            # Find the first 1 second epoch where the number of cutoff breaches is higher than the maximum allowed mean breach rate 
+            # Find the first 1 second epoch where the number of cutoff breaches is higher than the maximum allowed mean breach rate
             recording_cutoff = np.where(breaches_per_sec > max_mean_breach_rate_persec)[0][0]
 
     # Dump a plot showing where the recording was cut off at
@@ -123,13 +123,13 @@ def blech_process(electrode_num):
     plt.close("all")
 
     # Then cut the recording accordingly
-    filt_el = filt_el[:recording_cutoff*int(sampling_rate)] 
+    filt_el = filt_el[:recording_cutoff*int(sampling_rate)]
 
     # Slice waveforms out of the filtered electrode recordings
     #slices, spike_times, mean_val, threshold = extract_waveforms(filt_el, spike_snapshot = [spike_snapshot_before, spike_snapshot_after], sampling_rate = sampling_rate)
     slices, spike_times, polarity, mean_val, threshold = \
-            extract_waveforms_abu(filt_el, 
-                                spike_snapshot = [spike_snapshot_before, spike_snapshot_after], 
+            extract_waveforms_abu(filt_el,
+                                spike_snapshot = [spike_snapshot_before, spike_snapshot_after],
                                     sampling_rate = sampling_rate)
 
     # Extract windows from filt_el and plot with threshold overlayed
@@ -160,7 +160,7 @@ def blech_process(electrode_num):
             this_ax.scatter(spikes, np.repeat(mean_val, len(spikes)),s=5,c='red')
         this_ax.set_ylim((mean_val - 1.5*threshold,
                             mean_val + 1.5*threshold))
-    fig.savefig(os.path.join(dir_name, 'Plots/%i/bandapass_trace_snippets.png' % electrode_num), 
+    fig.savefig(os.path.join(dir_name, 'Plots/%i/bandapass_trace_snippets.png' % electrode_num),
             bbox_inches='tight', dpi = 300)
     plt.close(fig)
 
@@ -174,10 +174,10 @@ def blech_process(electrode_num):
     #slices_dejittered, times_dejittered = dejitter(slices, spike_times, spike_snapshot = [spike_snapshot_before, spike_snapshot_after], sampling_rate = sampling_rate)
     # Slices are returned sorted by amplitude polaity
     slices_dejittered, times_dejittered = \
-        dejitter_abu2(slices, 
+        dejitter_abu2(slices,
                         spike_times,
                         polarity = polarity,
-                        spike_snapshot = [spike_snapshot_before, spike_snapshot_after], 
+                        spike_snapshot = [spike_snapshot_before, spike_snapshot_after],
                         sampling_rate = sampling_rate)
 
     spike_order = np.argsort(times_dejittered)
@@ -190,7 +190,7 @@ def blech_process(electrode_num):
     amplitudes[polarity > 0] =  np.max(slices_dejittered[polarity > 0], axis = 1)
     #slices_derivatives = np.diff(slices_dejittered,axis=-1)
 
-    # Calculate autocorrelation of dejittered slices to attempt to remove 
+    # Calculate autocorrelation of dejittered slices to attempt to remove
     # periodic noise
     slices_autocorr = fftconvolve(slices_dejittered, slices_dejittered, axes = -1)
 
@@ -208,7 +208,7 @@ def blech_process(electrode_num):
     scaled_slices, energy = scale_waveforms(slices_dejittered)
     #scaled_derivatives, deriv_energy = scale_waveforms(slices_derivatives)
     # Scale the autocorrelations by zscoring the autocorr for each waveform
-    scaled_autocorr = zscore(slices_autocorr, axis=-1) 
+    scaled_autocorr = zscore(slices_autocorr, axis=-1)
 
     # Run PCA on the scaled waveforms
     pca_slices, explained_variance_ratio = implement_pca(scaled_slices)
@@ -243,7 +243,7 @@ def blech_process(electrode_num):
     data = np.concatenate((data,pca_autocorr[:,:3]),axis=-1)
     #data = np.concatenate((data,pca_derivatives[:,:3]),axis=-1)
 
-    # Standardize features in the data since they 
+    # Standardize features in the data since they
     # occupy very uneven scales
 
     standard_data = scaler().fit_transform(data)
@@ -252,7 +252,7 @@ def blech_process(electrode_num):
     data = pca(whiten='True').fit_transform(standard_data)
 
 
-    del pca_slices; del scaled_slices; del energy; del standard_data 
+    del pca_slices; del scaled_slices; del energy; del standard_data
     #del slices_derivatives, scaled_derivatives, pca_derivatives
     del slices_autocorr, scaled_autocorr, pca_autocorr
 
@@ -266,7 +266,7 @@ def blech_process(electrode_num):
             #model, predictions, bic = clusterGMM(data, n_clusters = i+2, n_iter = num_iter, restarts = num_restarts, threshold = thresh)
             #predictions = clusterKMeans(data, n_clusters = i+2, n_iter = num_iter, restarts = num_restarts, threshold = thresh)
 
-            # Sometimes large amplitude noise waveforms cluster with the spike waveforms because the amplitude has been factored out of the scaled slices.   
+            # Sometimes large amplitude noise waveforms cluster with the spike waveforms because the amplitude has been factored out of the scaled slices.
             # Run through the clusters and find the waveforms that are more than wf_amplitude_sd_cutoff larger than the cluster mean. Set predictions = -1 at these points so that they aren't picked up by blech_post_process
             for cluster in range(i+2):
                     cluster_points = np.where(predictions[:] == cluster)[0]
@@ -276,7 +276,7 @@ def blech_process(electrode_num):
                     cluster_amplitude_sd = np.std(cluster_amplitudes)
                     reject_wf = np.where(cluster_amplitudes <= cluster_amplitude_mean - wf_amplitude_sd_cutoff*cluster_amplitude_sd)[0]
                     this_cluster[reject_wf] = -1
-                    predictions[cluster_points] = this_cluster        
+                    predictions[cluster_points] = this_cluster
 
             # Make folder for results of i+2 clusters, and store results there
             os.mkdir(os.path.join(dir_name, 'clustering_results/electrode%i/clusters%i' % (electrode_num, i+2)))
@@ -295,7 +295,7 @@ def blech_process(electrode_num):
                                     for cluster in range(i+2):
                                             plot_data = np.where(predictions[:] == cluster)[0]
                                             plt_names.append(plt.scatter(data[plot_data, feature1], data[plot_data, feature2], color = colors[cluster], s = 0.8))
-                                                                                    
+
                                     plt.xlabel("Feature %i" % feature1)
                                     plt.ylabel("Feature %i" % feature2)
                                     # Produce figure legend
@@ -307,7 +307,7 @@ def blech_process(electrode_num):
             for cluster in range(i+2):
                     fig = plt.figure()
                     cluster_points = np.where(predictions[:] == cluster)[0]
-                    
+
                     for other_cluster in range(i+2):
                             mahalanobis_dist = []
                             other_cluster_mean = model.means_[other_cluster, :]
@@ -317,18 +317,18 @@ def blech_process(electrode_num):
                             # Plot histogram of Mahalanobis distances
                             y,binEdges=np.histogram(mahalanobis_dist)
                             bincenters = 0.5*(binEdges[1:] + binEdges[:-1])
-                            plt.plot(bincenters, y, label = 'Dist from cluster %i' % other_cluster) 
-                                                    
+                            plt.plot(bincenters, y, label = 'Dist from cluster %i' % other_cluster)
+
                     plt.xlabel('Mahalanobis distance')
                     plt.ylabel('Frequency')
                     plt.legend(loc = 'upper right', fontsize = 8)
                     plt.title('Mahalanobis distance of Cluster %i from all other clusters' % cluster)
                     fig.savefig(os.path.join(dir_name, 'Plots/%i/%i_clusters/Mahalonobis_cluster%i.png' % (electrode_num, i+2, cluster)))
                     plt.close("all")
-            
-            
+
+
             # Create file, and plot spike waveforms for the different clusters. Plot 10 times downsampled dejittered/smoothed waveforms.
-            # Additionally plot the ISI distribution of each cluster 
+            # Additionally plot the ISI distribution of each cluster
             os.mkdir(os.path.join(dir_name, 'Plots/%i/%i_clusters_waveforms_ISIs' % (electrode_num, i+2)))
             x = np.arange(len(slices_dejittered[0])/10) + 1
             for cluster in range(i+2):
@@ -347,7 +347,7 @@ def blech_process(electrode_num):
                     ax.set_title('Cluster%i' % cluster)
                     fig.savefig(os.path.join(dir_name, 'Plots/%i/%i_clusters_waveforms_ISIs/Cluster%i_waveforms' % (electrode_num, i+2, cluster)))
                     plt.close("all")
-                    
+
                     fig = plt.figure()
                     cluster_times = times_dejittered[cluster_points]
                     ISIs = np.ediff1d(np.sort(cluster_times))
@@ -355,13 +355,13 @@ def blech_process(electrode_num):
                     max_ISI_val = 20
                     bin_count = 100
                     neg_pos_ISI = np.concatenate((-1*ISIs,ISIs),axis=-1)
-                    hist_obj = plt.hist(neg_pos_ISI, bins = np.linspace(-max_ISI_val,max_ISI_val,bin_count)) 
+                    hist_obj = plt.hist(neg_pos_ISI, bins = np.linspace(-max_ISI_val,max_ISI_val,bin_count))
                     plt.xlim([-max_ISI_val, max_ISI_val])
                     # Scale y-lims by all but the last value
                     plt.ylim([0,np.max(hist_obj[0][:-1])])
                     plt.title("2ms ISI violations = %.1f percent (%i/%i)" %((float(len(np.where(ISIs < 2.0)[0]))/float(len(cluster_times)))*100.0, len(np.where(ISIs < 2.0)[0]), len(cluster_times)) + '\n' + "1ms ISI violations = %.1f percent (%i/%i)" %((float(len(np.where(ISIs < 1.0)[0]))/float(len(cluster_times)))*100.0, len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
                     fig.savefig(os.path.join(dir_name, 'Plots/%i/%i_clusters_waveforms_ISIs/Cluster%i_ISIs' % (electrode_num, i+2, cluster)))
-                    plt.close("all")                
+                    plt.close("all")
 
     # Make file for dumping info about memory usage
     f = open(os.path.join(dir_name, 'memory_monitor_clustering/%i.txt' % electrode_num), 'w')

@@ -31,7 +31,7 @@ def normalize_p(p):
 def fit(data, identity, palatability, iterations, threshold, switchlim1, switchlim2, num_states, num_emissions, restart):
 
 	np.random.seed(restart)
-	
+
 	identity = identity.astype('int')
 	palatability = palatability.astype('int')
 	p = np.random.random((num_states, num_emissions))
@@ -49,7 +49,7 @@ def fit(data, identity, palatability, iterations, threshold, switchlim1, switchl
 		loglik_list = logp(data, p, states)
 
 		# Initially, we used the max/mode of the probability of the switchpoints given the p and the data
-		# Now we will work with the mean of that probability instead	
+		# Now we will work with the mean of that probability instead
 		max_loglik = np.argmax(loglik_list, axis = 1)
 		logp_list.append(np.sum(np.max(loglik_list, axis = 1)))
 		switches = switchpoints[max_loglik, :]
@@ -60,7 +60,7 @@ def fit(data, identity, palatability, iterations, threshold, switchlim1, switchl
 		exp_loglik_list /= np.tile(np.sum(exp_loglik_list, axis = 1).reshape(loglik_list.shape[0], 1), (1, loglik_list.shape[1]))
 		# Find the mean switchpoints for every trial by multiplying the array of switchpoints by their posterior probabilities in exp_loglik_list - recast to integers
 #		mean_switches = np.sum(np.tile(exp_loglik_list.reshape(loglik_list.shape[0], loglik_list.shape[1], 1), (1, 1, 2))*np.tile(switchpoints.reshape(1, switchpoints.shape[0], switchpoints.shape[1]), (loglik_list.shape[0], 1, 1)), axis = 1).astype('int')
-		
+
 		# Now find the state sequence given by these mean switchpoints
 		# We can use the find_states func, but with a twist. The find_states func first finds the state sequence determined by each input pair of switchpoints for every trial
 		# So it gives us an array of shape # trials x # switchpoints x time
@@ -70,29 +70,29 @@ def fit(data, identity, palatability, iterations, threshold, switchlim1, switchl
 		# Now we get the log likelihood of the data with these mean switchpoints using the logp function
 		# We need to get mean_states into a comparable shape as the states array which is usually fed into logp. So we add an axis in the middle of mean_states
 #		logp_list.append(np.sum(logp(data, p, mean_states.reshape(mean_states.shape[0], 1, mean_states.shape[1]))))
-		
+
 #		for trial in range(data.shape[0]):
 #			logp_max, switches_max = E_step(data[trial], identity[trial], palatability[trial], switchlim1, switchlim2, p)
 #			states = find_states(identity[trial], palatability[trial], switchpoints, data.shape[1])
 #			loglik_list = logp(data[trial], p, states[trial])
-#			max_loglik = np.argmax(loglik_list)			
+#			max_loglik = np.argmax(loglik_list)
 #			this_logp += loglik_list[max_loglik]
 #			switches.append(switchpoints[max_loglik, :])
 
 #		switches = np.array(switches).astype('int')
 #		logp_list.append(this_logp)
 
- 
+
 		p_numer = np.zeros((num_states, num_emissions))
 		# Concatenate the logp maximizing state sequence and data together, and then find the counts of the (state, emission) pairs
 		unique_pairs, unique_counts = np.unique(np.vstack((max_states.flatten(), data.flatten())), axis = 1, return_counts = True)
 		unique_pairs = unique_pairs.astype('int')
 		# Now add the unique counts to the right (state, emission) pair
-		p_numer[unique_pairs[0, :], unique_pairs[1, :]] += unique_counts 
+		p_numer[unique_pairs[0, :], unique_pairs[1, :]] += unique_counts
 		# Normalizing these counts of emissions in every state will directly give the right p
 		# Add a small number to the counts in case one of them is 0 - in that case, calculating logs gives "DivideByZeroError"
 		p = normalize_p(p_numer + 1e-14)
-		
+
 #		p_numer = np.zeros((num_states, num_emissions))
 #		p_denom = np.zeros((num_states, num_emissions))
 #		for trial in range(data.shape[0]):
@@ -100,13 +100,13 @@ def fit(data, identity, palatability, iterations, threshold, switchlim1, switchl
 #				p_numer[0, emission] += np.sum(data[trial][:switches[trial][0]] == emission)
 #				p_denom[0, emission] += switches[trial][0]
 #				p_numer[identity[trial], emission] += np.sum(data[trial][switches[trial][0]:switches[trial][1]] == emission)
-#				p_denom[identity[trial], emission] += switches[trial][1] - switches[trial][0] 	
+#				p_denom[identity[trial], emission] += switches[trial][1] - switches[trial][0]
 #				p_numer[palatability[trial], emission] += np.sum(data[trial][switches[trial][1]:] == emission)
 #				p_denom[palatability[trial], emission] += data[trial].shape[0] - switches[trial][1]
 #		p = p_numer/p_denom
 #		Add a small number to the probabilities in case one of them is 0 - in that case, calculating logs gives "DivideByZeroError"
 #		p = normalize_p(p + 1e-14)
-	
+
 		if i > 1 and np.abs(logp_list[-1] - logp_list[-2]) < threshold:
 			converged = 1
 			break
@@ -128,16 +128,3 @@ def implement_EM(restarts, n_cpu, data, identity, palatability, iterations, thre
 		logprobs = np.array([output[i][0][-1] for i in range(len(output))])
 		max_logprob = np.argmax(logprobs[converged_seeds])
 		return output[converged_seeds[max_logprob]][0], output[converged_seeds[max_logprob]][1], output[converged_seeds[max_logprob]][2], output[converged_seeds[max_logprob]][4], output[converged_seeds[max_logprob]][5]
-
-	
-
-
-
-	
-	
-
-
-
-
-
-
