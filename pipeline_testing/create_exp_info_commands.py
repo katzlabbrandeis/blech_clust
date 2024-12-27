@@ -50,11 +50,13 @@ import sys
 import argparse
 parser = argparse.ArgumentParser(description='Creates files with experiment info')
 parser.add_argument('dir_name', type=str, help='Directory containing data files')
+parser.add_argument('file_type', type=str, help='File type to create',
+                    choices=['ofpc', 'trad'])
 parser.add_argument('key', type=str, help='Key for command to run',
                     choices=['emg_only', 'spike_only', 'emg_spike'])
 
-command_dict = {}
-command_dict['emg_only'] = \
+ofpc_command_dict = {}
+ofpc_command_dict['emg_only'] = \
 """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
@@ -65,7 +67,7 @@ command_dict['emg_only'] = \
 --car-groups "none,none,none,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none" \
 """
 
-command_dict['spike_only'] = \
+ofpc_command_dict['spike_only'] = \
 """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
@@ -76,7 +78,7 @@ command_dict['spike_only'] = \
 --car-groups "gc,gc,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
 """
 
-command_dict['emg_spike'] = \
+ofpc_command_dict['emg_spike'] = \
 """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
@@ -87,14 +89,31 @@ command_dict['emg_spike'] = \
 --car-groups "gc,gc,gc,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
 """
 
+trad_command_dict = {}
+trad_command_dict['spike_only'] = \
+"""python blech_exp_info.py $DIR \
+--programmatic \
+--emg-muscle ad \
+--taste-digins 3,4 \
+--tastes a,b \
+--concentrations 1,1 \
+--palatability 1,2 \
+--car-groups "none,none,none,none,none,none,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none,none,none" \
+"""
+
+command_dict = {}
+command_dict['ofpc'] = ofpc_command_dict
+command_dict['trad'] = trad_command_dict
 
 if __name__ == '__main__':
     args = parser.parse_args()
     data_dir =  args.dir_name
+    file_type = args.file_type
     key = args.key
 
     print(f'Running {key} command')
-    this_command = command_dict[key]
+    this_command_dict = command_dict[file_type]
+    this_command = this_command_dict[key]
     # Replace $DIR with the directory name
     this_command = this_command.replace('$DIR', data_dir)
     os.system(this_command)
