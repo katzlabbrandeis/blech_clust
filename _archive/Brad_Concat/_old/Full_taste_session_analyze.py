@@ -20,7 +20,7 @@ from scipy import stats
 from tqdm import trange
 
 #Import specific functions in order to filter the data file
-from scipy.signal import hilbert 
+from scipy.signal import hilbert
 from scipy.signal import butter
 from scipy.signal import filtfilt
 
@@ -44,13 +44,13 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=2):
     return y
 
 def butter_bandpass_filter_parallel(data, iter_freqs, channel, band):
-	band_filt_sig = butter_bandpass_filter(data = data[channel,:], 
-                                    lowcut = iter_freqs[band][1], 
-                                    highcut =  iter_freqs[band][2], 
+	band_filt_sig = butter_bandpass_filter(data = data[channel,:],
+                                    lowcut = iter_freqs[band][1],
+                                    highcut =  iter_freqs[band][2],
                                     fs = 1000)
 	analytic_signal = hilbert(band_filt_sig)
 	x_power = np.abs(analytic_signal)**2
-	
+
 	return band_filt_sig, analytic_signal, x_power
 
 #Get name of directory where the data files and hdf5 file sits, and change to that directory for processing
@@ -72,7 +72,7 @@ try:
 	spike_times = np.array(hf5.list_nodes('/Whole_session_spikes')[0]) #by unit
 	delivery_times = pd.read_hdf(hdf5_name,'/Whole_session_spikes/delivery_times','r+') #ordered by dig_in
 	LFP_times = np.array(hf5.list_nodes('/Whole_session_raw_LFP')[0]) #by unit (time = ms)
-	
+
 except:
 	print('Bruh, you need to set up your data file!')
 	sys.exit()
@@ -88,10 +88,10 @@ Def_labels = [30000,'NaCl','Sucrose','Citric Acid','QHCl']
 Defaults = [[] for x in range(0,delivery_times.shape[0]+1)]
 for x in range(len(Defaults)):
 	Defaults[x] = Def_labels[x]
-	
+
 freqparam = easygui.multenterbox(
     'Specify data collection sampling rate and tastes delivered',
-    'Setting Analysis Parameters', 
+    'Setting Analysis Parameters',
     Boxes, Defaults)
 
 #specify frequency bands
@@ -103,15 +103,15 @@ iter_freqs = [('Delta',1,3),
 
 if "/Whole_session_raw_LFP/WS_LFP_filtered" in hf5:
 	print('You already have done the filtering')
-else:	
+else:
 	#Extract filtered LFPs
 	all_output = []
 	for band in trange(len(iter_freqs), desc = 'bands'):
 		output = Parallel(n_jobs=6)(delayed(butter_bandpass_filter_parallel)\
 				 (LFP_times, iter_freqs, channel, band) for channel in range(len(LFP_times)))
-	
+
 		all_output.append(output)
-	
+
 	#Store data	(channel X LFP(ms))
 	hf5.create_array('/Whole_session_raw_LFP','WS_LFP_filtered',np.asarray(all_output))
 	hf5.flush()
@@ -126,7 +126,7 @@ else:
 
 ITIparam = easygui.multenterbox(
     'Specify how many seconds you want to skip extract POST-taste delivery',
-    'Setting data slicing Parameters', 
+    'Setting data slicing Parameters',
     ['Post Delivery time (s):','Slicing time (s):'], [8,10])
 
 data_skip = int(ITIparam[0])*1000
@@ -140,24 +140,24 @@ LFP_data_sliced = []; spike_data_sliced = []
 
 Hilbert_all = np.asarray(all_output)[:,:,1,:]
 for i in range(len(taste_delivery)):
-	
+
 	#Set slicing variables
 	taste_start = int((taste_delivery[i]/int(freqparam[0]))*1000)
 	slice_start = taste_start+data_skip
-	
+
 	spike_slice_start = taste_delivery[i]+data_skip*(int(freqparam[0])/1000)
-	
+
 	#Process LFP data
 	LFP_data_sliced.append(Hilbert_all[:,:,slice_start:slice_start+slice_ext])
 
 	#Process spike data
 	spike_data_sliced.append(spike_times[:,np.array((spike_times>= spike_slice_start) & \
 				   (spike_times <= spike_slice_start+slice_ext*(int(freqparam[0])/1000)))[1,:]])
-	
-	
+
+
 #Stack LFP data cell-wise (dimensions: bandX trials X channel X duration (ms))
 LFP_data_sliced = np.swapaxes(np.array(LFP_data_sliced),0,1)
-	
+
 plt.imshow(LFP_data_sliced[0,:,0,:].real,interpolation='nearest',aspect='auto')
 
 
@@ -181,11 +181,3 @@ plt.tight_layout()
 
 
 hf5.close()
-
-
-
-
-
-
-
-

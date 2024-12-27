@@ -14,7 +14,7 @@ import matplotlib.image as mpimg
 from sklearn.mixture import GaussianMixture
 import blech_waveforms_datashader
 
-# Define a unit_descriptor class to be used to add things (anything!) 
+# Define a unit_descriptor class to be used to add things (anything!)
 # about the sorted units to a pytables table
 class unit_descriptor(tables.IsDescription):
         electrode_number = tables.Int32Col()
@@ -24,9 +24,9 @@ class unit_descriptor(tables.IsDescription):
         waveform_count = tables.Int32Col()
 
 class electrode_handler:
-    def __init__(self, dir_name = None, 
+    def __init__(self, dir_name = None,
             electrode_num = None, solution_num = None, cluster_num = None):
-        
+
         if dir_name is not None:
             self.dir_name = dir_name
         else:
@@ -46,8 +46,8 @@ class electrode_handler:
         # Define paths to load data
         key_names = ['waveforms','pca_slices','energy','amplitudes','spike_times','predictions']
         path_strings = [\
-            f'./spike_waveforms/electrode{self.electrode_num}/spike_waveforms.npy', 
-            f'./spike_waveforms/electrode{self.electrode_num}/pca_waveforms.npy', 
+            f'./spike_waveforms/electrode{self.electrode_num}/spike_waveforms.npy',
+            f'./spike_waveforms/electrode{self.electrode_num}/pca_waveforms.npy',
             f'./spike_waveforms/electrode{self.electrode_num}/energy.npy',
             f'./spike_waveforms/electrode{self.electrode_num}/spike_amplitudes.npy',
             f'./spike_times/electrode{self.electrode_num}/spike_times.npy',
@@ -161,5 +161,3 @@ class electrode_handler:
         fig.suptitle('Are these the neurons you want to select?')
         fig.tight_layout()
         plt.show()
-
-

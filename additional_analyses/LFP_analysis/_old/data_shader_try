@@ -18,10 +18,10 @@ new_array = (hFR2-hFR1)/hFR1
 #df = pd.DataFrame(new_array)
 
 x= np.double(np.arange(new_array.shape[0]))
-x[-1] = np.nan; 
+x[-1] = np.nan;
 
-df2 = pd.DataFrame({'x': np.tile(x,new_array.shape[1]), 'y': new_array.flatten(order='F')})	
-canvas = ds.Canvas(x_range = (df2['x'].min() - 10, df2['x'].max() + 10), 
+df2 = pd.DataFrame({'x': np.tile(x,new_array.shape[1]), 'y': new_array.flatten(order='F')})
+canvas = ds.Canvas(x_range = (df2['x'].min() - 10, df2['x'].max() + 10),
 			   y_range = (df2['y'].min() - 10, df2['y'].max() + 10),
 			   plot_height=1200, plot_width=1600)
 agg = canvas.line(df2, x='x', y='y', agg= ds.count())

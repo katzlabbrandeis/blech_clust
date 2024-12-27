@@ -13,7 +13,7 @@ import datetime
 from scipy import signal
 import json
 script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path)) 
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 from utils.blech_utils import pipeline_graph_check
 
@@ -30,14 +30,14 @@ class Logger(object):
     def write(self, message):
         ap_msg = self.append_time(message)
         self.terminal.write(ap_msg)
-        self.log.write(ap_msg)  
+        self.log.write(ap_msg)
 
     def flush(self):
         self.terminal.flush()
-        self.log.flush()  
+        self.log.flush()
 
 ############################################################
-# Define functions 
+# Define functions
 ############################################################
 
 def calc_stft(trial, max_freq,time_range_tuple,\
@@ -69,7 +69,7 @@ def calc_stft_mode_freq(dat, BSA_output = True, **stft_params):
     Inputs:
         dat : 1D array, signal to be analyzed
         stft_params : dict, parameters for STFT calculation
-        BSA_output : bool, whether to output in a similar format to the BSA 
+        BSA_output : bool, whether to output in a similar format to the BSA
 
     Outputs:
         freq_vec : 1D array, frequency vector for STFT
@@ -113,9 +113,9 @@ emg_params_dict = json.load(open(emg_params_path, 'r'))
 stft_params = emg_params_dict['stft_params']
 
 ##############################
-# Calculate STFT 
+# Calculate STFT
 ##############################
-# Read blech.dir, and cd to that directory. 
+# Read blech.dir, and cd to that directory.
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
 
@@ -126,7 +126,7 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # If there is more than one dir in BSA_run.dir,
 # loop over both, as both sets will have the same number of trials
-# for dir_name in dir_list: 
+# for dir_name in dir_list:
 sys.stdout = Logger(os.path.join(dir_name, 'BSA_log.txt'))
 os.chdir(os.path.join(dir_name, 'emg_output'))
 

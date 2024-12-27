@@ -26,7 +26,7 @@ for files in file_list:
 # Open the hdf5 file
 hf5 = tables.open_file(hdf5_name, 'r')
 
-# Ask the user for the HMM parameters  
+# Ask the user for the HMM parameters
 hmm_params = easygui.multenterbox(msg = 'Fill in the parameters for running a HMM (Poisson or Multinomial emissions) on your data', fields = ['Minimum number of states', 'Maximum number of states', 'Maximum number of iterations', 'Convergence criterion (usually 1e-9)', 'Number of random restarts for HMM (50-60 is more than enough)', 'Transition probability inertia (between 0 and 1)', 'Emission Distribution intertia (between 0 and 1)'])
 
 # Ask the user for the taste to run the HMM on
@@ -69,14 +69,14 @@ try:
 	# Make folders for storing plots from each of the tastes within HMM_plots
 	for i in range(len(tastes)):
 		os.mkdir('HMM_plots/dig_in_%i' % i)
-except: 
+except:
 	pass
 
 
 # Ask the user for the parameters to process spike trains
 spike_params = easygui.multenterbox(msg = 'Fill in the parameters for processing your spike trains', fields = ['Pre-stimulus time used for making spike trains (ms)', 'Bin size for HMM (ms) - usually 10', 'Pre-stimulus time for HMM (ms)', 'Post-stimulus time for HMM (ms)'])
 
-# Ask the user to choose the type of HMM they want to fit - generic or feedforward 
+# Ask the user to choose the type of HMM they want to fit - generic or feedforward
 hmm_type = easygui.multchoicebox(msg = 'Which type of HMM do you want to fit?', choices = ('generic', 'feedforward'))
 hmm_type = hmm_type[0]
 
@@ -113,6 +113,3 @@ f.close()
 g.close()
 
 hf5.close()
-
-
-

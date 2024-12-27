@@ -1,6 +1,6 @@
 """
-Post processing cleanup of the mess of files created by emg_local_BSA_execute.py. 
-All the output files will be saved to p (named by tastes) and omega 
+Post processing cleanup of the mess of files created by emg_local_BSA_execute.py.
+All the output files will be saved to p (named by tastes) and omega
 in the hdf5 file under the node emg_BSA_results
 """
 
@@ -33,7 +33,7 @@ print(f'Processing : {dir_name}')
 # Open the hdf5 file
 hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 
-# Delete the raw_emg node, if it exists in the hdf5 file, 
+# Delete the raw_emg node, if it exists in the hdf5 file,
 # to cut down on file size
 try:
     hf5.remove_node('/raw_emg', recursive = 1)
@@ -58,7 +58,7 @@ p_files = [os.path.join(results_path, f'trial{x:03}_p.npy') for x in trial_inds]
 omega_files = [os.path.join(results_path, f'trial{x:03}_omega.npy') for x in trial_inds]
 
 p_data = [np.load(x) for x in p_files]
-p_data = np.stack(p_data, axis = 0) 
+p_data = np.stack(p_data, axis = 0)
 omega_data = [np.load(x) for x in omega_files]
 # Get first non nan omega
 omega = [x for x in omega_data if not any(np.isnan(x))][0]
@@ -81,7 +81,7 @@ np.save(os.path.join('emg_output', 'omega.npy'), omega)
 ## Find the frequency with the maximum EMG power at each time point on each trial
 ## Gapes are anything upto 4.6 Hz
 ## LTPs are from 5.95 Hz to 8.65 Hz
-#Alternatively, gapes from 3.65-5.95 Hz (6-11). LTPs from 5.95 to 8.65 Hz (11-17) 
+#Alternatively, gapes from 3.65-5.95 Hz (6-11). LTPs from 5.95 to 8.65 Hz (11-17)
 gape_array = np.sum(p_data[:, :, 6:11], axis = 2)/\
 		np.sum(p_data, axis = 2)
 ltp_array = np.sum(p_data[:, :, 11:], axis = 2)/\

@@ -3,7 +3,7 @@
 """Imports a variety of Python functions used by 'LoadIntanRHD_Python.ipynb'
 Jupyter Notebook.
 
-# Code for loading traditional intan format from 
+# Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 """
 

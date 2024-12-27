@@ -8,7 +8,7 @@ import pymc3 as pm
 import theano.tensor as tt
 
 def laser_off_trials(data, num_emissions):
-	
+
 	# Make the pymc3 model
 	with pm.Model() as model:
 		# Dirichlet prior on the emission/spiking probabilities - 4 states
@@ -81,7 +81,7 @@ def laser_early_trials(data, num_emissions):
 		tr = pm.sample(300000, init = None, step = pm.Metropolis(), njobs = 2, start = {'t1': 25, 't2': 75, 't3': 125}, progressbar = False)
 
 	# Return the inference!
-	return model, tr[250000:]	
+	return model, tr[250000:]
 
 def laser_middle_trials(data, num_emissions):
 
@@ -116,7 +116,7 @@ def laser_middle_trials(data, num_emissions):
 		tr = pm.sample(300000, init = None, step = pm.Metropolis(), njobs = 2, start = {'t1': 25, 't2': 65, 't3': 115}, progressbar = False)
 
 	# Return the inference!
-	return model, tr[250000:]	
+	return model, tr[250000:]
 
 def laser_late_trials(data, num_emissions):
 
@@ -151,4 +151,4 @@ def laser_late_trials(data, num_emissions):
 		tr = pm.sample(300000, init = None, step = pm.Metropolis(), njobs = 2, start = {'t1': 25, 't2': 75, 't3': 125}, progressbar = False)
 
 	# Return the inference!
-	return model, tr[250000:]	
+	return model, tr[250000:]

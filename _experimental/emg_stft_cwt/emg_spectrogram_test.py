@@ -10,7 +10,7 @@ from scipy.signal import savgol_filter as savgol
 import easygui
 import os
 import pylab as plt
-from tqdm import tqdm 
+from tqdm import tqdm
 import sys
 sys.path.append('/media/bigdata/firing_space_plot/ephys_data')
 import visualize as vz
@@ -65,7 +65,7 @@ def calc_stft_mode_freq(dat, **stft_params, BSA_output = True):
     Inputs:
         dat : 1D array, signal to be analyzed
         stft_params : dict, parameters for STFT calculation
-        BSA_output : bool, whether to output in a similar format to the BSA 
+        BSA_output : bool, whether to output in a similar format to the BSA
 
     Outputs:
         freq_vec : 1D array, frequency vector for STFT
@@ -124,7 +124,7 @@ freq_vec, t_vec, weight_mean = calc_stft_mode_freq(dat, **stft_params)
 fig,ax = plt.subplots(3,1, sharex=True)
 ax[0].plot(x, dat)
 ax[1].pcolormesh(t_vec, freq_vec, mag)
-ax[2].pcolormesh(t_vec, freq_vec, max_mag) 
+ax[2].pcolormesh(t_vec, freq_vec, max_mag)
 ax[0].set_xlim(*stft_params['time_range_tuple'])
 ax[2].plot(t_vec, weight_mean, color = 'r')
 plt.show()
@@ -222,13 +222,13 @@ plt.close(fig)
 this_plot_dir = os.path.join(plot_dir, 'bsa_stft_raw_dat')
 if not os.path.isdir(this_plot_dir):
     os.mkdir(this_plot_dir)
-t_vec_s = t_vec.copy() 
+t_vec_s = t_vec.copy()
 t_vec_l = np.arange(bsa_line.shape[-1])/1000
 
 #ind = (3,1)
 for ind in tqdm(np.ndindex(bsa_out.shape[:2])):
     fig,ax = plt.subplots(6,1, sharex=True, figsize = (7,10))
-    ax[0].pcolormesh(bsa_time, bsa_freq, bsa_out[ind]) 
+    ax[0].pcolormesh(bsa_time, bsa_freq, bsa_out[ind])
     ax[1].pcolormesh(t_vec, freq_vec, max_mag[ind])
     ax[2].pcolormesh(t_vec, freq_vec, time_norm_mag[ind])
     ax[2].plot(t_vec, weight_mean[ind], color = 'y', linewidth = 3,
@@ -279,7 +279,7 @@ f_max = 10
 n_anchors = 20
 
 x_samples = np.arange(0, t_max*1.1, t_max/n_anchors)
-freq_samples = np.random.random(x_samples.shape) * 10 
+freq_samples = np.random.random(x_samples.shape) * 10
 
 x = np.arange(0, t_max, dt)
 dx = np.full_like(x, dt)       # Change in x

@@ -29,7 +29,7 @@ from scipy.ndimage.filters import gaussian_filter
 import matplotlib.cm as cm # colormap module
 import re
 import scipy.stats
-from scipy.signal import hilbert 
+from scipy.signal import hilbert
 from scipy.signal import butter
 from scipy.signal import filtfilt
 
@@ -70,15 +70,15 @@ if dir_check == "No":
     while True:
     	dir_name = easygui.diropenbox(msg = 'Choose first condition directory with a hdf5 file, hit cancel to stop choosing')
     	try:
-    		if len(dir_name) > 0:	
+    		if len(dir_name) > 0:
     			dirs_1.append(dir_name)
     	except:
-    		break   
+    		break
 
-    
+
     #Dump the directory names into chosen output location for each condition
     #condition 1
-    completeName_1 = os.path.join(save_name, 'dirs_cond1.dir') 
+    completeName_1 = os.path.join(save_name, 'dirs_cond1.dir')
     f_1 = open(completeName_1, 'w')
     for item in dirs_1:
         f_1.write("%s\n" % item)
@@ -98,7 +98,7 @@ if dir_check == "Yes":
 # =============================================================================
 taste_params = easygui.multenterbox(msg = 'Input taste identities:', fields = ['Taste 1 (dig_in_1)', 'Taste 2 (dig_in_2)','Taste 3 (dig_in_3)','Taste 4 (dig_in_4)'],values = ['NaCl','Sucrose','Citric Acid','QHCl'])
 analysis_params = easygui.multenterbox(msg = 'Input analysis paramters:', fields = ['Pre-stimulus signal duration (ms; from set-up)','Post-stimulus signal duration (ms; from set-up)','Pre-Taste array start time (ms)', 'Taste array end time (ms)', 'Sampling Rate (samples per second)', 'Signal Window (ms)', 'Window Overlap (ms; default 90%)'], values = ['2000','5000','0','2500','1000','900','850'])
-    
+
 #create timing variables
 pre_stim = int(analysis_params[0])
 post_stim = int(analysis_params[1])
@@ -107,8 +107,8 @@ upper = int(analysis_params[3])
 Fs = int(analysis_params[4])
 signal_window = int(analysis_params[5])
 window_overlap = int(analysis_params[6])
-base_time = 2000   
-  
+base_time = 2000
+
 #establish meshing and plotting paramters
 plotting_params = easygui.multenterbox(msg = 'Input plotting paramters:', fields = ['Minimum frequency (Hz):','Maximum frequency (Hz):', 'Pre-stim plot time (ms):', 'Post-stim plot time (ms):'], values = ['3','40', '1000',int(upper)])
 
@@ -129,7 +129,7 @@ all_animals = [[] for x in range(len(dirs_1))]
 file_count =0
 
 #Flip through files and extract LFP data and store into large arrays
-for dir_name in dirs_1:	
+for dir_name in dirs_1:
 	#Change to the directory
 	os.chdir(dir_name)
 	#Locate the hdf5 file
@@ -147,7 +147,7 @@ for dir_name in dirs_1:
 	total_trials = hf5.root.Parsed_LFP.dig_in_1_LFPs[:].shape[1]
 	dig_in_channels = hf5.list_nodes('/digital_in')
 	dig_in_LFP_nodes = hf5.list_nodes('/Parsed_LFP')
-	
+
 	if split_response == 0:
 	    trial_split = easygui.multenterbox(msg = 'Put in the number of trials to parse from each of the LFP arrays (only integers)', fields = [node._v_name for node in dig_in_LFP_nodes], values = ['19' for node in dig_in_LFP_nodes])
 	    #Convert all values to integers
@@ -155,60 +155,60 @@ for dir_name in dirs_1:
 	    total_sessions = int(total_trials/int(trial_split[0]))
 	    #Create dictionary of all parsed LFP arrays
 	    LFP_data = [np.array(dig_in_LFP_nodes[node][:,0:trial_split[node],:]) for node in range(len(dig_in_LFP_nodes))]
-	    
-	else:    
+
+	else:
 	    total_sessions = 1
 	    trial_split = list(map(int,[total_trials for node in dig_in_LFP_nodes]))
 	    #Create dictionary of all parsed LFP arrays
 	    LFP_data = [np.array(dig_in_LFP_nodes[node][:]) for node in range(len(dig_in_LFP_nodes))]
-	    	
+
 	# =============================================================================
 	# #Channel Check Processing
 	# =============================================================================
 	channel_data = np.mean(LFP_data[0],axis=1).T #Assumes same number of tirlas per taste
-	
+
 	#Ask user to check LFP traces to ensure channels are not shorted/bad in order to remove said channel from further processing
 	channel_check = 	easygui.multchoicebox(msg = 'Choose the channel numbers that you want to REMOVE from further analyses. Click clear all and ok if all channels are good', choices = tuple([i for i in range(np.size(channel_data,axis=1))]))
 	if channel_check:
 		for i in range(len(channel_check)):
 			channel_check[i] = int(channel_check[i])
-	
+
 	#set channel_check to an empty list if no channels were chosen
 	if channel_check is None:
 		channel_check = []
 	channel_check.sort()
-	
+
 	cleaned_LFP = []
-	for taste in range(len(LFP_data)):		
+	for taste in range(len(LFP_data)):
 		cleaned_LFP.append(np.delete(LFP_data[taste][:], channel_check, axis=0))
-	
-	#Create blank dataframe    
+
+	#Create blank dataframe
 	df = pd.DataFrame(columns=range(np.array(cleaned_LFP[0][0][1].shape)[0]+1)) #Add one columns for descriptors
 	df.rename(columns={0:'Taste'}) #Set Descriptors
-	
-	#Append dataframe      
+
+	#Append dataframe
 	for taste in range(len(cleaned_LFP)):
 		#Establish lengths for stacking
 	    m,n,r = cleaned_LFP[taste].shape
-		
+
 		#Stack data
 	    out_arr = np.column_stack((np.repeat(np.arange(m),n),cleaned_LFP[taste].reshape(m*n,-1)))
-	    
+
 		#Create data frame and add descriptor columns
 	    outdf=pd.DataFrame(out_arr)
 	    outdf.insert(0,'Taste',taste)
 	    df = pd.concat([df,outdf],sort=False)
-	    
+
 	#Reset column order and add column name for Channel
 	cols = list(df.columns)
 	cols = [cols[-1]] + cols[:-1]
-	df = df[cols]	
+	df = df[cols]
 	df.rename(columns={0:'Channel'},inplace=True)
 	df.insert(0,'Animal',hdf5_name[0:4])
-	
+
 	#Stack dataframes onto eachother
 	grouped_df = pd.concat([grouped_df,df],sort=True)
-	
+
 	#store animal name
 	all_animals[file_count] = hdf5_name[0:4]
 	file_count+=1
@@ -240,11 +240,11 @@ try:
 	os.system('rm -r '+save_name+'/LFP_signals')
 except:
 	pass
-os.mkdir(save_name+'/LFP_signals')	
-	
+os.mkdir(save_name+'/LFP_signals')
+
 #Set t vector for plotting
 t = np.array(list(range(0,np.size(channel_data,axis=0))))-pre_stim
-	
+
 #Flip through tastes and bands to produce figures to assess GEP
 for taste in range(len(grouped_df['Taste'].unique())):
     #Query data
@@ -254,35 +254,35 @@ for taste in range(len(grouped_df['Taste'].unique())):
 	fig,axes = plt.subplots(nrows=len(iter_freqs), ncols=2,sharex=True, sharey=False,figsize=(12, 8), squeeze=True)
 	fig.text(0.5, 0.05, 'Milliseconds', ha='center',fontsize=15)
 	axes_list = [item for sublist in axes for item in sublist]
-	
-	#Flip through bands and create figures	
+
+	#Flip through bands and create figures
 	for ax,band in zip(axes.flatten(),trange(len(iter_freqs), desc = 'bands')):
-		band_filt_sig = butter_bandpass_filter(data = query.iloc[:,3:], 
-	                                    lowcut = iter_freqs[band][1], 
-	                                    highcut =  iter_freqs[band][2], 
+		band_filt_sig = butter_bandpass_filter(data = query.iloc[:,3:],
+	                                    lowcut = iter_freqs[band][1],
+	                                    highcut =  iter_freqs[band][2],
 	                                    fs = 1000)
 		analytic_signal = hilbert(band_filt_sig)
 		instantaneous_phase = np.angle(analytic_signal)
 		x_power = np.abs(analytic_signal)**2
-		
+
 		#Plot raw versus filtered LFP
 		ax = axes_list.pop(0)
-		ax.plot(t,np.mean(query.iloc[:,3:].T,axis=1),'k-',alpha=0.3,lw=1); 
+		ax.plot(t,np.mean(query.iloc[:,3:].T,axis=1),'k-',alpha=0.3,lw=1);
 		ax.plot(t,np.mean(analytic_signal.T,axis=1),'r',lw=1);
 		ax.set_xlim([-int(plotting_params[2]),int(plotting_params[3])])
 		ax.set_ylim([np.min(np.mean(query.iloc[:,3:].T,axis=1)),100])
 		ax.vlines(x=0, ymin=np.min(np.mean(query.iloc[:,3:].T,axis=1)),ymax=100, linewidth=3, color='k',linestyle=':')
 		ax.text(0.83,0.9,'%s (%i - %iHz)' %(iter_freqs[band][0],iter_freqs[band][1],iter_freqs[band][2]), ha='center', va='center', transform=ax.transAxes)
-		
+
 		#Plot Power over time
 		ax = axes_list.pop(0)
-		ax.plot(t,np.mean(x_power.T,axis=1)); 
+		ax.plot(t,np.mean(x_power.T,axis=1));
 		ax.set_xlim([-int(plotting_params[2]),int(plotting_params[3])])
 		ax.vlines(x=0, ymin=np.min(np.mean(x_power.T,axis=1)),ymax=np.max(np.mean(x_power.T,axis=1)), linewidth=3, color='k',linestyle=':')
-		
+
 	plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=-0.08)
 	plt.suptitle('Hilbert Transform and Instantaneous Power \nTaste: %s' %(taste_params[taste]),size=16)
-	fig.savefig(save_name+'/LFP_signals/' + '%s_N_%i_Animals' %(taste_params[taste],len(grouped_df.Animal.unique())) + '_HilbertTransform.png')   
+	fig.savefig(save_name+'/LFP_signals/' + '%s_N_%i_Animals' %(taste_params[taste],len(grouped_df.Animal.unique())) + '_HilbertTransform.png')
 	plt.show()
 	plt.close(fig)
 
@@ -292,61 +292,33 @@ fig,axes = plt.subplots(nrows=len(iter_freqs), ncols=2,sharex=True, sharey=False
 fig.text(0.5, 0.05, 'Milliseconds', ha='center',fontsize=15)
 axes_list = [item for sublist in axes for item in sublist]
 
-#Flip through bands and create figures	
+#Flip through bands and create figures
 for ax,band in zip(axes.flatten(),trange(len(iter_freqs), desc = 'bands')):
-	band_filt_sig = butter_bandpass_filter(data = grouped_df.iloc[:,3:], 
-                                    lowcut = iter_freqs[band][1], 
-                                    highcut =  iter_freqs[band][2], 
+	band_filt_sig = butter_bandpass_filter(data = grouped_df.iloc[:,3:],
+                                    lowcut = iter_freqs[band][1],
+                                    highcut =  iter_freqs[band][2],
                                     fs = 1000)
 	analytic_signal = hilbert(band_filt_sig)
 	instantaneous_phase = np.angle(analytic_signal)
 	x_power = np.abs(analytic_signal)**2
-	
+
 	#Plot raw versus filtered LFP
 	ax = axes_list.pop(0)
-	ax.plot(t,np.mean(grouped_df.iloc[:,3:].T,axis=1),'k-',alpha=0.3,lw=1); 
+	ax.plot(t,np.mean(grouped_df.iloc[:,3:].T,axis=1),'k-',alpha=0.3,lw=1);
 	ax.plot(t,np.mean(analytic_signal.T,axis=1),'r',lw=1);
 	ax.set_xlim([-int(plotting_params[2]),int(plotting_params[3])])
 	ax.set_ylim([-50,50])
 	ax.vlines(x=0, ymin=np.min(np.mean(grouped_df.iloc[:,3:].T,axis=1)),ymax=100, linewidth=3, color='k',linestyle=':')
 	ax.text(0.83,0.9,'%s (%i - %iHz)' %(iter_freqs[band][0],iter_freqs[band][1],iter_freqs[band][2]), ha='center', va='center', transform=ax.transAxes)
-	
+
 	#Plot Power over time
 	ax = axes_list.pop(0)
-	ax.plot(t,np.mean(x_power.T,axis=1)); 
+	ax.plot(t,np.mean(x_power.T,axis=1));
 	ax.set_xlim([-int(plotting_params[2]),int(plotting_params[3])])
 	ax.vlines(x=0, ymin=np.min(np.mean(x_power.T,axis=1)),ymax=np.max(np.mean(x_power.T,axis=1)), linewidth=3, color='k',linestyle=':')
-	
+
 plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=-0.08)
 plt.suptitle('Hilbert Transform and Instantaneous Power \nAll Tastes',size=16)
-fig.savefig(save_name+'/LFP_signals/' + 'AllTastes_N_%i_Animals' %(len(grouped_df.Animal.unique())) + '_HilbertTransform.png')   
+fig.savefig(save_name+'/LFP_signals/' + 'AllTastes_N_%i_Animals' %(len(grouped_df.Animal.unique())) + '_HilbertTransform.png')
 plt.show()
-plt.close(fig)	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	
-	
-	
-	
-	
+plt.close(fig)

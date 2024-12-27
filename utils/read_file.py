@@ -4,14 +4,14 @@ import os
 import numpy as np
 import tqdm
 
-# Code for loading traditional intan format from 
+# Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from utils.importrhdutilities import load_file, read_header
 
 def read_traditional_intan(
-		hdf5_name, 
-		file_list, 
+		hdf5_name,
+		file_list,
 		electrode_layout_frame,
 		dig_in_int
 		):
@@ -53,14 +53,14 @@ def read_traditional_intan(
 			# Otherwise, save to raw
 			if 'emg' in electrode_layout_frame.loc[i].CAR_group.lower():
 				array_name = f'emg{i:02}'
-				if os.path.join('/raw_emg', array_name) not in hf5: 
+				if os.path.join('/raw_emg', array_name) not in hf5:
 					hf5_el_array = hf5.create_earray('/raw_emg', array_name, atom, (0,))
 				else:
 					hf5_el_array = hf5.get_node('/raw_emg', array_name)
 				hf5_el_array.append(this_amp)
 			else:
 				array_name = f'electrode{i:02}'
-				if os.path.join('/raw', array_name) not in hf5: 
+				if os.path.join('/raw', array_name) not in hf5:
 					hf5_el_array = hf5.create_earray('/raw', array_name, atom, (0,))
 				else:
 					hf5_el_array = hf5.get_node('/raw', array_name)
@@ -86,7 +86,7 @@ def read_traditional_intan(
 	hf5.close()
 
 
-def read_digins(hdf5_name, dig_in_int, dig_in_file_list): 
+def read_digins(hdf5_name, dig_in_int, dig_in_file_list):
 	atom = tables.IntAtom()
 	hf5 = tables.open_file(hdf5_name, 'r+')
 	# Read digital inputs, and append to the respective hdf5 arrays
@@ -102,8 +102,8 @@ def read_digins(hdf5_name, dig_in_int, dig_in_file_list):
 		hf5.flush()
 	hf5.close()
 
-		
-def read_digins_single_file(hdf5_name, dig_in, dig_in_file_list): 
+
+def read_digins_single_file(hdf5_name, dig_in, dig_in_file_list):
 	num_dig_ins = len(dig_in)
 	hf5 = tables.open_file(hdf5_name, 'r+')
 	# Read digital inputs, and append to the respective hdf5 arrays
@@ -121,7 +121,7 @@ def read_digins_single_file(hdf5_name, dig_in, dig_in_file_list):
 		end_ind = np.where(d_diff == -1*(n_i + 1))[0]
 		for s_i in range(len(start_ind)):
 			dig_inputs[n_i,start_ind[s_i]:end_ind[s_i]] = 1
-	for i in tqdm.tqdm(range(num_dig_ins)):		
+	for i in tqdm.tqdm(range(num_dig_ins)):
 		exec("hf5.root.digital_in.dig_in_"+str(i)+".append(dig_inputs[i,:])")
 	hf5.flush()
 	hf5.close()
@@ -132,8 +132,8 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
 	# Read EMG data from amplifier channels
 	hf5 = tables.open_file(hdf5_name, 'r+')
 	for num,row in tqdm.tqdm(electrode_layout_frame.iterrows()):
-		# Loading should use file name 
-		# but writing should use channel ind so that channels from 
+		# Loading should use file name
+		# but writing should use channel ind so that channels from
 		# multiple boards are written into a monotonic sequence
 		if 'emg' in row.CAR_group.lower():
 			print(f'Reading : {row.filename, row.CAR_group}')
@@ -149,8 +149,8 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
 
 def read_electrode_channels(hdf5_name, electrode_layout_frame):
 	"""
-	# Loading should use file name 
-	# but writing should use channel ind so that channels from 
+	# Loading should use file name
+	# but writing should use channel ind so that channels from
 	# multiple boards are written into a monotonic sequence
 	# Note: That channels inds may not be contiguous if there are
 	# EMG channels in the middle
@@ -172,12 +172,12 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
 			hf5_el_array.append(data)
 			hf5.flush()
 	hf5.close()
-	
+
 def read_electrode_emg_channels_single_file(
-        hdf5_name, 
-        electrode_layout_frame, 
-        electrodes_list, 
-        num_recorded_samples, 
+        hdf5_name,
+        electrode_layout_frame,
+        electrodes_list,
+        num_recorded_samples,
         emg_channels):
     # Read EMG data from amplifier channels
 	hf5 = tables.open_file(hdf5_name, 'r+')
@@ -186,8 +186,8 @@ def read_electrode_emg_channels_single_file(
 	num_electrodes = int(len(amplifier_data)/num_recorded_samples)
 	amp_reshape = np.reshape(amplifier_data,(int(len(amplifier_data)/num_electrodes),num_electrodes)).T
 	for num,row in tqdm.tqdm(electrode_layout_frame.iterrows()):
-        # Loading should use file name 
-        # but writing should use channel ind so that channels from 
+        # Loading should use file name
+        # but writing should use channel ind so that channels from
         # multiple boards are written into a monotonic sequence
 		emg_bool = 'emg' not in row.CAR_group.lower()
 		none_bool = row.CAR_group.lower() not in ['none','na']

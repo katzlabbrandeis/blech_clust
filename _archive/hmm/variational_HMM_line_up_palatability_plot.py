@@ -16,7 +16,7 @@ dirs = []
 while True:
 	dir_name = easygui.diropenbox(msg = 'Choose a directory with a hdf5 file, hit cancel to stop choosing')
 	try:
-		if len(dir_name) > 0:	
+		if len(dir_name) > 0:
 			dirs.append(dir_name)
 	except:
 		break
@@ -102,7 +102,7 @@ for dir_name in dirs:
 		# Pick the solution with the highest ELBO in each case
 		best_solution_laser_off = laser_off_solutions[np.argmax(ELBO_laser_off)]
 		best_solution_laser_on = laser_on_solutions[np.argmax(ELBO_laser_on)]
-		
+
 		# Get the posterior probabilities of the states from these solutions
 		posterior_proba_laser_off = best_solution_laser_off.posterior_proba_VB[:]
 		posterior_proba_laser_on = best_solution_laser_on.posterior_proba_VB[:]
@@ -110,7 +110,7 @@ for dir_name in dirs:
 		# First get the most dominant state across time on every trial
 		laser_off_states = np.argmax(posterior_proba_laser_off, axis = 0)
 		laser_on_states = np.argmax(posterior_proba_laser_on, axis = 0)
-		
+
 		# Then subset the time to the palatability window and find the state that dominates the most
 		laser_off_states = np.unique(laser_off_states[:, palatability_times], return_counts = True)
 		laser_off_pal_state = laser_off_states[0][np.argmax(laser_off_states[1])]
@@ -168,9 +168,9 @@ for dir_name in dirs:
 
 		# Append the the taste specific spiking lists to the overall lists for this dataset
 		if len(this_taste_laser_off_aligned) == 0 or len(this_taste_laser_on_aligned) == 0:
-			trials_zero = 1			
+			trials_zero = 1
 		#	break
-		
+
 		laser_off_aligned.append(this_taste_laser_off_aligned)
 		laser_off_unaligned.append(this_taste_laser_off_unaligned)
 		laser_on_aligned.append(this_taste_laser_on_aligned)
@@ -183,12 +183,12 @@ for dir_name in dirs:
 
 	# Consolidate firing data from all the tastes so that they can be used for palatability correlation calculation
 	palatability_laser_off = np.concatenate([np.repeat(palatability[i], len(laser_off_aligned[i])) for i in range(num_tastes)])
-	laser_off_aligned = np.vstack([np.array(laser_off_aligned[i]) for i in range(num_tastes)])		
+	laser_off_aligned = np.vstack([np.array(laser_off_aligned[i]) for i in range(num_tastes)])
 	laser_off_unaligned = np.vstack([np.array(laser_off_unaligned[i]) for i in range(num_tastes)])
 	palatability_laser_on = np.concatenate([np.repeat(palatability[i], len(laser_on_aligned[i])) for i in range(num_tastes)])
-	laser_on_aligned = np.vstack([np.array(laser_on_aligned[i]) for i in range(num_tastes)])		
+	laser_on_aligned = np.vstack([np.array(laser_on_aligned[i]) for i in range(num_tastes)])
 	laser_on_unaligned = np.vstack([np.array(laser_on_unaligned[i]) for i in range(num_tastes)])
-	
+
 	# Now bin the consolidated data in preparation for correlation analysis
 	response_laser_off_aligned = np.array([np.mean(laser_off_aligned[:, :, time:time+params[0]], axis = -1) for time in range(0, 3500 - params[0] + params[1], params[1])])
 	response_laser_off_unaligned = np.array([np.mean(laser_off_unaligned[:, :, time:time+params[0]], axis = -1) for time in range(0, 3500 - params[0] + params[1], params[1])])
@@ -206,26 +206,26 @@ for dir_name in dirs:
 		for time in range(response_laser_off_aligned.shape[0]):
 			ranks = rankdata(response_laser_off_aligned[time, :, unit])
 			r, p = spearmanr(ranks, palatability_laser_off)
-			this_unit_r_laser_off[0].append(r)	
-			this_unit_p_laser_off[0].append(p)	
+			this_unit_r_laser_off[0].append(r)
+			this_unit_p_laser_off[0].append(p)
 			ranks = rankdata(response_laser_off_unaligned[time, :, unit])
 			r, p = spearmanr(ranks, palatability_laser_off)
-			this_unit_r_laser_off[1].append(r)	
-			this_unit_p_laser_off[1].append(p)	
+			this_unit_r_laser_off[1].append(r)
+			this_unit_p_laser_off[1].append(p)
 			ranks = rankdata(response_laser_on_aligned[time, :, unit])
 			r, p = spearmanr(ranks, palatability_laser_on)
-			this_unit_r_laser_on[0].append(r)	
-			this_unit_p_laser_on[0].append(p)	
+			this_unit_r_laser_on[0].append(r)
+			this_unit_p_laser_on[0].append(p)
 			ranks = rankdata(response_laser_on_unaligned[time, :, unit])
 			r, p = spearmanr(ranks, palatability_laser_on)
-			this_unit_r_laser_on[1].append(r)	
+			this_unit_r_laser_on[1].append(r)
 			this_unit_p_laser_on[1].append(p)
 
 		# Append the unit specific lists to the main lists of r and p
 		r_spearman_laser_off.append(this_unit_r_laser_off)
 		p_spearman_laser_off.append(this_unit_p_laser_off)
 		r_spearman_laser_on.append(this_unit_r_laser_on)
-		p_spearman_laser_on.append(this_unit_p_laser_on)			
+		p_spearman_laser_on.append(this_unit_p_laser_on)
 
 	# Close the hdf5 file
 	hf5.close()
@@ -233,4 +233,4 @@ for dir_name in dirs:
 r_spearman_laser_off = np.array(r_spearman_laser_off)
 p_spearman_laser_off = np.array(p_spearman_laser_off)
 r_spearman_laser_on = np.array(r_spearman_laser_on)
-p_spearman_laser_on = np.array(p_spearman_laser_on)		
+p_spearman_laser_on = np.array(p_spearman_laser_on)

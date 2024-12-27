@@ -38,11 +38,11 @@ for dig_in in range(len(spike_train_dig)):
 
     #Save arrays into .mat format for processing in MATLAB
     sio.savemat(hdf5_name[:-12] + '_spike_trains.mat', {'spike_trains':spiketrain_data})
-        
+
 
 #Indicate process complete
 print('*.mat files saved')
 
 #Close file
 hf5.flush()
-hf5.close() 
+hf5.close()

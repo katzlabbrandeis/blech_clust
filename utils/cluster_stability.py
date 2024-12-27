@@ -22,7 +22,7 @@ from glob import glob
 import seaborn as sns
 import matplotlib
 
-def load_electrode_data(data_dir, electrode_num): 
+def load_electrode_data(data_dir, electrode_num):
     """
     Load data from disk
     """
@@ -61,7 +61,7 @@ def return_clustering_solutions(electrode_num):
 	return clustering_solutions
 
 ############################################################
-#data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/' 
+#data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
 data_dir = sys.argv[1]
 # metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(data_dir)
@@ -79,7 +79,7 @@ clustering_solutions = return_clustering_solutions(electrode_num)
 	pca_slices,
 	energy,
 	amplitudes,
-) = load_electrode_data(data_dir, electrode_num) 
+) = load_electrode_data(data_dir, electrode_num)
 
 # Load predictions for all clustering solutions
 predictions = [load_cluster_predictions(electrode_num, x) \
@@ -116,7 +116,7 @@ for ind, clust_num in enumerate(clustering_solutions):
 			row_cluster=True, col_cluster=False, cmap='viridis',
 			yticklabels=False, figsize=(7, 7),
 					   row_colors=row_colors,
-					   xticklabels=feature_names, 
+					   xticklabels=feature_names,
 					cbar_pos = None,
 					dendrogram_ratio=(0.3, 0),
 					)

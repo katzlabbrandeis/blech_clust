@@ -93,8 +93,8 @@ def create_cluster_plot(umap_waveforms, ax, clustering_results, cluster_output_d
     #fig.savefig(os.path.join(cluster_output_dir, 'UMAP_clusters.png'))
     #plt.close(fig)
 
-def plot_clusters_over_polarities(umap_waveforms, 
-                                  clustering_results, 
+def plot_clusters_over_polarities(umap_waveforms,
+                                  clustering_results,
                                   cluster_output_dir,
                                   umap_model_names):
     fig, ax = plt.subplots(len(umap_waveforms), 2, figsize=(10, 5))
@@ -103,8 +103,8 @@ def plot_clusters_over_polarities(umap_waveforms,
         ax[0,i].set_title(umap_model_names[i])
     for i in range(len(umap_waveforms)):
         ax[:,i] = create_cluster_plot(
-                umap_waveforms[i], 
-                ax[:,i], 
+                umap_waveforms[i],
+                ax[:,i],
                 clustering_results[i],
                 cluster_output_dir)
     fig.suptitle('UMAP Clusters')
@@ -200,22 +200,22 @@ def run_pipeline(this_row, dir_name, zero_ind):
     spike_waveforms, spike_times, clustering_results = return_raw_data(
         this_row)
     (
-        polar_waveforms, 
-        (polar_spike_times, polar_clustering_results), 
+        polar_waveforms,
+        (polar_spike_times, polar_clustering_results),
         data_polarities,
         unique_data_polarities
         )= \
         split_data_by_polarity(
-                spike_waveforms, 
+                spike_waveforms,
                 zero_ind,
-                spike_times, 
+                spike_times,
                 clustering_results)
     # Make sure polarities match before moving forward
     assert np.all(unique_data_polarities == model_polarities)
     # Loop over data and models
     cluster_output_dir = gen_cluster_output_dir(this_row, dir_name)
     umap_waveforms = [process_umap(this_model, this_waveforms, feature_transformer) \
-            for this_model, this_waveforms in zip(umap_models, polar_waveforms)] 
+            for this_model, this_waveforms in zip(umap_models, polar_waveforms)]
     plot_clusters_over_polarities(umap_waveforms, polar_clustering_results,
                                   cluster_output_dir, umap_model_names)
     #create_umap_time_plot(umap_waveforms, spike_times,
@@ -273,13 +273,13 @@ if __name__ == '__main__':
         f'python {runner_path}', shell=True)
     # Forces process to complete before proceeding
     stdout, stderr = process.communicate()
-     
+
     if len(sys.argv) > 1:
         this_row = path_frame.iloc[int(sys.argv[1])]
 
         snippet_pre = params_dict['spike_snapshot_before']
         sampling_rate_ms = params_dict['sampling_rate']/1000
-        snippet_pre_inds = int(snippet_pre*sampling_rate_ms) 
+        snippet_pre_inds = int(snippet_pre*sampling_rate_ms)
 
         run_pipeline(this_row, dir_name, snippet_pre_inds)
         # Parallel(n_jobs=2)(delayed(run_pipeline)(this_row[1], dir_name) \

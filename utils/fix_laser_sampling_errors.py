@@ -1,7 +1,7 @@
 #
 # Since the digital inputs are being sampled at 30kHz, sometimes the laser durations (or onsets)
-# are recorded for a few ms more or less than the intended length of the pulse. 
-# We scale the length of the pulse by factors of 10 - so 
+# are recorded for a few ms more or less than the intended length of the pulse.
+# We scale the length of the pulse by factors of 10 - so
 # sometimes a 2500ms pulse can become 2510 or 2490ms. This gives errors in later steps.
 
 
@@ -52,4 +52,3 @@ hf5.flush()
 
 
 hf5.close()
-

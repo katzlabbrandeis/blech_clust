@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt # makes matplotlib work like MATLAB. â€™pyplotâ€
 from scipy.stats import sem
 from scipy import stats
 from scipy.stats import chi2_contingency
-from pycircstat import descriptive, swap2zeroaxis 
+from pycircstat import descriptive, swap2zeroaxis
 import math
 import sys
 import easygui
@@ -59,50 +59,50 @@ def applyParallel(dfGrouped, func, parallel_kws={}, backend='multiprocessing', b
     return pd.concat(retLst) # return concatonated result
 
 # =============================================================================
-# #Create dataframe to store phasic density matrices using KDE 
+# #Create dataframe to store phasic density matrices using KDE
 # =============================================================================
-def spike_phase_density(data_frame,frequency_list,time_vector,bin_vals):	
+def spike_phase_density(data_frame,frequency_list,time_vector,bin_vals):
 
 	#Create empty dataframe for storing output
 	density_df_all = pd.DataFrame()
-	
+
 	for band_num in range(len(frequency_list)):
 		for taste_num in	range(len(data_frame.taste.unique())):
 			density_all=[[None] *(bin_vals) for i in range(len(time_vector)-1)]
 			for time_num in range(len(time_vector)-1):
-			
+
 				#Set query to perfrom statistical tests on
 				query = data_frame.query('band == @band_num  \
 							 and taste == @taste_num \
 							 and time >= @time_vector[@time_num] \
 							 and time < @time_vector[@time_num+1]')
-				
+
 				#Set query index
 				queryidx = query.index
-				
+
                   #Fills bin slot with nan for empty queries
 				if len(queryidx) <= 1:
 					density_all[time_num] = np.full(bin_vals,'nan',dtype=np.float64)
-                      
+
 				#Ensures that idx is a possible boolean
 				if len(queryidx) >= 2:
 
 					#Get density statistics
-					density = stats.gaussian_kde(np.array(query.phase)) 
-					
+					density = stats.gaussian_kde(np.array(query.phase))
+
 					#Use histogram function to access densities based on phasic bin
 					n1,x1=np.histogram(np.array(query.phase), bins=np.linspace(-np.pi,np.pi,bin_vals), density=True);
-		
+
 					density_all[time_num] = density(x1)
-					
+
 			#store in data frame by unit,band,taste_num
 			density_df = pd.DataFrame(density_all)
 			density_df["band"] = band_num; density_df["taste"] = taste_num; density_df["unit"] = data_frame.unit.unique()[0]
-			
+
 			#concatenate dataframes
 			density_df_all = pd.concat([density_df_all, density_df])
-			
-					
+
+
 	return density_df_all
 # =============================================================================
 # #Define column indexing function for plotting
@@ -137,26 +137,26 @@ dframe_stat = pd.read_hdf(hdf5_name,'Spike_Phase_Dframe/stats_dframe','r+')
 # #Establish variables for processing
 # =============================================================================
 
-#Create time vector (CHANGE THIS BASED ON BIN SIZING NEEDS)		
+#Create time vector (CHANGE THIS BASED ON BIN SIZING NEEDS)
 if np.size(dframe.taste.unique())>0:
 	# Set paramaters from the user
 	params = easygui.multenterbox(msg = 'Enter the parameters for plotting', fields = ['Pre stimulus spike train (ms)','Post-stimulus spike train (ms)', 'Bin size (ms)','Pre stimulus bin (ms)','Post-stimulus bin (ms)'],values = ['2000','5000','50','2000','2000'])
 	for i in range(len(params)):
-		params[i] = int(params[i])	
-	
+		params[i] = int(params[i])
+
 	t= np.linspace(0,params[0]+params[1],((params[0]+params[1])//100)+1)
 	bins=params[2]
-	
+
 	identities = easygui.multenterbox(msg = 'Put in the taste identities of the digital inputs', fields = [tastant for tastant in range(len(dframe.taste.unique()))], values=['NaCl','Sucrose','Citric Acid','QHCl'])
 else:
 	# Set paramaters from the user
 	params = easygui.multenterbox(msg = 'Enter the parameters for plotting', fields = ['Pre stimulus (ms)','Post-stimulus (ms)', 'Bin size (ms)'],values = ['0','1200000','50'])
 	for i in range(len(params)):
-		params[i] = int(params[i])	
-	#Change this dependending on the session type		
+		params[i] = int(params[i])
+	#Change this dependending on the session type
 	t= np.linspace(0,params[0]+params[1],((params[0]+params[1])//100)+1)
 	bins=params[2]
-	
+
 #Exctract frequency names
 freq_bands = np.array(freq_dframe.iloc[:][0]).astype(str).reshape(np.array(freq_dframe.iloc[:][0]).size,1)
 freq_vals = freq_dframe.to_dict('index')
@@ -200,19 +200,19 @@ for taste, color in zip(dframe.taste.unique(),colors):
 		fig.text(0.07, 0.5,'Number of Spikes', va='center', rotation='vertical',fontsize=14)
 		fig.text(0.5, 0.05, 'Taste', ha='center',fontsize=14)
 		axes_list = [item for sublist in axes for item in sublist]
-		
+
 		for ax, unit in zip(axes.flatten(),np.sort(dframe.unit.unique())):
 			query_check = dframe.query('band == @band and unit == @unit and taste == @taste and time>=@params[3] and time<=@params[3]+@params[4]')
 			df_var = query_check.phase
-			
+
 			ax = axes_list.pop(0)
 			im =ax.hist(np.array(df_var), bins=25, color=color, alpha=0.7)
 			ax.set_title(unit,size=12,y=0.55,x=0.9)
 			ax.set_xticks(np.linspace(-np.pi,np.pi,5))
 			ax.set_xticklabels([r"-$\pi$",r"-$\pi/2$","$0$",r"$\pi/2$",r"$\pi$"])
-	
+
 		fig.subplots_adjust(hspace=0.25,wspace = 0.05)
-		fig.suptitle('Taste: %s' %(identities[taste])+'\n' + 'Freq. Band: %s (%i - %iHz)' %(freq_vals[band][0],freq_vals[band][1],freq_vals[band][2])+'\n' + 'Time: %i - %ims' %(params[0]-params[3],params[4]),size=16,fontweight='bold')						
+		fig.suptitle('Taste: %s' %(identities[taste])+'\n' + 'Freq. Band: %s (%i - %iHz)' %(freq_vals[band][0],freq_vals[band][1],freq_vals[band][2])+'\n' + 'Time: %i - %ims' %(params[0]-params[3],params[4]),size=16,fontweight='bold')
 
 #Creates Heatmaps for density estimationg (KDE) of spikes within phase over time
 for unit in dfnew.unit.unique():
@@ -222,33 +222,33 @@ for unit in dfnew.unit.unique():
 		fig.text(0.12, 0.5,'Phase', va='center', rotation='vertical',fontsize=15)
 		fig.text(0.5, 0.05, 'Seconds', ha='center',fontsize=15)
 		axes_list = [item for sublist in axes for item in sublist]
-	
+
 		for ax, taste, color in zip(axes.flatten(),dfnew.taste.unique(),colors):
 			query_check = dfnew.query('band == @band and unit == @unit and taste == @taste')
 			plt_query = query_check[query_check.columns.difference(['band', 'unit','taste'])] #Excludes labeling columns for accurate imshow
-			
+
 			ax = axes_list.pop(0)
 			im =ax.imshow(plt_query.T)
 			ax.set_title(identities[taste],size=15,y=1)
 			ax.set_yticks(np.linspace(0,bins-1,5))
 			ax.set_yticklabels([r"-$\pi$",r"-$\pi/2$","$0$",r"$\pi/2$",r"$\pi$"])
 			ax.set_xticks(np.linspace(0,len(t)-1,((len(t)-1)//10)+1))
-			ax.set_xticklabels(np.arange(0,(len(t)-1)//10,1))		
+			ax.set_xticklabels(np.arange(0,(len(t)-1)//10,1))
 			ax.axvline(x=np.where(t==params[0]), linewidth=4, color='r')
-			
+
 		fig.subplots_adjust(hspace=0.25,wspace = -0.15)
 		fig.suptitle('Unit %i' %(dframe.unit.unique()[unit])+'\n' + 'Freq. Band: %s (%i - %iHz)' %(freq_vals[band][0],freq_vals[band][1],freq_vals[band][2]),size=16,fontweight='bold')
-		fig.savefig('Unit_%i_%s_KDE.png' %(dframe.unit.unique()[unit],freq_vals[band][0]))   
+		fig.savefig('Unit_%i_%s_KDE.png' %(dframe.unit.unique()[unit],freq_vals[band][0]))
 		plt.close(fig)
 
 # =============================================================================
 # plt_query = density_df_all.query('band == 3 and unit == 0 and taste == 3')
 # plt_query2 = plt_query[plt_query.columns.difference(['band', 'unit','taste'])]
 # plt.imshow(plt_query2.T)
-# 
+#
 # =============================================================================
 
-	
+
 
 
 for unit in dframe_stat.unit.unique():
@@ -265,21 +265,16 @@ for unit in dframe_stat.unit.unique():
 	fig.text(0.07, 0.5,'Bands', va='center', rotation='vertical',fontsize=14)
 	fig.text(0.5, 0.05, 'Time', ha='center',fontsize=14)
 	axes_list = [item for sublist in axes for item in sublist]
-	
+
 	for ax, taste in zip(axes.flatten(),dframe_stat.taste.unique()):
 		query = dframe_stat.query('unit == @unit and taste == @taste')
-		
+
 		ax = axes_list.pop(0)
 		piv = pd.pivot_table(query, values="Raytest_p",index=["band"], columns=["time_bin"], fill_value=0)
 		im = sns.heatmap(piv,vmin=0, vmax=0.1,cmap="YlGnBu", ax=ax)
 		ax.axvline(x=column_index(piv,params[0]), linewidth=4, color='r')
 		ax.set_title(taste,size=15,y=1)
-		
+
 	fig.suptitle('Unit %i' %(dframe_stat.unit.unique()[unit])+ '\n' + 'Ztest pval Matrices',size=16)
-	fig.savefig('Unit_%i_ZPMs.png' %(dframe_stat.unit.unique()[unit]))   
+	fig.savefig('Unit_%i_ZPMs.png' %(dframe_stat.unit.unique()[unit]))
 	plt.close(fig)
-
-
-
-
-

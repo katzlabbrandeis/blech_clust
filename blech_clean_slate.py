@@ -21,7 +21,7 @@ for pattern in keep_pattern:
     keep_files.extend(glob.glob(os.path.join(dir_name, pattern)))
 keep_files_basenames = [os.path.basename(x) for x in keep_files]
 
-remove_files = [x for x in file_list if x not in keep_files_basenames] 
+remove_files = [x for x in file_list if x not in keep_files_basenames]
 remove_paths = [os.path.join(dir_name,x) for x in remove_files]
 
 for x in remove_paths:
@@ -31,4 +31,3 @@ for x in remove_paths:
         os.remove(x)
     finally:
         pass
-

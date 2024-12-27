@@ -34,14 +34,14 @@ emg_filt = np.load('env.npy')
 
 # Calc stft
 stft_params = {
-                'Fs' : 1000, 
+                'Fs' : 1000,
                 'signal_window' : 1000,
                 'window_overlap' : 995,
                 'max_freq' : 20,
                 'time_range_tuple' : (1,6)
                 }
 
-stft_iters = list(np.ndindex(emg_filt.shape[:3])) 
+stft_iters = list(np.ndindex(emg_filt.shape[:3]))
 stft_list = [ephys_data.calc_stft(emg_filt[this_iter], **stft_params)\
         for this_iter in tqdm(stft_iters)]
 

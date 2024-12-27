@@ -103,7 +103,7 @@ for i in range(spikes.shape[0]):
 		time.append(k - pre_stim_hmm)
 		n_firing_units = np.where(np.sum(spikes[i, :, k:k+bin_size], axis = 1) > 0)[0]
 		if n_firing_units.size:
-			n_firing_units = n_firing_units + 1 
+			n_firing_units = n_firing_units + 1
 		else:
 			n_firing_units = [0]
 		binned_spikes[i, int(k/bin_size)] = np.random.choice(n_firing_units)
@@ -127,7 +127,7 @@ hf5.flush()
 try:
 	os.system("rm -r ./variational_HMM_plots/dig_in_%i/Categorical" % taste)
 except:
-	pass	
+	pass
 
 # Make a folder for plots of Multinomial HMM analysis
 os.mkdir("variational_HMM_plots/dig_in_%i/Categorical" % taste)
@@ -169,7 +169,7 @@ hf5.flush()
 try:
 	os.system("rm -r ./variational_HMM_plots/dig_in_%i/Categorical/laser_off" % taste)
 except:
-	pass	
+	pass
 
 # Make a folder for plots of Multinomial HMM analysis on laser off trials
 os.mkdir("variational_HMM_plots/dig_in_%i/Categorical/laser_off" % taste)
@@ -289,7 +289,7 @@ hf5.flush()
 try:
 	os.system("rm -r ./variational_HMM_plots/dig_in_%i/Categorical/laser_on" % taste)
 except:
-	pass	
+	pass
 
 # Make a folder for plots of Multinomial HMM analysis on laser off trials
 os.mkdir("variational_HMM_plots/dig_in_%i/Categorical/laser_on" % taste)
@@ -373,4 +373,3 @@ for result in cleaned_results:
 
 # Close the HDF5 file
 hf5.close()
-

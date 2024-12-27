@@ -33,7 +33,7 @@ parser.add_argument('--raise-exception', action = 'store_true',
 args = parser.parse_args()
 
 print(args.raise_exception)
-break_bool = args.raise_exception 
+break_bool = args.raise_exception
 
 if break_bool:
     print('====================')
@@ -55,7 +55,7 @@ def raise_error_if_error(process, stderr, stdout):
         raise Exception(decode_err)
 
 ############################################################
-## Define paths 
+## Define paths
 ############################################################
 # Define paths
 # TODO: Replace with call to blech_process_utils.path_handler
@@ -76,7 +76,7 @@ data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620
 data_dir = os.path.join(blech_clust_dir, data_subdir)
 
 ############################################################
-## Data Prep Scripts 
+## Data Prep Scripts
 ############################################################
 def check_data_present():
     full_data_path = os.path.join(blech_clust_dir, data_subdir)
@@ -119,7 +119,7 @@ def prep_data_info(data_type = 'emg_spike'):
     with open(current_data_type_path, 'w') as f:
         f.write(data_type)
 
-    script_name = './pipeline_testing/test_data_handling/prep_data_info.py' 
+    script_name = './pipeline_testing/test_data_handling/prep_data_info.py'
     # cmd_str = 'python ' + script_name + ' ' + '-emg_spike' + ' ' + data_dir
     cmd_str = 'python ' + script_name + ' ' + flag_str + ' ' + data_dir
     process = Popen(cmd_str, shell=True, stdout = PIPE, stderr = PIPE)
@@ -170,7 +170,7 @@ def make_arrays(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 ############################################################
-## Spike Only 
+## Spike Only
 ############################################################
 
 @task(log_prints=True)
@@ -288,7 +288,7 @@ def emg_freq_setup(data_dir):
     raise_error_if_error(process,stderr,stdout)
 
 @task(log_prints=True)
-def emg_jetstream_parallel(data_dir): 
+def emg_jetstream_parallel(data_dir):
     script_name = 'bash blech_emg_jetstream_parallel.sh'
     full_str = script_name
     process = Popen(full_str, shell = True, stdout = PIPE, stderr = PIPE)
@@ -337,21 +337,21 @@ def run_spike_test():
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     run_CAR(data_dir)
-    
+
     # Run with classifier enabled + autosorting
     change_waveform_classifier(use_classifier=1)
     change_auto_params(data_dir, use_auto=1)
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file = False, keep_raw = True)
-    
-    # Run with classifier disabled and manual sorting 
+
+    # Run with classifier disabled and manual sorting
     change_waveform_classifier(use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
     post_process(data_dir)
-    
+
     make_arrays(data_dir)
     quality_assurance(data_dir)
     units_plot(data_dir)
@@ -390,7 +390,7 @@ def spike_emg_test():
     change_emg_freq_method(use_BSA = 1) # change_freq_method is in pipeline_testing dir
     os.chdir(os.path.join(blech_clust_dir, 'emg'))
     emg_freq_setup(data_dir)
-    emg_jetstream_parallel(data_dir) 
+    emg_jetstream_parallel(data_dir)
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
     # STFT
@@ -412,14 +412,14 @@ def run_emg_freq_test(use_BSA = 1):
     # change_emg_freq_method needs to be in blech_clust_dir
     change_emg_freq_method(use_BSA = use_BSA)
     run_emg_main_test()
-    emg_jetstream_parallel(data_dir) 
+    emg_jetstream_parallel(data_dir)
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
 
 ##############################
 @flow(log_prints=True)
 def run_EMG_QDA_test():
-    if break_bool: 
+    if break_bool:
         for data_type in ['emg', 'emg_spike']:
             print(f'Running QDA test with data type : {data_type}')
             prep_data_flow(data_type = data_type)
@@ -559,7 +559,7 @@ def full_test():
 ## Run Flows
 ############################################################
 # If no individual tests are required, run both
-if args.all: 
+if args.all:
     print('Running all tests')
     full_test(return_state=True)
 elif args.e:

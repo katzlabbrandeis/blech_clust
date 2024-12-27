@@ -81,7 +81,7 @@ result = list(inner_join(dir_1_tup, dir_2_tup));
 ## take second element for sorting list based on frequency
 #def takeSecond(elem):
 #	return elem[:][0][1]
-#    
+#
 ##sort list with key based on the frequency
 #result2.sort(key=takeSecond)
 
@@ -89,13 +89,13 @@ result = list(inner_join(dir_1_tup, dir_2_tup));
 #fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
 #colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))
 #for ((freq_name, fmin, fmax), average1,average2,average3), color, ax in zip(dir_1_tup, colors, axes.ravel()[::-1]):
-#    
+#
 #    #assign vector variables
 #    hilb_signal = average1; env_signal = average2; maxpeak_signal = average3
-#    
+#
 #    #apply a Savitzky-Golay Filter to smooth/eliminate noise from dataset
 #    power_smoothed = signal.savgol_filter(np.abs(hilb_signal[maxpeak_signal]), 351, 1)
-#         
+#
 #    ax.plot(times[maxpeak_signal], power_smoothed, label=freq_name, color=color, linewidth=2.5)
 #    ax.axhline(0, linestyle='--', color='grey', linewidth=2)
 #    ax.set_ylabel('GFP')
@@ -128,15 +128,15 @@ for animal in range(len(result)):
             colors = colors
         else:
             colors = colors*.5
-            
+
         for ((freq_name, fmin, fmax), average1,average2,average3), color, ax in zip(condition_tuple, colors, axes.ravel()[::-1]):
-            
+
             #assign vector variables
             hilb_signal = average1; env_signal = average2; maxpeak_signal = average3
-    
+
             #apply a Savitzky-Golay Filter to smooth/eliminate noise from dataset
             power_smoothed = signal.savgol_filter(np.abs(hilb_signal[maxpeak_signal]), 351, 1)
-         
+
             ax.plot(times[maxpeak_signal], power_smoothed, label=freq_name, color=color, linewidth=1.5)
             #ax.axhline(np.mean(power_smoothed), linestyle='--', color='grey', linewidth=2)
             ax.set_ylabel('GFP')
@@ -146,7 +146,7 @@ for animal in range(len(result)):
                 xycoords='axes fraction')
             ax.set_ylim(0,200)
             ax.set_xlim(0, 1200*1000)
-            
+
             if condition==2:
                 ax.legend(labels=fig_labels,ncol=2,loc=2)
         ticks = ax.get_xticks()/1000
@@ -154,25 +154,17 @@ for animal in range(len(result)):
         axes.ravel()[-1].set_xlabel('Time [s]')
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.00)
         plt.suptitle('Global Field Potential by Frequency Band: Savitzky-Golay Enveloped \n%s' %(result[int(animal)][0]),size=20)
-    
+
     #save file
     file_name = result[int(animal)][0] + '_Savitzky-Golay_envelope_' + cond1 +'_' + cond2 + '.png'
     fig_save = os.path.join(save_name, file_name)
     fig.savefig(fig_save)
-    
+
     #plt.legend(labels=fig_labels)
-        
-#        
-#        
+
+#
+#
 #        print('Working on...'+result[int(animal)][0])
 #        for data_Set_2 in range(len(result[animal][data_set][0])):
 #            print(data_Set)
 #
-
-
-
-
-
-
-
-

@@ -18,7 +18,7 @@ sys.path.append(blech_clust_dir)
 from utils.blech_utils import imp_metadata
 
 csv_path = os.path.join(
-        blech_clust_dir, 
+        blech_clust_dir,
         'example_meta_files',
         'GC_PC_taste_odor_spont_210919_175343.csv')
 sorting_table = pd.read_csv(csv_path, keep_default_na = False)

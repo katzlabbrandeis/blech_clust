@@ -1,7 +1,7 @@
 """
 lfp_processing.py - LFP extraction and processing utilities
 
-This module provides functions for extracting and processing Local Field Potential (LFP) 
+This module provides functions for extracting and processing Local Field Potential (LFP)
 data from electrophysiology recordings. Adapted from blech_clust LFP analysis tools.
 
 Key Functions:
@@ -24,7 +24,7 @@ Dependencies:
 
 Usage:
     >>> from utils.ephys_data import lfp_processing
-    >>> 
+    >>>
     >>> # Extract LFPs with default parameters
     >>> lfp_processing.extract_lfps(
     ...     dir_name='/path/to/data',
@@ -35,7 +35,7 @@ Usage:
     ...     dig_in_list=[0,1,2,3],        # Digital inputs to process
     ...     trial_durations=[2000,5000]    # Pre/post trial durations
     ... )
-    >>> 
+    >>>
     >>> # Extract EMGs similarly
     >>> lfp_processing.extract_emgs(
     ...     dir_name='/path/to/data',
@@ -47,7 +47,7 @@ Usage:
     ...     dig_in_list=[0,1,2,3],
     ...     trial_durations=[2000,5000]
     ... )
-    >>> 
+    >>>
     >>> # Filter individual electrode data
     >>> filtered_data = lfp_processing.get_filtered_electrode(
     ...     data=raw_data,
@@ -55,7 +55,7 @@ Usage:
     ...     high_pass=300,
     ...     sampling_rate=1000
     ... )
-    >>> 
+    >>>
     >>> # Get good quality trials
     >>> good_trials = lfp_processing.return_good_lfp_trials(
     ...     data=lfp_data,
@@ -354,7 +354,7 @@ def extract_emgs(dir_name,
                  dig_in_list,
                  trial_durations):
     """Extract EMG data from raw recordings
-        
+
     Args:
         dir_name: Directory containing data files
         emg_electrode_nums: List of electrode numbers for EMG channels
@@ -611,7 +611,7 @@ def return_good_lfp_trial_inds(data, MAD_threshold = 3,):
     good_trials_bool = np.all(good_trials_bool, axis=0)
     return good_trials_bool
 
-def return_good_lfp_trials(data, MAD_threshold = 3,): 
+def return_good_lfp_trials(data, MAD_threshold = 3,):
     """Return good trials (for all channels) based on MAD threshold
     data : shape (n_channels, n_trials, n_timepoints)
     MAD_threshold : number of MADs to use as threshold for individual timepoints

@@ -43,7 +43,7 @@ def get_spike_trains(hf5_path):
     """
     with tables.open_file(hf5_path, 'r') as hf5:
         # Get the spike trains
-        dig_ins = hf5.list_nodes('/spike_trains') 
+        dig_ins = hf5.list_nodes('/spike_trains')
         dig_in_names = [dig_in._v_name for dig_in in dig_ins]
         spike_trains = [x.spike_array[:] for x in dig_ins]
     return spike_trains
@@ -67,7 +67,7 @@ def array_to_df(array, dim_names):
     return df
 
 ############################################################
-## Initialize 
+## Initialize
 ############################################################
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
@@ -96,20 +96,20 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 spike_trains = get_spike_trains(metadata_handler.hdf5_name) #A list of length [# of stimuli], containing arrays with dimensions = [trials, units, samples/trial]
 
 ############################################################
-## Perform Processing 
+## Perform Processing
 ############################################################
 # Load params
 params_dict = metadata_handler.params_dict
 drift_params = params_dict['qa_params']['drift_params']
 
-alpha = drift_params['alpha'] 
+alpha = drift_params['alpha']
 n_trial_bins = drift_params['n_trial_bins']
 stim_t = params_dict['spike_array_durations'][0]
 # Take period from stim_t - baseline_duration to stim_t
-baseline_duration = drift_params['baseline_duration'] 
+baseline_duration = drift_params['baseline_duration']
 # Take period from stim_t to stim_t + trial_duration
-trial_duration = drift_params['post_stim_duration'] 
-bin_size = drift_params['plot_bin_size'] 
+trial_duration = drift_params['post_stim_duration']
+bin_size = drift_params['plot_bin_size']
 
 ##############################
 ## Plot firing rate across session
@@ -182,22 +182,22 @@ baseline_counts_df_list = [array_to_df(x, ['trial', 'unit']) for x in baseline_c
 # Add taste column
 for i in range(len(baseline_counts_df_list)):
     baseline_counts_df_list[i]['taste'] = i
-# Add indicator for trial bins 
+# Add indicator for trial bins
 for i in range(len(baseline_counts_df_list)):
-    baseline_counts_df_list[i]['trial_bin'] = pd.cut(baseline_counts_df_list[i]['trial'], n_trial_bins, labels=False) 
+    baseline_counts_df_list[i]['trial_bin'] = pd.cut(baseline_counts_df_list[i]['trial'], n_trial_bins, labels=False)
 baseline_counts_df = pd.concat(baseline_counts_df_list, axis=0)
 
 # Plot baseline firing rates
-g = sns.catplot(data=baseline_counts_df, 
-            x='trial_bin', y='value', 
-            row='taste', col = 'unit', 
+g = sns.catplot(data=baseline_counts_df,
+            x='trial_bin', y='value',
+            row='taste', col = 'unit',
             kind='bar', sharey=False,
                 )
 fig = plt.gcf()
 fig.suptitle('Baseline Firing Rates \n' +\
         basename + '\n' +\
         'Trial Bin Count: ' + str(n_trial_bins) + '\n' +\
-        'Baseline limits: ' + str(stim_t-baseline_duration) + ' to ' + str(stim_t) + ' ms') 
+        'Baseline limits: ' + str(stim_t-baseline_duration) + ' to ' + str(stim_t) + ' ms')
 plt.tight_layout()
 plt.savefig(os.path.join(output_dir, 'baseline_firing_rates.png'))
 plt.close()
@@ -228,7 +228,7 @@ p_val_frame.to_csv(os.path.join(output_dir, 'baseline_drift_p_vals.csv'))
 wanted_cols = ['trial_bin','taste','trial_bin * taste']
 p_val_mat = p_val_frame[wanted_cols].values
 # Then, get the significant p-values
-sig_p_val_mat = p_val_mat < alpha 
+sig_p_val_mat = p_val_mat < alpha
 # Plot the significant p-values
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(sig_p_val_mat, aspect='auto', interpolation='none', cmap='gray')
@@ -243,7 +243,7 @@ ax.set_ylabel('Unit')
 for i in range(len(group_ids)):
     for j in range(len(wanted_cols)):
         this_str_color = 'k' if sig_p_val_mat[i, j] else 'w'
-        ax.text(j, i, str(round(p_val_mat[i, j],3)), 
+        ax.text(j, i, str(round(p_val_mat[i, j],3)),
                 ha='center', va='center', color=this_str_color)
 plt.savefig(os.path.join(output_dir, 'baseline_drift_p_val_heatmap.png'))
 plt.close()
@@ -268,7 +268,7 @@ if np.any(sig_p_val_mat):
 
 
 ##############################
-# Post-stimulus 
+# Post-stimulus
 
 # For post-stimulus, check across trials only
 post_spike_trains = [x[...,stim_t:stim_t+trial_duration] for x in spike_trains]
@@ -297,7 +297,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(output_dir, 'post_firing_rates.png'))
 plt.close()
 
-# Perform repeated measures ANOVA on post-stimulus firing rates across trial bins 
+# Perform repeated measures ANOVA on post-stimulus firing rates across trial bins
 # Taste is the repeated measure
 
 grouped_list = post_counts_df.groupby('unit')
@@ -336,7 +336,7 @@ plt.xticks(np.arange(len(group_ids)), group_ids)
 # Add p-values to plot
 for i in range(len(p_val_vec)):
     this_str_color = 'black' if sig_p_val_vec[i] else 'white'
-    plt.text(i, 0, str(round(p_val_vec[i],3)), 
+    plt.text(i, 0, str(round(p_val_vec[i],3)),
              horizontalalignment='center', verticalalignment='center',
              color=this_str_color)
 plt.savefig(os.path.join(output_dir, 'post_drift_p_vals.png'))
@@ -385,7 +385,7 @@ umap_firing_list = [UMAP(n_components=1).fit_transform(x) for x in long_firing_l
 umap_zscore = [zscore(x, axis=None) for x in umap_firing_list]
 
 # Plot PCA and UMAP results
-fig, ax = plt.subplots(2, 1, figsize=(5, 5), sharex=True) 
+fig, ax = plt.subplots(2, 1, figsize=(5, 5), sharex=True)
 for i in range(len(pca_firing_list)):
     ax[0].plot(pca_firing_list[i], alpha=0.7)
     ax[1].plot(umap_zscore[i], alpha=0.7)

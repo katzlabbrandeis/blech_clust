@@ -18,15 +18,15 @@ class Tee:
         self.stderr = sys.stderr
         sys.stdout = self
         sys.stderr = self
-    
+
     def write(self, data):
         self.file.write(data)
         self.stdout.write(data)
         self.file.flush()
-        
+
     def flush(self):
         self.file.flush()
-        
+
     def close(self):
         sys.stdout = self.stdout
         sys.stderr = self.stderr
@@ -43,8 +43,8 @@ class path_handler():
 
 class pipeline_graph_check():
     """
-    Check that parent scripts executed properly before running child scripts 
-    
+    Check that parent scripts executed properly before running child scripts
+
     1) Check that computation graph is present
     2) Check that all scripts mentioned in computation graph are present
     3) For current run script, check that previous run script is present and executed successfully
@@ -65,8 +65,8 @@ class pipeline_graph_check():
         self.blech_clust_dir = this_path_handler.blech_clust_dir
         # self.blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
         graph_path = os.path.join(
-                self.blech_clust_dir, 
-                'params', 
+                self.blech_clust_dir,
+                'params',
                 'dependency_graph.json')
         if os.path.exists(graph_path):
             with open(graph_path, 'r') as graph_file_connect:
@@ -92,7 +92,7 @@ class pipeline_graph_check():
 
         for dir_name, this_dir in zip(directory_names, directories):
             for this_parent, this_children in this_dir.items():
-                this_parent_full = self.make_full_path(this_parent, dir_name) 
+                this_parent_full = self.make_full_path(this_parent, dir_name)
                 all_files.append(this_parent_full)
                 if type(this_children) == list:
                     this_children_full = [self.make_full_path(x, dir_name) for x in this_children]
@@ -206,7 +206,7 @@ class imp_metadata():
 
     def get_file_list(self,):
         self.file_list = os.listdir(self.dir_name)
-        
+
     def get_hdf5_name(self,):
         file_list = glob.glob(os.path.join(self.dir_name,'**.h5'))
         if len(file_list) > 0:

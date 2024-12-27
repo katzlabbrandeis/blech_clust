@@ -30,7 +30,7 @@ emg_merge_df['laser'].fillna(False, inplace = True)
 gapes = np.load('emg_output/gape_array.npy')
 ltps = np.load('emg_output/ltp_array.npy')
 
-# Reading single values from the hdf5 file seems hard, 
+# Reading single values from the hdf5 file seems hard,
 # needs the read() method to be called
 pre_stim = params_dict["spike_array_durations"][0]
 time_limits = [int(x) for x in params_dict['psth_params']['durations']]
@@ -52,12 +52,12 @@ for i in trange(len(emg_merge_df)):
     this_dict['ltps'] = plot_ltps[i]
     fin_frame_list.append(pd.DataFrame(this_dict))
 
-emg_merge_df_long = pd.concat(fin_frame_list, axis = 0) 
+emg_merge_df_long = pd.concat(fin_frame_list, axis = 0)
 
 # Melt gapes and ltps into long format
 emg_merge_df_long = pd.melt(
-        emg_merge_df_long, 
-        id_vars = [x for x in emg_merge_df_long.columns if x not in ['gapes', 'ltps']], 
+        emg_merge_df_long,
+        id_vars = [x for x in emg_merge_df_long.columns if x not in ['gapes', 'ltps']],
         value_vars = ['gapes', 'ltps'],
         var_name = 'emg_type',
         value_name = 'emg_value')
@@ -104,11 +104,11 @@ for plot_name, plot_data in zip(['gapes', 'ltps'], [gapes, ltps]):
             this_plot_data = plot_data[this_data_inds]
             this_ax.set_title(f"Taste: {this_ind[0]}, Laser: {this_ind[1]}")
             this_ax.pcolormesh(
-                    x[plot_indices], 
-                    np.arange(this_plot_data.shape[0]), 
+                    x[plot_indices],
+                    np.arange(this_plot_data.shape[0]),
                     this_plot_data[:,plot_indices])
-            this_ax.axvline(0, 
-                    color = 'red', linestyle = '--', 
+            this_ax.axvline(0,
+                    color = 'red', linestyle = '--',
                     linewidth = 2, alpha = 0.7)
             # this_ax.set_yticks(np.arange(this_plot_data.shape[0])+0.5)
             # this_ax.set_yticklabels(this_data_inds)
@@ -175,4 +175,3 @@ for car_name, car_dat in list(mean_emg_long.groupby('car')):
                 f'{car_name}_laser_overlay.png'),
             bbox_inches = 'tight')
     plt.close(g.fig)
-

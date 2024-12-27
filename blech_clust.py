@@ -60,19 +60,19 @@ import shutil
 import pylab as plt
 
 # Necessary blech_clust modules
-from utils import read_file
-from utils.qa_utils import channel_corr
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.blech_process_utils import path_handler
-from utils.importrhdutilities import read_header
+from utils import read_file # noqa
+from utils.qa_utils import channel_corr # noqa
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check # noqa
+from utils.blech_process_utils import path_handler # noqa
+from utils.importrhdutilities import read_header # noqa
 
 
 class HDF5Handler:
     """Handles HDF5 file operations for blech_clust"""
-    
+
     def __init__(self, dir_name, force_run=False):
         """Initialize HDF5 handler
-        
+
         Args:
             dir_name: Directory containing the data
             force_run: Whether to force operations without asking user
@@ -81,7 +81,7 @@ class HDF5Handler:
         self.force_run = force_run
         self.group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
         self.setup_hdf5()
-        
+
     def setup_hdf5(self):
         """Setup or load HDF5 file"""
         h5_search = glob.glob('*.h5')
@@ -93,7 +93,7 @@ class HDF5Handler:
             self.hdf5_name = str(os.path.dirname(self.dir_name)).split('/')[-1]+'.h5'
             print(f'No HDF5 found...Creating file {self.hdf5_name}')
             self.hf5 = tables.open_file(self.hdf5_name, 'w', title=self.hdf5_name[-1])
-            
+
     def initialize_groups(self):
         """Initialize HDF5 groups"""
         found_list = []
@@ -119,32 +119,32 @@ class HDF5Handler:
                         self.hf5.remove_node('/', this_group, recursive=True)
                     self.hf5.create_group('/', this_group)
                 print('Created nodes in HF5')
-        
+
         self.hf5.close()
         return continue_bool, reload_data_str
 
     def get_digital_inputs(self, sampling_rate):
         """Get digital input data from HDF5 file
-        
+
         Args:
             sampling_rate: Sampling rate of the data
-            
+
         Returns:
             numpy array of digital input data
         """
         with tables.open_file(self.hdf5_name, 'r') as hf5:
-            dig_in_list = [self._process_digital_input(x[:], sampling_rate) 
+            dig_in_list = [self._process_digital_input(x[:], sampling_rate)
                           for x in hf5.root.digital_in]
         return np.stack(dig_in_list)
-    
+
     @staticmethod
     def _process_digital_input(data, sampling_rate):
         """Process a single digital input channel
-        
+
         Args:
             data: Raw digital input data
             sampling_rate: Sampling rate
-            
+
         Returns:
             Processed digital input data
         """
@@ -153,10 +153,10 @@ class HDF5Handler:
         return np.reshape(truncated, (-1, sampling_rate)).sum(axis=-1)
 
 
-def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame, 
+def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
                               all_electrodes, all_params_dict):
     """Generate bash scripts for running single and parallel processing
-    
+
     Args:
         dir_name: Directory containing the data
         blech_clust_dir: Directory containing blech_clust code
@@ -179,7 +179,7 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
 
     # Generate parallel processing script
     num_cpu = multiprocessing.cpu_count()
-    
+
     electrode_bool = electrode_layout_frame.loc[
         electrode_layout_frame.electrode_ind.isin(all_electrodes)]
     not_none_bool = electrode_bool.loc[~electrode_bool.CAR_group.isin(
@@ -190,8 +190,8 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
     bash_electrode_list = not_emg_bool.electrode_ind.values
     job_count = np.min(
             (
-                len(bash_electrode_list), 
-                int(num_cpu-2), 
+                len(bash_electrode_list),
+                int(num_cpu-2),
                 all_params_dict["max_parallel_cpu"]
                 )
             )
@@ -259,7 +259,7 @@ continue_bool, reload_data_str = hdf5_handler.initialize_groups()
 hdf5_name = hdf5_handler.hdf5_name
 
 # Create directories to store waveforms, spike times, clustering results, and plots
-dir_list = ['spike_waveforms', 'spike_times', 'clustering_results', 
+dir_list = ['spike_waveforms', 'spike_times', 'clustering_results',
             'Plots', 'memory_monitor_clustering']
 
 dir_exists = [x for x in dir_list if os.path.exists(x)]
@@ -275,7 +275,7 @@ else:
 
 if not continue_bool:
     quit()
-    
+
 if recreate_str in ['y', 'yes']:
     [shutil.rmtree(x) for x in dir_list if os.path.exists(x)]
     [os.makedirs(x) for x in dir_list]
@@ -316,7 +316,7 @@ if file_type[0] != 'traditional':
     info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
     sampling_rate = int(info_file[2])
 
-    # Read the time.dat file for use in separating out 
+    # Read the time.dat file for use in separating out
     # the one file per signal type data
     num_recorded_samples = len(np.fromfile(
         dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
@@ -380,8 +380,8 @@ if reload_data_str in ['y', 'yes']:
             hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
     elif file_type == ['traditional']:
         read_file.read_traditional_intan(
-                hdf5_name, 
-                rhd_file_list, 
+                hdf5_name,
+                rhd_file_list,
                 electrode_layout_frame,
                 dig_in_int,
                 )
@@ -410,7 +410,7 @@ print('Calculating correlation matrix for quality check')
 n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
 qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
 down_dat_stack, chan_names = channel_corr.get_all_channels(
-        hdf5_name, 
+        hdf5_name,
         n_corr_samples = n_corr_samples)
 corr_mat = channel_corr.intra_corr(down_dat_stack)
 qa_out_path = os.path.join(dir_name, 'QA_output')
@@ -420,8 +420,8 @@ else:
     # Delete dir and remake
     shutil.rmtree(qa_out_path)
     os.mkdir(qa_out_path)
-channel_corr.gen_corr_output(corr_mat, 
-                   qa_out_path, 
+channel_corr.gen_corr_output(corr_mat,
+                   qa_out_path,
                    qa_threshold,)
 ##############################
 

@@ -12,7 +12,7 @@ import tables
 import os
 
 def get_all_channels(
-		hf5_path, 
+		hf5_path,
 		n_corr_samples = 10000,
 		):
 	"""
@@ -66,7 +66,7 @@ def intra_corr(X):
 	corr_mat = np.zeros((X.shape[0], X.shape[0]))
 	for i,j in tqdm(inds):
 		corr_mat[i,j] = pearsonr(X[i,:], X[j,:])[0]
-		corr_mat[j,i] = np.nan 
+		corr_mat[j,i] = np.nan
 	return corr_mat
 
 def gen_corr_output(corr_mat, plot_dir, threshold = 0.9):
@@ -75,7 +75,7 @@ def gen_corr_output(corr_mat, plot_dir, threshold = 0.9):
 
 	Input:
 		corr_mat: np.array (n_chans, n_chans)
-	
+
 	Output:
 		fig: matplotlib figure
 	"""
@@ -93,7 +93,7 @@ def gen_corr_output(corr_mat, plot_dir, threshold = 0.9):
 	ax[1].set_title('Thresholded Correlation Matrix')
 	ax[1].set_xlabel('Channel')
 	ax[1].set_ylabel('Channel')
-	ax[1].imshow(thresh_corr, 
+	ax[1].imshow(thresh_corr,
 			  interpolation = 'nearest')
 	cbar = fig.colorbar(im, ax = ax[1])
 	fig.tight_layout()

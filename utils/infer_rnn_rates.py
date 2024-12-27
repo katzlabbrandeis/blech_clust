@@ -5,7 +5,7 @@ Use Auto-regressive RNN to infer firing rates from a given data set.
 import argparse
 parser = argparse.ArgumentParser(description = 'Infer firing rates using RNN')
 parser.add_argument('data_dir', help = 'Path to data directory')
-parser.add_argument('--override_config', action = 'store_true', 
+parser.add_argument('--override_config', action = 'store_true',
                     help = 'Override config file and use provided arguments'+\
                             '(default: %(default)s)')
 parser.add_argument('--train_steps', type = int, default = 15000,
@@ -17,9 +17,9 @@ parser.add_argument('--bin_size', type = int, default = 25,
                     help = 'Bin size for binning spikes (default: %(default)s)')
 parser.add_argument('--train_test_split', type = float, default = 0.75,
                     help = 'Fraction of data to use for training (default: %(default)s)')
-parser.add_argument('--no_pca', action = 'store_true', 
+parser.add_argument('--no_pca', action = 'store_true',
                     help = 'Do not use PCA for preprocessing (default: %(default)s)')
-parser.add_argument('--retrain', action = 'store_true', 
+parser.add_argument('--retrain', action = 'store_true',
                     help = 'Force retraining of model. Will overwrite existing model'+\
                             ' (default: %(default)s)')
 parser.add_argument('--time_lims', type = int, nargs = 2, default = [1500, 4500],
@@ -138,7 +138,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     # Bin spikes
     # (tastes x trials, neurons, time)
     # for example : (120, 35, 280)
-    binned_spikes = np.reshape(taste_spikes, 
+    binned_spikes = np.reshape(taste_spikes,
                                (*taste_spikes.shape[:2], -1, bin_size)).sum(-1)
     binned_spikes_list.append(binned_spikes)
 
@@ -164,7 +164,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     # scaler = MinMaxScaler()
     inputs_long = scaler.fit_transform(inputs_long)
 
-    if use_pca: 
+    if use_pca:
         print('Performing PCA')
         # Perform PCA and get 95% explained variance
         pca_obj = PCA(n_components=0.95)
@@ -204,10 +204,10 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     # Shape: (time, trials, pca_components + 1)
     inputs_plus_context = np.concatenate(
             [
-                inputs, 
+                inputs,
                 stim_time[:,:,None],
                 trial_num_broad[:,:,None]
-                ], 
+                ],
             axis = -1)
 
     stim_t_input = inputs_plus_context[..., -2]
@@ -238,9 +238,9 @@ for taste_ind, taste_spikes in enumerate(spike_array):
         device = torch.device("cpu")
         print("Running on the CPU")
 
-    input_size = inputs_plus_context.shape[-1] 
+    input_size = inputs_plus_context.shape[-1]
     # We don't want to predict the stim time or trial number
-    output_size = inputs_plus_context.shape[-1] -2 
+    output_size = inputs_plus_context.shape[-1] -2
 
     # Instead of predicting activity in the SAME time-bin,
     # predict activity in the NEXT time-bin
@@ -255,8 +255,8 @@ for taste_ind, taste_spikes in enumerate(spike_array):
 
     # Split into train and test
     train_inds = np.random.choice(
-            np.arange(inputs.shape[1]), 
-            int(train_test_split * inputs.shape[1]), 
+            np.arange(inputs.shape[1]),
+            int(train_test_split * inputs.shape[1]),
             replace = False)
     test_inds = np.setdiff1d(np.arange(inputs.shape[1]), train_inds)
 
@@ -272,11 +272,11 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     test_labels = test_labels.to(device)
 
     ##############################
-    # Train 
+    # Train
     ##############################
-    net = autoencoderRNN( 
+    net = autoencoderRNN(
             input_size=input_size,
-            hidden_size= hidden_size, 
+            hidden_size= hidden_size,
             output_size=output_size,
             rnn_layers = 2,
             dropout = 0.2,
@@ -289,13 +289,13 @@ for taste_ind, taste_spikes in enumerate(spike_array):
             print('Retraining model')
         net.to(device)
         net, loss, cross_val_loss = train_model(
-                net, 
-                train_inputs, 
-                train_labels, 
+                net,
+                train_inputs,
+                train_labels,
                 output_size = output_size,
-                lr = 0.001, 
+                lr = 0.001,
                 train_steps = train_steps,
-                loss = loss_name, 
+                loss = loss_name,
                 test_inputs = test_inputs,
                 test_labels = test_labels,
                 )
@@ -348,7 +348,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
 
     # If pca was performed, first reverse PCA, then reverse pca standard scaling
-    if use_pca: 
+    if use_pca:
         # # Reverse NMF scaling
         # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
         # pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
@@ -372,12 +372,12 @@ for taste_ind, taste_spikes in enumerate(spike_array):
 
     # Loss plot
     fig, ax = plt.subplots()
-    ax.plot(loss, label = 'Train Loss') 
+    ax.plot(loss, label = 'Train Loss')
     ax.plot(cross_val_loss.keys(), cross_val_loss.values(), label = 'Test Loss')
     ax.legend(
-            bbox_to_anchor=(1.05, 1), 
+            bbox_to_anchor=(1.05, 1),
             loc='upper left', borderaxespad=0.)
-    ax.set_title(f'Losses') 
+    ax.set_title(f'Losses')
     fig.savefig(os.path.join(plots_dir,f'run_loss_taste_{taste_ind}.png'),
                 bbox_inches = 'tight')
     plt.close(fig)
@@ -424,7 +424,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
     fig.savefig(os.path.join(plots_dir, f'mean_firing_zscored_taste_{taste_ind}.png'))
     plt.close(fig)
 
-    # For every neuron, plot 1) spike raster, 2) convolved firing rate , 
+    # For every neuron, plot 1) spike raster, 2) convolved firing rate ,
     # 3) RNN predicted firing rate
     ind_plot_dir = os.path.join(plots_dir, 'individual_neurons')
     if not os.path.exists(ind_plot_dir):
@@ -448,7 +448,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
         ax[0] = vz.raster(ax[0], taste_spikes[:, i], marker = '|')
         ax[1].plot(conv_x, conv_rate[:,i].T, c = 'k', alpha = 0.1)
         # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
-        ax[2].plot(binned_x[1:], pred_firing[:,i].T, 
+        ax[2].plot(binned_x[1:], pred_firing[:,i].T,
                    c = 'k', alpha = 0.1)
         # ax[2].sharey(ax[1])
         for this_ax in ax:
@@ -457,7 +457,7 @@ for taste_ind, taste_spikes in enumerate(spike_array):
         ax[1].set_title(f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
         ax[2].set_title('RNN Predicted Firing Rate')
         fig.savefig(
-                os.path.join(ind_plot_dir, 
+                os.path.join(ind_plot_dir,
                              f'neuron_{i}_taste_{taste_ind}_raster_conv_pred.png')
                 )
         plt.close(fig)
@@ -527,7 +527,7 @@ for i in range(binned_spikes.shape[1]):
         ax[1].plot(conv_x, mean_conv_rate[j].T, c = cmap(j),
                    linewidth = 2)
         ax[1].fill_between(
-                conv_x, 
+                conv_x,
                 mean_conv_rate[j] - sd_conv_rate[j],
                 mean_conv_rate[j] + sd_conv_rate[j],
                 color = cmap(j), alpha = 0.1)
@@ -535,7 +535,7 @@ for i in range(binned_spikes.shape[1]):
         ax[2].plot(binned_x[1:], mean_pred_firing[j].T,
                    c = cmap(j), linewidth = 2)
         ax[2].fill_between(
-                binned_x[1:], 
+                binned_x[1:],
                 mean_pred_firing[j] - sd_pred_firing[j],
                 mean_pred_firing[j] + sd_pred_firing[j],
                 color = cmap(j), alpha = 0.1)
@@ -547,7 +547,7 @@ for i in range(binned_spikes.shape[1]):
     ax[2].set_title('RNN Predicted Firing Rate')
     fig.savefig(
             os.path.join(
-                ind_plot_dir, 
+                ind_plot_dir,
                 f'neuron_{i}_mean_raster_conv_pred.png'))
     plt.close(fig)
 
@@ -563,8 +563,8 @@ for i in range(pred_firing.shape[1]):
     img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis',
                   }
     #'vmin':min_val, 'vmax':max_val}
-    im0 = ax[0].imshow(cat_pred_firing, **img_kwargs) 
-    im1 = ax[1].imshow(cat_binned_spikes[:,1:], **img_kwargs) 
+    im0 = ax[0].imshow(cat_pred_firing, **img_kwargs)
+    im1 = ax[1].imshow(cat_binned_spikes[:,1:], **img_kwargs)
     ax[0].set_title('Pred')
     ax[1].set_title('True')
     # Colorbars under each subplot

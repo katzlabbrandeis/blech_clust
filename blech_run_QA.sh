@@ -1,5 +1,5 @@
 # Runs set of QA tests on Blech data
-DIR=$1 
+DIR=$1
 echo
 echo "=============================="
 echo "Running QA tests on Blech data"

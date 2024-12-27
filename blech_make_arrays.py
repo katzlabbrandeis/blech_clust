@@ -28,7 +28,7 @@ def create_spike_trains_for_digin(
         hf5,
         ):
         spike_train = []
-        for this_start in this_starts: 
+        for this_start in this_starts:
             spikes = np.zeros((len(units), durations[0] + durations[1]))
             for k in range(len(units)):
                 # Get the spike times around the end of taste delivery
@@ -38,24 +38,24 @@ def create_spike_trains_for_digin(
                         ]
                 spike_inds = np.logical_and(
                                 units[k].times[:] <= trial_bounds[0],
-                                units[k].times[:] >= trial_bounds[1] 
+                                units[k].times[:] >= trial_bounds[1]
                             )
                 spike_times = units[k].times[spike_inds]
-                spike_times = spike_times - this_start 
+                spike_times = spike_times - this_start
                 spike_times = (spike_times/sampling_rate_ms).astype(int) + durations[0]
                 # Drop any spikes that are too close to the ends of the trial
                 spike_times = spike_times[\
                         np.where((spike_times >= 0)*(spike_times < durations[0] + \
                         durations[1]))[0]]
                 spikes[k, spike_times] = 1
-                            
-            # Append the spikes array to spike_train 
+
+            # Append the spikes array to spike_train
             spike_train.append(spikes)
 
         # And add spike_train to the hdf5 file
         hf5.create_group('/spike_trains', dig_in_basename[i])
         spike_array = hf5.create_array(
-                f'/spike_trains/{dig_in_basename[i]}', 
+                f'/spike_trains/{dig_in_basename[i]}',
                 'spike_array', np.array(spike_train))
         hf5.flush()
 
@@ -73,7 +73,7 @@ def create_emg_trials_for_digin(
         emg_data = np.stack(emg_data)*0.195
 
         emg_data =  np.mean(
-                emg_data.reshape((*emg_data.shape[:2],-1, int(sampling_rate_ms))), 
+                emg_data.reshape((*emg_data.shape[:2],-1, int(sampling_rate_ms))),
                     axis = -1)
 
         # Write out ind:name map for each node
@@ -87,7 +87,7 @@ def create_emg_trials_for_digin(
         hf5.create_group('/emg_data', dig_in_basename[i])
         # Shape = (n_channels, n_trials, n_samples)
         hf5.create_array(
-                f'/emg_data/{dig_in_basename[i]}', 
+                f'/emg_data/{dig_in_basename[i]}',
                 'emg_array', np.array(emg_data))
         hf5.flush()
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     metadata_handler = imp_metadata(sys.argv)
 
-    # Perform pipeline graph check 
+    # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
     this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
     this_pipeline_check.check_previous(script_path)
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     # Open the hdf5 file
     hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 
-    # Grab the names of the arrays containing digital inputs, 
+    # Grab the names of the arrays containing digital inputs,
     # and pull the data into a numpy array
     dig_in_pathname, dig_in_basename, dig_in_data = get_dig_in_data(hf5)
     dig_in_diff = np.diff(dig_in_data,axis=-1)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     print(f'Taste dig_ins ::: \n{taste_str}\n')
     print(f'Laser dig_in ::: \n{laser_str}\n')
 
-    ##############################  
+    ##############################
     # Create trial info frame with following information
     # 1. Trial # (from 1 to n)
     # 2. Trial # (per taste)
@@ -217,14 +217,14 @@ if __name__ == '__main__':
         laser_info_frame['abs_trial_num'] = match_trials
 
     else:
-        
+
         # Dummy (place-holder) data
         laser_info_frame= pd.DataFrame(
                 dict(
                     dig_in_num = np.nan,
-                    dig_in_name = np.nan, 
+                    dig_in_name = np.nan,
                     laser = False,
-                    start = np.nan, 
+                    start = np.nan,
                     end = np.nan,
                     abs_trial_num = taste_info_frame['abs_trial_num'].values,
                     ),
@@ -285,14 +285,14 @@ if __name__ == '__main__':
     csv_path = os.path.join(metadata_handler.dir_name, 'trial_info_frame.csv')
     trial_info_frame.to_csv(csv_path, index=False)
 
-    # Get list of units under the sorted_units group. 
-    # Find the latest/largest spike time amongst the units, 
-    # and get an experiment end time 
+    # Get list of units under the sorted_units group.
+    # Find the latest/largest spike time amongst the units,
+    # and get an experiment end time
     # (to account for cases where the headstage fell off mid-experiment)
 
     # TODO: Move this out of here...maybe make it a util
     #============================================================#
-    # NOTE: Calculate headstage falling off same way for all not "none" channels 
+    # NOTE: Calculate headstage falling off same way for all not "none" channels
     # Pull out raw_electrode and raw_emg data
 
     # If sorting hasn't been done, use only emg channels
@@ -308,7 +308,7 @@ if __name__ == '__main__':
         print(emg_electrode_names)
         print('===============================================')
         cutoff_data = []
-        for this_el in tqdm(raw_emg_electrodes): 
+        for this_el in tqdm(raw_emg_electrodes):
             raw_el = this_el[:]
             # High bandpass filter the raw electrode recordings
             filt_el = get_filtered_electrode(
@@ -332,17 +332,17 @@ if __name__ == '__main__':
                             params_dict['max_breach_rate'],
                             params_dict['max_secs_above_cutoff'],
                             params_dict['max_mean_breach_rate_persec']
-                            ) 
-            # First output of recording cutoff is processed filtered electrode 
+                            )
+            # First output of recording cutoff is processed filtered electrode
             cutoff_data.append(this_out)
 
 
         elec_cutoff_frame = pd.DataFrame(
                 data = cutoff_data,
                 columns = [
-                    'breach_rate', 
-                    'breaches_per_sec', 
-                    'secs_above_cutoff', 
+                    'breach_rate',
+                    'breaches_per_sec',
+                    'secs_above_cutoff',
                     'mean_breach_rate_persec',
                     'recording_cutoff'
                     ],
@@ -362,7 +362,7 @@ if __name__ == '__main__':
     else:
         # Else use spiketimes
         units = hf5.get_node('/','sorted_units')
-        expt_end_time = np.max([x.times[-1] for x in units]) 
+        expt_end_time = np.max([x.times[-1] for x in units])
 
     # Check if any trials were cutoff
     cutoff_bool = np.logical_and(
@@ -380,12 +380,12 @@ if __name__ == '__main__':
 
     #============================================================#
 
-    ############################################################ 
+    ############################################################
     ## Processing
-    ############################################################ 
+    ############################################################
 
     taste_starts_cutoff = trial_info_frame.loc[~cutoff_bool].\
-            groupby('dig_in_num_taste').start_taste.apply(np.array).tolist() 
+            groupby('dig_in_num_taste').start_taste.apply(np.array).tolist()
 
     # Load durations from params file
     durations = params_dict['spike_array_durations']
@@ -396,14 +396,14 @@ if __name__ == '__main__':
         print('Sorted units found ==> Making spike trains')
         units = hf5.list_nodes('/sorted_units')
 
-        # Delete the spike_trains node in the hdf5 file if it exists, 
+        # Delete the spike_trains node in the hdf5 file if it exists,
         # and then create it
         if '/spike_trains' in hf5:
             hf5.remove_node('/spike_trains', recursive = True)
         hf5.create_group('/', 'spike_trains')
 
         # Pull out spike trains
-        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
+        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff):
             print(f'Creating spike-trains for {dig_in_basename[i]}')
             create_spike_trains_for_digin(
                     this_starts,
@@ -433,7 +433,7 @@ if __name__ == '__main__':
                 hf5.create_array(
                         dig_in_path,
                         'laser_onset_lag', laser_lags)
-                hf5.flush() 
+                hf5.flush()
 
     else:
         print('No sorted units found...NOT MAKING SPIKE TRAINS')
@@ -453,8 +453,8 @@ if __name__ == '__main__':
             hf5.remove_node('/emg_data', recursive = True)
         hf5.create_group('/', 'emg_data')
 
-        # Pull out emg trials 
-        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff): 
+        # Pull out emg trials
+        for i, this_starts in zip(taste_digin_inds, taste_starts_cutoff):
             print(f'Creating emg-trials for {dig_in_basename[i]}')
             create_emg_trials_for_digin(
                     this_starts,

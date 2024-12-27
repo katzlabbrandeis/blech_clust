@@ -11,19 +11,19 @@ import shutil
 import os
 
 # A function that accepts a numpy array of waveforms and creates a datashader image from them
-def waveforms_datashader(waveforms, x_values, 
+def waveforms_datashader(waveforms, x_values,
         downsample = True, threshold = None, dir_name = "datashader_temp",
                          ax = None):
 
-    # Make a pandas dataframe with two columns, x and y, 
+    # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
 
-        # First downsample the waveforms 10 times 
+        # First downsample the waveforms 10 times
         # (to remove the effects of 10 times upsampling during de-jittering)
         if downsample:
             waveforms = waveforms[:, ::10]
 
-        # Then make a new array of waveforms - 
+        # Then make a new array of waveforms -
         # the last element of each waveform is a NaN
         new_waveforms = np.zeros((waveforms.shape[0], waveforms.shape[1] + 1))
         new_waveforms[:, -1] = np.nan
@@ -35,7 +35,7 @@ def waveforms_datashader(waveforms, x_values,
         x[:-1] = x_values
 
         # Now make the dataframe
-        df = pd.DataFrame({'x': np.tile(x, new_waveforms.shape[0]), 
+        df = pd.DataFrame({'x': np.tile(x, new_waveforms.shape[0]),
             'y': new_waveforms.flatten()})
 
         # Datashader function for exporting the temporary image with the waveforms
@@ -44,13 +44,13 @@ def waveforms_datashader(waveforms, x_values,
         export = partial(export_image, background = "white", export_path=dir_name)
 
         # Produce a datashader canvas
-        canvas = ds.Canvas(x_range = (np.min(x_values), np.max(x_values)), 
+        canvas = ds.Canvas(x_range = (np.min(x_values), np.max(x_values)),
                 y_range = (df['y'].min() - 10, df['y'].max() + 10),
                 plot_height=1200, plot_width=1600)
         # Aggregate the data
-        agg = canvas.line(df, 'x', 'y', ds.count())   
+        agg = canvas.line(df, 'x', 'y', ds.count())
 
-        # Transfer the aggregated data to image using log 
+        # Transfer the aggregated data to image using log
         # transform and export the temporary image file
         export(tf.shade(agg, how='eq_hist'),'tempfile')
 
@@ -82,9 +82,9 @@ def waveforms_datashader(waveforms, x_values,
                 ind = np.argmin(np.abs(orig_line - val))
                 return fin_line[ind]
 
-            ax.axhline(y_transform(threshold), color ='red', 
+            ax.axhline(y_transform(threshold), color ='red',
                     linewidth = 1, linestyle = '--', alpha = 0.5)
-            ax.axhline(y_transform(-threshold), color ='red', 
+            ax.axhline(y_transform(-threshold), color ='red',
                     linewidth = 1, linestyle = '--', alpha = 0.5)
 
         # Delete the dataframe
@@ -93,6 +93,6 @@ def waveforms_datashader(waveforms, x_values,
         # Also remove the directory with the temporary image files
         shutil.rmtree(dir_name, ignore_errors = True)
 
-        # Return and figure and axis for adding axis labels, 
+        # Return and figure and axis for adding axis labels,
         # title and saving the file
         return fig, ax

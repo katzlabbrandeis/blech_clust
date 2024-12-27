@@ -3,9 +3,9 @@ import pylab as plt
 from scipy.stats import zscore
 
 def raster(ax, spike_array, marker = 'o', color = None):
-    inds = np.where(spike_array)         
-    if ax is None:                       
-        fig, ax = plt.subplots()         
+    inds = np.where(spike_array)
+    if ax is None:
+        fig, ax = plt.subplots()
     ax.scatter(inds[1],inds[0], marker = marker, color = color)
     return ax
 
@@ -14,7 +14,7 @@ def imshow(x, cmap = 'viridis'):
     Decorator function for more viewable firing rate heatmaps
     """
     plt.imshow(x,
-            interpolation='nearest',aspect='auto', 
+            interpolation='nearest',aspect='auto',
             origin = 'lower', cmap = cmap)
 
 def gen_square_subplots(num, figsize = None, sharex = False, sharey = False):
@@ -23,14 +23,14 @@ def gen_square_subplots(num, figsize = None, sharex = False, sharey = False):
     """
     square_len = int(np.ceil(np.sqrt(num)))
     row_num = int(np.ceil(num / square_len))
-    fig, ax = plt.subplots(row_num, square_len, 
+    fig, ax = plt.subplots(row_num, square_len,
             sharex = sharex, sharey = sharey, figsize = figsize)
     return fig, ax
 
 def firing_overview(data, t_vec = None, y_values_vec = None,
                     interpolation = 'nearest',
                     cmap = 'jet',
-                    #min_val = None, max_val=None, 
+                    #min_val = None, max_val=None,
                     cmap_lims = 'individual',
                     subplot_labels = None,
                     zscore_bool = False,
@@ -86,16 +86,16 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
     if figsize is None:
         fig, ax = plt.subplots(row_count, square_len, sharex='all',sharey='all')
     else:
-        fig, ax = plt.subplots(row_count, square_len, 
+        fig, ax = plt.subplots(row_count, square_len,
                                sharex='all',sharey='all',figsize=figsize)
     # Account for case where row and cols are both 1
     if not isinstance(ax,np.array([]).__class__):
         ax = np.array(ax)[np.newaxis, np.newaxis]
     if ax.ndim < 2:
         ax = ax[:,np.newaxis]
-    
+
     nd_idx_objs = list(np.ndindex(ax.shape))
-    
+
     x,y = np.meshgrid(t_vec, y_values_vec)
     if subplot_labels is None:
         subplot_labels = np.zeros(num_nrns)
@@ -105,8 +105,8 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
         plt.sca(ax[this_ind[0],this_ind[1]])
         plt.gca().set_title('{}:{}'.format(int(subplot_labels[nrn]),nrn))
         if backend == 'imshow':
-            plt.gca().imshow(data[nrn], 
-                interpolation=interpolation, aspect='auto', 
+            plt.gca().imshow(data[nrn],
+                interpolation=interpolation, aspect='auto',
                 origin='lower', cmap=cmap)
         elif backend == 'pcolormesh':
             plt.gca().pcolormesh(x, y,
@@ -115,4 +115,3 @@ def firing_overview(data, t_vec = None, y_values_vec = None,
                     vmin = min_val[nrn], vmax = max_val[nrn])
 
     return fig,ax
-

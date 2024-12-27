@@ -19,14 +19,14 @@ from pprint import pprint as pp
 import numpy as np
 import pandas as pd
 
-#  ______       _                      _____        _         
-# |  ____|     | |                    |  __ \      | |        
-# | |__   _ __ | |__  _   _ ___ ______| |  | | __ _| |_ __ _  
-# |  __| | '_ \| '_ \| | | / __|______| |  | |/ _` | __/ _` | 
-# | |____| |_) | | | | |_| \__ \      | |__| | (_| | || (_| | 
-# |______| .__/|_| |_|\__, |___/      |_____/ \__,_|\__\__,_| 
-#        | |           __/ |                                  
-#        |_|          |___/ 
+#  ______       _                      _____        _
+# |  ____|     | |                    |  __ \      | |
+# | |__   _ __ | |__  _   _ ___ ______| |  | | __ _| |_ __ _
+# |  __| | '_ \| '_ \| | | / __|______| |  | |/ _` | __/ _` |
+# | |____| |_) | | | | |_| \__ \      | |__| | (_| | || (_| |
+# |______| .__/|_| |_|\__, |___/      |_____/ \__,_|\__\__,_|
+#        | |           __/ |
+#        |_|          |___/
 
 """
 ephys_data.py - Class for streamlined electrophysiology data analysis
@@ -56,13 +56,13 @@ Usage:
     >>> from utils.ephys_data.ephys_data import ephys_data
     >>> # Initialize with data directory
     >>> data = ephys_data(data_dir='/path/to/data')
-    >>> 
+    >>>
     >>> # Load and process data
     >>> data.get_unit_descriptors()  # Get unit information
     >>> data.get_spikes()           # Extract spike data
     >>> data.get_firing_rates()     # Calculate firing rates
     >>> data.get_lfps()            # Extract LFP data
-    >>> 
+    >>>
     >>> # Access processed data
     >>> spikes = data.spikes       # Access spike data
     >>> firing = data.firing_array # Access firing rate data
@@ -71,7 +71,7 @@ Usage:
     >>> # Region-based analysis
     >>> data.get_region_units()    # Get units by brain region
     >>> region_spikes = data.return_region_spikes('region_name')
-    >>> 
+    >>>
     >>> # Handle laser conditions (if present)
     >>> data.check_laser()         # Check for laser trials
     >>> data.separate_laser_data() # Split data by laser condition
@@ -90,7 +90,7 @@ class ephys_data():
 
     @staticmethod
     def calc_stft(
-        trial, 
+        trial,
         max_freq,
         time_range_tuple,
         Fs,
@@ -118,7 +118,7 @@ class ephys_data():
         fin_freq = f[f<max_freq]
         fin_t = t[np.where((t>=time_range_tuple[0])*(t<time_range_tuple[1]))]
         return  fin_freq, fin_t, this_stft
-                            
+
     # Calculate absolute and phase
     @staticmethod
     def parallelize(func, iterator):
@@ -129,10 +129,10 @@ class ephys_data():
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt , spike_array):
         """
-        step_size 
+        step_size
         window_size :: params :: In milliseconds. For moving window firing rate
                                 calculation
-        sampling_rate :: params :: In ms, To calculate total number of bins 
+        sampling_rate :: params :: In ms, To calculate total number of bins
         spike_array :: params :: N-D array with time as last dimension
         """
 
@@ -220,9 +220,9 @@ class ephys_data():
     # Initialize instance
     ###################
 
-    def __init__(self, 
+    def __init__(self,
             data_dir = None):
-        
+
         """
         data_dirs : where to look for hdf5 file
             : get_data() loads data from this directory
@@ -234,8 +234,8 @@ class ephys_data():
                     'Please select directory with HDF5 file')
         else:
             self.data_dir =     data_dir
-            self.hdf5_path =    self.get_hdf5_path(data_dir) 
-            self.hdf5_name =    os.path.basename(self.hdf5_path) 
+            self.hdf5_path =    self.get_hdf5_path(data_dir)
+            self.hdf5_name =    os.path.basename(self.hdf5_path)
 
             # self.spikes = None
 
@@ -243,7 +243,7 @@ class ephys_data():
         # if file is currently accessed
         # Created for multiprocessing of fits
         #os.environ[self.hdf5_name]="0"
-        
+
         self.firing_rate_params = {
             'type'          :   None,
             'step_size'     :   None,
@@ -274,19 +274,19 @@ class ephys_data():
         # Resolution has to be increased for phase of higher frequencies
         # Can be passed as kwargs to "calc_stft"
         self.stft_params = {
-                'Fs' : 1000, 
+                'Fs' : 1000,
                 'signal_window' : 500,
                 'window_overlap' : 499,
                 'max_freq' : 20,
                 'time_range_tuple' : (0,5)
                 }
-         
+
     #class access:
     #    def __init__(self, key_name):
     #        os.environ[key_name] = '0'
 
     #    def check(self):
-    #        access_bool = 
+    #        access_bool =
 
     def extract_and_process(self):
         self.get_unit_descriptors()
@@ -308,7 +308,7 @@ class ephys_data():
             self.unit_descriptors = hf5_file.root.unit_descriptor[:]
 
     def check_laser(self):
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
             dig_in_list = \
                 [x for x in hf5.list_nodes('/spike_trains') \
                 if 'dig_in' in x.__str__()]
@@ -316,7 +316,7 @@ class ephys_data():
             # Mark whether laser exists or not
             self.laser_durations_exists = sum([dig_in.__contains__('laser_durations') \
                 for dig_in in dig_in_list]) > 0
-        
+
             # If it does, pull out laser durations
             if self.laser_durations_exists:
                 self.laser_durations = [dig_in.laser_durations[:] \
@@ -324,7 +324,7 @@ class ephys_data():
 
                 non_zero_laser_durations = np.sum(self.laser_durations) > 0
 
-            # If laser_durations exists, only non_zero durations 
+            # If laser_durations exists, only non_zero durations
             # will indicate laser
             # If it doesn't exist, then mark laser as absent
             if self.laser_durations_exists:
@@ -340,7 +340,7 @@ class ephys_data():
         Extract spike arrays from specified HD5 files
         """
         print('Loading spikes')
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/spike_trains' in hf5:
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains') \
@@ -376,10 +376,10 @@ class ephys_data():
         Wrapper function to extract LFPs from raw data files and save to HDF5
         Loads relevant information for .info file
         """
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0] 
+        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             json_dict = json.load(open(json_path,'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_ins'] 
+            taste_dig_ins = json_dict['taste_params']['dig_ins']
         else:
             raise Exception("Cannot find json file. Make sure it's present")
         # Add final argument to argument list
@@ -392,7 +392,7 @@ class ephys_data():
         This is done separately from "get_lfps" to avoid
         the overhead of reading the large lfp arrays
         """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/Parsed_LFP_channels' not in hf5:
                 extract_bool = True
             else:
@@ -401,7 +401,7 @@ class ephys_data():
         if extract_bool:
             self.extract_lfps()
 
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
             self.parsed_lfp_channels = \
                     hf5.root.Parsed_LFP_channels[:]
 
@@ -411,7 +411,7 @@ class ephys_data():
         - initiate LFP extraction, or
         - pull LFP arrays from HDF5 file
         """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
 
             if ('/Parsed_LFP' not in hf5) or (re_extract == True):
                 extract_bool = True
@@ -421,10 +421,10 @@ class ephys_data():
         if extract_bool:
             self.extract_lfps()
 
-        with tables.open_file(self.hdf5_path, 'r+') as hf5: 
+        with tables.open_file(self.hdf5_path, 'r+') as hf5:
             lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')\
                     if 'dig_in' in node.__str__()]
-            # Account for parsed LFPs being different 
+            # Account for parsed LFPs being different
             self.lfp_array = np.asarray([node[:] for node in lfp_nodes])
             self.all_lfp_array = \
                     self.lfp_array.\
@@ -486,7 +486,7 @@ class ephys_data():
 
         if params['type'] == 'conv':
             param_name_list = ['step_size','window_size','dt']
-            
+
             # This checks if anything is missing
             # And raises exception if anything missing
             check_firing_rate_params(params,param_name_list)
@@ -530,7 +530,7 @@ class ephys_data():
             - all_firing_array : 3D array of all firing rates
             - all_normalized_firing : 3D array of all normalized firing rates
         """
-        
+
         if 'spikes' not in dir(self):
             # raise Exception('Run method "get_spikes" first')
             print('No spikes found, getting spikes ...')
@@ -550,12 +550,12 @@ class ephys_data():
         #    dt = self.firing_rate_params['dt'],
         #    spike_array = spikes)
         #                    for spikes in self.spikes]
-        
+
         if np.sum([self.firing_list[0].shape == x.shape \
                 for x in self.firing_list]) == len(self.firing_list):
             print('All tastes have equal dimensions,' \
                     'concatenating and normalizing')
-            
+
             # Reshape for backward compatiblity
             self.firing_array = np.asarray(self.firing_list).swapaxes(1,2)
             # Concatenate firing across all tastes
@@ -565,12 +565,12 @@ class ephys_data():
                         reshape(-1, self.firing_array.shape[1],\
                                 self.firing_array.shape[-1]).\
                         swapaxes(0,1)
-            
+
             # Calculate normalized firing
             min_vals = [np.min(self.firing_array[:,nrn,:,:],axis=None) \
-                    for nrn in range(self.firing_array.shape[1])] 
+                    for nrn in range(self.firing_array.shape[1])]
             max_vals = [np.max(self.firing_array[:,nrn,:,:],axis=None) \
-                    for nrn in range(self.firing_array.shape[1])] 
+                    for nrn in range(self.firing_array.shape[1])]
             self.normalized_firing = np.asarray(\
                     [(self.firing_array[:,nrn,:,:] - min_vals[nrn])/\
                         (max_vals[nrn] - min_vals[nrn]) \
@@ -655,7 +655,7 @@ class ephys_data():
             raise Exception('No laser trials in this experiment')
 
     def get_info_dict(self):
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0] 
+        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             self.info_dict = json_dict = json.load(open(json_path,'r'))
         else:
@@ -668,7 +668,7 @@ class ephys_data():
         """
         #json_name = self.hdf5_path.split('.')[0] + '.info'
         #json_path = os.path.join(self.data_dir, json_name)
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0] 
+        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             json_dict = json.load(open(json_path,'r'))
             self.region_electrode_dict = json_dict["electrode_layout"]
@@ -681,7 +681,7 @@ class ephys_data():
         """
         Extracts indices of units by region of electrodes
         `"""
-        if "region_electrode_dict" not in dir(self): 
+        if "region_electrode_dict" not in dir(self):
             self.get_region_electrodes()
         if "unit_descriptors" not in dir(self):
             self.get_unit_descriptors()
@@ -706,7 +706,7 @@ class ephys_data():
             for elec_num,elec in enumerate(unit_electrodes):
                 if elec in val:
                     # This tells you which car group each neuron is in
-                    car_ind_vec[elec_num] = num 
+                    car_ind_vec[elec_num] = num
 
         self.car_units = [np.where(car_ind_vec == x)[0] \
                 for x in np.unique(car_ind_vec)]
@@ -736,7 +736,7 @@ class ephys_data():
                 '\n' + f"===> {self.region_names, 'all'}")
             else:
                 this_region_units = self.region_units[region_ind[0]]
-                region_spikes = [x[:,this_region_units] for x in self.spikes] 
+                region_spikes = [x[:,this_region_units] for x in self.spikes]
                 return np.array(region_spikes)
         else:
             return np.array(self.spikes)
@@ -756,7 +756,7 @@ class ephys_data():
                 '\n' + f"===> {self.region_names, 'all'}")
             else:
                 this_region_units = self.region_units[region_ind[0]]
-                region_firing = [x[this_region_units] for x in self.firing_array] 
+                region_firing = [x[this_region_units] for x in self.firing_array]
                 return np.array(region_firing)
         else:
             return np.array(self.firing_array)
@@ -782,10 +782,10 @@ class ephys_data():
 
         self.lfp_region_electrodes = [np.where(region_ind_vec == x)[0] \
                 for x in np.unique(region_ind_vec)]
-        
+
     def get_stft(
-            self, 
-            recalculate = False, 
+            self,
+            recalculate = False,
             dat_type = ['amplitude'],
             write_out = True):
         """
@@ -807,16 +807,16 @@ class ephys_data():
                     self.freq_vec = hf5.root.stft.freq_vec[:]
                     self.time_vec = hf5.root.stft.time_vec[:]
                     if 'raw' in dat_type:
-                        self.stft_array = hf5.root.stft.stft_array[:] 
+                        self.stft_array = hf5.root.stft.stft_array[:]
                     if 'amplitude' in dat_type:
-                        self.amplitude_array = hf5.root.stft.amplitude_array[:] 
+                        self.amplitude_array = hf5.root.stft.amplitude_array[:]
                     if 'phase' in dat_type:
                         self.phase_array = hf5.root.stft.phase_array[:]
 
                     # If everything there, then don't calculate
                     # Unless forced to
-                    self.calc_stft_bool = 0 
-                    
+                    self.calc_stft_bool = 0
+
                 else:
                     self.calc_stft_bool = 1
 
@@ -944,14 +944,14 @@ class ephys_data():
             self.get_stft()
         if 'lfp_region_electrodes' not in dir(self):
             self.get_lfp_electrodes()
-        
+
         aggregate_amplitude = []
         for region in self.lfp_region_electrodes:
            aggregate_amplitude.append(\
                    np.median(self.amplitude_array[:,region],axis=(0,1,2)))
         return np.array(aggregate_amplitude)
 
-    
+
     def get_trial_info_frame(self):
         self.trial_info_frame = pd.read_csv(
                 os.path.join(self.data_dir,'trial_info_frame.csv'))
@@ -978,8 +978,8 @@ class ephys_data():
         grouped_frame = wanted_frame.groupby(group_cols)
         group_list = list(grouped_frame)
         group_names = [x[0] for x in group_list]
-        group_name_frame = pd.DataFrame(group_names, columns = group_cols) 
-        grouped_frame_list = [x[1] for x in group_list] 
+        group_name_frame = pd.DataFrame(group_names, columns = group_cols)
+        grouped_frame_list = [x[1] for x in group_list]
         # Aggregate 'taste_rel_trial_num' into a list for each group
         trial_inds = [x['taste_rel_trial_num'].tolist() for x in grouped_frame_list]
         group_name_frame['trial_inds'] = trial_inds
@@ -1007,7 +1007,7 @@ class ephys_data():
             spike_inds = np.where(this_seq_spikes)
             this_seq_spikes = pd.DataFrame(
                     dict(
-                        trial_num = spike_inds[0], 
+                        trial_num = spike_inds[0],
                         neuron_num = spike_inds[1],
                         time_num = spike_inds[2],
                         )
@@ -1049,7 +1049,7 @@ class ephys_data():
                         firing = this_seq_firing.flatten(),
                         )
                     )
-            this_seq_firing['taste_num'] = taste_ind 
+            this_seq_firing['taste_num'] = taste_ind
             this_seq_firing['laser_tuple'] = str(laser_tuple)
             sequestered_firing_frame_list.append(this_seq_firing)
         self.trial_inds_frame['firing'] = self.sequestered_firing

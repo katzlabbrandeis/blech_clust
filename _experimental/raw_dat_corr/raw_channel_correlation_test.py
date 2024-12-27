@@ -17,7 +17,7 @@ from utils import read_file
 from utils.blech_utils import entry_checker, imp_metadata
 from utils.blech_process_utils import path_handler
 
-dir_list_path = '/media/bigdata/projects/pytau/pytau/data/fin_inter_list_3_14_22.txt' 
+dir_list_path = '/media/bigdata/projects/pytau/pytau/data/fin_inter_list_3_14_22.txt'
 with open(dir_list_path, 'r') as f:
     dir_list = f.read().splitlines()
 
@@ -48,7 +48,7 @@ for this_dir in tqdm(dir_list):
     electrode_layout_frame = pd.read_csv(layout_path)
 
     # Read data files, and append to electrode arrays
-    with tables.open_file(hdf5_name, 'r+') as hf5: 
+    with tables.open_file(hdf5_name, 'r+') as hf5:
         if '/raw' not in hf5:
             hf5.create_group('/', 'raw')
     read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
@@ -58,11 +58,11 @@ for this_dir in tqdm(dir_list):
 down_rate = 100
 
 corr_list = []
-#elec_region_list = [] 
+#elec_region_list = []
 for this_dir in tqdm(dir_list):
     metadata_handler = imp_metadata([[], this_dir])
     hdf5_name = metadata_handler.hdf5_name
-    with tables.open_file(hdf5_name, 'r+') as hf5: 
+    with tables.open_file(hdf5_name, 'r+') as hf5:
         raw_elecs = hf5.list_nodes('/raw')
         down_dat = [x[:][::down_rate] for x in raw_elecs]
     corr_mat = intra_corr(np.vstack(down_dat))
@@ -117,4 +117,3 @@ for i, this_dir in enumerate(dir_list):
     plt.tight_layout()
     plt.savefig(os.path.join(plot_dir, f'{i}_{this_basename}_corr.png'))
     plt.close(fig)
-

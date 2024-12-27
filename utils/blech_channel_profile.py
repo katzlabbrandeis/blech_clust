@@ -1,5 +1,5 @@
 """
-Generates plots in data directory for entire timeseries of 
+Generates plots in data directory for entire timeseries of
 DIG_INs and AMP channels
 """
 
@@ -53,7 +53,7 @@ elif file_type == ['one file per signal type']:
 
 if len(amp_files) < 1:
     raise Exception("Couldn't find amp*.dat files in dir" + "\n" +\
-            f"{dir_path}")	
+            f"{dir_path}")
 
 # Plot files
 print("Now plotting ampilfier signals")
@@ -63,7 +63,7 @@ if file_type == ['one file per channel']:
 	row_num = np.min((row_lim, len(amp_files)))
 	col_num = int(np.ceil(len(amp_files)/row_num))
 	#Create plot
-	fig,ax = plt.subplots(row_num, col_num, 
+	fig,ax = plt.subplots(row_num, col_num,
 	        sharex=True, sharey=True, figsize = (15,10))
 	for this_file, this_ax in tqdm(zip(amp_files, ax.flatten())):
 	    data = np.fromfile(this_file, dtype = np.dtype('int16'))
@@ -80,7 +80,7 @@ elif file_type == ['one file per signal type']:
 	row_num = np.min((row_lim, num_electrodes))
 	col_num = int(np.ceil(num_electrodes/row_num))
 	#Create plot
-	fig,ax = plt.subplots(row_num, col_num, 
+	fig,ax = plt.subplots(row_num, col_num,
 	        sharex=True, sharey=True, figsize = (15,10))
 	for e_i in tqdm(range(num_electrodes)):
 	    data = amp_reshape[e_i,:]
@@ -90,7 +90,7 @@ elif file_type == ['one file per signal type']:
 	plt.suptitle('Amplifier Data')
 	fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
 	plt.close(fig)
-	
+
 print("Now plotting digital input signals")
 if file_type == ['one file per channel']:
 	fig,ax = plt.subplots(len(digin_files),

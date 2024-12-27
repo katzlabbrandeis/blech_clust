@@ -9,12 +9,12 @@ Created on Wed Feb 13 19:36:13 2019
 
 """
 
-# ____       _               
-#/ ___|  ___| |_ _   _ _ __  
-#\___ \ / _ \ __| | | | '_ \ 
+# ____       _
+#/ ___|  ___| |_ _   _ _ __
+#\___ \ / _ \ __| | | | '_ \
 # ___) |  __/ |_| |_| | |_) |
-#|____/ \___|\__|\__,_| .__/ 
-#                     |_|    
+#|____/ \___|\__|\__,_| .__/
+#                     |_|
 
 # =============================================================================
 # Import stuff
@@ -28,9 +28,9 @@ import glob
 
 # 3rd-party libraries
 import numpy as np # module for low-level scientific computing
-#Hilbert transform to determine the amplitude envelope and 
+#Hilbert transform to determine the amplitude envelope and
 #instantaneous frequency of an amplitude-modulated signal
-from scipy.signal import hilbert 
+from scipy.signal import hilbert
 from scipy.signal import butter
 from scipy.signal import filtfilt
 import matplotlib.pyplot as plt # makes matplotlib work like MATLAB. ’pyplot’ functions.
@@ -123,12 +123,12 @@ hf5 = tables.open_file(hdf5_name, 'r+')
 trains_dig_in = hf5.list_nodes('/spike_trains')
 spike_array = np.asarray([spikes.spike_array[:] for spikes in trains_dig_in])
 
-# ____                              _             
-#|  _ \ _ __ ___   ___ ___  ___ ___(_)_ __   __ _ 
+# ____                              _
+#|  _ \ _ __ ___   ___ ___  ___ ___(_)_ __   __ _
 #| |_) | '__/ _ \ / __/ _ \/ __/ __| | '_ \ / _` |
 #|  __/| | | (_) | (_|  __/\__ \__ \ | | | | (_| |
 #|_|   |_|  \___/ \___\___||___/___/_|_| |_|\__, |
-#                                           |___/ 
+#                                           |___/
 
 # =============================================================================
 # Calculate phases
@@ -140,8 +140,8 @@ filtered_tuple = collections.namedtuple('BandpassFilteredData',['Band','Taste','
 filtered_signal_list = [ filtered_tuple (band, taste,
                                 butter_bandpass_filter(
                                             data = dig_in,
-                                            lowcut = iter_freqs[band][1], 
-                                            highcut =  iter_freqs[band][2], 
+                                            lowcut = iter_freqs[band][1],
+                                            highcut =  iter_freqs[band][2],
                                             fs = 1000)) \
                                             for taste,dig_in in enumerate(lfp_list)\
                     for band in trange(len(iter_freqs), desc = 'bands') \
@@ -150,7 +150,7 @@ filtered_signal_list = [ filtered_tuple (band, taste,
 # =============================================================================
 # Use mean LFP (across channels) to calculate phase (since all channels have same phase)
 # =============================================================================
-# Process filtered signals to extract hilbert transform and phase 
+# Process filtered signals to extract hilbert transform and phase
 # Find channel closest in phase to the mean phase of all channels and use
 # that for the phase
 
@@ -205,7 +205,7 @@ def make_array_identifiers(array):
                 np.broadcast_to(
                     np.reshape(
                         np.arange(array.shape[dim]),
-                                this_shape.astype('int')), 
+                                this_shape.astype('int')),
                     array.shape).flatten())
     return nd_idx_objs
 
@@ -222,20 +222,20 @@ phase_frame = pd.concat(
                 for phase, wave_num, idx in \
     zip(final_phase_list,
         wavelength_num_list,
-        map(lambda dat: make_array_identifiers(dat.Data),final_phase_list))  
+        map(lambda dat: make_array_identifiers(dat.Data),final_phase_list))
         ]
         )
-        
+
 
 # Merge : Gives dataframe with length of (bands x numner of spikes)
 final_phase_frame = pd.merge(spikes_frame,phase_frame,how='inner')
 
-#  ___        _               _   
-# / _ \ _   _| |_ _ __  _   _| |_ 
+#  ___        _               _
+# / _ \ _   _| |_ _ __  _   _| |_
 #| | | | | | | __| '_ \| | | | __|
-#| |_| | |_| | |_| |_) | |_| | |_ 
+#| |_| | |_| | |_| |_) | |_| | |_
 # \___/ \__,_|\__| .__/ \__,_|\__|
-#                |_|              
+#                |_|
 
 #Flush and close file
 hf5.flush()
@@ -250,4 +250,3 @@ with tables.open_file(hdf5_name,'r+') as hf5:
 #Save dframes into node within HdF5 file
 final_phase_frame.to_hdf(hdf5_name,'Spike_Phase_Dframe/dframe', mode = 'a')
 freq_dframe.to_hdf(hdf5_name,'Spike_Phase_Dframe/freq_keys', mode = 'a')
-

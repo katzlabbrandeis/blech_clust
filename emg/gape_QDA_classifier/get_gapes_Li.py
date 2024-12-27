@@ -18,7 +18,7 @@ from utils.blech_utils import imp_metadata, pipeline_graph_check
 def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 
     peak_ind = detect_peaks(
-        this_trial, 
+        this_trial,
         mpd=85,
         mph=np.mean(
             this_trial[:pre_stim]) +
@@ -28,7 +28,7 @@ def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 
     # Get the indices, in the smoothed signal,
     # that are below the mean of the smoothed signal
-    below_mean_ind = np.where(this_trial <= pre_stim_mean)[0] 
+    below_mean_ind = np.where(this_trial <= pre_stim_mean)[0]
 
     # Throw out peaks if they happen in the pre-stim period
     accept_peaks = np.where(peak_ind > pre_stim)[0]
@@ -158,7 +158,7 @@ env = np.load('emg_output/flat_emg_env_data.npy')
 
 merge_frame = pd.read_csv('emg_output/emg_env_merge_df.csv')
 merge_frame['laser'] = merge_frame['laser_duration_ms'].astype(str) + \
-        '_' + merge_frame['laser_lag_ms'].astype(str) 
+        '_' + merge_frame['laser_lag_ms'].astype(str)
 
 merge_frame.drop(columns = ['laser_duration_ms','laser_lag_ms'], inplace = True)
 merge_frame.drop(columns = ['dig_in_num_laser','dig_in_name_laser'], inplace = True)
@@ -169,7 +169,7 @@ gapes_Li, sig_trials_final = zip(*outs)
 gapes_Li = np.array(gapes_Li)
 sig_trials_final = np.array(sig_trials_final)
 
-first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li] 
+first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li]
 
 ############################################################
 ## Plots
@@ -185,7 +185,7 @@ first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li]
 car_group_frames_list = [x[1] for x in list(merge_frame.groupby('car'))]
 
 for this_car_frame in car_group_frames_list:
-    car_name = this_car_frame.car.unique()[0] 
+    car_name = this_car_frame.car.unique()[0]
     this_env_dat = env[this_car_frame.index.values]
 
     n_dig_ins = len(this_car_frame['dig_in_name_taste'].unique())
@@ -254,9 +254,9 @@ for this_car_frame in car_group_frames_list:
 kern_len = 300
 kern = np.ones(kern_len)/kern_len
 gape_rate_list = []
-for this_gapes in gapes_Li: 
+for this_gapes in gapes_Li:
     conv_rate = np.convolve(
-        this_gapes, kern, mode = 'same') 
+        this_gapes, kern, mode = 'same')
     gape_rate_list.append(conv_rate)
 gape_rate = np.array(gape_rate_list)*1000
 
@@ -276,7 +276,7 @@ mean_gapes_frame = gapes_frame.groupby(
         ['car','laser','dig_in_name_taste','time']).mean().reset_index()
 
 g = sns.relplot(
-        x = 'time', y = 'gape_rate', 
+        x = 'time', y = 'gape_rate',
         hue = 'dig_in_name_taste', col = 'laser',
         row = 'car', data = mean_gapes_frame, kind = 'line',
         aspect = 1, height = 4)

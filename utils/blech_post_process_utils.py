@@ -29,7 +29,7 @@ class sort_file_handler():
             # Check when more than one cluster is specified
             sort_table['len_cluster'] = \
                     [len(re.findall('[0-9]+',str(x))) for x in sort_table.Cluster]
-            
+
             # Get splits and merges out of the way first
             sort_table.sort_values(
                     ['len_cluster','Split'],
@@ -50,7 +50,7 @@ class sort_file_handler():
         try:
             counter, next_row = next(self.sort_table_gen)
         except StopIteration:
-            return None, None, None, None 
+            return None, None, None, None
 
         self.current_row = next_row
 
@@ -99,7 +99,7 @@ def get_electrode_details(this_sort_file_handler):
 
         num_clusters_str, continue_bool = entry_checker(\
                 msg = 'Solution number :: ',
-                check_func = str.isdigit, 
+                check_func = str.isdigit,
                 fail_response = 'Please enter an interger')
         if continue_bool:
             num_clusters = int(num_clusters_str)
@@ -148,11 +148,11 @@ def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
         isi_plot = mpimg.imread(
                 './Plots/{:02}/clusters{}/'\
                                 'Cluster{}_ISIs.png'\
-                                .format(electrode_num, num_clusters, cluster)) 
+                                .format(electrode_num, num_clusters, cluster))
         waveform_plot =  mpimg.imread(
                 './Plots/{:02}/clusters{}/'\
                                 'Cluster{}_waveforms.png'\
-                                .format(electrode_num, num_clusters, cluster)) 
+                                .format(electrode_num, num_clusters, cluster))
         if len(clusters) < 2:
             ax[0].imshow(isi_plot,aspect='auto');ax[0].axis('off')
             ax[1].imshow(waveform_plot,aspect='auto');ax[1].axis('off')
@@ -166,10 +166,10 @@ def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
     plt.show()
 
 def generate_cluster_plots(
-        split_predictions, 
-        spike_waveforms, 
-        spike_times, 
-        n_clusters, 
+        split_predictions,
+        spike_waveforms,
+        spike_times,
+        n_clusters,
         this_cluster,
         sampling_rate,
         ):
@@ -177,7 +177,7 @@ def generate_cluster_plots(
     Generate grid of plots for each cluster
 
     Inputs:
-        split_predictions: array of cluster numbers for each split 
+        split_predictions: array of cluster numbers for each split
         spike_waveforms: array of waveforms
         spike_times: array of spike times
         n_clusters: number of clusters
@@ -192,17 +192,17 @@ def generate_cluster_plots(
 
     n_rows = int(np.ceil(np.sqrt(n_clusters)))
     n_cols = int(np.ceil(n_clusters/n_rows))
-    fig, ax = plt.subplots(n_rows, n_cols, 
+    fig, ax = plt.subplots(n_rows, n_cols,
                            figsize = (10,10))
 
     for cluster in range(n_clusters):
         split_points = np.where(split_predictions == cluster)[0]
         # Waveforms and times from the chosen cluster
-        slices_dejittered = spike_waveforms[this_cluster, :]            
+        slices_dejittered = spike_waveforms[this_cluster, :]
         times_dejittered = spike_times[this_cluster]
         # Waveforms and times from the chosen split of the chosen cluster
         slices_dejittered = slices_dejittered[split_points, :]
-        times_dejittered = times_dejittered[split_points]               
+        times_dejittered = times_dejittered[split_points]
 
         generate_datashader_plot(
                 slices_dejittered,
@@ -229,10 +229,10 @@ def get_clustering_params():
             'Number of random restarts']
     values = [100,0.001,10]
     fields_str = (
-            f':: {fields[0]} (1000 is plenty) : {values[0]} \n' 
-            f':: {fields[1]} (usually 0.0001) : {values[1]} \n' 
+            f':: {fields[0]} (1000 is plenty) : {values[0]} \n'
+            f':: {fields[1]} (usually 0.0001) : {values[1]} \n'
             f':: {fields[2]} (10 is plenty) : {values[2]}')
-    print(fields_str) 
+    print(fields_str)
     edit_bool = 'a'
     edit_bool_msg, continue_bool = entry_checker(\
             msg = 'Use these parameters? (y/n)',
@@ -240,17 +240,17 @@ def get_clustering_params():
             fail_response = 'Please enter (y/n)')
     if continue_bool:
         if edit_bool_msg == 'y':
-            n_iter = values[0] 
-            thresh = values[1] 
-            n_restarts = values[2] 
+            n_iter = values[0]
+            thresh = values[1]
+            n_restarts = values[2]
 
-        elif edit_bool_msg == 'n': 
+        elif edit_bool_msg == 'n':
             clustering_params = easygui.multenterbox(msg = 'Fill in the'\
-                    'parameters for re-clustering (using a GMM)', 
+                    'parameters for re-clustering (using a GMM)',
                     fields  = fields, values = values)
             n_iter = int(clustering_params[0])
             thresh = float(clustering_params[1])
-            n_restarts = int(clustering_params[2]) 
+            n_restarts = int(clustering_params[2])
     else:
         return False, None, None, None, None
 
@@ -258,7 +258,7 @@ def get_clustering_params():
 
 
 def get_split_cluster_choice(n_clusters):
-    choice_list = tuple([str(i) for i in range(n_clusters)]) 
+    choice_list = tuple([str(i) for i in range(n_clusters)])
 
     chosen_msg, continue_bool = entry_checker(\
             msg = f'Please select from {choice_list} (anything separated) '\
@@ -295,7 +295,7 @@ def prepare_data(
     """
 
     n_pc = 3
-    data = np.zeros((len(this_cluster), n_pc + 3))  
+    data = np.zeros((len(this_cluster), n_pc + 3))
     data[:,3:] = pca_slices[this_cluster,:n_pc]
     data[:,0] = (energy[this_cluster]/np.max(energy[this_cluster])).flatten()
     data[:,1] = (np.abs(amplitudes[this_cluster])/\
@@ -320,7 +320,7 @@ def clean_memory_monitor_data():
                 print('electrode'+files[:-4], '\t', str(mem_usage)+'MB', file=f)
                 os.system('rm ' + './memory_monitor_clustering/' + files)
             except:
-                pass    
+                pass
         f.close()
     print('==============================')
 
@@ -346,7 +346,7 @@ def generate_datashader_plot(
     """
     violations1, violations2 = get_ISI_violations(unit_times, sampling_rate)
 
-    # Show the merged cluster to the user, 
+    # Show the merged cluster to the user,
     # and ask if they still want to merge
     x = np.arange(len(unit_waveforms[0])) + 1
     if ax is None:
@@ -354,7 +354,7 @@ def generate_datashader_plot(
                 waveforms_datashader(unit_waveforms, x, downsample = False)
     else:
         fig, ax = blech_waveforms_datashader.\
-                waveforms_datashader(unit_waveforms, x, 
+                waveforms_datashader(unit_waveforms, x,
                                      downsample = False, ax=ax)
     ax.set_xlabel('Sample (30 samples / ms)')
     ax.set_ylabel('Voltage (uV)')
@@ -366,7 +366,7 @@ def generate_datashader_plot(
         title_add + '\n' +\
         f'{violations2:.1f} % (<2ms), '
         f'{violations1:.1f} % (<1ms), '
-        f'{len(unit_times)} total waveforms. \n') 
+        f'{len(unit_times)} total waveforms. \n')
     ax.set_title(print_str)
     plt.tight_layout()
 
@@ -401,7 +401,7 @@ def plot_merged_units(
 
     n_clusters = len(cluster_waveforms)
     plot_inds = [
-            np.random.choice(np.arange(len(x)), 
+            np.random.choice(np.arange(len(x)),
                              np.min([max_n_per_cluster, len(x)]),
                              replace = False) \
             for x in cluster_waveforms]
@@ -414,8 +414,8 @@ def plot_merged_units(
         fig = ax.get_figure()
     for i in range(n_clusters):
         inds = plot_inds[i]
-        ax.plot(mean_waveforms[i], 
-                color = cmap(i), 
+        ax.plot(mean_waveforms[i],
+                color = cmap(i),
                 linewidth = 5,
                 label = f'Cluster {cluster_labels[i]}',
                 zorder = 11)
@@ -424,18 +424,18 @@ def plot_merged_units(
                 mean_waveforms[i] + sd_bound*sd_waveforms[i],
                 color = cmap(i), alpha = 0.2,
                         zorder = 10)
-        ax.plot(cluster_waveforms[i][plot_inds[i]].T, 
+        ax.plot(cluster_waveforms[i][plot_inds[i]].T,
                 color = cmap(i), alpha = 100/max_n_per_cluster)
     ax.set_xlabel('Sample (30 samples / ms)')
     ax.set_ylabel('Voltage (uV)')
     print_str = (
         f'{violations2:.1f} % (<2ms), '
         f'{violations1:.1f} % (<1ms), '
-        f'{len(cluster_times)} total waveforms. \n') 
+        f'{len(cluster_times)} total waveforms. \n')
     ax.set_title('Merged units\n' + print_str)
     ax.legend()
     plt.tight_layout()
-    
+
     return fig, ax
 
 def gen_plot_auto_merged_clusters(
@@ -469,7 +469,7 @@ def gen_plot_auto_merged_clusters(
     # Make sure ax is iterable
     if len(final_merge_sets) == 1:
         ax = [ax]
-    for i, this_set in enumerate(final_merge_sets): 
+    for i, this_set in enumerate(final_merge_sets):
         cluster_inds = [np.where(split_predictions == this_cluster)[0] \
                 for this_cluster in this_set]
         cluster_waveforms = [spike_waveforms[this_inds] \
@@ -481,7 +481,7 @@ def gen_plot_auto_merged_clusters(
         fig, ax[i] = plot_merged_units(
                     cluster_waveforms,
                     this_set,
-                    np.concatenate(cluster_times), 
+                    np.concatenate(cluster_times),
                     sampling_rate,
                     max_n_per_cluster = 1000,
                     sd_bound = 1,
@@ -490,7 +490,7 @@ def gen_plot_auto_merged_clusters(
     # Get titles for each ax
     ax_titles = [this_ax.get_title() for this_ax in ax]
     ax_titles = [f'New Cluster {new_name}'+'\n'+this_title \
-            for new_name, this_title in zip(new_clust_names, ax_titles)] 
+            for new_name, this_title in zip(new_clust_names, ax_titles)]
 
     # Set titles
     for this_ax, this_title in zip(ax, ax_titles):
@@ -499,7 +499,7 @@ def gen_plot_auto_merged_clusters(
     # Add waveform counts to legend
     waveform_counts = [len(this_inds) for this_inds in cluster_inds]
     for this_ax in ax:
-        current_legend_texts = this_ax.get_legend().get_texts() 
+        current_legend_texts = this_ax.get_legend().get_texts()
         new_legend_texts = [f'{this_text.get_text()} ({this_count})' \
                 for this_text, this_count in zip(
                     current_legend_texts,
@@ -567,16 +567,16 @@ def generate_violations_warning(
     print_str = (f':: Merged cluster \n'
         f':: {violations2:.1f} % (<2ms)\n'
         f':: {violations1:.1f} % (<1ms)\n'
-        f':: {len(unit_times)} Total Waveforms \n' 
+        f':: {len(unit_times)} Total Waveforms \n'
         ':: I want to still merge these clusters into one unit (y/n) :: ')
     proceed_msg, continue_bool = entry_checker(\
-            msg = print_str, 
+            msg = print_str,
             check_func = lambda x: x in ['y','n'],
             fail_response = 'Please enter (y/n)')
     if continue_bool:
-        if proceed_msg == 'y': 
+        if proceed_msg == 'y':
             proceed = True
-        elif proceed_msg == 'n': 
+        elif proceed_msg == 'n':
             proceed = False
     else:
         proceed = False
@@ -594,25 +594,25 @@ class unit_descriptor_handler():
     """
     def __init__(self, hf5, data_dir):
         self.hf5 = hf5
-        # Make a table under /sorted_units describing the sorted units. 
-        # If unit_descriptor already exists, 
+        # Make a table under /sorted_units describing the sorted units.
+        # If unit_descriptor already exists,
         # just open it up in the variable table
         self.data_dir = data_dir
         self.hf5 = hf5
 
     def get_latest_unit_name(self,):
         """
-        Get the name for the next unit to be saved 
+        Get the name for the next unit to be saved
         """
 
         # Get list of existing nodes/groups under /sorted_units
         saved_units_list = self.hf5.list_nodes('/sorted_units')
 
         # If saved_units_list is empty, start naming units from 000
-        if saved_units_list == []:             
+        if saved_units_list == []:
             unit_name = 'unit%03d' % 0
             max_unit = -1
-        # Else name the new unit by incrementing the last unit by 1 
+        # Else name the new unit by incrementing the last unit by 1
         else:
             unit_numbers = []
             for node in saved_units_list:
@@ -627,11 +627,11 @@ class unit_descriptor_handler():
     def generate_hash(self, electrode_number, waveform_count):
         """
         Generate a 10 character hash for the unit based on electrode and waveform count
-        
+
         Args:
-            electrode_number: int, electrode number 
+            electrode_number: int, electrode number
             waveform_count: int, number of waveforms in unit
-            
+
         Returns:
             str: 10 character hash
         """
@@ -644,7 +644,7 @@ class unit_descriptor_handler():
 
     def save_unit(
             self,
-            unit_waveforms, 
+            unit_waveforms,
             unit_times,
             electrode_num,
             this_sort_file_handler,
@@ -673,7 +673,7 @@ class unit_descriptor_handler():
         if '/sorted_units' not in self.hf5:
             self.hf5.create_group('/', 'sorted_units')
 
-        # Get a hash for the unit to compare stored data 
+        # Get a hash for the unit to compare stored data
         # with unit_descriptor table
         unit_hash = self.generate_hash(electrode_num, len(unit_times))
 
@@ -681,7 +681,7 @@ class unit_descriptor_handler():
         unit_name, max_unit = self.get_latest_unit_name()
         if max_unit >= 0: # This is not count...it's ind, 0 means first unit is already there
             # existing_units = self.get_saved_units_hashes()
-            existing_units = self.get_metadata_from_units() 
+            existing_units = self.get_metadata_from_units()
             if unit_hash in existing_units['hash'].values:
                 existing_unit = existing_units[existing_units['hash'] == unit_hash].iloc[0]
                 print(f"Unit already exists as {existing_unit['unit_name']}")
@@ -689,9 +689,9 @@ class unit_descriptor_handler():
 
         self.hf5.create_group('/sorted_units', unit_name)
         print(f"Adding new unit {unit_name}")
-        
+
         # Add to HDF5
-        waveforms = self.hf5.create_array('/sorted_units/%s' % unit_name, 
+        waveforms = self.hf5.create_array('/sorted_units/%s' % unit_name,
                         'waveforms', unit_waveforms)
         times = self.hf5.create_array('/sorted_units/%s' % unit_name, \
                                     'times', unit_times)
@@ -702,12 +702,12 @@ class unit_descriptor_handler():
                 description = sorted_unit_metadata)
 
         # Get a new unit_descriptor table row for this new unit
-        unit_description = unit_table.row    
+        unit_description = unit_table.row
         # Add to unit_descriptor table
         unit_description['waveform_count'] = int(len(unit_times))
         unit_description['electrode_number'] = electrode_num
         unit_description['hash'] = unit_hash
-        unit_description['single_unit'] = unit_properties['single_unit'] 
+        unit_description['single_unit'] = unit_properties['single_unit']
         unit_description['regular_spiking'] = unit_properties['regular_spiking']
         unit_description['fast_spiking'] = unit_properties['fast_spiking']
         unit_description.append()
@@ -735,7 +735,7 @@ class unit_descriptor_handler():
         """
         Convert the unit_descriptor table to a pandas dataframe
         """
-        table = self.return_unit_descriptor_table() 
+        table = self.return_unit_descriptor_table()
         table_cols = table.colnames
         dat_list = [table[i] for i in range(table.shape[0])]
         dict_list = [dict(zip(table_cols, dat)) for dat in dat_list]
@@ -746,15 +746,15 @@ class unit_descriptor_handler():
         return table_frame
 
 
-    def check_table_matches_saved_units(self,): 
+    def check_table_matches_saved_units(self,):
         """
         Check that the unit_descriptor table matches the saved units
         """
-        table = self.return_unit_descriptor_table() 
+        table = self.return_unit_descriptor_table()
         # saved_frame = self.get_saved_units_hashes()
-        saved_frame = self.get_metadata_from_units() 
+        saved_frame = self.get_metadata_from_units()
         table_frame = pd.DataFrame({
-            'hash': [str(x.decode()) for x in table.col('hash')[:]], 
+            'hash': [str(x.decode()) for x in table.col('hash')[:]],
             'unit_number': table.col('unit_number')[:]
             })
 
@@ -765,7 +765,7 @@ class unit_descriptor_handler():
                 saved_frame, table_frame, on = 'unit_number', how = 'outer')
         merged_frame['match'] = merged_frame['hash_x'] == merged_frame['hash_y']
 
-        if all(merged_frame['match']): 
+        if all(merged_frame['match']):
             return True, merged_frame
         else:
             print('Unit descriptor table does not match saved units \n')
@@ -782,7 +782,7 @@ class unit_descriptor_handler():
         for unit in unit_list:
             metadata = unit.unit_metadata
             unit_hash = metadata.col('hash')[0]
-            # This needs to be decoded because hf5 files don't 
+            # This needs to be decoded because hf5 files don't
             # store strings innately and convert them to bytes
             unit_hash = str(unit_hash.decode())
             if unit_hash == hash:
@@ -818,7 +818,7 @@ class unit_descriptor_handler():
             metadata_list.append(unit.unit_metadata[:])
             metadata = unit.unit_metadata
             unit_hash = metadata.col('hash')[0]
-            # This needs to be decoded because hf5 files don't 
+            # This needs to be decoded because hf5 files don't
             # store strings innately and convert them to bytes
             unit_hash = str(unit_hash.decode())
             unit_hashes.append(unit_hash)
@@ -874,8 +874,8 @@ class unit_descriptor_handler():
         # Write from metadata table to unit_descriptor table
         for ind, this_row in metadata_table.iterrows():
             # Get a new unit_descriptor table row for this new unit
-            unit_description = table.row    
-            for col in table.colnames: 
+            unit_description = table.row
+            for col in table.colnames:
                 unit_description[col] = this_row[col]
             unit_description.append()
 
@@ -897,10 +897,10 @@ class unit_descriptor_handler():
                 single_unit = True
 
                 # If single unit, check unit type
-                unit_type_msg = dat_row.Type 
-                if unit_type_msg == 'r': 
+                unit_type_msg = dat_row.Type
+                if unit_type_msg == 'r':
                     unit_type = 'regular_spiking'
-                elif unit_type_msg == 'f': 
+                elif unit_type_msg == 'f':
                     unit_type = 'fast_spiking'
                 #unit_description[unit_type] = 1
             else:
@@ -915,15 +915,15 @@ class unit_descriptor_handler():
                     check_func = lambda x: x in ['y','n'],
                     fail_response = 'Please enter (y/n)')
             if continue_bool:
-                if single_unit_msg == 'y': 
+                if single_unit_msg == 'y':
                     single_unit = True
-                elif single_unit_msg == 'n': 
+                elif single_unit_msg == 'n':
                     single_unit = False
             else:
                 return continue_bool, None
 
 
-            # If the user says that this is a single unit, 
+            # If the user says that this is a single unit,
             # ask them whether its regular or fast spiking
             if single_unit:
                 unit_type_msg, continue_bool = entry_checker(\
@@ -931,9 +931,9 @@ class unit_descriptor_handler():
                         check_func = lambda x: x in ['r','f'],
                         fail_response = 'Please enter (r/f)')
                 if continue_bool:
-                    if unit_type_msg == 'r': 
+                    if unit_type_msg == 'r':
                         unit_type = 'regular_spiking'
-                    elif unit_type_msg == 'f': 
+                    elif unit_type_msg == 'f':
                         unit_type = 'fast_spiking'
                 else:
                     return continue_bool, None
@@ -949,7 +949,7 @@ class unit_descriptor_handler():
                 fast_spiking = int(unit_type == 'fast_spiking'),
                 )
 
-        return continue_bool, property_dict 
+        return continue_bool, property_dict
 
 
 class sorted_unit_metadata(tables.IsDescription):
@@ -960,7 +960,7 @@ class sorted_unit_metadata(tables.IsDescription):
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
 
-# Define a unit_descriptor class to be used to add things (anything!) 
+# Define a unit_descriptor class to be used to add things (anything!)
 # about the sorted units to a pytables table
 class unit_descriptor(tables.IsDescription):
     unit_number = tables.Int32Col(pos=0)
@@ -972,7 +972,7 @@ class unit_descriptor(tables.IsDescription):
     hash = tables.StringCol(10)
 
 class split_merge_signal:
-    def __init__(self, clusters, this_sort_file_handler): 
+    def __init__(self, clusters, this_sort_file_handler):
         """
         First check whether there are multiple clusters to merge
         If not, check whether there is a split/sort file
@@ -1000,9 +1000,9 @@ class split_merge_signal:
                 check_func = lambda x: x in ['y','n'],
                 fail_response = 'Please enter (y/n)')
         if continue_bool:
-            if msg == 'y': 
+            if msg == 'y':
                 self.split = True
-            elif msg == 'n': 
+            elif msg == 'n':
                 self.split = False
 
     def check_split_sort_file(self):
@@ -1037,12 +1037,12 @@ def gen_autosort_plot(
     cluster was processed
 
     Inputs:
-        subcluster_prob: list of probabilities of each subcluster 
-        subcluster_waveforms: list of waveforms of each subcluster 
+        subcluster_prob: list of probabilities of each subcluster
+        subcluster_waveforms: list of waveforms of each subcluster
         chi_out: chi-square p-value of each subcluster's probability distribution
         mean_waveforms: list of mean waveforms of given subcluster
-        std_waveforms: list of std of waveforms of given subcluster 
-        subcluster_times: list of times of each subcluster 
+        std_waveforms: list of std of waveforms of given subcluster
+        subcluster_times: list of times of each subcluster
         autosort_output_dir: absolute path of directory to save output
         n_max_plot: maximum number of waveforms to plot
 
@@ -1079,7 +1079,7 @@ def gen_autosort_plot(
         this_ax.set_title('Chi-Square p-value: {:.3f}'.format(this_chi.pvalue))
         this_ax.set_xlabel('Classifier Probability')
         this_ax.set_xlim([0, 1])
-    # If chi-square p-value is less than alpha, 
+    # If chi-square p-value is less than alpha,
     # create green border around subplots
     for i in range(len(subcluster_prob)):
         if fin_bool[i]:
@@ -1197,7 +1197,7 @@ def get_cluster_props(
         fin_bool,
         fin_bool_dict,
         )
-    
+
 def calculate_merge_sets(
         mahal_mat,
         mahal_thresh,
@@ -1224,7 +1224,7 @@ def calculate_merge_sets(
         sample_rate: float, sample rate of recording
 
     Outputs:
-        final_merge_sets: list of tuples, 
+        final_merge_sets: list of tuples,
                           each tuple is a pair of clusters to merge
     """
 
@@ -1247,11 +1247,11 @@ def calculate_merge_sets(
     # Get indices of clusters to merge
     merge_inds = np.array(np.where(merge_mat)).T
     merge_clusters = unique_clusters[merge_inds]
-    
+
     # Make sure there are no sets of duplicates
     # i.e. (1, 2) and (2, 1)
     merge_sets = [tuple(set(this_pair)) for this_pair in merge_clusters]
-    merge_sets = list(set(merge_sets)) 
+    merge_sets = list(set(merge_sets))
 
     # At this stage, we are certain these need to be merged
     # Consolidate overlapping merge sets
@@ -1288,7 +1288,7 @@ def calculate_merge_sets(
     violations_list = []
     for this_set in final_merge_sets:
         merged_inds = [i for i,val in enumerate(split_predictions) \
-                if val in this_set] 
+                if val in this_set]
         merged_times = spike_times[merged_inds]
         violations = get_ISI_violations(
                 merged_times, sampling_rate)
@@ -1302,7 +1302,7 @@ def calculate_merge_sets(
             in zip(final_merge_sets, violations_pass_bool) if this_bool]
 
     # Only keep merge sets if they contain at least one unit
-    
+
     # Update split_predicitons so 1) waveform count, 2) distribution
     # of classifier probs can be tested
 
@@ -1346,19 +1346,19 @@ def calculate_merge_sets(
 
 # def auto_process_electrode(electrode_num, process_params):
 def auto_process_electrode(
-        electrode_num, 
+        electrode_num,
         process_params,
         ):
 
     """
     Process a single electrode's data for autosort
-    
+
     Args:
         electrode_num: The electrode number to process
         process_params: Tuple containing processing parameters:
             - max_autosort_clusters
             - auto_params
-            - chi_square_alpha  
+            - chi_square_alpha
             - count_threshold
             - sampling_rate
             - data_dir

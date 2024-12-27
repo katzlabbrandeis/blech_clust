@@ -34,7 +34,7 @@ try:
     channel_check =  list(map(int,easygui.multchoicebox(
             msg = 'Choose the channel numbers that you '\
                     'want to REMOVE from further analyses. '
-                    'Click clear all and ok if all channels are good', 
+                    'Click clear all and ok if all channels are good',
                     choices = tuple([i for i in range(channel_num)]))))
 except:
     channel_check = []
@@ -55,7 +55,7 @@ flag_frame = pd.DataFrame(list(product(range(taste_num),range(channel_num))),
 # Create list of all flagged rows in dataframe and mark
 flagged_rows = np.isin(list(flag_frame['Dig_In']),taste_check) + \
                     np.isin(list(flag_frame['Channel']),channel_check)
-flag_frame['Error_Flag'] = flagged_rows * 1 
+flag_frame['Error_Flag'] = flagged_rows * 1
 
 #Write out to file
 flag_frame.to_hdf(hdf5_name, parsed_lfp_addr + '/flagged_channels')
