@@ -494,8 +494,9 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     # Get pickling errors when they are included
     # It is also a quick process so it doesn't need to be parallelized
     print('Writing sorted units to file...')
-    for this_result in result: 
+    for i, this_result in enumerate(result): 
         if this_result is None:
+            print(f'Electrode {electrode_num_list[i]} failed to process')
             continue
         else:
             subcluster_waveforms, subcluster_times, fin_bool, electrode_num = this_result 

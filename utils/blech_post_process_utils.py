@@ -675,6 +675,8 @@ class unit_descriptor_handler():
             unit_properties['fast_spiking'] = 0
             continue_bool = True
 
+        print(f':: Saving unit {unit_properties} ::')
+
         if '/sorted_units' not in self.hf5:
             self.hf5.create_group('/', 'sorted_units')
 
