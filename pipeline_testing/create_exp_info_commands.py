@@ -56,41 +56,75 @@ parser.add_argument('key', type=str, help='Key for command to run',
                     choices=['emg_only', 'spike_only', 'emg_spike'])
 
 ofpc_command_dict = {}
+ofpc_stem_str = \
+"""python blech_exp_info.py $DIR \
+--programmatic \
+--emg-muscle ad \
+--taste-digins 0,1,2,3 \
+--tastes a,b,c,d \
+--concentrations 1,1,1,1 \
+--palatability 1,2,3,4 \
+"""
+
+wanted_emg_inds = [8,9]
+car_groups = ['none']*32
+for ind in wanted_emg_inds:
+    car_groups[ind] = 'emg'
+car_groups = ','.join(car_groups)
 ofpc_command_dict['emg_only'] = \
-"""python blech_exp_info.py $DIR \
---programmatic \
---emg-muscle ad \
---taste-digins 0,1,2,3 \
---tastes a,b,c,d \
---concentrations 1,1,1,1 \
---palatability 1,2,3,4 \
---car-groups "none,none,none,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none" \
+ofpc_stem_str + \
+f"""--car-groups "{car_groups}" \
 """
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 0,1,2,3 \
+# --tastes a,b,c,d \
+# --concentrations 1,1,1,1 \
+# --palatability 1,2,3,4 \
+# --car-groups "{car_groups}" \
+# """
 
+wanted_gc_inds = [0,1,2,29]
+car_groups = ['none']*32
+for ind in wanted_gc_inds:
+    car_groups[ind] = 'gc'
+car_groups = ','.join(car_groups)
 ofpc_command_dict['spike_only'] = \
-"""python blech_exp_info.py $DIR \
---programmatic \
---emg-muscle ad \
---taste-digins 0,1,2,3 \
---tastes a,b,c,d \
---concentrations 1,1,1,1 \
---palatability 1,2,3,4 \
---car-groups "gc,gc,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
+ofpc_stem_str + \
+f"""--car-groups "{car_groups}" \
 """
+# """python blech_exp_info.py $DIR \
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 0,1,2,3 \
+# --tastes a,b,c,d \
+# --concentrations 1,1,1,1 \
+# --palatability 1,2,3,4 \
+# --car-groups "{car_groups}" \
+# """
 
+car_groups = ['none']*32
+for ind in wanted_gc_inds:
+    car_groups[ind] = 'gc'
+for ind in wanted_emg_inds:
+    car_groups[ind] = 'emg'
+car_groups = ','.join(car_groups)
 ofpc_command_dict['emg_spike'] = \
-"""python blech_exp_info.py $DIR \
---programmatic \
---emg-muscle ad \
---taste-digins 0,1,2,3 \
---tastes a,b,c,d \
---concentrations 1,1,1,1 \
---palatability 1,2,3,4 \
---car-groups "gc,gc,gc,none,none,none,none,none,emg,emg,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none" \
+ofpc_stem_str + \
+f"""--car-groups "{car_groups}" \
 """
+# """python blech_exp_info.py $DIR \
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 0,1,2,3 \
+# --tastes a,b,c,d \
+# --concentrations 1,1,1,1 \
+# --palatability 1,2,3,4 \
+# --car-groups "{car_groups}" \
+# """
 
 trad_command_dict = {}
-trad_command_dict['spike_only'] = \
+trad_stem_str = \
 """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
@@ -98,14 +132,73 @@ trad_command_dict['spike_only'] = \
 --tastes a,b \
 --concentrations 1,1 \
 --palatability 1,2 \
---car-groups "none,none,none,none,none,none,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,none,gc,none,none,none,none" \
 """
+
+wanted_gc_inds = [39,44,63]
+car_groups = ['none']*64
+for ind in wanted_gc_inds:
+    car_groups[ind] = 'gc'
+car_groups = ','.join(car_groups)
+trad_command_dict['spike_only'] = \
+trad_stem_str + \
+f"""--car-groups "{car_groups}" \
+"""
+# f"""python blech_exp_info.py $DIR \
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 3,4 \
+# --tastes a,b \
+# --concentrations 1,1 \
+# --palatability 1,2 \
+# --car-groups "{car_groups}" \
+# """
+
+wanted_emg_inds = [8,9]
+car_groups = ['none']*64
+for ind in wanted_emg_inds:
+    car_groups[ind] = 'emg'
+car_groups = ','.join(car_groups)
+trad_command_dict['emg_only'] = \
+trad_stem_str + \
+f"""--car-groups "{car_groups}" \
+"""
+# f"""python blech_exp_info.py $DIR \
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 3,4 \
+# --tastes a,b \
+# --concentrations 1,1 \
+# --palatability 1,2 \
+# --car-groups "{car_groups}" \
+# """
+
+car_groups = ['none']*64
+for ind in wanted_gc_inds:
+    car_groups[ind] = 'gc'
+for ind in wanted_emg_inds:
+    car_groups[ind] = 'emg'
+car_groups = ','.join(car_groups)
+trad_command_dict['emg_spike'] = \
+trad_stem_str + \
+f"""--car-groups "{car_groups}" \
+"""
+# f"""python blech_exp_info.py $DIR \
+# --programmatic \
+# --emg-muscle ad \
+# --taste-digins 3,4 \
+# --tastes a,b \
+# --concentrations 1,1 \
+# --palatability 1,2 \
+# --car-groups "{car_groups}" \
+# """
+
 
 command_dict = {}
 command_dict['ofpc'] = ofpc_command_dict
 command_dict['trad'] = trad_command_dict
 
 if __name__ == '__main__':
+    from pprint import pprint as pp
     args = parser.parse_args()
     data_dir =  args.dir_name
     file_type = args.file_type
@@ -116,5 +209,8 @@ if __name__ == '__main__':
     this_command = this_command_dict[key]
     # Replace $DIR with the directory name
     this_command = this_command.replace('$DIR', data_dir)
+    print('================================\n')
+    pp(this_command)
+    print('\n================================\n')
     os.system(this_command)
     print('\n')
