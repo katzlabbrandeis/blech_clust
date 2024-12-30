@@ -41,12 +41,12 @@ if break_bool:
     print('Raising error if subprocess fails')
     print('====================')
 
-def raise_error_if_error(process, stderr, stdout):
+def raise_error_if_error(data_dir, process, stderr, stdout):
     # Print current data_type
     current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
     if os.path.exists(current_data_type_path):
         with open(os.path.join(data_dir, 'current_data_type.txt'), 'r') as f:
-            current_data_type = f.read()
+            current_data_type = f.readlines()
         print('=== Current data type: ', current_data_type, ' ===\n\n')
     print('=== Process stdout ===\n\n')
     print(stdout.decode('utf-8'))
@@ -73,22 +73,29 @@ with open(emg_params_path) as f:
     env_params = json.load(f)
 emg_env_path = env_params['emg_env']
 
-data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-data_dir = os.path.join(blech_clust_dir, data_subdir)
+# data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+# data_subdir = 'pipeline_testing/test_data_handling/eb24_behandephys_11_12_24_241112_114659_copy'
+data_subdirs_dict = {
+        'ofpc' : 'KM45_5tastes_210620_113227_new',
+        'trad' : 'eb24_behandephys_11_12_24_241112_114659_copy'
+        }
+data_dir_base = os.path.join(blech_clust_dir, 'pipeline_testing', 'test_data_handling', 'test_data')
+data_dirs_dict = {key: os.path.join(data_dir_base, subdir) for key, subdir in data_subdirs_dict.items()}
 
 ############################################################
 ## Data Prep Scripts 
 ############################################################
-def check_data_present():
-    full_data_path = os.path.join(blech_clust_dir, data_subdir)
-    if os.path.isdir(full_data_path):
+def check_data_present(data_path):
+    # full_data_path = os.path.join(blech_clust_dir, data_subdir)
+    # if os.path.isdir(full_data_path):
+    if os.path.isdir(data_path):
         return True
     else:
         return False
 
 @task(log_prints=True)
-def download_test_data():
-    if check_data_present():
+def download_test_data(data_path):
+    if check_data_present(data_path):
         print('Data already present')
         return
     else:
@@ -97,38 +104,48 @@ def download_test_data():
         process = Popen(["bash", script_name],
                                    stdout = PIPE, stderr = PIPE)
         stdout, stderr = process.communicate()
-        raise_error_if_error(process,stderr,stdout)
+        raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
-def prep_data_info(data_type = 'emg_spike'):
+def prep_data_info(
+        file_type = 'ofpc', 
+        data_type = 'emg_spike'
+        ):
     """
     Prepares data directory with info according to inputs
 
     Args:
+        file_type (str): Type of file to prepare. Options are 'ofpc', 'trad'
         data_type (str): Type of data to prepare. Options are 'emg', 'spike', 'emg_spike'
     """
     if data_type == 'emg':
         # flag_str = '-emg'
-        key = 'emg_only'
+        data_key = 'emg_only'
     elif data_type == 'spike':
         # flag_str = '-spike'
-        key = 'spike_only'
+        data_key = 'spike_only'
     elif data_type == 'emg_spike':
         # flag_str = '-emg_spike'
-        key = 'emg_spike'
+        data_key = 'emg_spike'
 
     # Write out data_type to file
+    data_dir = data_dirs_dict[file_type]
     current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
-    print(f'Writing data type: {data_type} to {current_data_type_path}')
+    print(f"""
+          Writing 
+          file_type: {file_type}
+          data type: {data_type} 
+          to {current_data_type_path}
+          """)
     with open(current_data_type_path, 'w') as f:
-        f.write(data_type)
+        f.write(f"{file_type} -- {data_type}")
 
-    cmd_str = command_dict[key]
+    cmd_str = command_dict[file_type][data_key]
     # Replace $DIR with data_dir
     cmd_str = cmd_str.replace('$DIR', data_dir)
     process = Popen(cmd_str, shell=True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
     
 
@@ -136,12 +153,12 @@ def prep_data_info(data_type = 'emg_spike'):
 ## Common Scripts
 ############################################################
 @task(log_prints=True)
-def reset_blech_clust():
+def reset_blech_clust(data_dir):
     script_name = './pipeline_testing/reset_blech_clust.py'
     process = Popen(["python", script_name],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def run_clean_slate(data_dir):
@@ -149,7 +166,7 @@ def run_clean_slate(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def mark_exp_info_success(data_dir):
@@ -157,7 +174,7 @@ def mark_exp_info_success(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def run_blech_clust(data_dir):
@@ -165,7 +182,7 @@ def run_blech_clust(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def make_arrays(data_dir):
@@ -173,7 +190,7 @@ def make_arrays(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 ############################################################
 ## Spike Only 
@@ -185,15 +202,15 @@ def run_CAR(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
-def change_waveform_classifier(use_classifier = 1):
+def change_waveform_classifier(data_dir, use_classifier = 1):
     script_name = 'pipeline_testing/change_waveform_classifier.py'
     process = Popen(["python", script_name, str(use_classifier)],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def change_auto_params(data_dir, use_auto = 1):
@@ -201,7 +218,7 @@ def change_auto_params(data_dir, use_auto = 1):
     process = Popen(["python", script_name, data_dir, str(use_auto), str(use_auto)],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def run_jetstream_bash(data_dir):
@@ -209,7 +226,7 @@ def run_jetstream_bash(data_dir):
     process = Popen(["bash", script_name, '--delete-log', data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def select_clusters(data_dir):
@@ -217,22 +234,23 @@ def select_clusters(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def post_process(data_dir, use_file = True, keep_raw = False):
     script_name = 'blech_post_process.py'
-    sorted_units_path = glob(os.path.join(data_dir, '*sorted_units.csv'))[0]
     if use_file:
+        sorted_units_path = glob(os.path.join(data_dir, '*sorted_units.csv'))[0]
         file_flag = '-f' + sorted_units_path
         run_list = ["python", script_name, data_dir, file_flag]
     else:
         run_list = ["python", script_name, data_dir]
     if keep_raw:
         run_list.append('--keep-raw')
+    print(f'Post-process: {run_list}')
     process = Popen(run_list, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def quality_assurance(data_dir):
@@ -240,7 +258,7 @@ def quality_assurance(data_dir):
     process = Popen(["bash", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def units_plot(data_dir):
@@ -248,7 +266,7 @@ def units_plot(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def units_characteristics(data_dir):
@@ -256,18 +274,18 @@ def units_characteristics(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 ############################################################
 ## EMG Only
 ############################################################
 @task(log_prints=True)
-def change_emg_freq_method(use_BSA = 1):
+def change_emg_freq_method(data_dir, use_BSA = 1):
     script_name = 'pipeline_testing/change_emg_freq_method.py'
     process = Popen(["python", script_name, str(use_BSA)],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def cut_emg_trials(data_dir):
@@ -275,7 +293,7 @@ def cut_emg_trials(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def emg_filter(data_dir):
@@ -283,7 +301,7 @@ def emg_filter(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def emg_freq_setup(data_dir):
@@ -291,7 +309,7 @@ def emg_freq_setup(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def emg_jetstream_parallel(data_dir): 
@@ -299,7 +317,7 @@ def emg_jetstream_parallel(data_dir):
     full_str = script_name
     process = Popen(full_str, shell = True, stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 
 @task(log_prints=True)
@@ -308,7 +326,7 @@ def emg_freq_post_process(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def emg_freq_plot(data_dir):
@@ -316,7 +334,7 @@ def emg_freq_plot(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def run_gapes_Li(data_dir):
@@ -324,35 +342,36 @@ def run_gapes_Li(data_dir):
     process = Popen(["python", script_name, data_dir],
                                stdout = PIPE, stderr = PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(process,stderr,stdout)
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 ############################################################
 ## Define Flows
 ############################################################
 @flow(log_prints=True)
-def prep_data_flow(data_type = 'emg_spike'):
+def prep_data_flow(file_type, data_type = 'emg_spike'):
+    data_dir = data_dirs_dict[file_type]
     os.chdir(blech_clust_dir)
-    download_test_data()
-    prep_data_info(data_type)
+    download_test_data(data_dir)
+    prep_data_info(file_type, data_type)
 
 @flow(log_prints=True)
-def run_spike_test():
+def run_spike_test(data_dir):
     os.chdir(blech_clust_dir)
-    reset_blech_clust()
+    reset_blech_clust(data_dir)
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
     run_CAR(data_dir)
     
     # Run with classifier enabled + autosorting
-    change_waveform_classifier(use_classifier=1)
+    change_waveform_classifier(data_dir, use_classifier=1)
     change_auto_params(data_dir, use_auto=1)
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file = False, keep_raw = True)
     
     # Run with classifier disabled and manual sorting 
-    change_waveform_classifier(use_classifier=0)
+    change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
@@ -364,9 +383,9 @@ def run_spike_test():
     units_characteristics(data_dir)
 
 @flow(log_prints=True)
-def run_emg_main_test():
+def run_emg_main_test(data_dir):
     os.chdir(blech_clust_dir)
-    reset_blech_clust()
+    reset_blech_clust(data_dir)
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
@@ -378,13 +397,13 @@ def run_emg_main_test():
     emg_freq_setup(data_dir)
 
 @flow(log_prints=True)
-def spike_emg_test():
+def spike_emg_flow(data_dir, file_type):
     # Set data type
     data_type = 'emg_spike'
-    prep_data_flow(data_type = data_type)
+    prep_data_flow(file_type, data_type = data_type)
     print(f'Running spike+emg test with data type : {data_type}')
     # Spike test
-    run_spike_test()
+    run_spike_test(data_dir)
     # Switch to EMG test without resetting
     # Chop number of trials down to preserve time
     cut_emg_trials(data_dir)
@@ -393,7 +412,7 @@ def spike_emg_test():
     ## Perform EMG tests
     # BSA
     os.chdir(blech_clust_dir)
-    change_emg_freq_method(use_BSA = 1) # change_freq_method is in pipeline_testing dir
+    change_emg_freq_method(data_dir, use_BSA = 1) # change_freq_method is in pipeline_testing dir
     os.chdir(os.path.join(blech_clust_dir, 'emg'))
     emg_freq_setup(data_dir)
     emg_jetstream_parallel(data_dir) 
@@ -401,7 +420,7 @@ def spike_emg_test():
     emg_freq_plot(data_dir)
     # STFT
     os.chdir(blech_clust_dir)
-    change_emg_freq_method(use_BSA = 0) # change_freq_method is in pipeline_testing dir
+    change_emg_freq_method(data_dir, use_BSA = 0) # change_freq_method is in pipeline_testing dir
     os.chdir(os.path.join(blech_clust_dir, 'emg'))
     emg_freq_setup(data_dir) # Freq setup needs to be rerun to recreate bash parallel file
     emg_jetstream_parallel(data_dir)
@@ -413,103 +432,154 @@ def spike_emg_test():
 
 
 @flow(log_prints=True)
-def run_emg_freq_test(use_BSA = 1):
+def run_emg_freq_test(data_dir, use_BSA = 1):
     os.chdir(blech_clust_dir)
     # change_emg_freq_method needs to be in blech_clust_dir
-    change_emg_freq_method(use_BSA = use_BSA)
-    run_emg_main_test()
+    change_emg_freq_method(data_dir, use_BSA = use_BSA)
+    run_emg_main_test(data_dir)
     emg_jetstream_parallel(data_dir) 
     emg_freq_post_process(data_dir)
     emg_freq_plot(data_dir)
 
 ##############################
 @flow(log_prints=True)
-def run_EMG_QDA_test():
-    if break_bool: 
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running QDA test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_emg_main_test()
-            os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
-            run_gapes_Li(data_dir)
-    else:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running QDA test with data type : {data_type}')
-            try:
-                prep_data_flow(data_type = data_type)
-            except:
-                print('Failed to prep data')
-            try:
-                run_emg_main_test()
-                os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
-                run_gapes_Li(data_dir)
-            except:
-                print('Failed to run QDA test')
-
-@flow(log_prints=True)
 def spike_only_test():
     if break_bool:
-        for data_type in ['spike', 'emg_spike']:
-            print(f'Running spike test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_spike_test()
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            # for data_type in ['spike', 'emg_spike']:
+            # spike+emg test is covered in spike_emg_test
+            # don't need to run here
+            for data_type in ['spike']:
+                print(f"""Running spike test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                prep_data_flow(file_type, data_type = data_type)
+                run_spike_test(data_dir)
     else:
-        for data_type in ['spike', 'emg_spike']:
-            print(f'Running spike test with data type : {data_type}')
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            # for data_type in ['spike', 'emg_spike']:
+            # spike+emg test is covered in spike_emg_test
+            # don't need to run here
+            for data_type in ['spike']:
+                print(f"""Running spike test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                try:
+                    prep_data_flow(file_type, data_type = data_type)
+                except:
+                    print('Failed to prep data')
+                try:
+                    run_spike_test(data_dir)
+                except:
+                    print('Failed to run spike test')
+
+@flow(log_prints=True)
+def spike_emg_test():
+    if break_bool:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            spike_emg_flow(data_dir, file_type)
+    else:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
             try:
-                prep_data_flow(data_type = data_type)
+                spike_emg_flow(data_dir, file_type)
             except:
-                print('Failed to prep data')
-            try:
-                run_spike_test()
-            except:
-                print('Failed to run spike test')
+                print('Failed to run spike+emg test')
 
 @flow(log_prints=True)
 def bsa_only_test():
     if break_bool:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running BSA test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_emg_freq_test(use_BSA=1)
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running BSA test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                prep_data_flow(file_type, data_type = data_type)
+                run_emg_freq_test(data_dir, use_BSA=1)
     else:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running BSA test with data type : {data_type}')
-            try:
-                prep_data_flow(data_type = data_type)
-            except:
-                print('Failed to prep data')
-            try:
-                run_emg_freq_test(use_BSA=1)
-            except:
-                print('Failed to run emg BSA test')
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running BSA test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                try:
+                    prep_data_flow(file_type, data_type = data_type)
+                except:
+                    print('Failed to prep data')
+                try:
+                    run_emg_freq_test(data_dir, use_BSA=1)
+                except:
+                    print('Failed to run emg BSA test')
 
 @flow(log_prints=True)
 def stft_only_test():
     if break_bool:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running STFT test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_emg_freq_test(use_BSA=0)
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running STFT test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                prep_data_flow(file_type, data_type = data_type)
+                run_emg_freq_test(data_dir, use_BSA=0)
     else:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running STFT test with data type : {data_type}')
-            try:
-                prep_data_flow(data_type = data_type)
-            except:
-                print('Failed to prep data')
-            try:
-                run_emg_freq_test(use_BSA=0)
-            except:
-                print('Failed to run emg STFT test')
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running STFT test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                try:
+                    prep_data_flow(file_type, data_type = data_type)
+                except:
+                    print('Failed to prep data')
+                try:
+                    run_emg_freq_test(data_dir, use_BSA=0)
+                except:
+                    print('Failed to run emg STFT test')
+
+@flow(log_prints=True)
+def run_EMG_QDA_test():
+    if break_bool: 
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running EMG QDA test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                prep_data_flow(file_type, data_type = data_type)
+                run_emg_main_test(data_dir)
+                os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+                run_gapes_Li(data_dir)
+    else:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            for data_type in ['emg', 'emg_spike']:
+                print(f"""Running EMG QDA test with 
+                      file type : {file_type}
+                      data type : {data_type}""")
+                try:
+                    prep_data_flow(file_type, data_type = data_type)
+                except:
+                    print('Failed to prep data')
+                try:
+                    run_emg_main_test(data_dir)
+                    os.chdir(os.path.join(blech_clust_dir, 'emg', 'gape_QDA_classifier'))
+                    run_gapes_Li(data_dir)
+                except:
+                    print('Failed to run QDA test')
+
 
 @flow(log_prints=True)
 def run_emg_freq_only():
     if break_bool:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running EMG freq test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_emg_freq_test()
+        bsa_only_test()
+        stft_only_test()
     else:
         try:
             bsa_only_test()
@@ -523,23 +593,21 @@ def run_emg_freq_only():
 @flow(log_prints=True)
 def emg_only_test():
     if break_bool:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running EMG test with data type : {data_type}')
-            prep_data_flow(data_type = data_type)
-            run_emg_main_test()
+        run_emg_freq_only()
+        run_EMG_QDA_test()
     else:
-        for data_type in ['emg', 'emg_spike']:
-            print(f'Running EMG test with data type : {data_type}')
-            try:
-                prep_data_flow(data_type = data_type)
-            except:
-                print('Failed to prep data')
-            try:
-                run_emg_main_test()
-                run_emg_freq_only()
-                run_EMG_QDA_test()
-            except:
-                print('Failed to run emg test')
+        try:
+            prep_data_flow(data_type = data_type)
+        except:
+            print('Failed to prep data')
+        try:
+            run_emg_freq_only()
+        except:
+            print('Failed to run emg freq test')
+        try:
+            run_EMG_QDA_test()
+        except:
+            print('Failed to run QDA test')
 
 @flow(log_prints=True)
 def full_test():
