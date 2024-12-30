@@ -390,6 +390,8 @@ channel_corr.gen_corr_output(corr_mat,
 # Downsample to 10 seconds
 dig_in_pulses = this_dig_handler.dig_in_frame.pulse_times.values
 dig_in_pulses = [literal_eval(x) for x in dig_in_pulses]
+# Take starts of pulses
+dig_in_pulses = [[x[0] for x in this_dig] for this_dig in dig_in_pulses] 
 dig_in_markers = [np.array(x) / sampling_rate for x in dig_in_pulses] 
 
 # Check if laser is present
