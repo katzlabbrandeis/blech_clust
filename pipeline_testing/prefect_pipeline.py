@@ -85,26 +85,15 @@ data_dirs_dict = {key: os.path.join(data_dir_base, subdir) for key, subdir in da
 ############################################################
 ## Data Prep Scripts 
 ############################################################
-def check_data_present(data_path):
-    # full_data_path = os.path.join(blech_clust_dir, data_subdir)
-    # if os.path.isdir(full_data_path):
-    if os.path.isdir(data_path):
-        return True
-    else:
-        return False
 
 @task(log_prints=True)
-def download_test_data(data_path):
-    if check_data_present(data_path):
-        print('Data already present')
-        return
-    else:
-        print('Downloading data')
-        script_name = './pipeline_testing/test_data_handling/download_test_data.sh'
-        process = Popen(["bash", script_name],
-                                   stdout = PIPE, stderr = PIPE)
-        stdout, stderr = process.communicate()
-        raise_error_if_error(data_dir, process,stderr,stdout)
+def download_test_data(data_dir):
+    print('Checking for test data, and downloading if not found')
+    script_name = './pipeline_testing/test_data_handling/download_test_data.sh'
+    process = Popen(["bash", script_name],
+                               stdout = PIPE, stderr = PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(data_dir, process,stderr,stdout)
 
 @task(log_prints=True)
 def prep_data_info(
