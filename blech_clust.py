@@ -58,6 +58,7 @@ import glob
 import pandas as pd
 import shutil
 import pylab as plt
+from ast import literal_eval
 
 # Necessary blech_clust modules
 from utils import read_file
@@ -122,36 +123,6 @@ class HDF5Handler:
         
         self.hf5.close()
         return continue_bool, reload_data_str
-
-    def get_digital_inputs(self, sampling_rate):
-        """Get digital input data from HDF5 file
-        
-        Args:
-            sampling_rate: Sampling rate of the data
-            
-        Returns:
-            numpy array of digital input data
-        """
-        with tables.open_file(self.hdf5_name, 'r') as hf5:
-            dig_in_list = [self._process_digital_input(x[:], sampling_rate) 
-                          for x in hf5.root.digital_in]
-        return np.stack(dig_in_list)
-    
-    @staticmethod
-    def _process_digital_input(data, sampling_rate):
-        """Process a single digital input channel
-        
-        Args:
-            data: Raw digital input data
-            sampling_rate: Sampling rate
-            
-        Returns:
-            Processed digital input data
-        """
-        len_dig_in = len(data)
-        truncated = data[:(len_dig_in//sampling_rate)*sampling_rate]
-        return np.reshape(truncated, (-1, sampling_rate)).sum(axis=-1)
-
 
 def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame, 
                               all_electrodes, all_params_dict):
@@ -243,15 +214,7 @@ os.chdir(dir_name)
 info_dict = metadata_handler.info_dict
 file_list = metadata_handler.file_list
 
-
-# Get the type of data files (.rhd or .dat)
-if 'auxiliary.dat' in file_list:
-    file_type = ['one file per signal type']
-elif sum(['rhd' in x for x in file_list]) > 1: # multiple .rhd files
-    file_type = ['traditional']
-else:
-    file_type = ['one file per channel']
-
+file_type = info_dict['file_type']
 
 # Create HDF5 handler and initialize groups
 hdf5_handler = HDF5Handler(dir_name, force_run)
@@ -286,31 +249,31 @@ print('Created dirs in data folder')
 file_lists = {
     'one file per signal type': {
         'electrodes': ['amplifier.dat'],
-        'dig_in': ['digitalin.dat']
     },
     'one file per channel': {
         'electrodes': sorted([name for name in file_list if name.startswith('amp-')]),
-        'dig_in': sorted([name for name in file_list if name.startswith('board-DI')])
     },
     'traditional': {
         'rhd': sorted([name for name in file_list if name.endswith('.rhd')])
     }
 }
 
-if file_type[0] != 'traditional':
-    electrodes_list = file_lists[file_type[0]]['electrodes']
-    dig_in_file_list = file_lists[file_type[0]]['dig_in']
+# Get digin and laser info
+print('Getting trial markers from digital inputs')
+# dig_in_array = hdf5_handler.get_digital_inputs(sampling_rate)
+this_dig_handler = read_file.DigInHandler(dir_name, file_type)
+this_dig_handler.load_dig_in_frame()
 
-    if file_type == ['one file per channel']:
+print('DigIn data loaded')
+print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
+
+if file_type != 'traditional':
+    electrodes_list = file_lists[file_type]['electrodes']
+
+    if file_type == 'one file per channel':
         print("\tOne file per CHANNEL Detected")
-        # Read dig-in data
-        # Pull out the digital input channels used,
-        # and convert them to integers
-        dig_in_int = [x.split('-')[-1].split('.')[0] for x in dig_in_file_list]
-        dig_in_int = sorted([(x) for x in dig_in_int])
-    elif file_type == ['one file per signal type']:
+    elif file_type == 'one file per signal type':
         print("\tOne file per SIGNAL Detected")
-        dig_in_int = np.arange(info_dict['dig_ins']['count'])
 
     # Use info file for port list calculation
     info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
@@ -324,25 +287,22 @@ if file_type[0] != 'traditional':
     ports = info_dict['ports']
 
     check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-            f'\nDigital input files: {dig_in_file_list} \n Ports : {ports} \n---------- \n \n'
+            + '\n Ports : {ports} \n---------- \n \n'
     print(check_str)
 
-if file_type[0] == 'traditional':
+if file_type == 'traditional':
     print('Tranditional INTAN file format detected')
-    rhd_file_list = file_lists[file_type[0]]['rhd']
+    rhd_file_list = file_lists[file_type]['rhd']
     with open(rhd_file_list[0], 'rb') as f:
         header = read_header(f)
     # temp_file, data_present = importrhdutilities.load_file(file_list[0])
     amp_channel_ports = [x['port_prefix'] for x in header['amplifier_channels']]
     amp_channel_names = [x['native_channel_name'] for x in header['amplifier_channels']]
-    dig_in_channels = [x['native_channel_name'] for x in header['board_dig_in_channels']]
-    dig_in_int = sorted([x.split('-')[-1].split('.')[0] for x in dig_in_channels])
     sampling_rate = int(header['sample_rate'])
     ports = np.unique(amp_channel_ports)
 
     check_str = f"""
     == Amplifier channels: \n{amp_channel_names}\n
-    == Digital input channels: \n{dig_in_channels}\n
     == Sampling rate: {sampling_rate} Hz\n
     == Ports: {ports}\n
     """
@@ -368,22 +328,21 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 # Read data files, and append to electrode arrays
 if reload_data_str in ['y', 'yes']:
-    if file_type == ['one file per channel']:
-        read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
+    if file_type == 'one file per channel':
+        # read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
         read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
         if len(emg_channels) > 0:
             read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
-    elif file_type == ['one file per signal type']:
-        read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
+    elif file_type == 'one file per signal type':
+        # read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
         # This next line takes care of both electrodes and emgs
         read_file.read_electrode_emg_channels_single_file(
             hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
-    elif file_type == ['traditional']:
+    elif file_type == 'traditional':
         read_file.read_traditional_intan(
                 hdf5_name, 
                 rhd_file_list, 
                 electrode_layout_frame,
-                dig_in_int,
                 )
 else:
     print('Data already present...Not reloading data')
@@ -428,20 +387,18 @@ channel_corr.gen_corr_output(corr_mat,
 ##############################
 # Also output a plot with digin and laser info
 
-# Get digin and laser info
-print('Getting trial markers from digital inputs')
-dig_in_array = hdf5_handler.get_digital_inputs(sampling_rate)
 # Downsample to 10 seconds
-# dig_in_array = dig_in_array[:, :(dig_in_array.shape[1]//sampling_rate)*sampling_rate]
-# dig_in_array = np.reshape(dig_in_array, (len(dig_in_array), -1, sampling_rate)).sum(axis=2)
-dig_in_markers = np.where(dig_in_array > 0)
-del dig_in_array
+dig_in_pulses = this_dig_handler.dig_in_frame.pulse_times.values
+dig_in_pulses = [literal_eval(x) for x in dig_in_pulses]
+# Take starts of pulses
+dig_in_pulses = [[x[0] for x in this_dig] for this_dig in dig_in_pulses] 
+dig_in_markers = [np.array(x) / sampling_rate for x in dig_in_pulses] 
 
 # Check if laser is present
-laser_dig_in = info_dict['laser_params']['dig_in']
+laser_dig_in = info_dict['laser_params']['dig_in_nums']
 
 dig_in_map = {}
-for num, name in zip(info_dict['taste_params']['dig_ins'], info_dict['taste_params']['tastes']):
+for num, name in zip(info_dict['taste_params']['dig_in_nums'], info_dict['taste_params']['tastes']):
     dig_in_map[num] = name
 for num in laser_dig_in:
     dig_in_map[num] = 'laser'
@@ -450,12 +407,16 @@ for num in laser_dig_in:
 dig_in_map = {num:dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
 dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
 
-plt.scatter(dig_in_markers[1], dig_in_markers[0], s=50, marker='|', c='k')
+for i, vals in enumerate(dig_in_markers):
+    plt.scatter(vals,
+                np.ones_like(vals)*i,
+                s=50, marker='|', c='k')
 # If there is a laser_dig_in, mark laser trials with axvline
 if len(laser_dig_in) > 0:
-    laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
+    # laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
+    laser_markers = dig_in_markers[laser_dig_in[0]]
     for marker in laser_markers:
-        plt.axvline(dig_in_markers[1][marker], c='yellow', lw=2, alpha = 0.5,
+        plt.axvline(marker, c='yellow', lw=2, alpha = 0.5,
                     zorder = -1)
 plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
 plt.title('Digital Inputs')
