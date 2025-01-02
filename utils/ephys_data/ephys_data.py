@@ -253,6 +253,14 @@ class ephys_data():
             'baks_dt'       : None
                 }
 
+        self.lfp_params = {
+            'freq_bounds' : None,
+            'sampling_rate' : None,
+            'taste_signal_choice': None,
+            'fin_sampling_rate' : None,
+            'trial_durations' : None
+                }
+
         self.default_firing_params = {
             'type'          :   'conv',
             'step_size'     :   25,
@@ -384,8 +392,11 @@ class ephys_data():
         else:
             raise Exception("Cannot find json file. Make sure it's present")
         # Add final argument to argument list
-        self.default_lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.default_lfp_params)
+        if None in self.lfp_params.values():
+            print('No LFP params found...using default LFP params')
+            self.lfp_params = self.default_lfp_params
+        self.lfp_params.update({'dig_in_list': taste_dig_ins})
+        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
 
     def get_lfp_channels(self):
         """
