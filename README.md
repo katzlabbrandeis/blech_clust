@@ -56,6 +56,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Detect gapes using QDA classifier
     - Based on Li et al.'s methodology for EMG pattern recognition
 
+### Module Documentation
+
+- [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
+
 ### Setup
 ```
 conda deactivate                                            # Make sure we're in the base environemnt
