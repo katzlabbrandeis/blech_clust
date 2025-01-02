@@ -13,8 +13,25 @@ data = ephys_data(data_dir='/path/to/data')
 # Load basic data
 data.get_unit_descriptors()  # Get unit information
 data.get_spikes()           # Extract spike data
+
+# Calculating firing rates and LFPs needs additional parameters
+# If not set, the module will use default values
+# See `Default Parameters` section for details
+
+# data.firing_rate_params = { ... }
+# or
+# data.firing_rate_params = data.default_firing_params
+
+# data.stft_params = { ... }
+# or
+# data.lfp_params = data.default_lfp_params
+
 data.get_firing_rates()     # Calculate firing rates
 data.get_lfps()            # Extract LFP data
+
+# Same for STFT calculation
+data.stft_params = { ... }
+data.get_stft()            # Calculate spectrograms
 ```
 
 ## Key Features
@@ -25,16 +42,6 @@ data.get_lfps()            # Extract LFP data
 # Access spike data
 spikes = data.spikes       # List of spike arrays per taste
 firing = data.firing_array # 4D array of firing rates
-
-# Configure firing rate calculation
-data.firing_rate_params = {
-    'type': 'conv',           # 'conv' or 'baks'
-    'step_size': 25,          # ms
-    'window_size': 250,       # ms
-    'dt': 1,                  # ms
-    'baks_resolution': 25e-3, # sec (for BAKS method)
-    'baks_dt': 1e-3          # sec (for BAKS method)
-}
 ```
 
 ### LFP Analysis
@@ -42,16 +49,9 @@ data.firing_rate_params = {
 ```python
 # Access LFP data
 lfps = data.lfp_array     # Raw LFP data
-data.get_stft()           # Calculate spectrograms
-
-# Configure STFT parameters
-data.stft_params = {
-    'Fs': 1000,              # Sampling rate
-    'signal_window': 500,    # Window size
-    'window_overlap': 499,   # Overlap between windows
-    'max_freq': 20,         # Maximum frequency
-    'time_range_tuple': (0,5) # Time range to analyze
-}
+stft = data.stft_array    # Complex Spectrograms
+amplitude = data.amplitude_array # STFT Amplitude (power) 
+phase = data.phase_array  # STFT Phase 
 ```
 
 ### Region-Based Analysis
