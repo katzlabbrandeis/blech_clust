@@ -710,3 +710,6 @@ out_frame.to_hdf(
 		key = 'ancillary_analysis/unit_characteristics',
 		mode = 'a',
 		)
+
+# Mark as completed
+this_pipeline_check.write_to_log(script_path, 'completed')
