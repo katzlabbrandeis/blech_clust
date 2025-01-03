@@ -3,6 +3,12 @@ Using pymc change point model to detect drift
 Model selection using ELBO
 """
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('dir_name', type=str, help='Directory name')
+parser.add_argument('--refit', action='store_true', help='Refit all models')
+args = parser.parse_args()
+
 from tqdm import tqdm, trange
 import sys
 import os
@@ -78,11 +84,42 @@ def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
 
     return model
 
+def ridge_plot(
+        x_vec,
+        y_list,
+        ax,
+        colors,
+        alpha=0.5,
+        ):
+    """
+    Plot a ridge plot
+
+    Args:
+        x_vec (1D array): x values
+        y_list (list of 1D arrays): y values
+        ax (matplotlib axis): axis to plot on
+        colors (list of colors): colors for each line
+    """
+
+    assert len(y_list) == len(colors)
+    assert all([len(x_vec) == len(y) for y in y_list])
+
+    # Normalize y values between 0 and 1
+    y_list = [y / y.max() for y in y_list]
+    for i, (y, color) in enumerate(zip(y_list, colors)):
+        ax.fill_between(x_vec, y+i, y2 = i, color=color, alpha=alpha)
+
+    return ax
+
+
 ############################################################
 ## Initialize 
 ############################################################
 # Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
+# metadata_handler = imp_metadata(sys.argv)
+# dir_name = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day1Exp40trl_230527_152706'
+# metadata_handler = imp_metadata([[], dir_name])
+metadata_handler = imp_metadata([[], args.dir_name])
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
@@ -115,126 +152,161 @@ n_repeats = 10
 time_lims = [2000, 4000]
 bin_width = 50
 
+changes_vec = np.arange(max_changepoints+1)
+
 n_tastes = len(spike_trains)
 for taste_ind in range(n_tastes):
     save_path = f'{output_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.png'
+    save_frame_path = f'{artifact_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.pkl'
+    pca_path = f'{artifact_dir}/{basename}_taste_{taste_ind}_pca.npy'
 
+    fit_bool = True
     if os.path.exists(save_path):
         print(f'{os.path.basename(save_path)} already exists, skipping')
-        continue
+        fit_bool = False
 
-    print(f'Processing {basename}, Taste {taste_ind}')
-    this_taste = spike_trains[taste_ind]
-    
-    # 1) Cut by time_lims
-    this_taste_cut = this_taste[:,:,time_lims[0]:time_lims[1]]
+    if fit_bool or args.refit:
+        print(f'Processing {basename}, Taste {taste_ind}')
+        this_taste = spike_trains[taste_ind]
+        
+        # 1) Cut by time_lims
+        this_taste_cut = this_taste[:,:,time_lims[0]:time_lims[1]]
 
-    # 2) Bin spikes
-    n_trials, n_neurons, n_time = this_taste_cut.shape
-    n_bins = n_time // bin_width
-    this_taste_binned = this_taste_cut.reshape(n_trials, n_neurons, n_bins, bin_width).sum(axis=-1)
+        # 2) Bin spikes
+        n_trials, n_neurons, n_time = this_taste_cut.shape
+        n_bins = n_time // bin_width
+        this_taste_binned = this_taste_cut.reshape(n_trials, n_neurons, n_bins, bin_width).sum(axis=-1)
 
-    this_taste_long = this_taste_binned.reshape(n_trials, -1)
-    this_taste_pca = PCA(n_components=max_components, whiten=True).fit_transform(this_taste_long)
+        this_taste_long = this_taste_binned.reshape(n_trials, -1)
+        this_taste_pca = PCA(n_components=max_components, whiten=True).fit_transform(this_taste_long)
+        # Write out PCA components
+        np.save(pca_path, this_taste_pca)
 
-    # 3) Fit changepoint model
-    elbo_list = []
-    tau_list = []
-    ppc_list = []
-    changes_list = []
-    repeat_list = []
-    changes_vec = np.arange(max_changepoints+1)
-    for n_changes in tqdm(changes_vec):
-        for repeat_ind in range(n_repeats):
-            print(f'Running {n_changes} changes, repeat {repeat_ind}')
-            model = gaussian_changepoint_mean_var_2d(
-                    this_taste_pca.T,
-                    n_states=int(n_changes+1), # It doesn't like it being numpy.int64
-                    )
-            with model:
-                inference = pm.ADVI('full-rank')
-                # Note: Stick to very high fit for now
-                # lower values like 1e4 don't converge / don't work well (i.e. no change comes out best)
-                approx = pm.fit(
-                        n=int(1e5), 
-                        method=inference,
-                        callbacks=[
-                            CheckParametersConvergence(
-                                diff='absolute', 
-                                tolerance=1e-2, # This will change based on model + data size
-                                # As is, this is a very high (coarse) tolerance
-                                )
-                            ],
+        # 3) Fit changepoint model
+        elbo_list = []
+        tau_list = []
+        mean_ppc_list = []
+        var_ppc_list = []
+        changes_list = []
+        repeat_list = []
+        for n_changes in tqdm(changes_vec):
+            for repeat_ind in range(n_repeats):
+                print(f'Running {n_changes} changes, repeat {repeat_ind}')
+                model = gaussian_changepoint_mean_var_2d(
+                        this_taste_pca.T,
+                        n_states=int(n_changes+1), # It doesn't like it being numpy.int64
                         )
-                trace = approx.sample(draws=int(2e3))
-                ppc = pm.sample_posterior_predictive(trace)
+                with model:
+                    inference = pm.ADVI('full-rank')
+                    # Note: Stick to very high fit for now
+                    # lower values like 1e4 don't converge / don't work well (i.e. no change comes out best)
+                    approx = pm.fit(
+                            n=int(1e5), 
+                            method=inference,
+                            callbacks=[
+                                CheckParametersConvergence(
+                                    diff='absolute', 
+                                    tolerance=1e-2, # This will change based on model + data size
+                                    # As is, this is a very high (coarse) tolerance
+                                    )
+                                ],
+                            )
+                    trace = approx.sample(draws=int(2e3))
+                    ppc = pm.sample_posterior_predictive(trace)
 
-            tau_samples = trace.posterior['tau'].values
-            tau_hists = np.stack([np.histogram(
-                tau.flatten(), bins=np.arange(n_bins+1))[0] \
-                        for tau in tau_samples.T]) 
-            ppc_samples = ppc.posterior_predictive.obs.values
-            mean_ppc = np.squeeze(ppc_samples.mean(axis=1))
+                tau_samples = trace.posterior['tau'].values
+                tau_hists = np.stack([np.histogram(
+                    tau.flatten(), bins=np.arange(n_bins+1))[0] \
+                            for tau in tau_samples.T]) 
+                ppc_samples = ppc.posterior_predictive.obs.values
+                mean_ppc = np.squeeze(ppc_samples.mean(axis=1))
+                var_ppc = np.squeeze(ppc_samples.var(axis=1))
 
-            elbo_list.append(approx.hist[-1])
-            tau_list.append(tau_hists)
-            ppc_list.append(mean_ppc)
-            changes_list.append(n_changes)
-            repeat_list.append(repeat_ind)
+                elbo_list.append(approx.hist[-1])
+                tau_list.append(tau_hists)
+                mean_ppc_list.append(mean_ppc)
+                var_ppc_list.append(var_ppc)
+                changes_list.append(n_changes)
+                repeat_list.append(repeat_ind)
 
-    mode_list = [[np.argmax(x) for x in y] for y in tau_list]
+        mode_list = [[np.argmax(x) for x in y] for y in tau_list]
 
-    run_frame = pd.DataFrame(
-            dict(
-                elbo=elbo_list,
-                changes=changes_list,
-                repeat=repeat_list,
-                mode=mode_list,
-                ppc=ppc_list,
-                ),
-            )
-    run_frame['taste_ind'] = taste_ind
-    run_frame['basename'] = basename
-    run_frame.to_pickle(f'{artifact_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.pkl')
+        run_frame = pd.DataFrame(
+                dict(
+                    elbo=elbo_list,
+                    changes=changes_list,
+                    repeat=repeat_list,
+                    mode=mode_list,
+                    mean_ppc=mean_ppc_list,
+                    var_ppc=var_ppc_list,
+                    tau_hist=tau_list,
+                    ),
+                )
+        run_frame['taste_ind'] = taste_ind
+        run_frame['basename'] = basename
+        run_frame.to_pickle(save_frame_path)
+    else:
+        run_frame = pd.read_pickle(save_frame_path)
+        this_taste_pca = np.load(pca_path)
+        n_trials = this_taste_pca.shape[1]
 
     median_elbo_df = run_frame.groupby('changes').elbo.median()
     median_elbo_df = median_elbo_df.reset_index()
 
     # Plot everything
-    vmin = min([x.min() for x in ppc_list] + [this_taste_pca.min()])
-    vmax = max([x.max() for x in ppc_list] + [this_taste_pca.max()])
-    img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
-                  'vmin':vmin, 'vmax':vmax}
+    mean_ppc_list = run_frame.mean_ppc.tolist()
+    # mean_vmin = min([x.min() for x in mean_ppc_list] + [this_taste_pca.min()])
+    # mean_vmax = max([x.max() for x in mean_ppc_list] + [this_taste_pca.max()])
+    mean_vmin = min([x.min() for x in mean_ppc_list])
+    mean_vmax = max([x.max() for x in mean_ppc_list]) 
+    var_ppc_list = run_frame.var_ppc.tolist()
+    var_vmin = min([x.min() for x in var_ppc_list]) 
+    var_vmax = max([x.max() for x in var_ppc_list])
+    img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis',} 
     change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
-    fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,3*len(changes_vec)),
+    fig, ax = plt.subplots(len(changes_vec) + 1, 3, figsize=(7,3*len(changes_vec)),
                            sharex=False)
     ax[0,0].imshow(this_taste_pca.T, **img_kwargs) 
     ax[0,0].set_title('Actual Data PCA')
-    ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
+    ax[0,2].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
                  linewidth = 1, facecolor='none', edgecolor='black')
-    ax[0,1].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
-    ax[0,1].legend()
-    ax[0,1].set_xlabel('n_changes')
-    ax[0,1].set_ylabel('ELBO')
+    ax[0,2].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
+    ax[0,2].legend()
+    ax[0,2].set_xlabel('n_changes')
+    ax[0,2].set_ylabel('ELBO')
     for i, n_change in enumerate(changes_vec): 
         this_frame = run_frame[run_frame.changes == n_change]
-        mean_mean_ppc = np.stack(this_frame.ppc.values).mean(axis=0)
+        # shape: n_repeats x n_changes x n_bins
+        tau_hists = np.stack(this_frame.tau_hist.values)
+        mean_mean_ppc = np.stack(this_frame.mean_ppc.values).mean(axis=0)
+        mean_var_ppc = np.stack(this_frame.var_ppc.values).mean(axis=0)
         # mean_elbo = this_frame.elbo.mean()
         median_elbo = this_frame.elbo.median()
-        ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs)
+        ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs, vmin=mean_vmin, vmax=mean_vmax)
+        ax[i+1,1].imshow(mean_var_ppc, **img_kwargs, vmin=var_vmin, vmax=var_vmax)
         ax[i+1,0].set_title(
                 f'n_changes: {changes_vec[i]}, Median ELBO: {median_elbo:.2f}')
+        # for this_change in range(tau_hists.shape[1]):
+        #     ax[i+1,2].imshow(tau_hists[:,this_change,:])
+        for this_change in range(tau_hists.shape[1]):
+            ax[i+1,2] = ridge_plot(
+                    np.arange(n_bins),
+                    tau_hists[:,this_change,:],
+                    ax[i+1,2],
+                    [change_colors[this_change]]*n_repeats,
+                    alpha=0.7,
+                    )
         for row_ind, this_row in this_frame.iterrows():
             for c_i, this_mode in enumerate(this_row['mode']):
-                ax[i+1,1].scatter(this_mode, this_row['repeat'],
+                ax[i+1,2].scatter(this_mode, this_row['repeat'],
                                   c = change_colors[c_i], cmap = 'tab10')
         ax[i+1,0].set_xlim(0, n_trials)
-        ax[i+1,1].set_xlim(0, n_trials)
-        ax[i+1,1].set_ylabel('Repeat #')
+        ax[i+1,2].set_xlim(0, n_trials)
+        ax[i+1,2].set_ylabel('Repeat #')
         ax[i+1,0].set_ylabel('Component #')
     ax[0,1].set_title('Changepoint Samples')
     ax[-1,0].set_xlabel('Trial #')
-    ax[-1,1].set_xlabel('Trial #')
+    ax[-1,2].set_xlabel('Trial #')
     # plt.show()
     fig.suptitle(f'{basename} Taste {taste_ind}')
     plt.tight_layout()
