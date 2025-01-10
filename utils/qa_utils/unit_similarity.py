@@ -5,6 +5,7 @@ import tables
 import sys
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 # Get script path
 script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
@@ -116,6 +117,36 @@ def parse_collision_mat(unit_distances, similarity_cutoff):
     return unique_pairs, unique_pairs_collisions
 
 
+def plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir):
+    """
+    Creates a figure showing raw similarity matrix and thresholded values
+    
+    Inputs:
+    unit_distances: matrix of unit similarity values
+    similarity_cutoff: threshold for considering units similar
+    output_dir: directory to save plot
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # Raw similarity matrix
+    im1 = ax1.matshow(unit_distances, cmap='viridis')
+    plt.colorbar(im1, ax=ax1)
+    ax1.set_title('Raw Similarity Matrix')
+    ax1.set_xlabel('Unit #')
+    ax1.set_ylabel('Unit #')
+    
+    # Thresholded matrix
+    thresholded = np.where(unit_distances > similarity_cutoff, unit_distances, np.nan)
+    im2 = ax2.matshow(thresholded, cmap='hot')
+    plt.colorbar(im2, ax=ax2)
+    ax2.set_title(f'Values > {similarity_cutoff}%')
+    ax2.set_xlabel('Unit #')
+    ax2.set_ylabel('Unit #')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'similarity_matrix.png'))
+    plt.close()
+
 def write_out_similarties(unique_pairs, unique_pairs_collisions, out_path, mode='w'):
     """
     Writes out the unit similarity violations to a file
@@ -181,6 +212,9 @@ if __name__ == '__main__':
     write_out_similarties(unique_pairs, unique_pairs_collisions, out_path, mode='w')
     print("Similarity calculation complete, results being saved to file")
     print("==================")
+    
+    # Generate visualization
+    plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir)
 
     # If the similarity goes beyond the defined cutoff,
     # write these unit numbers to warnings file
