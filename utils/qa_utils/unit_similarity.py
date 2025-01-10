@@ -139,9 +139,11 @@ def plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir):
     thresholded = np.where(unit_distances > similarity_cutoff, unit_distances, np.nan)
     im2 = ax2.matshow(thresholded, cmap='hot')
     plt.colorbar(im2, ax=ax2)
-    ax2.set_title(f'Values > {similarity_cutoff}%')
+    ax2.set_title(f'Values > {similarity_cutoff}% (similarity cutoff)')
     ax2.set_xlabel('Unit #')
     ax2.set_ylabel('Unit #')
+
+    fig.suptitle('Unit Similarity Matrix')
     
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'similarity_matrix.png'))
