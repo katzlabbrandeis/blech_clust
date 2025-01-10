@@ -149,21 +149,24 @@ def plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir):
     plt.savefig(os.path.join(output_dir, 'similarity_matrix.png'))
     plt.close()
 
-def write_out_similarties(unique_pairs, unique_pairs_collisions, out_path, mode='w'):
+def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w'):
     """
     Writes out the unit similarity violations to a file
 
     Inputs:
     unique_pairs: list of tuples of unit numbers
     unique_pairs_collisions: list of similarity values
+    waveform_counts: list of waveform counts for each unit
     out_path: path to write file to
     mode: write mode (default is 'w')
     """
-    # Generate dataframe with unit numbers and similarity
+    # Generate dataframe with unit numbers, similarity and waveform counts
     similarity_frame = pd.DataFrame(
         {'unit1': [x[0] for x in unique_pairs],
          'unit2': [x[1] for x in unique_pairs],
-         'similarity': unique_pairs_collisions})
+         'similarity': unique_pairs_collisions,
+         'unit1_waveforms': [waveform_counts[x[0]] for x in unique_pairs],
+         'unit2_waveforms': [waveform_counts[x[1]] for x in unique_pairs]})
     # Write dataframe to file
     with open(out_path, mode) as unit_similarity_violations:
         print(similarity_frame.to_string(), file=unit_similarity_violations)
@@ -199,8 +202,9 @@ if __name__ == '__main__':
     with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
         # Get all the units from the hdf5 file
         units = hf5.list_nodes('/sorted_units')
-        # Get all spketimes from all units
+        # Get all spiketimes and waveform counts from all units
         all_spk_times = [x.times[:]/sampling_rate_ms for x in units]
+        waveform_counts = [x.waveforms.shape[0] for x in units]
 
     # Open a file to write these unit distance violations to -
     # these units are likely the same and one of them
@@ -211,7 +215,7 @@ if __name__ == '__main__':
     print(f"Similarity cutoff ::: {similarity_cutoff}")
     unit_distances = unit_similarity_abu(all_spk_times)
     unique_pairs, unique_pairs_collisions = parse_collision_mat(unit_distances, similarity_cutoff)
-    write_out_similarties(unique_pairs, unique_pairs_collisions, out_path, mode='w')
+    write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w')
     print("Similarity calculation complete, results being saved to file")
     print("==================")
     
@@ -228,7 +232,7 @@ if __name__ == '__main__':
                   file=f)
             print('Similarity cutoff ::: %f' % similarity_cutoff, file=f)
             print("", file=f)
-        write_out_similarties(unique_pairs, unique_pairs_collisions, warnings_file_path, mode='a')
+        write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, warnings_file_path, mode='a')
         with open(warnings_file_path, 'a') as f:
             print("", file=f)
             print('=== End Similarity cutoff warning ===', file=f)
