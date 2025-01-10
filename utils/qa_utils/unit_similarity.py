@@ -178,7 +178,7 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
         max_counts = np.maximum(unit1_waveforms, unit2_waveforms)
         min_counts = np.minimum(unit1_waveforms, unit2_waveforms)
         waveform_diff_percent = ((max_counts - min_counts) / max_counts) * 100
-        similarity_frame['within_waveform_cutoff'] = waveform_diff_percent <= waveform_count_cutoff
+        similarity_frame['waveform_count_similarity'] = waveform_diff_percent <= waveform_count_cutoff
     # Write dataframe to file
     with open(out_path, mode) as unit_similarity_violations:
         print(similarity_frame.to_string(), file=unit_similarity_violations)
