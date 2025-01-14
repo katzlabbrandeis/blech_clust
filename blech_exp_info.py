@@ -27,10 +27,10 @@ from tqdm import tqdm
 # When running in Spyder, throws an error,
 # so cd to utils folder and then back out
 from utils.blech_utils import (
-        entry_checker, 
-        imp_metadata, 
-        pipeline_graph_check,
-        )
+    entry_checker,
+    imp_metadata,
+    pipeline_graph_check,
+)
 from utils.importrhdutilities import load_file, read_header
 from utils.read_file import DigInHandler
 
@@ -45,14 +45,17 @@ parser.add_argument('--mode', '-m', default='legacy',
                     choices=['legacy', 'updated'])
 parser.add_argument('--programmatic', action='store_true',
                     help='Run in programmatic mode')
-parser.add_argument('--use-layout-file', action='store_true', 
+parser.add_argument('--use-layout-file', action='store_true',
                     help='Use existing electrode layout file')
 parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
 parser.add_argument('--emg-muscle', help='Name of EMG muscle')
-parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
+parser.add_argument(
+    '--taste-digins', help='Comma-separated indices of taste digital inputs')
 parser.add_argument('--tastes', help='Comma-separated taste names')
-parser.add_argument('--concentrations', help='Comma-separated concentrations in M')
-parser.add_argument('--palatability', help='Comma-separated palatability rankings')
+parser.add_argument('--concentrations',
+                    help='Comma-separated concentrations in M')
+parser.add_argument(
+    '--palatability', help='Comma-separated palatability rankings')
 parser.add_argument('--laser-digin', help='Laser digital input index')
 parser.add_argument('--laser-params', help='Laser onset,duration in ms')
 parser.add_argument('--virus-region', help='Virus region')
@@ -61,10 +64,13 @@ parser.add_argument('--notes', help='Experiment notes')
 args = parser.parse_args()
 
 # Helper function to parse comma-separated values
+
+
 def parse_csv(s, convert=str):
     if not s:
         return []
     return [convert(x.strip()) for x in s.split(',')]
+
 
 metadata_handler = imp_metadata([[], args.dir_name])
 dir_path = metadata_handler.dir_name
@@ -89,9 +95,9 @@ if len(time_match) != 2:
 this_dict = {
     "name": splits[0],
     "exp_type": splits[1],
-    "date": time_match[0], 
+    "date": time_match[0],
     "timestamp": time_match[1],
-    } 
+}
 
 ##################################################
 # Brain Regions and Electrode Layout
@@ -103,9 +109,9 @@ if args.template:
         template_dict = json.load(file)
         template_keys = list(template_dict.keys())
         from_template = {
-                this_key:template_dict[this_key] for this_key in template_keys \
-                        if this_key not in this_dict.keys()
-                        }
+            this_key: template_dict[this_key] for this_key in template_keys
+            if this_key not in this_dict.keys()
+        }
         fin_dict = {**this_dict, **from_template}
 
 else:
@@ -126,10 +132,11 @@ else:
             name for name in file_list if name.startswith('amp-')]
     else:
         rhd_file_list = [x for x in file_list if 'rhd' in x]
-        with open(os.path.join(dir_path , rhd_file_list[0]), 'rb') as f:
+        with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
             header = read_header(f)
         ports = [x['port_prefix'] for x in header['amplifier_channels']]
-        electrode_files = [x['native_channel_name'] for x in header['amplifier_channels']]
+        electrode_files = [x['native_channel_name']
+                           for x in header['amplifier_channels']]
 
     ##################################################
     # Dig-Ins
@@ -137,7 +144,8 @@ else:
     # Process dig-ins
     this_dig_handler = DigInHandler(dir_path, file_type)
     this_dig_handler.get_dig_in_files()
-    dig_in_list_str = "All Dig-ins : \n" + ", ".join([str(x) for x in this_dig_handler.dig_in_num])
+    dig_in_list_str = "All Dig-ins : \n" + \
+        ", ".join([str(x) for x in this_dig_handler.dig_in_num])
     this_dig_handler.get_trial_data()
 
     def count_check(x):
@@ -163,12 +171,13 @@ else:
             if args.taste_digins:
                 taste_dig_inds = parse_csv(args.taste_digins, int)
             else:
-                raise ValueError('Taste dig-ins not provided, use --taste-digins')
+                raise ValueError(
+                    'Taste dig-ins not provided, use --taste-digins')
 
         this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste_bool'] = True
         this_dig_handler.dig_in_frame.taste_bool.fillna(False, inplace=True)
         print('Taste dig-in frame: \n')
-        print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
+        print_df = this_dig_handler.dig_in_frame.drop(columns=['pulse_times'])
         print_df = print_df[print_df.taste_bool]
         print(print_df)
 
@@ -202,7 +211,7 @@ else:
 
         this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste'] = tastes
         print('Taste dig-in frame: \n')
-        print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
+        print_df = this_dig_handler.dig_in_frame.drop(columns=['pulse_times'])
         print_df = print_df[print_df.taste_bool]
         print(print_df)
 
@@ -219,11 +228,13 @@ else:
             if args.concentrations:
                 concs = parse_csv(args.concentrations, float)
             else:
-                raise ValueError('Concentrations not provided, use --concentrations')
+                raise ValueError(
+                    'Concentrations not provided, use --concentrations')
 
-        this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'concentration'] = concs
+        this_dig_handler.dig_in_frame.loc[taste_dig_inds,
+                                          'concentration'] = concs
         print('Taste dig-in frame: \n')
-        print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
+        print_df = this_dig_handler.dig_in_frame.drop(columns=['pulse_times'])
         print_df = print_df[print_df.taste_bool]
         print(print_df)
 
@@ -244,19 +255,26 @@ else:
             if args.palatability:
                 pal_ranks = parse_csv(args.palatability, int)
             else:
-                raise ValueError('Palatability rankings not provided, use --palatability')
+                raise ValueError(
+                    'Palatability rankings not provided, use --palatability')
 
-        this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'palatability'] = pal_ranks
+        this_dig_handler.dig_in_frame.loc[taste_dig_inds,
+                                          'palatability'] = pal_ranks
         print('Taste dig-in frame: \n')
-        print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
+        print_df = this_dig_handler.dig_in_frame.drop(columns=['pulse_times'])
         print_df = print_df[print_df.taste_bool]
         print(print_df)
 
-        taste_digin_nums = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_nums'].to_list()
-        tastes = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste'].to_list()
-        concs = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'concentration'].to_list()
-        pal_ranks = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'palatability'].to_list()
-        taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list()
+        taste_digin_nums = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_nums'].to_list(
+        )
+        tastes = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste'].to_list(
+        )
+        concs = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'concentration'].to_list(
+        )
+        pal_ranks = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'palatability'].to_list(
+        )
+        taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
+        )
     else:
         print('No dig-ins found. Please check your data.')
         taste_digins = []
@@ -265,7 +283,6 @@ else:
         concs = []
         pal_ranks = []
         taste_digin_trials = []
-
 
     ########################################
     # Ask for laser info
@@ -289,12 +306,14 @@ else:
             laser_digin_ind = []
 
     if laser_digin_ind:
-        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list()
+        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list(
+        )
         this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_bool'] = True
         this_dig_handler.dig_in_frame.laser_bool.fillna(False, inplace=True)
-        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list()
+        laser_digin_nums = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_nums'].to_list(
+        )
         print('Selected laser digins: \n')
-        print_df = this_dig_handler.dig_in_frame.drop(columns = ['pulse_times'])
+        print_df = this_dig_handler.dig_in_frame.drop(columns=['pulse_times'])
         print_df = print_df[print_df.laser_bool]
         print(print_df)
     else:
@@ -332,21 +351,25 @@ else:
                 exit()
         else:
             if args.laser_params:
-                laser_params = parse_csv(args.laser_params, int) 
+                laser_params = parse_csv(args.laser_params, int)
                 onset_time, duration = laser_params
             else:
-                raise ValueError('Laser parameters not provided, use --laser-params')
+                raise ValueError(
+                    'Laser parameters not provided, use --laser-params')
             if args.virus_region:
                 virus_region_str = args.virus_region
             else:
-                raise ValueError('Virus region not provided, use --virus-region')
+                raise ValueError(
+                    'Virus region not provided, use --virus-region')
             if args.opto_loc:
                 opto_loc_str = args.opto_loc
             else:
-                raise ValueError('Opto-fiber location not provided, use --opto-loc')
+                raise ValueError(
+                    'Opto-fiber location not provided, use --opto-loc')
 
         # Fill in laser parameters
-        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str([onset_time, duration])
+        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str([
+                                                                                 onset_time, duration])
     else:
         onset_time, duration = [None, None]
         virus_region_str = ''
@@ -360,7 +383,6 @@ else:
     this_dig_handler.write_out_frame()
 
     ##############################
-
 
     if file_type == 'one file per channel':
         electrode_files = sorted(electrodes_list)
@@ -408,7 +430,7 @@ else:
             use_csv_str = 'y'
         # If programmatic, don't use
         else:
-            use_csv_str = 'y' 
+            use_csv_str = 'y'
     else:
         use_csv_str = 'n'
 
@@ -447,13 +469,14 @@ else:
 
     if not args.programmatic:
         layout_frame_filled['CAR_group'] = \
-                layout_frame_filled['CAR_group'].str.lower()
+            layout_frame_filled['CAR_group'].str.lower()
         layout_frame_filled['CAR_group'] = [x.strip() for x in
                                             layout_frame_filled['CAR_group']]
     else:
         if args.car_groups:
             car_groups = parse_csv(args.car_groups)
-            layout_frame_filled['CAR_group'] = [x.strip().lower() for x in car_groups] 
+            layout_frame_filled['CAR_group'] = [x.strip().lower()
+                                                for x in car_groups]
         else:
             raise ValueError('CAR groups not provided, use --car-groups')
 
@@ -485,7 +508,8 @@ else:
             if args.emg_muscle:
                 emg_muscle_str = args.emg_muscle
             else:
-                raise ValueError('EMG muscle name not provided, use --emg-muscle')
+                raise ValueError(
+                    'EMG muscle name not provided, use --emg-muscle')
     else:
         fin_emg_port = []
         orig_emg_electrodes = []
@@ -502,9 +526,9 @@ else:
     else:
         notes = args.notes or ''
 
-
     if laser_digin_ind:
-        laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list() 
+        laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
+        )
     else:
         laser_digin_trials = []
 

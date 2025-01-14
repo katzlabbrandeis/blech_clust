@@ -1,5 +1,6 @@
 # Use the results in Li et al. 2016 to get gapes on taste trials
 
+from utils.blech_utils import imp_metadata, pipeline_graph_check
 import os
 import sys
 from glob import glob
@@ -13,12 +14,12 @@ import seaborn as sns
 from detect_peaks import detect_peaks
 from QDA_classifier import QDA
 sys.path.append('../..')
-from utils.blech_utils import imp_metadata, pipeline_graph_check
+
 
 def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 
     peak_ind = detect_peaks(
-        this_trial, 
+        this_trial,
         mpd=85,
         mph=np.mean(
             this_trial[:pre_stim]) +
@@ -28,7 +29,7 @@ def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):
 
     # Get the indices, in the smoothed signal,
     # that are below the mean of the smoothed signal
-    below_mean_ind = np.where(this_trial <= pre_stim_mean)[0] 
+    below_mean_ind = np.where(this_trial <= pre_stim_mean)[0]
 
     # Throw out peaks if they happen in the pre-stim period
     accept_peaks = np.where(peak_ind > pre_stim)[0]
@@ -158,10 +159,11 @@ env = np.load('emg_output/flat_emg_env_data.npy')
 
 merge_frame = pd.read_csv('emg_output/emg_env_merge_df.csv')
 merge_frame['laser'] = merge_frame['laser_duration_ms'].astype(str) + \
-        '_' + merge_frame['laser_lag_ms'].astype(str) 
+    '_' + merge_frame['laser_lag_ms'].astype(str)
 
-merge_frame.drop(columns = ['laser_duration_ms','laser_lag_ms'], inplace = True)
-merge_frame.drop(columns = ['dig_in_num_laser','dig_in_name_laser'], inplace = True)
+merge_frame.drop(columns=['laser_duration_ms', 'laser_lag_ms'], inplace=True)
+merge_frame.drop(columns=['dig_in_num_laser',
+                 'dig_in_name_laser'], inplace=True)
 
 env_pre_stim_mean = np.mean(env[:, :pre_stim], axis=None)
 outs = [QDA_process_single_trial(x, pre_stim, env_pre_stim_mean) for x in env]
@@ -169,10 +171,10 @@ gapes_Li, sig_trials_final = zip(*outs)
 gapes_Li = np.array(gapes_Li)
 sig_trials_final = np.array(sig_trials_final)
 
-first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li] 
+first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li]
 
 ############################################################
-## Plots
+# Plots
 ############################################################
 # 1) Raw traces with gapes
 # 2) Scatters of gape times per condition
@@ -185,7 +187,7 @@ first_gapes = [np.where(x)[0][0] if sum(x) > 0 else np.nan for x in gapes_Li]
 car_group_frames_list = [x[1] for x in list(merge_frame.groupby('car'))]
 
 for this_car_frame in car_group_frames_list:
-    car_name = this_car_frame.car.unique()[0] 
+    car_name = this_car_frame.car.unique()[0]
     this_env_dat = env[this_car_frame.index.values]
 
     n_dig_ins = len(this_car_frame['dig_in_name_taste'].unique())
@@ -193,23 +195,25 @@ for this_car_frame in car_group_frames_list:
     max_value = this_env_dat.max(axis=None)
 
     fig, ax = plt.subplots(max_trials, n_dig_ins,
-                           figsize = (max_trials, n_dig_ins*4),
-                           sharex = True, sharey = True)
+                           figsize=(max_trials, n_dig_ins*4),
+                           sharex=True, sharey=True)
     for i, (this_meta, this_dat, this_ax) in \
             enumerate(zip(this_car_frame.iterrows(), this_env_dat, ax.flatten(order='F'))):
         this_ax.plot(psth_x, this_dat[psth_ind_vec])
-        gape_inds = np.where(gapes_Li[i][psth_ind_vec])[0] - pre_stim + psth_ind_vec[0]
+        gape_inds = np.where(gapes_Li[i][psth_ind_vec])[
+            0] - pre_stim + psth_ind_vec[0]
         this_ax.scatter(gape_inds, max_value * 1.1 * np.ones(gape_inds.shape),
-                        c = 'r', s = 10)
-        this_ax.set_ylabel(str(this_meta[1].taste_rel_trial_num) + ':' + this_meta[1].laser)
+                        c='r', s=10)
+        this_ax.set_ylabel(
+            str(this_meta[1].taste_rel_trial_num) + ':' + this_meta[1].laser)
         # this_ax.set_title(this_meta[1]['dig_in_name_taste'])
     for i, this_name in enumerate(merge_frame['dig_in_name_taste'].unique()):
-        ax[0,i].set_title(this_name)
-        ax[-1,i].set_xlabel('Time (ms)')
+        ax[0, i].set_title(this_name)
+        ax[-1, i].set_xlabel('Time (ms)')
     fig.suptitle(f'Trace with gapes for {car_name}')
     plt.tight_layout()
     fig.savefig(os.path.join(fin_plot_dir, f'{car_name}_traces_with_gapes.png'),
-                bbox_inches = 'tight')
+                bbox_inches='tight')
     plt.close(fig)
 
 ##############################
@@ -228,12 +232,12 @@ for i, this_row in merge_frame.iterrows():
     this_gapes_frame['car'] = this_row['car']
     gapes_frame_list.append(this_gapes_frame)
 gapes_frame = pd.concat(gapes_frame_list)
-gapes_frame = gapes_frame.loc[gapes_frame['gapes']>0]
+gapes_frame = gapes_frame.loc[gapes_frame['gapes'] > 0]
 
 car_group_frames_list = [x[1] for x in list(gapes_frame.groupby('car'))]
 for this_car_frame in car_group_frames_list:
-    g = sns.FacetGrid(gapes_frame, col = 'dig_in_name_taste', row = 'laser',
-                      hue = 'gapes', size = 4, aspect = 1)
+    g = sns.FacetGrid(gapes_frame, col='dig_in_name_taste', row='laser',
+                      hue='gapes', size=4, aspect=1)
     g.map(plt.scatter, 'time', 'taste_rel_trial_num')
     for this_ax in g.axes.flatten():
         this_ax.set_xlabel('Time post-stim (ms)')
@@ -245,7 +249,7 @@ for this_car_frame in car_group_frames_list:
     g.fig.suptitle(f'Gape times for {this_car_frame.car.unique()[0]}')
     plt.tight_layout()
     g.fig.savefig(os.path.join(fin_plot_dir, f'{this_car_frame.car.unique()[0]}_gape_times.png'),
-                  bbox_inches = 'tight')
+                  bbox_inches='tight')
     plt.close(g.fig)
 
 ##############################
@@ -254,9 +258,9 @@ for this_car_frame in car_group_frames_list:
 kern_len = 300
 kern = np.ones(kern_len)/kern_len
 gape_rate_list = []
-for this_gapes in gapes_Li: 
+for this_gapes in gapes_Li:
     conv_rate = np.convolve(
-        this_gapes, kern, mode = 'same') 
+        this_gapes, kern, mode='same')
     gape_rate_list.append(conv_rate)
 gape_rate = np.array(gape_rate_list)*1000
 
@@ -273,20 +277,20 @@ for i, this_row in merge_frame.iterrows():
 gapes_frame = pd.concat(gapes_frame_list)
 
 mean_gapes_frame = gapes_frame.groupby(
-        ['car','laser','dig_in_name_taste','time']).mean().reset_index()
+    ['car', 'laser', 'dig_in_name_taste', 'time']).mean().reset_index()
 
 g = sns.relplot(
-        x = 'time', y = 'gape_rate', 
-        hue = 'dig_in_name_taste', col = 'laser',
-        row = 'car', data = mean_gapes_frame, kind = 'line',
-        aspect = 1, height = 4)
+    x='time', y='gape_rate',
+    hue='dig_in_name_taste', col='laser',
+    row='car', data=mean_gapes_frame, kind='line',
+    aspect=1, height=4)
 g.fig.suptitle('Gape rate timeseries')
 # Move the legend to the right
 sns.move_legend(g, "upper right", bbox_to_anchor=(1.2, 1))
 g.fig.suptitle('Gape rate timeseries' + '\n' + f'Kernel length: {kern_len}')
 plt.tight_layout()
 g.fig.savefig(os.path.join(fin_plot_dir, 'gape_rate_timeseries.png'),
-              bbox_inches = 'tight')
+              bbox_inches='tight')
 plt.close(g.fig)
 
 ############################################################
@@ -296,9 +300,9 @@ hf5_save_path = '/emg_gape_classifier'
 
 if hf5_save_path not in hf5:
     hf5.create_group(
-            os.path.dirname(hf5_save_path),
-            os.path.basename(hf5_save_path),
-            createparents=True)
+        os.path.dirname(hf5_save_path),
+        os.path.basename(hf5_save_path),
+        createparents=True)
 try:
     hf5.remove_node(f'{hf5_save_path}/gapes_Li')
     # hf5.remove_node(f'{hf5_save_path}/gape_trials_Li')

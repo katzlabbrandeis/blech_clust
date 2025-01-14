@@ -11,7 +11,7 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 ### Order of operations
 
 **Spike Sorting Pipeline:**
-1. `python blech_exp_info.py`  
+1. `python blech_exp_info.py`
     - Pre-clustering step. Annotate recorded channels and save experimental parameters
     - Takes template for info and electrode layout as argument
 2. `python blech_clust.py`
@@ -89,7 +89,7 @@ bash emg_install.sh                                         # Install EMG requir
 cd ~/Desktop                                                # Relocate to download BlechRNN
 git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
 cd blechRNN                                                 # Move into BlechRNN directory
-pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements 
+pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements
 **Note: If you'd like to use GPU, you'll need to install CUDA
 -- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
 
@@ -108,10 +108,10 @@ Use `prefect server start` to start the prefect server in a different terminal w
 
 
 ### Convenience scripts
-- blech_clust_pre.sh : Runs steps 2-5  
-- blech_clust_post.sh : Runs steps 7-14   
+- blech_clust_pre.sh : Runs steps 2-5
+- blech_clust_post.sh : Runs steps 7-14
 
-### Operations Workflow Visual 
+### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
 
 ### Workflow Walkthrough
@@ -122,7 +122,7 @@ Open a terminal, and run:
 cd /path/to/blech_clust #make the blech_clust repository your working directory
 conda activate blech_clust #activate blech_clust
 DIR=/path/to/raw/data/files  #save the path of the target Intan data to be sorted
-python blech_exp_info.py $DIR  # Generate metadata and electrode layout  
+python blech_exp_info.py $DIR  # Generate metadata and electrode layout
 ```
 Once you've started running the script, it will ask you to "fill in car groups". Go to the intan data folder, where you'll find a file named ```[...]_electrode_layout.csv```. Open this file in a spreadsheet editor, and fill in the ```CAR_group``` column. You should give all of the electrodes implanted in the same bundle the same identifier, and use different identifiers for different bundles (e.g. all electrodes from a bundle in right GC are called ```GC1```, and all electrodes from a bundle in left GC are called ```GC2```). Once you've edited the .csv, return to the terminal and type ```y``` ```enter```.
 The script will then search your data folder for DIN files, and will print something like this, though the specific files may vary:
@@ -151,8 +151,8 @@ Once we've finished with ```blech_exp_info.py```, we'll want to continue on with
 While you're there, you should also copy and adapt the other two params templates (`waveform_classifier_params.json` and `emg_params.json`), or you will probably be haunted by errors.
 
 ```
-bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP  
-python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)  
+bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP
+python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)
 bash blech_clust_post.sh       # Perform steps up to PSTH generation
 ```
 

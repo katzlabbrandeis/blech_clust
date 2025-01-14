@@ -1,3 +1,4 @@
+from utils.blech_utils import imp_metadata
 import os
 import sys
 import numpy as np
@@ -12,11 +13,10 @@ from utils.blech_process_utils import path_handler
 # Figure out paths
 path_handler = path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
-#data_dir_name = path_handler.data_dir
+# data_dir_name = path_handler.data_dir
 ############################################################
 
 sys.path.append(blech_clust_dir)
-from utils.blech_utils import imp_metadata
 
 
 class EnergyFeature(BaseEstimator, TransformerMixin):
@@ -56,6 +56,7 @@ class AmpFeature(BaseEstimator, TransformerMixin):
 def zscore_custom(x):
     return zscore(x, axis=-1)
 
+
 zscore_transform = FunctionTransformer(zscore_custom)
 log_transform = FunctionTransformer(np.log, validate=True)
 arcsinh_transform = FunctionTransformer(np.arcsinh, validate=True)
@@ -64,12 +65,12 @@ pca_components = 3
 feature_names = ['pca_{}'.format(i) for i in range(pca_components)] + \
                 ['energy', 'amplitude']
 
+
 def return_feature_pipeline(data_dir_name):
     metadata_handler = imp_metadata([[], data_dir_name])
     params_dict = metadata_handler.params_dict
     sampling_rate = params_dict['sampling_rate']
     zero_ind = int(params_dict['spike_snapshot_before']*sampling_rate/1000)
-
 
     pca_pipeline = Pipeline(
         steps=[
