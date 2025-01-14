@@ -19,6 +19,8 @@ if bsa_bool == 0:
 else:
     emg_params['use_BSA'] = True
 
+print(f'Use-BSA set to {emg_params["use_BSA"]}')
+
 # Write out the new sheet
 with open(emg_params_path, 'w') as f:
     json.dump(emg_params, f, indent=4, sort_keys=True)

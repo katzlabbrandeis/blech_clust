@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import sys
 from datetime import datetime
+import time
 
 class Tee:
     """Tee output to both stdout/stderr and a log file"""
@@ -23,6 +24,7 @@ class Tee:
         self.file.write(data)
         self.stdout.write(data)
         self.file.flush()
+        self.stdout.flush()
         
     def flush(self):
         self.file.flush()
@@ -40,6 +42,21 @@ class path_handler():
         blech_clust_dir =  ('/').join(file_path.split('/')[:-2])
         self.blech_clust_dir = blech_clust_dir
 
+# If multiple processes are running and trying to access the file (parallel steps)
+# this will cause errors when trying to write to the file
+# Use decorator to implement log-waiting if there are issues
+def log_wait(func):
+    wait_times = [0.1, 0.5, 1, 2, 5, 10]
+    def wrapper(*args, **kwargs):
+        for wait_time in wait_times:
+            try:
+                func(*args, **kwargs)
+                break
+            except:
+                print(f'Unable to access log with func : {func.__name__}, waiting {wait_time} seconds')
+                time.sleep(wait_time)
+    return wrapper
+
 
 class pipeline_graph_check():
     """
@@ -53,10 +70,31 @@ class pipeline_graph_check():
 
     def __init__(self, data_dir):
         self.data_dir = data_dir
-        self.tee = Tee(data_dir)
+        # self.tee = Tee(data_dir)
         self.load_graph()
+        self.get_git_info()
         self.check_graph()
 
+    def get_git_info(self):
+        """
+        Get branch and commit info, and print
+        If not in git repo, print warning
+        """
+        if not hasattr(self, 'blech_clust_dir'):
+            print('Run load_graph() first')
+            exit()
+        pwd = os.getcwd()
+        # Change to blech_clust directory
+        os.chdir(self.blech_clust_dir)
+        git_branch = os.popen('git rev-parse --abbrev-ref HEAD').read().strip()
+        git_commit = os.popen('git rev-parse HEAD').read().strip()
+        if git_branch == '' or git_commit == '':
+            print('Not in git repository, please clone blech_clust rather than downloading zip') 
+        self.git_str = f'Git branch: {git_branch}\nGit commit: {git_commit}'
+        # change back to original directory
+        os.chdir(pwd)
+
+    @log_wait
     def load_graph(self):
         """
         Load computation graph from file, if file is present
@@ -77,6 +115,7 @@ class pipeline_graph_check():
     def make_full_path(self, x, dir_name):
         return os.path.join(self.blech_clust_dir, dir_name, x)
 
+    @log_wait
     def check_graph(self):
         """
         Check that all scripts mentioned in computation graph are present
@@ -113,6 +152,8 @@ class pipeline_graph_check():
             missing_files = [x for x, y in zip(all_files, all_files_present) if not y]
             raise FileNotFoundError(f'Missing files ::: {missing_files}')
 
+
+    @log_wait
     def check_previous(self, script_path):
         """
         Check that previous run script is present and executed successfully
@@ -135,7 +176,8 @@ class pipeline_graph_check():
                     raise ValueError(f'Parent script [{parent_script}] not found in log')
         else:
             raise ValueError(f'Script path [{script_path}] not found in flat graph')
-
+    
+    @log_wait
     def write_to_log(self, script_path, type = 'attempted'):
         """
         Write to log file
@@ -143,6 +185,8 @@ class pipeline_graph_check():
         type = 'attempted' : script was attempted
         type = 'completed' : script was completed
         """
+        if not hasattr(self, 'git_str'):
+            raise ValueError('Run get_git_info() first')
         self.log_path = os.path.join(self.data_dir, 'execution_log.json')
         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if os.path.exists(self.log_path):
@@ -156,6 +200,7 @@ class pipeline_graph_check():
             log_dict['attempted'][script_path] = current_datetime
             print('============================================================')
             print(f'Attempting {os.path.basename(script_path)}, started at {current_datetime}')
+            print(self.git_str)
             print('============================================================')
         elif type == 'completed':
             if 'completed' not in log_dict.keys():
@@ -164,9 +209,9 @@ class pipeline_graph_check():
             print('============================================================')
             print(f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
             print('============================================================')
-            # Close tee when completing
-            if hasattr(self, 'tee'):
-                self.tee.close()
+        # Close tee when completing
+        if hasattr(self, 'tee'):
+            self.tee.close()
         # log_dict[script_path] = current_datetime
         with open(self.log_path, 'w') as log_file_connect:
             json.dump(log_dict, log_file_connect, indent = 4)

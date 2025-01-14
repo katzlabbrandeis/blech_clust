@@ -253,6 +253,14 @@ class ephys_data():
             'baks_dt'       : None
                 }
 
+        self.lfp_params = {
+            'freq_bounds' : None,
+            'sampling_rate' : None,
+            'taste_signal_choice': None,
+            'fin_sampling_rate' : None,
+            'trial_durations' : None
+                }
+
         self.default_firing_params = {
             'type'          :   'conv',
             'step_size'     :   25,
@@ -345,7 +353,8 @@ class ephys_data():
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains') \
                     if 'dig_in' in x.__str__()]
-                self.dig_in_name_list = [x.__str__() for x in dig_in_list]
+                self.dig_in_name_list = [x._v_name for x in dig_in_list]
+                self.dig_in_num_list = [int(x.split('_')[-1]) for x in self.dig_in_name_list]
             else:
                 raise Exception('No spike trains found in HF5')
 
@@ -383,8 +392,11 @@ class ephys_data():
         else:
             raise Exception("Cannot find json file. Make sure it's present")
         # Add final argument to argument list
-        self.default_lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.default_lfp_params)
+        if None in self.lfp_params.values():
+            print('No LFP params found...using default LFP params')
+            self.lfp_params = self.default_lfp_params
+        self.lfp_params.update({'dig_in_list': taste_dig_ins})
+        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
 
     def get_lfp_channels(self):
         """
@@ -1000,7 +1012,9 @@ class ephys_data():
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = this_row['dig_in_num_taste']
+            taste_ind = np.where(
+                    np.array(self.dig_in_num_list) == int(this_row['dig_in_num_taste'])
+                    )[0][0]
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1035,7 +1049,9 @@ class ephys_data():
         self.sequestered_firing = []
         sequestered_firing_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = this_row['dig_in_num_taste']
+            taste_ind = np.where(
+                    np.array(self.dig_in_num_list) == int(this_row['dig_in_num_taste'])
+                    )[0][0]
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'], this_row['laser_duration_ms'])
             this_seq_firing = self.firing_list[taste_ind][trial_inds]
