@@ -245,6 +245,7 @@ else:
 run_frame = pd.read_pickle(artifact_save_path)
 median_elbo_df = run_frame.groupby(['changes']).elbo.median()
 median_elbo_df = median_elbo_df.reset_index()
+best_change = median_elbo_df.sort_values('elbo', ascending=True).changes.values[0]
 
 # Plot everything
 ppc_list = run_frame.ppc.values
@@ -253,13 +254,14 @@ vmax = max([x.max() for x in ppc_list] + [zscored_hists_pca.max()])
 img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
               'vmin':vmin, 'vmax':vmax}
 change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
-fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,3*len(changes_vec)),
+fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,2*len(changes_vec)),
                        sharex=False)
 ax[0,0].imshow(zscored_hists_pca.T, **img_kwargs) 
 ax[0,0].set_title('Actual Data PCA')
 ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
              linewidth = 1, facecolor='none', edgecolor='black')
 ax[0,1].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
+ax[0,1].axvline(best_change, color='black', linestyle='--', label=f'Best Change={best_change}')
 ax[0,1].legend()
 ax[0,1].set_xlabel('n_changes')
 ax[0,1].set_ylabel('ELBO')
@@ -285,7 +287,6 @@ plt.tight_layout()
 plt.savefig(plot_save_path)
 plt.close()
 
-best_change = median_elbo_df.sort_values('elbo', ascending=True).changes.values[0]
 
 if best_change:  
     with open(warnings_file_path, 'a') as f:
