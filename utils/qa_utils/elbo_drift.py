@@ -138,6 +138,7 @@ zscored_hists = zscore(spiketime_hists, axis=1)
 # Perform PCA and keep 5 components
 pca = PCA(n_components=5, whiten=True)
 pca.fit(zscored_hists.T)
+tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)
 
 fig, ax = plt.subplots(3,1, sharex=True)
@@ -149,7 +150,7 @@ ax[1].pcolorfast(bins, np.arange(zscored_hists.shape[0]), zscored_hists, cmap='v
 ax[1].set_title('Spike Histograms')
 ax[1].set_ylabel('Neuron #')
 ax[2].pcolorfast(bins, np.arange(zscored_hists_pca.shape[0]), zscored_hists_pca.T, cmap='viridis')
-ax[2].set_title('PCA of Spike Histograms')
+ax[2].set_title(f'PCA of Spike Histograms, {tot_var_explained:.2f} variance explained')
 ax[2].set_ylabel('Component #')
 plt.tight_layout()
 fig.savefig(f'{output_dir}/{basename}_spike_histograms.png')
