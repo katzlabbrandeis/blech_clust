@@ -3,6 +3,12 @@ Using pymc change point model to detect drift
 Model selection using ELBO
 """
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('dir_name', type=str, help='Directory containing data')
+parser.add_argument('--force', action='store_true', help='Force re-fitting')
+args = parser.parse_args()
+
 from tqdm import tqdm, trange
 import sys
 import os
@@ -15,6 +21,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import seaborn as sns
+import tables
+from scipy.stats import zscore
 
 script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
@@ -82,7 +90,10 @@ def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
 ## Initialize 
 ############################################################
 # Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
+
+# dir_name = '/media/storage/ABU_GC-EMG_Data/updated/sorted/KM50_5tastes_EMG_210913_100710_copy'
+metadata_handler = imp_metadata([[], args.dir_name])
+# metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
@@ -104,51 +115,71 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 ############################################################
 ## Load Data
 ############################################################
+# Load trial times from trial_info_frame.csv
+trial_info_path = os.path.join(dir_name, 'trial_info_frame.csv')
+trial_info_frame = pd.read_csv(trial_info_path)
+
 # Open the hdf5 file
 this_dat = ephys_data.ephys_data(dir_name)
-this_dat.get_spikes()
-spike_trains = this_dat.spikes
 
-max_components = 5
-max_changepoints = 3
+# Get spike-times from the hdf5 file
+hdf5_path = this_dat.hdf5_path
+with tables.open_file(hdf5_path, 'r') as hf5:
+    units = hf5.get_node('/sorted_units')
+    unit_names = [unit._v_name for unit in units]
+    spike_times = [unit.times.read() for unit in units]
+
+# Convert to histograms
+max_time = int(np.ceil(max([x[-1] for x in spike_times])))
+bins = np.linspace(0, max_time, 150)
+spiketime_hists = np.stack([np.histogram(x, bins=bins)[0] for x in spike_times])
+zscored_hists = zscore(spiketime_hists, axis=1)
+
+# Perform PCA and keep 5 components
+pca = PCA(n_components=5, whiten=True)
+pca.fit(zscored_hists.T)
+zscored_hists_pca = pca.transform(zscored_hists.T)
+
+fig, ax = plt.subplots(3,1, sharex=True)
+ax[0].scatter(trial_info_frame['start_taste'], trial_info_frame['dig_in_num_taste'],
+              marker = '|', color='black')
+ax[0].set_title('Taste Trials')
+ax[0].set_ylabel('Dig In #')
+ax[1].pcolorfast(bins, np.arange(zscored_hists.shape[0]), zscored_hists, cmap='viridis')
+ax[1].set_title('Spike Histograms')
+ax[1].set_ylabel('Neuron #')
+ax[2].pcolorfast(bins, np.arange(zscored_hists_pca.shape[0]), zscored_hists_pca.T, cmap='viridis')
+ax[2].set_title('PCA of Spike Histograms')
+ax[2].set_ylabel('Component #')
+plt.tight_layout()
+fig.savefig(f'{output_dir}/{basename}_spike_histograms.png')
+plt.close()
+
+# Can also sample number of changepoints using skopt
+# That way we can define a very high max_changepoints and let the model decide
+
+plot_save_path = f'{output_dir}/{basename}_taste_trial_change_elbo.png'
+artifact_save_path = f'{artifact_dir}/{basename}_taste_trial_change_elbo.pkl'
+
+max_changepoints = 4
 n_repeats = 10
-time_lims = [2000, 4000]
-bin_width = 50
+changes_vec = np.arange(max_changepoints+1)
 
-n_tastes = len(spike_trains)
-for taste_ind in range(n_tastes):
-    save_path = f'{output_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.png'
+if args.force:
+    print('=== Force re-fitting ===')
 
-    if os.path.exists(save_path):
-        print(f'{os.path.basename(save_path)} already exists, skipping')
-        continue
+if not os.path.exists(artifact_save_path) or args.force:
 
-    print(f'Processing {basename}, Taste {taste_ind}')
-    this_taste = spike_trains[taste_ind]
-    
-    # 1) Cut by time_lims
-    this_taste_cut = this_taste[:,:,time_lims[0]:time_lims[1]]
-
-    # 2) Bin spikes
-    n_trials, n_neurons, n_time = this_taste_cut.shape
-    n_bins = n_time // bin_width
-    this_taste_binned = this_taste_cut.reshape(n_trials, n_neurons, n_bins, bin_width).sum(axis=-1)
-
-    this_taste_long = this_taste_binned.reshape(n_trials, -1)
-    this_taste_pca = PCA(n_components=max_components, whiten=True).fit_transform(this_taste_long)
-
-    # 3) Fit changepoint model
     elbo_list = []
     tau_list = []
     ppc_list = []
     changes_list = []
     repeat_list = []
-    changes_vec = np.arange(max_changepoints+1)
     for n_changes in tqdm(changes_vec):
         for repeat_ind in range(n_repeats):
             print(f'Running {n_changes} changes, repeat {repeat_ind}')
             model = gaussian_changepoint_mean_var_2d(
-                    this_taste_pca.T,
+                    zscored_hists_pca.T,
                     n_states=int(n_changes+1), # It doesn't like it being numpy.int64
                     )
             with model:
@@ -171,7 +202,7 @@ for taste_ind in range(n_tastes):
 
             tau_samples = trace.posterior['tau'].values
             tau_hists = np.stack([np.histogram(
-                tau.flatten(), bins=np.arange(n_bins+1))[0] \
+                tau.flatten(), bins=np.arange(len(bins)+1))[0] \
                         for tau in tau_samples.T]) 
             ppc_samples = ppc.posterior_predictive.obs.values
             mean_ppc = np.squeeze(ppc_samples.mean(axis=1))
@@ -193,96 +224,66 @@ for taste_ind in range(n_tastes):
                 ppc=ppc_list,
                 ),
             )
-    run_frame['taste_ind'] = taste_ind
     run_frame['basename'] = basename
-    run_frame.to_pickle(f'{artifact_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.pkl')
+    run_frame['time_bins'] = [bins] * len(run_frame)
+    run_frame.to_pickle(artifact_save_path)
 
-    median_elbo_df = run_frame.groupby('changes').elbo.median()
-    median_elbo_df = median_elbo_df.reset_index()
-
-    # Plot everything
-    vmin = min([x.min() for x in ppc_list] + [this_taste_pca.min()])
-    vmax = max([x.max() for x in ppc_list] + [this_taste_pca.max()])
-    img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
-                  'vmin':vmin, 'vmax':vmax}
-    change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
-    fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,3*len(changes_vec)),
-                           sharex=False)
-    ax[0,0].imshow(this_taste_pca.T, **img_kwargs) 
-    ax[0,0].set_title('Actual Data PCA')
-    ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
-                 linewidth = 1, facecolor='none', edgecolor='black')
-    ax[0,1].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
-    ax[0,1].legend()
-    ax[0,1].set_xlabel('n_changes')
-    ax[0,1].set_ylabel('ELBO')
-    for i, n_change in enumerate(changes_vec): 
-        this_frame = run_frame[run_frame.changes == n_change]
-        mean_mean_ppc = np.stack(this_frame.ppc.values).mean(axis=0)
-        # mean_elbo = this_frame.elbo.mean()
-        median_elbo = this_frame.elbo.median()
-        ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs)
-        ax[i+1,0].set_title(
-                f'n_changes: {changes_vec[i]}, Median ELBO: {median_elbo:.2f}')
-        for row_ind, this_row in this_frame.iterrows():
-            for c_i, this_mode in enumerate(this_row['mode']):
-                ax[i+1,1].scatter(this_mode, this_row['repeat'],
-                                  c = change_colors[c_i], cmap = 'tab10')
-        ax[i+1,0].set_xlim(0, n_trials)
-        ax[i+1,1].set_xlim(0, n_trials)
-        ax[i+1,1].set_ylabel('Repeat #')
-        ax[i+1,0].set_ylabel('Component #')
-    ax[0,1].set_title('Changepoint Samples')
-    ax[-1,0].set_xlabel('Trial #')
-    ax[-1,1].set_xlabel('Trial #')
-    # plt.show()
-    fig.suptitle(f'{basename} Taste {taste_ind}')
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
+else:
+    print(f'{os.path.basename(artifact_save_path)} already exists, skipping')
 
 ##############################
 # Aggregate all data
 ##############################
-frame_list = []
-for taste_ind in range(n_tastes):
-    run_frame = pd.read_pickle(f'{artifact_dir}/{basename}_taste_{taste_ind}_trial_change_elbo.pkl')
-    frame_list.append(run_frame)
-full_frame = pd.concat(frame_list)
-full_frame.reset_index(drop=True, inplace=True)
-median_elbo_df = full_frame.groupby(['changes', 'taste_ind']).elbo.median()
+run_frame = pd.read_pickle(artifact_save_path)
+median_elbo_df = run_frame.groupby(['changes']).elbo.median()
 median_elbo_df = median_elbo_df.reset_index()
 
-sns.lineplot(
-        data=full_frame, 
-        x='changes', 
-        y='elbo', 
-        hue='taste_ind',
-        style='taste_ind',
-        markers=True,
-        dashes=False,
-        )
-plt.title(f'{basename} ELBO vs. n_changes')
-plt.savefig(f'{output_dir}/{basename}_all_tastes_trial_change_elbo.png')
+# Plot everything
+ppc_list = run_frame.ppc.values
+vmin = min([x.min() for x in ppc_list] + [zscored_hists_pca.min()])
+vmax = max([x.max() for x in ppc_list] + [zscored_hists_pca.max()])
+img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
+              'vmin':vmin, 'vmax':vmax}
+change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
+fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,3*len(changes_vec)),
+                       sharex=False)
+ax[0,0].imshow(zscored_hists_pca.T, **img_kwargs) 
+ax[0,0].set_title('Actual Data PCA')
+ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
+             linewidth = 1, facecolor='none', edgecolor='black')
+ax[0,1].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
+ax[0,1].legend()
+ax[0,1].set_xlabel('n_changes')
+ax[0,1].set_ylabel('ELBO')
+for i, n_change in enumerate(changes_vec): 
+    this_frame = run_frame[run_frame.changes == n_change]
+    mean_mean_ppc = np.stack(this_frame.ppc.values).mean(axis=0)
+    median_elbo = this_frame.elbo.median()
+    ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs)
+    ax[i+1,0].set_title(
+            f'n_changes: {changes_vec[i]}, Median ELBO: {median_elbo:.2f}')
+    for row_ind, this_row in this_frame.iterrows():
+        for c_i, this_mode in enumerate(this_row['mode']):
+            ax[i+1,1].scatter(this_mode, this_row['repeat'],
+                              c = change_colors[c_i], cmap = 'tab10')
+    ax[i+1,0].set_xlim(0, len(bins)) 
+    ax[i+1,1].set_xlim(0, len(bins))
+    ax[i+1,1].set_ylabel('Repeat #')
+    ax[i+1,0].set_ylabel('Component #')
+ax[0,1].set_title('Changepoint Samples')
+ax[-1,0].set_xlabel('Bin #')
+ax[-1,1].set_xlabel('Bin #')
+plt.tight_layout()
+plt.savefig(plot_save_path)
 plt.close()
 
-# For each taste, rank the n_changes using median ELBO
-ranked_changes = median_elbo_df.groupby('taste_ind').apply(
-        lambda x: x.sort_values('elbo', ascending=True).changes.values)
-best_change_per_taste = np.stack(ranked_changes.values)[:,0]
-best_change_per_taste_map = {taste_ind: best_change for taste_ind, best_change in enumerate(best_change_per_taste)}
-best_change_per_taste_df = pd.DataFrame(
-        dict(
-            taste_ind=list(best_change_per_taste_map.keys()),
-            best_change=list(best_change_per_taste_map.values()),
-            ),
-        )
+best_change = median_elbo_df.sort_values('elbo', ascending=True).changes.values[0]
 
-if any(best_change_per_taste > 0):
+if best_change:  
     with open(warnings_file_path, 'a') as f:
         print('=== Post-stimulus POPULATION Drift Warning ===', file=f)
         print('Ranks for ELBO calculated across tastes', file=f)
-        print(best_change_per_taste_df, file=f)
+        print(f'Best change: {best_change}', file=f)
         print('\n', file=f)
         print('=== End Post-stimulus POPULATION Drift Warning ===', file=f)
         print('\n', file=f)
