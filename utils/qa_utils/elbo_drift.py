@@ -162,8 +162,8 @@ plt.close()
 plot_save_path = f'{output_dir}/{basename}_taste_trial_change_elbo.png'
 artifact_save_path = f'{artifact_dir}/{basename}_taste_trial_change_elbo.pkl'
 
-max_changepoints = 4
-n_repeats = 10
+max_changepoints = 10
+n_repeats = 4
 changes_vec = np.arange(max_changepoints+1)
 
 if args.force:
@@ -229,6 +229,13 @@ if not os.path.exists(artifact_save_path) or args.force:
     run_frame['time_bins'] = [bins] * len(run_frame)
     run_frame.to_pickle(artifact_save_path)
 
+    # Also write out a csv-friendly version
+    csv_save_path = artifact_save_path.replace('.pkl', '.csv')
+    csv_frame = run_frame.copy()
+    # Drop the ppc column
+    csv_frame.drop(columns='ppc', inplace=True)
+    csv_frame.to_csv(csv_save_path)
+
 else:
     print(f'{os.path.basename(artifact_save_path)} already exists, skipping')
 
@@ -288,5 +295,12 @@ if best_change:
         print('\n', file=f)
         print('=== End Post-stimulus POPULATION Drift Warning ===', file=f)
         print('\n', file=f)
+
+# Write out a `best_change` file to allow the user to over-write the best change
+# This is useful if the user wants to manually set the change point
+best_change_path = os.path.join(output_dir, 'best_change.txt')
+with open(best_change_path, 'w') as f:
+    f.write('# If you want to manually set the best change point, change this number\n')
+    f.write(str(best_change))
 
 this_pipeline_check.write_to_log(script_path, 'completed')
