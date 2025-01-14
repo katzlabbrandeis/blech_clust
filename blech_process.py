@@ -171,6 +171,7 @@ classifier_params_path = \
 classifier_params = json.load(open(classifier_params_path, 'r'))
 
 
+
 if classifier_params['use_neuRecommend']:
     # If full classification pipeline was not loaded, still load
     # feature transformation pipeline so it may be used later
@@ -179,6 +180,12 @@ if classifier_params['use_neuRecommend']:
     sys.path.append(classifier_handler.create_pipeline_path)
     from feature_engineering_pipeline import *
     classifier_handler.load_pipelines()
+
+    # If override_classifier_threshold is set, use that
+    if classifier_params['override_classifier_threshold'] is not False:
+        clf_threshold = classifier_params['override_classifier_threshold']
+        print(f' == Overriding classifier threshold with {clf_threshold} ==')
+        classifier_handler.clf_threshold = clf_threshold
 
 if classifier_params['use_classifier'] and \
     classifier_params['use_neuRecommend']:
