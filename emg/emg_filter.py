@@ -1,7 +1,6 @@
 # Subtracts the two emg signals and filters and saves the results.
 
 # Import stuff
-from utils.blech_utils import imp_metadata, pipeline_graph_check
 import numpy as np
 from scipy.signal import butter, filtfilt
 import os
@@ -13,6 +12,7 @@ import tables
 import ast
 
 sys.path.append('..')
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)

@@ -1,23 +1,7 @@
 """
 Use Auto-regressive RNN to infer firing rates from a given data set.
 """
-
-from utils.ephys_data import visualize as vz
-from utils.ephys_data import ephys_data
-from src.train import train_model
-from src.model import autoencoderRNN
-import tables
-from scipy.stats import zscore
-import matplotlib.pyplot as plt
-import torch
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-import sys
-import os
-from pprint import pprint
-import json
-import argparse
+import argparse  # noqa: E402
 parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
 parser.add_argument('data_dir', help='Path to data directory')
 parser.add_argument('--override_config', action='store_true',
@@ -41,6 +25,19 @@ parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500],
                     help='Time limits inferred firing rates (default: %(default)s)')
 
 args = parser.parse_args()
+
+import tables  # noqa
+from scipy.stats import zscore  # noqa
+import matplotlib.pyplot as plt  # noqa
+import torch  # noqa
+from sklearn.decomposition import PCA  # noqa
+from sklearn.preprocessing import StandardScaler  # noqa
+import numpy as np  # noqa
+import sys  # noqa
+import os  # noqa
+from pprint import pprint  # noqa
+import json  # noqa
+
 data_dir = args.data_dir
 script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
@@ -91,6 +88,11 @@ else:
 
 # script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
 sys.path.append(blech_clust_path)
+
+from utils.ephys_data import visualize as vz  # noqa
+from utils.ephys_data import ephys_data  # noqa
+from src.train import train_model  # noqa
+from src.model import autoencoderRNN  # noqa
 
 # mse loss performs better than poisson loss
 loss_name = 'mse'

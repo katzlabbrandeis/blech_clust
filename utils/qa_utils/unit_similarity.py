@@ -1,7 +1,6 @@
 # Import stuff!
 from numba import jit
 from tqdm import tqdm
-from utils.blech_utils import imp_metadata, pipeline_graph_check
 from collections import Counter
 import numpy as np
 import tables
@@ -14,6 +13,7 @@ script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 
 def unit_similarity_abu(all_spk_times):

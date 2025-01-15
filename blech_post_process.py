@@ -50,31 +50,12 @@ Author: Abuzar Mahmood
 """
 
 ############################################################
-# First handle arguments
-# This allows the -h flag to run without loading imports
-############################################################
-import utils.blech_post_process_utils as post_utils
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils import blech_waveforms_datashader
-from multiprocessing import Pool, cpu_count
-from functools import partial
-import re
-from glob import glob
-import matplotlib
-import pandas as pd
-from sklearn.mixture import GaussianMixture
-import pylab as plt
-import numpy as np
-import tables
-import os
-import argparse
-
-############################################################
 # Input from user and setup data
 ############################################################
 # Get directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
 # Create argument parser
+import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Spike extraction and sorting script')
 parser.add_argument('dir_name',
@@ -89,6 +70,25 @@ parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
                     action='store_true')
 args = parser.parse_args()
+
+############################################################
+# First handle arguments
+# This allows the -h flag to run without loading imports
+############################################################
+import utils.blech_post_process_utils as post_utils  # noqa
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from utils import blech_waveforms_datashader  # noqa
+from multiprocessing import Pool, cpu_count  # noqa
+from functools import partial  # noqa
+import re  # noqa
+from glob import glob  # noqa
+import matplotlib  # noqa
+import pandas as pd  # noqa
+from sklearn.mixture import GaussianMixture  # noqa
+import pylab as plt  # noqa
+import numpy as np  # noqa
+import tables  # noqa
+import os  # noqa
 
 ############################################################
 # Imports and Settings

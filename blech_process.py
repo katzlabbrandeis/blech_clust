@@ -24,23 +24,24 @@ Steps:
 ############################################################
 # Imports
 ############################################################
-import pathlib
-import datetime
-import warnings
-import numpy as np
-import sys
-import json
-import pylab as plt
-import utils.blech_process_utils as bpu
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-import os
-import argparse
+import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Process single electrode waveforms')
 parser.add_argument('data_dir', type=str, help='Path to data directory')
 parser.add_argument('electrode_num', type=int,
                     help='Electrode number to process')
 args = parser.parse_args()
+
+import pathlib  # noqa
+import datetime  # noqa
+import warnings  # noqa
+import numpy as np  # noqa
+import sys  # noqa
+import json  # noqa
+import pylab as plt  # noqa
+import utils.blech_process_utils as bpu  # noqa
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+import os  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):

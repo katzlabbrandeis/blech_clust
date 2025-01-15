@@ -6,7 +6,6 @@ import ast
 import re
 import pylab as plt
 import matplotlib.image as mpimg
-import argparse
 import pandas as pd
 import hashlib
 from utils.blech_utils import entry_checker, imp_metadata
@@ -517,9 +516,9 @@ def gen_plot_auto_merged_clusters(
         current_legend_texts = this_ax.get_legend().get_texts()
         new_legend_texts = [f'{this_text.get_text()} ({this_count})'
                             for this_text, this_count in zip(
-            current_legend_texts,
-            waveform_counts,
-        )]
+                                current_legend_texts,
+                                waveform_counts,
+                            )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,

@@ -1,4 +1,3 @@
-from utils.blech_utils import imp_metadata
 import os
 import sys
 import numpy as np
@@ -17,6 +16,7 @@ blech_clust_dir = path_handler.blech_clust_dir
 ############################################################
 
 sys.path.append(blech_clust_dir)
+from utils.blech_utils import imp_metadata  # noqa: E402
 
 
 class EnergyFeature(BaseEstimator, TransformerMixin):

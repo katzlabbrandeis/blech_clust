@@ -2,7 +2,6 @@
 Script to reload raw_emg if it gets deleted without going through blech_clust.py
 """
 # Necessary python modules
-from utils import read_file
 import easygui
 import os
 import tables
@@ -16,6 +15,7 @@ from tqdm import tqdm
 
 # Necessary blech_clust modules
 sys.path.append('../..')
+from utils import read_file  # noqa: E402
 
 # Get name of directory with the data files
 if len(sys.argv) > 1:

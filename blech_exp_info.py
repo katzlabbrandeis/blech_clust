@@ -17,25 +17,8 @@ X Laser parameters and dig_in
 X Misc Notes
 """
 
-import json
-import numpy as np
-import os
-import re
-import argparse
-import pandas as pd
-from tqdm import tqdm
-# When running in Spyder, throws an error,
-# so cd to utils folder and then back out
-from utils.blech_utils import (
-    entry_checker,
-    imp_metadata,
-    pipeline_graph_check,
-)
-from utils.importrhdutilities import load_file, read_header
-from utils.read_file import DigInHandler
-
-# Get name of directory with the data files
 # Create argument parser
+import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Creates files with experiment info')
 parser.add_argument('dir_name',  help='Directory containing data files')
@@ -63,6 +46,23 @@ parser.add_argument('--opto-loc', help='Opto-fiber location')
 parser.add_argument('--notes', help='Experiment notes')
 args = parser.parse_args()
 
+import json  # noqa
+import numpy as np  # noqa
+import os  # noqa
+import re  # noqa
+import pandas as pd  # noqa
+from tqdm import tqdm  # noqa
+# When running in Spyder, throws an error,
+# so cd to utils folder and then back out
+from utils.blech_utils import (
+    entry_checker,
+    imp_metadata,
+    pipeline_graph_check,
+)  # noqa
+from utils.importrhdutilities import load_file, read_header  # noqa
+from utils.read_file import DigInHandler  # noqa
+
+# Get name of directory with the data files
 # Helper function to parse comma-separated values
 
 

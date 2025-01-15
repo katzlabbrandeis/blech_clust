@@ -39,25 +39,7 @@ Dependencies:
     - Custom utility modules from blech_clust package
 """
 
-# Necessary python modules
-from utils.importrhdutilities import read_header
-from utils.blech_process_utils import path_handler
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.qa_utils import channel_corr
-from utils import read_file
-from ast import literal_eval
-import pylab as plt
-import shutil
-import pandas as pd
-import glob
-import json
-import multiprocessing
-import numpy as np
-import sys
-import tables
-import os
-import argparse
-
+import argparse  # noqa
 parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
 parser.add_argument('dir_name', type=str,
                     help='Directory name with data files')
@@ -66,8 +48,24 @@ parser.add_argument('--force_run', action='store_true',
 args = parser.parse_args()
 force_run = args.force_run
 
-
 # Necessary blech_clust modules
+from utils.importrhdutilities import read_header  # noqa
+from utils.blech_process_utils import path_handler  # noqa
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from utils.qa_utils import channel_corr  # noqa
+from utils import read_file  # noqa
+# Necessary python modules
+from ast import literal_eval  # noqa
+import pylab as plt  # noqa
+import shutil  # noqa
+import pandas as pd  # noqa
+import glob  # noqa
+import json  # noqa
+import multiprocessing  # noqa
+import numpy as np  # noqa
+import sys  # noqa
+import tables  # noqa
+import os  # noqa
 
 
 class HDF5Handler:

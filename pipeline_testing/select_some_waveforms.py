@@ -4,7 +4,6 @@ This is intended for the emg pipeline patch
 Therefore, select about 3000 waveforms from 1 electrode
 """
 
-from utils.blech_utils import imp_metadata
 import sys
 import os
 import glob
@@ -16,6 +15,7 @@ import pandas as pd
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
+from utils.blech_utils import imp_metadata  # noqa
 
 csv_path = os.path.join(
     blech_clust_dir,

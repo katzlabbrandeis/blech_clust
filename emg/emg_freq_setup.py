@@ -6,8 +6,6 @@
 # This is the starting step for emg_local_BSA_execute.py
 
 # Import stuff
-from utils.blech_process_utils import path_handler
-from utils.blech_utils import imp_metadata, pipeline_graph_check
 import numpy as np
 import os
 import multiprocessing
@@ -20,6 +18,8 @@ import pandas as pd
 import pylab as plt
 
 sys.path.append('..')
+from utils.blech_process_utils import path_handler  # noqa: E402
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)

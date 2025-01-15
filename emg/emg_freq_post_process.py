@@ -5,7 +5,6 @@ in the hdf5 file under the node emg_BSA_results
 """
 
 # Import stuff
-from utils.blech_utils import imp_metadata, pipeline_graph_check
 import numpy as np
 import easygui
 import os
@@ -16,6 +15,7 @@ import sys
 import pandas as pd
 
 sys.path.append('..')
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)

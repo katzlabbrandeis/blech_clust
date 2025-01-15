@@ -2,16 +2,9 @@
 Creating a Prefect pipeline for running tests
 Run python scripts using subprocess as prefect tasks
 """
-import os
-from subprocess import PIPE, Popen
-from prefect import flow, task
-from glob import glob
-import json
-import argparse
-import sys
-from create_exp_info_commands import command_dict
 
 ############################################################
+import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Run tests, default = Run all tests')
 parser.add_argument('-e', action='store_true',
@@ -33,6 +26,14 @@ parser.add_argument('--spike-emg', action='store_true',
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
 args = parser.parse_args()
+
+import os  # noqa
+from subprocess import PIPE, Popen  # noqa
+from prefect import flow, task  # noqa
+from glob import glob  # noqa
+import json  # noqa
+import sys  # noqa
+from create_exp_info_commands import command_dict  # noqa
 
 print(args.raise_exception)
 break_bool = args.raise_exception
