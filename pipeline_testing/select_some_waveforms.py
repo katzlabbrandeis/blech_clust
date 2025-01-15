@@ -15,14 +15,14 @@ import pandas as pd
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-from utils.blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata  # noqa
 
 csv_path = os.path.join(
-        blech_clust_dir, 
-        'example_meta_files',
-        'GC_PC_taste_odor_spont_210919_175343.csv')
-sorting_table = pd.read_csv(csv_path, keep_default_na = False)
-sorting_table.drop(list(range(0, len(sorting_table))), inplace = True)
+    blech_clust_dir,
+    'example_meta_files',
+    'GC_PC_taste_odor_spont_210919_175343.csv')
+sorting_table = pd.read_csv(csv_path, keep_default_na=False)
+sorting_table.drop(list(range(0, len(sorting_table))), inplace=True)
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
@@ -36,11 +36,12 @@ os.chdir(dir_name)
 
 # Load clustering results
 clustering_path = os.path.join(dir_name, 'clustering_results')
-pred_files = sorted(glob.glob(os.path.join(clustering_path,'*','*','predictions.npy')))
+pred_files = sorted(glob.glob(os.path.join(
+    clustering_path, '*', '*', 'predictions.npy')))
 # Only take 1 cluster per electrode with count > threshold
 # Because we don't want the script to confirm with user
 
-#max_clust_pred = pred_files[-1]
+# max_clust_pred = pred_files[-1]
 for inum, this_pred_file in enumerate(pred_files):
     max_clust_pred = this_pred_file
     preds = np.load(max_clust_pred)
@@ -55,7 +56,7 @@ for inum, this_pred_file in enumerate(pred_files):
     # Find smallest combination of clusters which passes threshold
     wanted_count = 3000
     cluster_vals = np.unique(preds)
-    cluster_counts = np.array([sum(preds==x) for x in np.unique(preds)])
+    cluster_counts = np.array([sum(preds == x) for x in np.unique(preds)])
     count_order = np.argsort(cluster_counts)
 
     # If single cluster can suffice, pick that, else pick smallest combination
@@ -67,28 +68,28 @@ for inum, this_pred_file in enumerate(pred_files):
         wanted_clusts = [cluster_vals[final_ind]]
 
         this_table = pd.DataFrame(
-                data = dict(
-                    Unit = int(inum),
-                    Chan = electrode_num,
-                    Solution = cluster_num,
-                    Cluster = '+'.join([str(x) for x in wanted_clusts]),
-                    single_unit = '',
-                    Type = '',
-                    Split = '',
-                    Comments = '',
-                    ),
-                index = [inum],
-                )
+            data=dict(
+                Unit=int(inum),
+                Chan=electrode_num,
+                Solution=cluster_num,
+                Cluster='+'.join([str(x) for x in wanted_clusts]),
+                single_unit='',
+                Type='',
+                Split='',
+                Comments='',
+            ),
+            index=[inum],
+        )
         sorting_table = sorting_table.append(this_table)
 
 # Only pick 1 cluster per electrode
-sorting_table = sorting_table.drop_duplicates(subset = ['Chan'])
+sorting_table = sorting_table.drop_duplicates(subset=['Chan'])
 
 # Write out to data folder
 sorting_table.to_csv(
-        os.path.join(dir_name,basename+'_sorted_units.csv'),
-        index = False
-        )
+    os.path.join(dir_name, basename+'_sorted_units.csv'),
+    index=False
+)
 
 print(f'Wrote out {basename}_sorted_units.csv')
 print(sorting_table)

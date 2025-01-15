@@ -50,8 +50,8 @@ firing = data.firing_array # 4D array of firing rates
 # Access LFP data
 lfps = data.lfp_array     # Raw LFP data
 stft = data.stft_array    # Complex Spectrograms
-amplitude = data.amplitude_array # STFT Amplitude (power) 
-phase = data.phase_array  # STFT Phase 
+amplitude = data.amplitude_array # STFT Amplitude (power)
+phase = data.phase_array  # STFT Phase
 ```
 
 ### Region-Based Analysis
