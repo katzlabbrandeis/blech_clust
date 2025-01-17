@@ -1,7 +1,15 @@
 """
-Post processing cleanup of the mess of files created by emg_local_BSA_execute.py. 
-All the output files will be saved to p (named by tastes) and omega 
-in the hdf5 file under the node emg_BSA_results
+This module performs post-processing cleanup of files created by `emg_local_BSA_execute.py`, saving output files to an HDF5 file under the node `emg_BSA_results`. It processes EMG data, removes unnecessary nodes, and calculates specific frequency arrays.
+
+- Imports necessary libraries and utility functions.
+- Retrieves the directory name and metadata using `imp_metadata`.
+- Performs a pipeline graph check using `pipeline_graph_check`.
+- Opens the HDF5 file and removes the `/raw_emg` node if it exists to reduce file size.
+- Extracts experimental information and taste names from metadata.
+- Loads trial data from a CSV file and frequency analysis results from NPY files.
+- Processes and saves the first non-NaN omega data to disk.
+- Calculates `gape_array` and `ltp_array` based on specific frequency ranges and saves them to disk.
+- Logs the successful execution of the script.
 """
 
 # Import stuff

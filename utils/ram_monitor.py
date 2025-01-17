@@ -1,3 +1,9 @@
+"""
+This module monitors RAM usage and logs it to a specified directory. It continuously records the used, total, and percentage of RAM usage every second until interrupted.
+
+- `monitor_ram(output_dir)`: Monitors RAM usage and writes the data to a log file named `ram_usage.log` in the specified output directory. The log includes a timestamp, used RAM in GB, total RAM in GB, and RAM usage percentage. The function runs indefinitely until a KeyboardInterrupt is received.
+- The script requires one command-line argument specifying the output directory for the log file. If the argument is not provided, it prints usage instructions and exits.
+"""
 #!/usr/bin/env python3
 import psutil
 import time

@@ -1,3 +1,16 @@
+"""
+This module processes and visualizes EMG data related to gapes and LTPS (licking tongue protrusions) in response to different taste and laser conditions. It reads data from CSV and NPY files, processes it, and generates plots for analysis.
+
+- Imports necessary libraries and modules, including custom utilities for metadata handling.
+- Reads metadata and changes the working directory to the location of the data files.
+- Loads EMG data from CSV and NPY files, filling missing laser data with `False`.
+- Extracts and processes time indices for plotting based on metadata parameters.
+- Constructs a long-format DataFrame by manually adding time, gapes, and LTPS data.
+- Melts the DataFrame to long format for easier plotting, grouping by relevant categories.
+- Creates a directory for saving plots if it doesn't exist.
+- Generates and saves plots for gapes and LTPS data, showing single trials and averages for each combination of CAR, taste, and laser condition.
+- Produces overlay plots for taste and laser conditions using seaborn, saving them to the specified directory.
+"""
 # Import stuff!
 import numpy as np
 import tables

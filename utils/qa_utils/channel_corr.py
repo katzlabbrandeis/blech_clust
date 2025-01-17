@@ -1,5 +1,9 @@
 """
-Utilities to help with quality assurance
+This module provides utilities for quality assurance of channel data, focusing on correlation analysis between channels.
+
+- `get_all_channels(hf5_path, n_corr_samples=10000)`: Extracts all channels from an HDF5 file, specifically from nodes 'raw' and 'raw_emg'. It returns the channel data and their names, using a specified number of samples for correlation calculation.
+- `intra_corr(X)`: Computes the correlation matrix for all channels in the input array `X`, using Pearson correlation. It returns a matrix of correlation coefficients.
+- `gen_corr_output(corr_mat, plot_dir, threshold=0.9)`: Generates and saves plots of the raw and thresholded correlation matrices. It also outputs a table of thresholded correlation values and logs warnings for channels with correlations above the specified threshold.
 """
 
 import numpy as np

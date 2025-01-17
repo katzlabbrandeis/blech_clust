@@ -1,6 +1,13 @@
 """
-Generates plots in data directory for entire timeseries of 
-DIG_INs and AMP channels
+This module generates plots for the entire timeseries of digital inputs (DIG_INs) and amplifier (AMP) channels from data files in a specified directory. It handles two types of file structures: one file per channel and one file per signal type.
+
+- Sets up an argument parser to handle command-line inputs for plotting DIG_INs and AMP files.
+- Determines the directory path for data files using metadata from the `imp_metadata` function.
+- Creates a directory for storing plot outputs if it does not already exist.
+- Identifies the file structure (one file per channel or one file per signal type) by checking for the presence of specific files.
+- Reads amplifier data files and plots the data, handling both file structures.
+- Reads digital input data files and plots the data, handling both file structures.
+- Saves the generated plots in the specified directory.
 """
 
 import argparse

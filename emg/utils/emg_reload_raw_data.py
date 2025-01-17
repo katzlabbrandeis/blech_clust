@@ -1,5 +1,15 @@
 """
-Script to reload raw_emg if it gets deleted without going through blech_clust.py
+This script is designed to reload raw EMG data into an HDF5 file if it has been deleted without using the `blech_clust.py` script. It handles file directory selection, checks for necessary experimental information, and processes EMG data files.
+
+- Imports necessary Python modules and custom utilities.
+- Determines the directory containing data files, either from command-line arguments or via a GUI prompt.
+- Checks for the presence of an experimental info JSON file and exits if not found.
+- Opens an HDF5 file, removes any existing raw EMG data, and creates a new group for raw EMG data.
+- Identifies amplifier ports used and sorts them.
+- Loads experimental and electrode layout information from JSON and CSV files, respectively.
+- Calls `read_file.read_emg_channels` to read EMG channels from the data files and store them in the HDF5 file. 
+
+Note: The script contains commented-out code for reading EMG data directly from amplifier channels, which is not currently executed.
 """
 # Necessary python modules
 import easygui

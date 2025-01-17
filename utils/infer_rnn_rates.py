@@ -1,5 +1,13 @@
 """
-Use Auto-regressive RNN to infer firing rates from a given data set.
+This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firing rates from electrophysiological data. It processes data for each taste separately, trains an RNN model, and saves the predicted firing rates and latent factors.
+
+- Parses command-line arguments to configure the RNN model, including data directory, training steps, hidden size, bin size, train-test split, PCA usage, retraining option, and time limits.
+- Loads configuration from a JSON file if not overridden by command-line arguments.
+- Loads spike data using the `ephys_data` class and preprocesses it, including binning and optional PCA.
+- Trains an RNN model for each taste, using a specified loss function (MSE) and saves the model and training artifacts.
+- Generates and saves various plots, including firing rate overviews, latent factors, and mean firing rates.
+- Writes the predicted firing rates and latent outputs to an HDF5 file for each taste.
+- Handles file paths and directories for saving models, plots, and outputs, ensuring necessary directories exist.
 """
 
 import argparse
