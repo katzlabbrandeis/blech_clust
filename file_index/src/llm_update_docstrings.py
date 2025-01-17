@@ -90,7 +90,7 @@ def generate_summary(summary_assistant, file_text):
     summary_results = summary_assistant.initiate_chat(
         recipient = summary_assistant,
         message = f"""Summarize the code in the file below to generate a top-level docstring for the module.
-Return a summary of the file's contents and the functions it contains.
+Return a summary of the file's contents and the functions it contains, but make sure to not exceed 10-20 lines.
 Follow the format:
 
 General description of the file.
