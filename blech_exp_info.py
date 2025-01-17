@@ -241,10 +241,21 @@ def main():
     # Process files
     file_type, ports, electrode_files, electrode_num_list = process_files(dir_path)
     
-    # Process digital inputs
-    dig_handler, taste_dig_inds, taste_digin_nums, taste_digin_trials = process_dig_ins(dir_path, file_type, args)
-
-    # TODO: Add remaining processing steps
+    # Process layout and get all parameters
+    layout_info = process_layout(dir_path, dir_name, file_type, ports, 
+                               electrode_files, electrode_num_list, args)
+    
+    # Create final dictionary
+    fin_dict = {
+        'version': '0.0.2',
+        **exp_info,
+        **layout_info
+    }
+    
+    # Write to JSON file
+    json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
+    with open(json_file_name, 'w') as file:
+        json.dump(fin_dict, file, indent=4)
     
     # Write success to log
     pipeline_check.write_to_log(script_path, 'completed')
@@ -288,9 +299,13 @@ def process_layout(dir_path, dir_name, file_type, ports, electrode_files, electr
         args (argparse.Namespace): Command line arguments
         
     Returns:
-        tuple: Contains:
+        dict: Dictionary containing:
             - layout_dict (dict): Dictionary of electrode layouts
             - emg_info (dict): EMG-related information
+            - dig_ins (dict): Digital input information
+            - taste_params (dict): Taste parameters
+            - laser_params (dict): Laser parameters
+            - notes (str): Experiment notes
     """
 
     # Find all ports used
@@ -691,39 +706,34 @@ def process_layout(dir_path, dir_name, file_type, ports, electrode_files, electr
     else:
         laser_digin_trials = []
 
-    fin_dict = {'version': '0.0.2',
-                **this_dict,
-                'file_type': file_type,
-                'regions': list(layout_dict.keys()),
-                'ports': list(np.unique(ports)),
-                'dig_ins': {
-                    'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
-                    'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
-                },
-                'emg': {
-                    'port': fin_emg_port,
-                    'electrodes': orig_emg_electrodes,
-                    'muscle': emg_muscle_str},
-                'electrode_layout': fin_perm,
-                'taste_params': {
-                    'dig_in_nums': taste_digin_nums,
-                    'trial_count': taste_digin_trials,
-                    'tastes': tastes,
-                    'concs': concs,
-                    'pal_rankings': pal_ranks},
-                'laser_params': {
-                    'dig_in_nums': laser_digin_nums,
-                    'trial_count': laser_digin_trials,
-                    'onset': onset_time,
-                    'duration': duration,
-                    'virus_region': virus_region_str,
-                    'opto_loc': opto_loc_str},
-                'notes': notes}
-
-
-json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
-with open(json_file_name, 'w') as file:
-    json.dump(fin_dict, file, indent=4)
-
-# Write success to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+    return {
+        'file_type': file_type,
+        'regions': list(layout_dict.keys()),
+        'ports': list(np.unique(ports)),
+        'dig_ins': {
+            'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
+            'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
+        },
+        'emg': {
+            'port': fin_emg_port,
+            'electrodes': orig_emg_electrodes,
+            'muscle': emg_muscle_str
+        },
+        'electrode_layout': fin_perm,
+        'taste_params': {
+            'dig_in_nums': taste_digin_nums,
+            'trial_count': taste_digin_trials,
+            'tastes': tastes,
+            'concs': concs,
+            'pal_rankings': pal_ranks
+        },
+        'laser_params': {
+            'dig_in_nums': laser_digin_nums,
+            'trial_count': laser_digin_trials,
+            'onset': onset_time,
+            'duration': duration,
+            'virus_region': virus_region_str,
+            'opto_loc': opto_loc_str
+        },
+        'notes': notes
+    }
