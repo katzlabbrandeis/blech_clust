@@ -275,22 +275,23 @@ def get_experiment_info(dir_name):
         "timestamp": time_match[1],
     }
 
-##################################################
-# Brain Regions and Electrode Layout
-##################################################
-
-
-if args.template:
-    with open(args.template, 'r') as file:
-        template_dict = json.load(file)
-        template_keys = list(template_dict.keys())
-        from_template = {
-                this_key:template_dict[this_key] for this_key in template_keys \
-                        if this_key not in this_dict.keys()
-                        }
-        fin_dict = {**this_dict, **from_template}
-
-else:
+def process_layout(dir_path, dir_name, file_type, ports, electrode_files, electrode_num_list, args):
+    """Process electrode layout information
+    
+    Args:
+        dir_path (str): Path to data directory
+        dir_name (str): Name of directory
+        file_type (str): Type of data files
+        ports (list): List of ports
+        electrode_files (list): List of electrode files
+        electrode_num_list (list): List of electrode numbers
+        args (argparse.Namespace): Command line arguments
+        
+    Returns:
+        tuple: Contains:
+            - layout_dict (dict): Dictionary of electrode layouts
+            - emg_info (dict): EMG-related information
+    """
 
     # Find all ports used
     file_list = os.listdir(dir_path)
