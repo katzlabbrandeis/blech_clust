@@ -260,9 +260,6 @@ def main():
     # Write success to log
     pipeline_check.write_to_log(script_path, 'completed')
 
-if __name__ == '__main__':
-    main()
-
 def parse_csv(s, convert=str):
     """Parse comma-separated values with optional type conversion"""
     if not s:
@@ -737,3 +734,6 @@ def process_layout(dir_path, dir_name, file_type, ports, electrode_files, electr
         },
         'notes': notes
     }
+
+if __name__ == '__main__':
+    main()
