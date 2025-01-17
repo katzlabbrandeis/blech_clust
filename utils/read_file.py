@@ -1,3 +1,21 @@
+"""
+This module provides functionality for handling digital inputs and reading data from Intan format files, saving the data into HDF5 format. It includes a class for managing digital inputs and several functions for reading and processing data.
+
+- `DigInHandler` class: Manages digital input files across different formats.
+  - `__init__`: Initializes the handler with a data directory and file type.
+  - `get_dig_in_files`: Retrieves digital input files and their metadata based on the specified file type.
+  - `get_trial_data`: Extracts trial data (start and end times) from digital input files.
+  - `write_out_frame`: Saves the digital input data frame to a CSV file.
+  - `load_dig_in_frame`: Loads the digital input data frame from a CSV file.
+
+- `read_traditional_intan`: Reads traditional Intan format data and saves it to an HDF5 file, organizing amplifier and EMG data.
+
+- `read_emg_channels`: Reads EMG data from amplifier channels and saves it to an HDF5 file.
+
+- `read_electrode_channels`: Reads electrode data from amplifier channels, excluding EMG channels, and saves it to an HDF5 file.
+
+- `read_electrode_emg_channels_single_file`: Reads both electrode and EMG data from a single file and saves it to an HDF5 file, organizing data by channel index.
+"""
 # Import stuff!
 import tables
 import os

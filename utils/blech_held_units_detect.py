@@ -1,3 +1,16 @@
+"""
+This module processes neural waveform data from two different days to identify units that are held across sessions using PCA and a J3 metric. It involves user interaction for file selection and output directory specification, and generates plots for visualization.
+
+- `calculate_J3(wf_day1, wf_day2)`: Computes the J3 metric as the ratio of J2 to J1 for given waveforms from two days.
+- `calculate_J2(wf_day1, wf_day2)`: Calculates J2 by determining the distance of daily mean waveforms from the overall mean.
+- `calculate_J1(wf_day1, wf_day2)`: Computes J1 by summing the Euclidean distances of waveforms from their daily means.
+- The script interacts with the user to select directories and files for waveform data from two days.
+- It calculates intra-unit J3 values by comparing segments of waveforms within the same day.
+- Inter-unit J3 values are calculated for units of the same type on the same electrode across days.
+- Units are marked as held if their inter-unit J3 is below a user-specified percentile of intra-unit J3.
+- Generates and saves plots comparing waveforms and distributions of J3 values.
+- Outputs a text file listing units identified as held across sessions.
+"""
 # Import stuff!
 import numpy as np
 import tables

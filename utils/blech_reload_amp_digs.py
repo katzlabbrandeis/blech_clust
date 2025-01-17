@@ -1,3 +1,14 @@
+"""
+This module processes electrophysiological data files, organizes them into an HDF5 format, and reads data from various file types. It handles both single-file and multi-file data formats, creating necessary groups in the HDF5 file for raw data, EMG data, and digital inputs/outputs.
+
+- Imports necessary Python and custom modules for file handling, data processing, and path management.
+- Determines the type of data files present (either one file per signal type or one file per channel).
+- Creates or opens an HDF5 file, setting up groups for raw data, EMG data, and digital inputs/outputs.
+- Identifies and sorts lists of amplifier and digital input files based on the file type.
+- Reads metadata from an info file to determine sampling rates and other parameters.
+- Reads and processes digital input data and electrode channels, handling both single-file and multi-file formats.
+- Utilizes utility functions from imported modules to read and append data to the HDF5 file.
+"""
 # Necessary python modules
 import os
 import tables

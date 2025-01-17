@@ -1,3 +1,22 @@
+"""
+This module processes neural data stored in an HDF5 file, generating and saving plots of unit waveforms, inter-spike interval (ISI) histograms, and spike count histograms. It also logs the execution of the processing pipeline.
+
+- Imports necessary libraries and utility functions for data handling, plotting, and logging.
+- Retrieves metadata and directory information using `imp_metadata`.
+- Performs a pipeline graph check with `pipeline_graph_check` to ensure the correct sequence of operations.
+- Opens an HDF5 file containing sorted neural units and retrieves unit data.
+- Calculates the minimum and maximum times for plotting purposes.
+- Creates a directory for storing waveform plots, deleting any existing directory with the same name.
+- Iterates over each unit to:
+  - Plot waveforms using `blech_waveforms_datashader`.
+  - Plot mean and standard deviation of waveforms.
+  - Generate ISI histograms using `gen_isi_hist`.
+  - Plot spike count histograms over time.
+  - Save the generated plots in the specified directory.
+- Separately saves datashader and average unit plots in a subdirectory.
+- Closes the HDF5 file after processing.
+- Logs the successful completion of the pipeline.
+"""
 # Import stuff!
 import numpy as np
 import tables

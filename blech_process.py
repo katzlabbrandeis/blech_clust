@@ -1,24 +1,27 @@
 """
-Changes to be made:
-    1) Add flag for throwing out waveforms at blech_clust step
-    2) Convert pred_spikes + pred_noice plots to datashader
-    3) Number of noise clusters = 7
-    4) Number of spikes clusters = 3
-    5) Save predictions so they can be used in UMAP plot
+This module processes single electrode waveforms for spike detection and clustering. It includes data loading, preprocessing, spike extraction, feature extraction, and clustering. The module also supports classification and logging of the processing steps.
 
-Model monitoring:
-    1) Monitoring input and output data distributions
-
-Steps:
-    1) Load Data
-    2) Preprocess
-        a) Bandpass filter
-        b) Extract and dejitter spikes
-        c) Extract amplitude (accounting for polarity)
-        d) Extract energy and scale waveforms by energy
-        e) Perform PCA
-        f) Scale all features using StandardScaler
-    3) Perform clustering
+- **Argument Parsing**: Parses command-line arguments for the data directory and electrode number.
+- **Data Loading**: Loads data and metadata for the specified electrode, and initializes a processing log.
+- **Preprocessing**: 
+  - Filters electrode data.
+  - Calculates voltage parameters and cuts the recording accordingly.
+  - Extracts spike times and waveforms.
+  - Generates plots of filtered data with threshold overlays.
+- **Spike Processing**: 
+  - Dejitters spike waveforms and extracts their maximum amplitudes.
+- **Classification**: 
+  - Loads and applies a classifier if specified, using neuRecommend features.
+  - Optionally throws out noise waveforms based on classification results.
+- **Feature Extraction**: 
+  - Extracts features using either neuRecommend or blech_spike_features pipelines.
+- **Clustering**: 
+  - Performs manual or automatic clustering using Gaussian Mixture Models (GMM).
+  - Removes outliers and calculates Mahalanobis distance matrices.
+  - Saves cluster labels and generates output plots.
+- **Logging**: 
+  - Updates the processing log with start and end times, and status of processing.
+  - Writes successful execution to a pipeline log.
 """
 
 ############################################################

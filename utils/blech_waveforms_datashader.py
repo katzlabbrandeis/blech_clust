@@ -1,3 +1,16 @@
+"""
+This module provides functionality to create a datashader image from a numpy array of waveforms. It uses various libraries to process and visualize waveform data, allowing for optional downsampling and threshold marking.
+
+- `waveforms_datashader(waveforms, x_values, downsample=True, threshold=None, dir_name="datashader_temp", ax=None)`: 
+  - Accepts a numpy array of waveforms and x-values to create a datashader image.
+  - Optionally downsamples the waveforms to reduce the effects of upsampling.
+  - Constructs a pandas DataFrame to hold the waveform data, separating individual waveforms with NaNs.
+  - Uses datashader to create a canvas and aggregate the data, then exports the image.
+  - Reads the temporary image file and plots it using matplotlib.
+  - Optionally marks a threshold for spike selection on the plot.
+  - Cleans up temporary files and directories after processing.
+  - Returns the figure and axis for further customization or saving.
+"""
 # Import stuff
 import datashader as ds
 import datashader.transfer_functions as tf

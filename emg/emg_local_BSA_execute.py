@@ -1,3 +1,14 @@
+"""
+This module performs a local Bayesian Spectral Analysis (BSA) on a single trial of Electromyography (EMG) data using the High-Performance Computing (HPC) environment. It integrates Python with R to execute the BSA using the BaSAR package.
+
+- `Logger` class: A custom logger that writes messages to both the terminal and a log file, appending timestamps to each message.
+- Reads the directory name from 'BSA_run.dir' and changes the working directory to the specified path.
+- Utilizes the `pipeline_graph_check` from `blech_utils` to verify the pipeline's previous state and log the attempt.
+- Loads EMG data from a NumPy file and processes a specific trial based on a command-line argument.
+- Interfaces with R using `rpy2` to perform BSA on the EMG data, checking for NaN values before processing.
+- Saves the BSA results (`p` and `omega`) as NumPy files in the 'emg_BSA_results' directory.
+- Logs the completion of the process using the pipeline check utility.
+"""
 # Runs a local BSA analysis (see emg_local_BSA.py) on one trial of EMG data. Runs on the HPC
 
 # Import stuff

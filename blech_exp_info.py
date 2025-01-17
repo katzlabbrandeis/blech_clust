@@ -1,20 +1,13 @@
 """
-For help with input arguments:
-    python blech_exp_info.py -h
+This module generates a file containing relevant experimental information for a given dataset. It processes data files to extract and organize details such as animal name, experiment type, date, timestamp, regions recorded from, electrode layout, taste concentrations, palatability ranks, laser parameters, and miscellaneous notes.
 
-
-Code to generate file containing relevant experimental info:
-
-X Animal name
-X Exp Type
-X Date
-X Time Stamp
-X Regions Recorded from
-X Electrode Layout According to Regions
-X Taste concentrations and dig_in order
-X Taste Palatability Ranks
-X Laser parameters and dig_in
-X Misc Notes
+- Parses command-line arguments to specify the directory containing data files and optional parameters like template files, mode, and various experimental details.
+- `parse_csv(s, convert=str)`: Helper function to parse comma-separated values from a string and convert them to a specified type.
+- Extracts metadata from the directory name and checks the pipeline status.
+- Processes digital input (dig-in) data to determine taste dig-ins, concentrations, palatability rankings, and laser parameters.
+- Handles different file types for electrode data and generates or uses an existing electrode layout file.
+- Organizes and writes out the final experimental information into a JSON file.
+- Logs the completion status of the pipeline process.
 """
 
 import json
