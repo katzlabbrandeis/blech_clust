@@ -73,7 +73,6 @@ class FileSummaryAgent:
             if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
                 doc = ast.get_docstring(node)
                 if doc:
-                    # bullets.append(f"- {node.name}: {doc.split('\n')[0]}")
                     bullets.append(f"- {node.name}: {doc}")
                     
         return bullets
@@ -81,7 +80,10 @@ class FileSummaryAgent:
     def generate_summary(self) -> Dict[str, Any]:
         """Generate complete file summary."""
         return {
-            'imports': self.get_imports(),
-            'definitions': self.get_definitions(),
-            'functionality': self.summarize_functionality()
+                self.file_path.name : {
+                    'path': str(self.file_path),
+                    'imports': self.get_imports(),
+                    'definitions': self.get_definitions(),
+                    'functionality': self.summarize_functionality(),
+                    }
         }
