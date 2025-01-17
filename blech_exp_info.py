@@ -115,7 +115,7 @@ def process_template(args, exp_info):
         return {**exp_info, **from_template}
 
 def process_dig_ins(dir_path, file_type, args):
-    """Process digital inputs"""
+    """Process digital inputs and taste information"""
     dig_handler = DigInHandler(dir_path, file_type)
     dig_handler.get_dig_in_files()
     dig_handler.get_trial_data()
@@ -124,17 +124,22 @@ def process_dig_ins(dir_path, file_type, args):
     dig_in_present = any(dig_handler.dig_in_frame.trial_counts > 0)
     if not dig_in_present:
         print('No dig-ins found. Please check your data.')
-        return dig_handler, [], [], [], [], []
+        return (dig_handler, [], [], [], [], [], [], [])
+
+    def count_check(x):
+        nums = re.findall('[0-9]+', x)
+        return sum([x.isdigit() for x in nums]) == len(nums)
 
     # Get taste dig-ins
     if not args.programmatic:
         taste_dig_in_str, continue_bool = entry_checker(
             msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
-            check_func=lambda x: all(n.isdigit() for n in re.findall('[0-9]+', x)),
+            check_func=count_check,
             fail_response='Please enter integers only')
         if not continue_bool:
             exit()
-        taste_dig_inds = [int(x) for x in re.findall('[0-9]+', taste_dig_in_str)]
+        nums = re.findall('[0-9]+', taste_dig_in_str)
+        taste_dig_inds = [int(x) for x in nums]
     else:
         if not args.taste_digins:
             raise ValueError('Taste dig-ins not provided, use --taste-digins')
@@ -147,7 +152,71 @@ def process_dig_ins(dir_path, file_type, args):
     taste_digin_nums = dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_nums'].to_list()
     taste_digin_trials = dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list()
 
-    return dig_handler, taste_dig_inds, taste_digin_nums, taste_digin_trials
+    # Get tastes
+    def taste_check(x):
+        return len(re.findall('[A-Za-z]+', x)) == len(taste_dig_inds)
+
+    if not args.programmatic:
+        taste_str, continue_bool = entry_checker(
+            msg=' Tastes names used (IN ORDER, anything separated [no punctuation in name])  :: ',
+            check_func=taste_check,
+            fail_response='Please enter as many tastes as digins')
+        if not continue_bool:
+            exit()
+        tastes = re.findall('[A-Za-z]+', taste_str)
+    else:
+        if not args.tastes:
+            raise ValueError('Tastes not provided, use --tastes')
+        tastes = parse_csv(args.tastes)
+
+    dig_handler.dig_in_frame.loc[taste_dig_inds, 'taste'] = tastes
+
+    # Get concentrations
+    def float_check(x):
+        return len(x.split(',')) == len(taste_dig_inds)
+
+    if not args.programmatic:
+        conc_str, continue_bool = entry_checker(
+            msg='Corresponding concs used (in M, IN ORDER, COMMA separated)  :: ',
+            check_func=float_check,
+            fail_response='Please enter as many concentrations as digins')
+        if not continue_bool:
+            exit()
+        concs = [float(x) for x in conc_str.split(",")]
+    else:
+        if not args.concentrations:
+            raise ValueError('Concentrations not provided, use --concentrations')
+        concs = parse_csv(args.concentrations, float)
+
+    dig_handler.dig_in_frame.loc[taste_dig_inds, 'concentration'] = concs
+
+    # Get palatability rankings
+    def pal_check(x):
+        nums = re.findall('[1-9]+', x)
+        if not nums:
+            return False
+        pal_nums = [int(n) for n in nums]
+        return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
+
+    if not args.programmatic:
+        palatability_str, continue_bool = entry_checker(
+            msg=f'Enter palatability rankings (IN ORDER) used '
+                '(anything separated), higher number = more palatable  :: ',
+            check_func=pal_check,
+            fail_response=f'Please enter numbers 1<=x<={len(tastes)}')
+        if not continue_bool:
+            exit()
+        nums = re.findall('[1-9]+', palatability_str)
+        pal_ranks = [int(x) for x in nums]
+    else:
+        if not args.palatability:
+            raise ValueError('Palatability rankings not provided, use --palatability')
+        pal_ranks = parse_csv(args.palatability, int)
+
+    dig_handler.dig_in_frame.loc[taste_dig_inds, 'palatability'] = pal_ranks
+
+    return (dig_handler, taste_dig_inds, taste_digin_nums, taste_digin_trials, 
+            tastes, concs, pal_ranks)
 
 def main():
     """Main function to orchestrate experiment info generation"""
