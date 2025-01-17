@@ -1,5 +1,6 @@
 """Functions for processing digital input information"""
 
+import re
 from utils.blech_utils import entry_checker
 from utils.read_file import DigInHandler
 
