@@ -145,8 +145,8 @@ def main():
     
     # Generate summaries for each file
     total_cost = 0
-    t = tqdm(total=len(sorted_files))
-    for file_path in sorted_files:
+    t = tqdm(sorted_files)
+    for file_path in t:
         t.set_description(f'Processing {file_path.name}')
         file_text = file_path.read_text()
 
@@ -180,7 +180,7 @@ def main():
 
         print(f"Updated docstring for {file_path}")
 
-    print(f"Total cost: {total_cost}")
+        print(f"Current total cost: {total_cost}")
 
 if __name__ == "__main__":
     main()
