@@ -60,6 +60,43 @@ def parse_args():
     parser.add_argument('--notes', help='Experiment notes')
     return parser.parse_args()
 
+def process_template(args, exp_info):
+    """Process template file if provided"""
+    if not args.template:
+        return exp_info
+        
+    with open(args.template, 'r') as file:
+        template_dict = json.load(file)
+        template_keys = list(template_dict.keys())
+        from_template = {
+            this_key:template_dict[this_key] for this_key in template_keys \
+            if this_key not in exp_info.keys()
+        }
+        return {**exp_info, **from_template}
+
+def main():
+    """Main function"""
+    args = parse_args()
+    
+    # Set up metadata and paths
+    metadata_handler = imp_metadata([[], args.dir_name])
+    dir_path = metadata_handler.dir_name
+    dir_name = os.path.basename(dir_path[:-1])
+    
+    # Set up pipeline check
+    script_path = os.path.abspath(__file__)
+    pipeline_check = pipeline_graph_check(dir_path)
+    pipeline_check.write_to_log(script_path, 'attempted')
+    
+    # Get experiment info
+    exp_info = get_experiment_info(dir_name)
+    
+    # Process template if provided
+    exp_info = process_template(args, exp_info)
+
+if __name__ == '__main__':
+    main()
+
 def parse_csv(s, convert=str):
     """Parse comma-separated values with optional type conversion"""
     if not s:
