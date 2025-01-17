@@ -11,7 +11,7 @@ from file_summary_agent import FileSummaryAgent
 def main():
     file_path = Path(__file__).resolve() 
     blech_dir = file_path.parents[2]
-    output_dir = file_path.parent / 'summaries'
+    output_dir = file_path.parents[1] / 'data' / 'summaries'
     
     # Create output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)
@@ -39,7 +39,7 @@ def main():
             # Generate relative path for output file
             rel_path = file_path.relative_to(blech_dir)
             output_file = output_dir / f"{rel_path.stem}_summary.json"
-            output_file.parent.mkdir(parents=True, exist_ok=True)
+            # output_file.parent.mkdir(parents=True, exist_ok=True)
             
             # Generate summary
             agent = FileSummaryAgent(file_path)

@@ -41,14 +41,21 @@ class FileSummaryAgent:
         }
         
         for node in ast.walk(self.tree):
-            if isinstance(node, ast.FunctionDef):
-                # Check if this is a method or standalone function
-                if isinstance(node.parent, ast.ClassDef):
-                    defs['methods'].append(f"{node.parent.name}.{node.name}")
-                else:
-                    defs['functions'].append(node.name)
-            elif isinstance(node, ast.ClassDef):
+            if isinstance(node, ast.ClassDef):
                 defs['classes'].append(node.name)
+                # Check for methods
+                for subnode in node.body:
+                    if isinstance(subnode, ast.FunctionDef):
+                        if subnode.name != '__init__':
+                            defs['methods'].append(f"{node.name}.{subnode.name}")
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name != '__init__':
+                    defs['functions'].append(node.name)
+
+        # Remove any functions that are also methods
+        defs['functions'] = [f for f in defs['functions'] if not \
+                any([f in x for x in defs['methods']])
+                             ]
                 
         return {k: sorted(v) for k, v in defs.items()}
         
@@ -66,7 +73,8 @@ class FileSummaryAgent:
             if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
                 doc = ast.get_docstring(node)
                 if doc:
-                    bullets.append(f"- {node.name}: {doc.split('\n')[0]}")
+                    # bullets.append(f"- {node.name}: {doc.split('\n')[0]}")
+                    bullets.append(f"- {node.name}: {doc}")
                     
         return bullets
         
