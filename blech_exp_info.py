@@ -34,64 +34,54 @@ from utils.blech_utils import (
 from utils.importrhdutilities import load_file, read_header
 from utils.read_file import DigInHandler
 
-# Get name of directory with the data files
-# Create argument parser
-parser = argparse.ArgumentParser(
-    description='Creates files with experiment info')
-parser.add_argument('dir_name',  help='Directory containing data files')
-parser.add_argument('--template', '-t',
-                    help='Template (.info) file to copy experimental details from')
-parser.add_argument('--mode', '-m', default='legacy',
-                    choices=['legacy', 'updated'])
-parser.add_argument('--programmatic', action='store_true',
-                    help='Run in programmatic mode')
-parser.add_argument('--use-layout-file', action='store_true', 
-                    help='Use existing electrode layout file')
-parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
-parser.add_argument('--emg-muscle', help='Name of EMG muscle')
-parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
-parser.add_argument('--tastes', help='Comma-separated taste names')
-parser.add_argument('--concentrations', help='Comma-separated concentrations in M')
-parser.add_argument('--palatability', help='Comma-separated palatability rankings')
-parser.add_argument('--laser-digin', help='Laser digital input index')
-parser.add_argument('--laser-params', help='Laser onset,duration in ms')
-parser.add_argument('--virus-region', help='Virus region')
-parser.add_argument('--opto-loc', help='Opto-fiber location')
-parser.add_argument('--notes', help='Experiment notes')
-args = parser.parse_args()
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description='Creates files with experiment info')
+    parser.add_argument('dir_name',  help='Directory containing data files')
+    parser.add_argument('--template', '-t',
+                        help='Template (.info) file to copy experimental details from')
+    parser.add_argument('--mode', '-m', default='legacy',
+                        choices=['legacy', 'updated'])
+    parser.add_argument('--programmatic', action='store_true',
+                        help='Run in programmatic mode')
+    parser.add_argument('--use-layout-file', action='store_true', 
+                        help='Use existing electrode layout file')
+    parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
+    parser.add_argument('--emg-muscle', help='Name of EMG muscle')
+    parser.add_argument('--taste-digins', help='Comma-separated indices of taste digital inputs')
+    parser.add_argument('--tastes', help='Comma-separated taste names')
+    parser.add_argument('--concentrations', help='Comma-separated concentrations in M')
+    parser.add_argument('--palatability', help='Comma-separated palatability rankings')
+    parser.add_argument('--laser-digin', help='Laser digital input index')
+    parser.add_argument('--laser-params', help='Laser onset,duration in ms')
+    parser.add_argument('--virus-region', help='Virus region')
+    parser.add_argument('--opto-loc', help='Opto-fiber location')
+    parser.add_argument('--notes', help='Experiment notes')
+    return parser.parse_args()
 
-# Helper function to parse comma-separated values
 def parse_csv(s, convert=str):
+    """Parse comma-separated values with optional type conversion"""
     if not s:
         return []
     return [convert(x.strip()) for x in s.split(',')]
 
-metadata_handler = imp_metadata([[], args.dir_name])
-dir_path = metadata_handler.dir_name
+def get_experiment_info(dir_name):
+    """Extract experiment info from directory name"""
+    splits = dir_name.split("_")
+    # Date and Timestamp are given as 2 sets of 6 digits
+    time_pattern = re.compile(r'\d{6}')
+    time_match = time_pattern.findall(dir_name)
+    if len(time_match) != 2:
+        print('Timestamp not found in folder name')
+        time_match = ['NA', 'NA']
 
-dir_name = os.path.basename(dir_path[:-1])
-
-script_path = os.path.abspath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
-
-# Extract details from name of folder
-splits = dir_name.split("_")
-# Date and Timestamp are given as 2 sets of 6 digits
-# Extract using regex
-time_pattern = re.compile(r'\d{6}')
-time_match = time_pattern.findall(dir_name)
-if len(time_match) != 2:
-    # raise ValueError('Timestamp not found in folder name')
-    print('Timestamp not found in folder name')
-    time_match = ['NA', 'NA']
-
-this_dict = {
-    "name": splits[0],
-    "exp_type": splits[1],
-    "date": time_match[0], 
-    "timestamp": time_match[1],
-    } 
+    return {
+        "name": splits[0],
+        "exp_type": splits[1],
+        "date": time_match[0],
+        "timestamp": time_match[1],
+    }
 
 ##################################################
 # Brain Regions and Electrode Layout
