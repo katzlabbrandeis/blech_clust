@@ -34,6 +34,7 @@ def main():
     sorted_files = sorted(file_list)
     
     # Generate summaries for each file
+    summary_list = []
     for file_path in sorted_files:
         try:
             # Generate relative path for output file
@@ -44,6 +45,7 @@ def main():
             # Generate summary
             agent = FileSummaryAgent(file_path)
             summary = agent.generate_summary()
+            summary_list.append(summary)
             
             # Save summary
             with open(output_file, 'w') as f:
@@ -53,6 +55,12 @@ def main():
             
         except Exception as e:
             print(f"Error processing {file_path}: {str(e)}", file=sys.stderr)
+
+    # Write out merged summary
+    merged_out_path = output_dir.parents[0] / 'merged_summary.json'
+    with open(merged_out_path, 'w') as f:
+        json.dump(summary_list, f, indent=4)
+    print(f"Merged summary written to file : {merged_out_path}")
 
 if __name__ == "__main__":
     main()
