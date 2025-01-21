@@ -1,6 +1,12 @@
 """
-Using pymc change point model to detect drift
-Model selection using ELBO
+This module uses a PyMC change point model to detect drift in neural data, performing model selection using the Evidence Lower Bound (ELBO). It processes electrophysiological data to identify changes in mean and variance over time.
+
+- `gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs)`: Constructs a PyMC model for detecting change points in a 2D Gaussian data array, modeling changes in both mean and variance across specified states.
+- Initializes the environment by setting up directories for output and artifacts, and performs a pipeline graph check.
+- Loads electrophysiological data, extracts spike trains, and processes them using PCA for dimensionality reduction.
+- Iteratively fits a change point model to the PCA-transformed data, evaluating different numbers of change points and repeats, and records ELBO values for model selection.
+- Aggregates results across different tastes, ranks the number of change points using median ELBO, and generates visualizations of the data and model fits.
+- Logs warnings if significant post-stimulus population drift is detected based on ELBO rankings.
 """
 
 from tqdm import tqdm, trange

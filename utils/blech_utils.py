@@ -1,5 +1,39 @@
 """
-Utilities to support blech_clust processing
+This module provides utility functions and classes to support the `blech_clust` processing, including logging, path handling, and metadata management.
+
+- `Tee` class: Redirects output to both stdout/stderr and a log file.
+  - `__init__`: Initializes the Tee object with a log file.
+  - `write`: Writes data to both the log file and stdout.
+  - `flush`: Flushes the log file.
+  - `close`: Restores original stdout/stderr and closes the log file.
+
+- `path_handler` class: Manages paths related to the `blech_clust` directory.
+  - `__init__`: Initializes the path handler with the home directory and `blech_clust` directory path.
+
+- `log_wait` decorator: Implements log-waiting to handle file access issues in parallel processes.
+
+- `pipeline_graph_check` class: Ensures proper execution order of scripts based on a computation graph.
+  - `__init__`: Initializes the object, loads the computation graph, and checks it.
+  - `get_git_info`: Retrieves and prints git branch and commit information.
+  - `load_graph`: Loads the computation graph from a file.
+  - `make_full_path`: Constructs full file paths.
+  - `check_graph`: Verifies the presence of all scripts in the computation graph.
+  - `check_previous`: Checks if the previous script was executed successfully.
+  - `write_to_log`: Writes script execution attempts and completions to a log file.
+
+- `entry_checker` function: Validates user input against a check function, allowing exit with "x".
+
+- `imp_metadata` class: Manages metadata for a given directory, including file lists and parameters.
+  - `__init__`: Initializes the object and loads metadata.
+  - `get_dir_name`: Retrieves the directory name from arguments or user input.
+  - `get_file_list`: Lists files in the directory.
+  - `get_hdf5_name`: Finds the HDF5 file in the directory.
+  - `get_params_path`: Finds the parameters file in the directory.
+  - `get_layout_path`: Finds the layout CSV file in the directory.
+  - `load_params`: Loads parameters from the parameters file.
+  - `get_info_path`: Finds the info file in the directory.
+  - `load_info`: Loads information from the info file.
+  - `load_layout`: Loads layout data from the layout CSV file.
 """
 import easygui
 import os

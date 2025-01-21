@@ -1,3 +1,45 @@
+"""
+This module provides a class for streamlined electrophysiology data analysis, focusing on handling and analyzing data from multiple files. It includes features for automatic data loading, spike train and LFP data processing, firing rate calculation, digital input parsing, trial segmentation, region-based analysis, laser condition handling, and data quality checks.
+
+- `ephys_data`: Main class for data handling and analysis.
+  - `__init__`: Initializes the class with optional data directory.
+  - `calc_stft`: Computes the Short-Time Fourier Transform (STFT) of a trial.
+  - `parallelize`: Utilizes parallel processing to apply a function over an iterator.
+  - `_calc_conv_rates`: Calculates firing rates using a convolution method.
+  - `_calc_baks_rate`: Calculates firing rates using Bayesian Adaptive Kernel Smoother (BAKS).
+  - `get_hdf5_path`: Finds the HDF5 file in the specified directory.
+  - `convert_to_array`: Converts a list to a numpy array.
+  - `remove_node`: Removes a node from an HDF5 file.
+  - `extract_and_process`: Extracts and processes unit descriptors, spikes, firing rates, and LFPs.
+  - `separate_laser_data`: Separates data into laser on and off conditions.
+  - `get_unit_descriptors`: Extracts unit descriptors from an HDF5 file.
+  - `check_laser`: Checks for the presence of laser trials.
+  - `get_spikes`: Extracts spike arrays from HDF5 files.
+  - `separate_laser_spikes`: Separates spike arrays into laser on and off conditions.
+  - `extract_lfps`: Extracts LFPs from raw data files and saves them to HDF5.
+  - `get_lfp_channels`: Extracts parsed LFP channels.
+  - `get_lfps`: Initiates LFP extraction or retrieves LFP arrays from HDF5.
+  - `separate_laser_lfp`: Separates LFP arrays into laser on and off conditions.
+  - `firing_rate_method_selector`: Selects the method for firing rate calculation.
+  - `get_firing_rates`: Converts spikes to firing rates.
+  - `calc_palatability`: Calculates single neuron palatability from firing rates.
+  - `separate_laser_firing`: Separates firing rates into laser on and off conditions.
+  - `get_info_dict`: Loads information from a JSON file.
+  - `get_region_electrodes`: Extracts electrodes for each region from a JSON file.
+  - `get_region_units`: Extracts indices of units by region of electrodes.
+  - `return_region_spikes`: Returns spikes for a specified brain region.
+  - `get_region_firing`: Returns firing rates for a specified brain region.
+  - `get_lfp_electrodes`: Extracts indices of LFP electrodes by region.
+  - `get_stft`: Retrieves or calculates STFT and saves it to HDF5.
+  - `return_region_lfps`: Returns LFPs for each region and region names.
+  - `return_representative_lfp_channels`: Returns one electrode per region closest to the mean.
+  - `get_mean_stft_amplitude`: Calculates the mean STFT amplitude for each region.
+  - `get_trial_info_frame`: Loads trial information from a CSV file.
+  - `sequester_trial_inds`: Sequesters trials into categories based on tastes and laser conditions.
+  - `get_sequestered_spikes`: Sequesters spikes into categories based on tastes and laser conditions.
+  - `get_sequestered_firing`: Sequesters firing rates into categories based on tastes and laser conditions.
+  - `get_sequestered_data`: Sequesters both spikes and firing rates into categories based on tastes and laser conditions.
+"""
 import os
 import warnings
 import numpy as np

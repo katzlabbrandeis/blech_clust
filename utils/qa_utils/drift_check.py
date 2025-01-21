@@ -1,12 +1,14 @@
 """
-Check for drift in firing rate across the session.
+This module analyzes drift in firing rates across a session using statistical methods and visualizations. It performs ANOVA tests on baseline and post-stimulus firing rates, generates plots, and applies PCA and UMAP for dimensionality reduction.
 
-1) Check using ANOVA across quarters of the session
-2) Generate plots of firing rate across the session for each unit
-
-**NOTE**: Do not worry about opto trials for now. Assuming opto trials
-are well ditributed across the session, they should not affect the
-mean firing rate.
+- `get_spike_trains(hf5_path)`: Extracts spike trains from an HDF5 file, returning a list of spike trains with dimensions (trials, units, time).
+- `array_to_df(array, dim_names)`: Converts a multi-dimensional array into a DataFrame with specified dimension names as columns.
+- Initializes the environment by setting up directories and loading metadata.
+- Loads spike train data from an HDF5 file and processes it for analysis.
+- Plots firing rates across the session, generating heatmaps and time series for each unit.
+- Performs 2-way ANOVA on baseline firing rates and repeated measures ANOVA on post-stimulus firing rates, saving results and warnings.
+- Conducts PCA and UMAP on firing rates to visualize trial-wise variations, saving the plots.
+- Logs the execution status of the script.
 """
 
 # Import stuff!

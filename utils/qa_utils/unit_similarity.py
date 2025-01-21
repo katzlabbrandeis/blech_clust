@@ -1,3 +1,14 @@
+"""
+This module analyzes unit similarity in neural spike data, identifying and reporting units with high similarity. It processes data from HDF5 files, calculates similarity matrices, and generates visualizations and reports.
+
+- `unit_similarity_abu(all_spk_times)`: Computes a percentage-based similarity matrix for spike times across units, identifying overlaps within a 1 ms window.
+- `unit_similarity(this_unit_times, other_unit_times)`: A JIT-compiled function that counts overlapping spikes between two units within a 1 ms window.
+- `unit_similarity_NM(all_spk_times)`: Calculates a similarity matrix using a different method, comparing each unit pair and reporting progress.
+- `parse_collision_mat(unit_distances, similarity_cutoff)`: Parses the similarity matrix to find unit pairs exceeding a similarity threshold, returning unique pairs and their similarity values.
+- `plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir)`: Generates and saves a plot of the raw and thresholded similarity matrices.
+- `write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w', waveform_count_cutoff=None)`: Writes unit similarity violations to a file, optionally filtering by waveform count similarity.
+- The script also includes a main execution block that processes input data, calculates similarities, generates reports, and logs the process.
+"""
 # Import stuff!
 from numba import jit
 from tqdm import tqdm

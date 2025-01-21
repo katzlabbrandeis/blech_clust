@@ -1,3 +1,14 @@
+"""
+This module corrects sampling errors in laser duration and onset latency data stored in an HDF5 file. It adjusts the recorded values to match intended pulse lengths and onsets, which may have been altered due to sampling at 30kHz.
+
+- Imports necessary modules and functions, including `tables`, `numpy`, `easygui`, `os`, `sys`, and `imp_metadata` from `blech_utils`.
+- Retrieves metadata and changes the working directory to the location of the HDF5 file.
+- Opens the HDF5 file in read/write mode.
+- Extracts laser parameters (onset and duration) from the metadata.
+- Iterates over digital input nodes in the HDF5 file to correct laser duration values by comparing them to intended durations and adjusting them to the closest valid value.
+- Iterates over digital input nodes to correct laser onset latency values similarly.
+- Flushes changes to the HDF5 file and closes it.
+"""
 #
 # Since the digital inputs are being sampled at 30kHz, sometimes the laser durations (or onsets)
 # are recorded for a few ms more or less than the intended length of the pulse.

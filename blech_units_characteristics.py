@@ -1,14 +1,14 @@
 """
 
-Analyses to include
+This module performs various analyses on neural data, focusing on firing rates, responsiveness, discriminability, palatability, and dynamicity of neurons. It generates plots and saves results to disk and an HDF5 file.
 
-- Firing rate calculation (scaled and unscaled)
-- PSTH + Raster plots
-- Taste responsive single neurons (magnitude and fraction)
-- Taste discriminatory single neurons (ANOVA and cross-validated classifier) (magnitude and fraction)
-- Single palatability single neurons and population (average and correlation with PCA of population) (magnitude and fraction)
-- Dynamic neurons (ANOVA over time) (magnitude and fraction)
-- Dynamic population (ANOVA over time on PCA/other latents)
+- **Firing Rate Calculation**: Computes and plots firing rates for neurons under different conditions, including peristimulus time histograms (PSTH) and raster plots.
+- **Responsiveness Analysis**: Determines if neurons are responsive to stimuli by comparing pre- and post-stimulus firing rates using t-tests.
+- **Discriminability Analysis**: Uses two-way ANOVA to assess if neurons can discriminate between different tastes over time.
+- **Palatability Analysis**: Evaluates the correlation between firing rates and taste palatability using Spearman's rank correlation.
+- **Dynamicity Analysis**: Assesses changes in neural activity over time using ANOVA.
+- **Aggregate Plot Generation**: Creates summary plots showing the significance of responsiveness, discriminability, palatability, and dynamicity for each condition.
+- **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
 from tqdm import tqdm

@@ -1,10 +1,39 @@
 # Adrian Foy September 2023
 
-"""Imports a variety of Python functions used by 'LoadIntanRHD_Python.ipynb'
-Jupyter Notebook.
-
+"""This module provides functions for loading and processing Intan RHD data files, commonly used in electrophysiology research. It includes utilities for reading file headers, extracting and scaling data, applying filters, and plotting channel data.
 # Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
+
+- `load_file(filename)`: Loads an RHD file, returning a dictionary of results and a boolean indicating if data is present.
+- `print_all_channel_names(result)`: Prints the names of all channels present in the result dictionary.
+- `find_channel_in_group(channel_name, signal_group)`: Finds a channel by name in a signal group, returning its presence and index.
+- `read_header(fid)`: Reads the header of an RHD file, extracting metadata and channel information.
+- `check_magic_number(fid)`: Verifies the file type by checking the magic number.
+- `read_version_number(header, fid)`: Reads and stores the version number from the file.
+- `set_num_samples_per_data_block(header)`: Sets the number of samples per data block based on the file version.
+- `read_sample_rate(header, fid)`: Reads the sample rate from the file.
+- `initialize_channels(header)`: Initializes empty lists for each data channel type.
+- `read_signal_summary(header, fid)`: Reads and stores signal group information from the header.
+- `get_bytes_per_data_block(header)`: Calculates the number of bytes per data block.
+- `read_one_data_block(data, header, indices, fid)`: Reads a data block into the data dictionary.
+- `read_analog_signals(fid, data, indices, samples_per_block, header)`: Reads analog signals into the data dictionary.
+- `read_digital_signals(fid, data, indices, samples_per_block, header)`: Reads digital signals into the data dictionary.
+- `data_to_result(header, data, result)`: Merges data into the result dictionary.
+- `plot_channel(channel_name, result)`: Plots data for a specified channel.
+- `calculate_data_size(header, filename, fid)`: Calculates the data size in the file.
+- `read_all_data_blocks(header, num_samples, num_blocks, fid)`: Reads all data blocks from the file.
+- `initialize_memory(header, num_samples)`: Pre-allocates memory for data arrays.
+- `parse_data(header, data)`: Parses raw data into readable forms.
+- `scale_timestamps(header, data)`: Scales timestamps to seconds.
+- `scale_analog_data(header, data)`: Scales analog data to appropriate units.
+- `apply_notch_filter(header, data)`: Applies a notch filter to amplifier data if needed.
+
+Exception Classes:
+- `UnrecognizedFileError`: Raised for unrecognized file types.
+- `UnknownChannelTypeError`: Raised for unknown channel types in the header.
+- `FileSizeError`: Raised for invalid file sizes.
+- `QStringError`: Raised for QString reading errors.
+- `ChannelNotFoundError`: Raised when a specified channel is not found for plotting.
 """
 
 import struct

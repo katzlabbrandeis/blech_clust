@@ -1,3 +1,13 @@
+"""
+This module performs a local BSA (Blind Source Analysis) on a single trial of EMG (Electromyography) data, running on a High-Performance Computing (HPC) environment. It calculates the Short-Time Fourier Transform (STFT) and processes the results for further analysis.
+
+- `Logger` class: A custom logger that writes messages to both the terminal and a log file, with timestamps.
+- `calc_stft(trial, max_freq, time_range_tuple, Fs, signal_window, window_overlap)`: Computes the Short-Time Fourier Transform (STFT) of a given trial signal, returning the frequency and time vectors, and the STFT matrix.
+- `calc_stft_mode_freq(dat, BSA_output=True, **stft_params)`: Calculates the mode frequency of the STFT of a signal, optionally formatting the output to match BSA requirements. Returns frequency and time vectors, and the time-averaged mode frequency.
+- The script sets up parameters by loading them from a JSON file and checks the pipeline status using a utility function.
+- It processes a specified trial of EMG data, checking for non-zero data before running the BSA, and saves the results to files.
+- The script logs the progress and results of the analysis, ensuring traceability and error checking.
+"""
 # Runs a local BSA analysis (see emg_local_BSA.py) on one trial of EMG data. Runs on the HPC
 
 ############################################################

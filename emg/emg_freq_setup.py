@@ -1,3 +1,19 @@
+"""
+This module sets up EMG data for running the envelope of EMG recordings through a local Bayesian Spectrum Analysis (BSA). It requires an installation of R and the R library BaSAR. The script is a preparatory step for `emg_local_BSA_execute.py`.
+
+- Imports necessary libraries and modules, including custom utilities for metadata and path handling.
+- Retrieves the directory name containing data files using metadata.
+- Performs a pipeline graph check to ensure the script's execution order.
+- Sets up parameters for processing, including durations and plotting parameters.
+- Retrieves paths for data directories and checks for the existence of necessary parameter files.
+- Loads EMG envelope and filtered data from an HDF5 file and organizes it into lists.
+- Converts the EMG data into a pandas DataFrame for further processing.
+- Creates output directories and saves the EMG envelope data to a CSV file and a NumPy file.
+- Deletes previous results and logs, and sets up shell scripts for running parallel jobs using GNU parallel.
+- Merges the EMG data with trial information from a CSV file and saves the merged data.
+- Generates plots of the EMG envelope and filtered data, saving them to the output directory.
+- Logs the successful execution of the script.
+"""
 # Sets up emg data for running the envelope of emg recordings (env.npy) through
 # a local Bayesian Spectrum Analysis (BSA).
 # Needs an installation of R (installing Rstudio on Ubuntu is enough) -

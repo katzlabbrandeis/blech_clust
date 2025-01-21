@@ -1,3 +1,11 @@
+"""
+This module provides functionality for creating a feature extraction pipeline using scikit-learn, specifically for processing and transforming data with PCA, energy, and amplitude features. It includes custom transformers and utility functions for handling data paths and metadata.
+
+- `EnergyFeature` class: A custom transformer that calculates the energy of input data.
+- `AmpFeature` class: A custom transformer that extracts the amplitude at a specified index from input data.
+- `zscore_custom(x)`: A function that applies z-score normalization along the last axis of the input data.
+- `return_feature_pipeline(data_dir_name)`: A function that constructs and returns a scikit-learn pipeline for feature extraction, including PCA, energy, and amplitude transformations, followed by feature scaling. It uses metadata to configure the pipeline based on the data directory provided.
+"""
 import os
 import sys
 import numpy as np

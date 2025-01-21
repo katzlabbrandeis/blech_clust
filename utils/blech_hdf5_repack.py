@@ -1,3 +1,12 @@
+"""
+This module automates the process of cleaning and compressing an HDF5 file using the `ptrepack` tool. It involves selecting a directory, identifying the HDF5 file, and replacing it with a compressed version.
+
+- Prompts the user to select a directory using a GUI dialog and changes the working directory to the selected path.
+- Searches for an HDF5 file (with a `.h5` extension) in the selected directory.
+- Uses the `ptrepack` command-line tool to create a compressed and optimized copy of the HDF5 file named `tmp.h5`.
+- Deletes the original HDF5 file.
+- Renames the compressed file `tmp.h5` back to the original HDF5 file name.
+"""
 import os
 import tables
 import easygui

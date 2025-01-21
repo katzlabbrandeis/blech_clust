@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 27 15:35:53 2017
+This script is designed for spike extraction and sorting from HDF5 files containing spike train data. It allows users to delete specific digital input nodes and trim spike trains to a consistent trial number.
 
-@author: bradly
+- Imports necessary libraries including numpy, tables, easygui, os, argparse, and pprint.
+- Uses argparse to get the directory containing the data files from the command line.
+- Changes the working directory to the specified directory or prompts the user to select it using a GUI.
+- Searches for an HDF5 file in the specified directory and opens it for reading and writing.
+- Lists digital input nodes under the '/spike_trains' group and retrieves their names and trial counts.
+- Prompts the user to delete any digital input nodes from the spike trains using a GUI.
+- Allows the user to trim all spike trains to a consistent trial number, specified via a GUI input.
+- Updates the spike arrays in the HDF5 file based on the user's trimming input.
+- Prints the final digital input names and their trial counts.
+- Flushes and closes the HDF5 file to save changes.
 """
 
 # Import stuff!

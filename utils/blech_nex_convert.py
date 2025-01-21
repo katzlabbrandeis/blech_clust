@@ -1,3 +1,19 @@
+"""
+This module converts NeuroNexus (.nex) files to the blech_clust HDF5 format, specifically for data recorded on the old Plexon system. It is designed to work only with Python 2.7.x due to dependencies on the outdated Neo package.
+
+- Imports necessary libraries including Neo, SciPy, NumPy, EasyGUI, PyTables, OS, and Sys.
+- Ensures the script is run with Python 2.x.
+- Prompts the user to select a .nex file and a directory to save the converted HDF5 file.
+- Creates a new HDF5 file and reads the .nex file using Neo.
+- Retrieves event names from the recording and asks the user to confirm the digital input channels for trial splicing.
+- Collects user input for digital input channels and pre/post stimulus durations.
+- Deletes existing spike_trains node in the HDF5 file if present, and creates a new one.
+- Defines a `unit_descriptor` class for adding metadata about sorted units to a PyTables table.
+- Processes digital input channels to create spike train arrays and stores them in the HDF5 file.
+- Creates a mock `unit_descriptor` table to satisfy downstream analysis code requirements.
+- Checks for the presence of EMG data in the file and processes it if available, including downsampling and storing in a NumPy array.
+- Saves the EMG data to a .npy file and closes the HDF5 file.
+"""
 # Converts from NeuroNexus (.nex) format to the blech_clust HDF5 format. Data files recorded on the old Plexon system were saved as .plx files - after spike sorting, they were saved as .nex files. So we are assuming that these files have been sorted.
 # IMPORTANT: ONLY WORKS ON PYTHON 2.7.X - NEO IS AN OLD PACKAGE THAT HAS NOT BEEN UPDATED TO PYTHON 3
 

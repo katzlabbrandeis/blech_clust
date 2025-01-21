@@ -1,3 +1,17 @@
+"""
+This module processes neural and EMG data from an HDF5 file, extracting and organizing spike trains and EMG trials based on digital input events. It also handles metadata and logs the processing steps.
+
+- `create_spike_trains_for_digin(this_starts, this_dig_name, durations, sampling_rate_ms, units, hf5)`: Generates spike trains for specified digital input events and stores them in the HDF5 file.
+- `create_emg_trials_for_digin(this_starts, dig_in_basename, durations, sampling_rate_ms, emg_nodes, hf5)`: Extracts EMG trial data for specified digital input events and stores it in the HDF5 file.
+- The main script:
+  - Loads metadata and performs a pipeline graph check.
+  - Extracts digital input data and organizes it into a trial information frame.
+  - Calculates laser timing corrections and saves trial information to the HDF5 file and a CSV.
+  - Determines experiment end time based on EMG or spike data.
+  - Creates spike trains if sorted units are present and saves them to the HDF5 file.
+  - Creates EMG trial arrays if EMG data is available and saves them to the HDF5 file.
+  - Logs the successful completion of the processing steps.
+"""
 # Import stuff!
 import numpy as np
 import tables

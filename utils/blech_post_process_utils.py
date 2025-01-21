@@ -1,3 +1,55 @@
+"""
+This module provides utilities for handling and processing electrophysiological data, focusing on sorting and clustering spike data from neural recordings. It includes classes and functions for managing sort files, handling unit descriptors, generating plots, and performing automatic processing of electrode data.
+
+- `sort_file_handler`: Manages sort files, iterates over clusters, and marks units as saved.
+  - `get_next_cluster`: Retrieves the next cluster to process.
+  - `mark_current_unit_saved`: Marks the current unit as saved.
+
+- `cluster_check`: Verifies if a string contains only cluster numbers.
+
+- `get_electrode_details`: Retrieves electrode details from the user or a sort file.
+
+- `load_data_from_disk`: Loads spike data for a given electrode and number of clusters.
+
+- `gen_select_cluster_plot`: Generates plots for user-supplied clusters.
+
+- `generate_cluster_plots`: Creates a grid of plots for each cluster based on split predictions.
+
+- `get_clustering_params`: Prompts the user for clustering parameters.
+
+- `get_split_cluster_choice`: Allows the user to select clusters for splitting.
+
+- `prepare_data`: Prepares data for clustering by normalizing and combining features.
+
+- `clean_memory_monitor_data`: Cleans up memory monitor data files.
+
+- `get_ISI_violations`: Calculates inter-spike interval violations.
+
+- `generate_datashader_plot`: Generates a datashader plot for visualizing waveforms.
+
+- `plot_merged_units`: Plots merged units with mean and standard deviation waveforms.
+
+- `gen_plot_auto_merged_clusters`: Plots all merged clusters on a sample plot.
+
+- `delete_raw_recordings`: Deletes raw recordings from an HDF5 file.
+
+- `generate_violations_warning`: Generates a warning based on ISI violations.
+
+- `unit_descriptor_handler`: Manages the unit descriptor table in an HDF5 file.
+  - Includes methods for saving units, checking and updating the descriptor table, and extracting metadata.
+
+- `sorted_unit_metadata` and `unit_descriptor`: Define metadata structures for sorted units.
+
+- `split_merge_signal`: Handles decisions about splitting or merging clusters.
+
+- `gen_autosort_plot`: Generates a summary plot for each electrode's cluster processing.
+
+- `get_cluster_props`: Calculates properties for each cluster, including waveforms, times, and chi-square p-values.
+
+- `calculate_merge_sets`: Determines which clusters to merge based on Mahalanobis distance and ISI violations.
+
+- `auto_process_electrode`: Processes a single electrode's data for automatic sorting, including loading data, calculating merge sets, and generating plots.
+"""
 import os
 import tables
 import numpy as np
@@ -518,7 +570,7 @@ def gen_plot_auto_merged_clusters(
                             for this_text, this_count in zip(
                                 current_legend_texts,
                                 waveform_counts,
-        )]
+                            )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,

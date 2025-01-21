@@ -1,3 +1,54 @@
+"""
+This module is designed for handling and processing electrophysiological data, specifically focusing on clustering and classification of neural spike waveforms. It includes classes and functions for managing paths, clustering, classification, electrode data handling, and spike processing.
+
+- **path_handler**: Manages directory paths for the module.
+- **cluster_handler**: Handles clustering of spike waveforms.
+  - `check_classifier_data_exists`: Checks if classifier data exists.
+  - `return_training_set`: Returns a training set for clustering.
+  - `fit_manual_model`: Fits a Gaussian Mixture Model manually.
+  - `fit_auto_model`: Fits a Bayesian Gaussian Mixture Model automatically.
+  - `get_cluster_labels`: Retrieves cluster labels from a model.
+  - `perform_prediction`: Performs clustering and saves the model.
+  - `remove_outliers`: Removes outliers from clusters.
+  - `save_cluster_labels`: Saves cluster labels to a file.
+  - `calc_mahalanobis_distance_matrix`: Calculates and saves Mahalanobis distance matrix.
+  - `create_output_dir`: Creates directories for clustering results.
+  - `create_classifier_plots`: Generates plots for classifier results.
+  - `create_output_plots`: Generates output plots for clusters.
+
+- **classifier_handler**: Manages classification of waveforms.
+  - `download_neurecommend_models`: Downloads necessary models if not present.
+  - `return_waveform_classifier_params_path`: Returns the path to classifier parameters.
+  - `get_waveform_classifier_params`: Loads classifier parameters.
+  - `load_pipelines`: Loads feature and prediction pipelines.
+  - `classify_waveforms`: Classifies waveforms and saves results.
+  - `write_out_recommendations`: Writes out recommendations based on classification.
+  - `gen_plots`: Generates plots for predicted spikes and noise.
+
+- **electrode_handler**: Handles electrode data processing.
+  - `filter_electrode`: Filters raw electrode data.
+  - `cut_to_int_seconds`: Cuts data to integer seconds.
+  - `calc_recording_cutoff`: Calculates recording cutoff based on parameters.
+  - `make_cutoff_plot`: Generates a plot showing recording cutoff.
+  - `cutoff_electrode`: Cuts off electrode data at the calculated cutoff.
+
+- **spike_handler**: Processes spikes from electrode data.
+  - `extract_waveforms`: Extracts waveforms from filtered electrode data.
+  - `dejitter_spikes`: Dejitters spikes to correct timing.
+  - `extract_features`: Extracts features from spike waveforms.
+  - `return_feature`: Returns specific features from spike data.
+  - `write_out_spike_data`: Saves spike data to files.
+
+- **Utility Functions**:
+  - `ifisdir_rmdir`: Removes a directory if it exists.
+  - `return_cutoff_values`: Calculates cutoff values for electrode recording.
+  - `gen_window_plots`: Generates plots for data windows.
+  - `gen_datashader_plot`: Generates datashader plots for waveforms.
+  - `gen_isi_hist`: Generates inter-spike interval histograms.
+  - `remove_too_large_waveforms`: Removes waveforms that are too large.
+  - `feature_timeseries_plot`: Plots feature timeseries for clusters.
+  - `register_labels`, `calc_linkage`, `sort_label_array`, `perform_agg_clustering`, `plot_waveform_dendogram`, `trim_data`: Helper functions for agglomerative clustering.
+"""
 
 from matplotlib.patches import ConnectionPatch
 from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram

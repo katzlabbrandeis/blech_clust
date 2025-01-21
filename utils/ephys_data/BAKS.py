@@ -1,5 +1,7 @@
 """
-Python implementation of BAKS from 10.1371/journal.pone.0206794
+This module provides a Python implementation of the Bayesian Adaptive Kernel Smoother (BAKS) as described in the paper with DOI: 10.1371/journal.pone.0206794. It is used to estimate the firing rate from spike times.
+
+- `BAKS(SpikeTimes, Time)`: Computes the firing rate given spike times and a time vector. It calculates a smoothing parameter `h` using Bayesian methods and applies a Gaussian kernel to estimate the firing rate over the specified time points. Returns an array representing the estimated firing rate.
 """
 
 import numpy as np

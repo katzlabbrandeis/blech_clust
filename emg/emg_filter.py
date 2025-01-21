@@ -1,3 +1,16 @@
+"""
+This module processes EMG (electromyography) data by subtracting signals, filtering them, and saving the results. It handles data loading, filtering, differencing, and identifying significant trials based on activity changes.
+
+- Imports necessary libraries and modules, including numpy, scipy, pandas, and custom utilities.
+- Loads EMG data from an HDF5 file and retrieves metadata and parameters.
+- Configures Butterworth highpass and lowpass filters for signal processing.
+- Reads electrode layout and groups EMG channels by CAR (Common Average Reference) groups.
+- Differentiates EMG signals within CAR groups, handling cases with one or two channels.
+- Applies bandpass and lowpass filters to the differentiated signals.
+- Identifies significant trials by comparing pre- and post-stimulus activity levels.
+- Saves filtered signals, envelopes, and significant trial indicators back to the HDF5 file.
+- Logs the execution status of the processing pipeline.
+"""
 # Subtracts the two emg signals and filters and saves the results.
 
 # Import stuff

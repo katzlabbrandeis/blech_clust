@@ -1,3 +1,11 @@
+"""
+This module provides functions for visualizing neural data, including raster plots, heatmaps, and firing rate overviews.
+
+- `raster(ax, spike_array, marker='o', color=None)`: Creates a raster plot of spike data on the given axis. If no axis is provided, a new figure and axis are created.
+- `imshow(x, cmap='viridis')`: Displays a heatmap of the input data using the specified colormap, with settings for better visualization.
+- `gen_square_subplots(num, figsize=None, sharex=False, sharey=False)`: Generates a grid of subplots arranged in a square layout, returning the figure and axes.
+- `firing_overview(data, t_vec=None, y_values_vec=None, interpolation='nearest', cmap='jet', cmap_lims='individual', subplot_labels=None, zscore_bool=False, figsize=None, backend='pcolormesh')`: Generates heatmaps of firing rates from a 3D numpy array, with options for z-scoring, colormap limits, and subplot labels. Returns the figure and axes.
+"""
 import numpy as np
 import pylab as plt
 from scipy.stats import zscore
