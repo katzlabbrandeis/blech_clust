@@ -570,7 +570,7 @@ def gen_plot_auto_merged_clusters(
                             for this_text, this_count in zip(
                                 current_legend_texts,
                                 waveform_counts,
-                            )]
+        )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,
