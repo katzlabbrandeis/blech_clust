@@ -86,14 +86,39 @@ def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
 
     return model
 
+def ridge_plot(
+        x_vec,
+        y_list,
+        ax,
+        colors,
+        alpha=0.5,
+        ):
+    """
+    Plot a ridge plot
+
+    Args:
+        x_vec (1D array): x values
+        y_list (list of 1D arrays): y values
+        ax (matplotlib axis): axis to plot on
+        colors (list of colors): colors for each line
+    """
+
+    assert len(y_list) == len(colors), f'len(y_list): {len(y_list)}, len(colors): {len(colors)}'
+    assert all([len(x_vec) == len(y) for y in y_list]), f'x_vec: {len(x_vec)}, y_list: {[len(y) for y in y_list]}'
+
+    # Normalize y values between 0 and 1
+    y_list = [y / y.max() for y in y_list]
+    for i, (y, color) in enumerate(zip(y_list, colors)):
+        ax.fill_between(x_vec, y+i, y2 = i, color=color, alpha=alpha)
+
+    return ax
+
+
 ############################################################
 ## Initialize 
 ############################################################
 # Get name of directory with the data files
-
-# dir_name = '/media/storage/ABU_GC-EMG_Data/updated/sorted/KM50_5tastes_EMG_210913_100710_copy'
 metadata_handler = imp_metadata([[], args.dir_name])
-# metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
@@ -173,7 +198,8 @@ if not os.path.exists(artifact_save_path) or args.force:
 
     elbo_list = []
     tau_list = []
-    ppc_list = []
+    mean_ppc_list = []
+    var_ppc_list = []
     changes_list = []
     repeat_list = []
     for n_changes in tqdm(changes_vec):
@@ -203,18 +229,20 @@ if not os.path.exists(artifact_save_path) or args.force:
 
             tau_samples = trace.posterior['tau'].values
             tau_hists = np.stack([np.histogram(
-                tau.flatten(), bins=np.arange(len(bins)+1))[0] \
+                tau.flatten(), bins=np.arange(len(bins)))[0]
                         for tau in tau_samples.T]) 
             ppc_samples = ppc.posterior_predictive.obs.values
             mean_ppc = np.squeeze(ppc_samples.mean(axis=1))
+            var_ppc = np.squeeze(ppc_samples.var(axis=1))
 
             elbo_list.append(approx.hist[-1])
             tau_list.append(tau_hists)
-            ppc_list.append(mean_ppc)
+            mean_ppc_list.append(mean_ppc)
+            var_ppc_list.append(var_ppc)
             changes_list.append(n_changes)
             repeat_list.append(repeat_ind)
 
-    mode_list = [[np.argmax(x) for x in y] for y in tau_list]
+        mode_list = [[np.argmax(x) for x in y] for y in tau_list]
 
     run_frame = pd.DataFrame(
             dict(
@@ -222,7 +250,9 @@ if not os.path.exists(artifact_save_path) or args.force:
                 changes=changes_list,
                 repeat=repeat_list,
                 mode=mode_list,
-                ppc=ppc_list,
+                mean_ppc=mean_ppc_list,
+                var_ppc=var_ppc_list,
+                tau_hist=tau_list,
                 ),
             )
     run_frame['basename'] = basename
@@ -233,11 +263,71 @@ if not os.path.exists(artifact_save_path) or args.force:
     csv_save_path = artifact_save_path.replace('.pkl', '.csv')
     csv_frame = run_frame.copy()
     # Drop the ppc column
-    csv_frame.drop(columns='ppc', inplace=True)
+    csv_frame.drop(columns=['mean_ppc', 'var_ppc', 'tau_hist'], inplace=True)
     csv_frame.to_csv(csv_save_path)
-
 else:
     print(f'{os.path.basename(artifact_save_path)} already exists, skipping')
+
+#     # Plot everything
+#     mean_ppc_list = run_frame.mean_ppc.tolist()
+#     # mean_vmin = min([x.min() for x in mean_ppc_list] + [this_taste_pca.min()])
+#     # mean_vmax = max([x.max() for x in mean_ppc_list] + [this_taste_pca.max()])
+#     mean_vmin = min([x.min() for x in mean_ppc_list])
+#     mean_vmax = max([x.max() for x in mean_ppc_list]) 
+#     var_ppc_list = run_frame.var_ppc.tolist()
+#     var_vmin = min([x.min() for x in var_ppc_list]) 
+#     var_vmax = max([x.max() for x in var_ppc_list])
+#     img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis',} 
+#     change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
+#     fig, ax = plt.subplots(len(changes_vec) + 1, 3, figsize=(7,3*len(changes_vec)),
+#                            sharex=False)
+#     ax[0,0].imshow(this_taste_pca.T, **img_kwargs) 
+#     ax[0,0].set_title('Actual Data PCA')
+#     ax[0,2].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
+#                  linewidth = 1, facecolor='none', edgecolor='black')
+#     ax[0,2].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
+#     ax[0,2].legend()
+#     ax[0,2].set_xlabel('n_changes')
+#     ax[0,2].set_ylabel('ELBO')
+#     for i, n_change in enumerate(changes_vec): 
+#         this_frame = run_frame[run_frame.changes == n_change]
+#         # shape: n_repeats x n_changes x n_bins
+#         tau_hists = np.stack(this_frame.tau_hist.values)
+#         mean_mean_ppc = np.stack(this_frame.mean_ppc.values).mean(axis=0)
+#         mean_var_ppc = np.stack(this_frame.var_ppc.values).mean(axis=0)
+#         # mean_elbo = this_frame.elbo.mean()
+#         median_elbo = this_frame.elbo.median()
+#         ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs, vmin=mean_vmin, vmax=mean_vmax)
+#         ax[i+1,1].imshow(mean_var_ppc, **img_kwargs, vmin=var_vmin, vmax=var_vmax)
+#         ax[i+1,0].set_title(
+#                 f'n_changes: {changes_vec[i]}, Median ELBO: {median_elbo:.2f}')
+#         # for this_change in range(tau_hists.shape[1]):
+#         #     ax[i+1,2].imshow(tau_hists[:,this_change,:])
+#         for this_change in range(tau_hists.shape[1]):
+#             ax[i+1,2] = ridge_plot(
+#                     np.arange(n_bins),
+#                     tau_hists[:,this_change,:],
+#                     ax[i+1,2],
+#                     [change_colors[this_change]]*n_repeats,
+#                     alpha=0.7,
+#                     )
+#         for row_ind, this_row in this_frame.iterrows():
+#             for c_i, this_mode in enumerate(this_row['mode']):
+#                 ax[i+1,2].scatter(this_mode, this_row['repeat'],
+#                                   c = change_colors[c_i], cmap = 'tab10')
+#         ax[i+1,0].set_xlim(0, n_trials)
+#         ax[i+1,2].set_xlim(0, n_trials)
+#         ax[i+1,2].set_ylabel('Repeat #')
+#         ax[i+1,0].set_ylabel('Component #')
+#     ax[0,1].set_title('Changepoint Samples')
+#     ax[-1,0].set_xlabel('Trial #')
+#     ax[-1,2].set_xlabel('Trial #')
+#     # plt.show()
+#     fig.suptitle(f'{basename} Taste {taste_ind}')
+#     plt.tight_layout()
+#     plt.savefig(save_path)
+#     plt.close()
+# >>>>>>> 283-for-population-changepoint-drift-plots-plot-distribution-of-changepoint-in-addition-to-the-mode
 
 ##############################
 # Aggregate all data
@@ -248,13 +338,15 @@ median_elbo_df = median_elbo_df.reset_index()
 best_change = median_elbo_df.sort_values('elbo', ascending=True).changes.values[0]
 
 # Plot everything
-ppc_list = run_frame.ppc.values
-vmin = min([x.min() for x in ppc_list] + [zscored_hists_pca.min()])
-vmax = max([x.max() for x in ppc_list] + [zscored_hists_pca.max()])
-img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis', 
-              'vmin':vmin, 'vmax':vmax}
+mean_ppc_list = run_frame.mean_ppc.tolist()
+mean_vmin = min([x.min() for x in mean_ppc_list])
+mean_vmax = max([x.max() for x in mean_ppc_list]) 
+var_ppc_list = run_frame.var_ppc.tolist()
+var_vmin = min([x.min() for x in var_ppc_list]) 
+var_vmax = max([x.max() for x in var_ppc_list])
+img_kwargs = {'aspect':'auto', 'interpolation':'none', 'cmap':'viridis'} 
 change_colors = plt.cm.tab10(np.linspace(0,1,max_changepoints))
-fig, ax = plt.subplots(len(changes_vec) + 1, 2, figsize=(7,2*len(changes_vec)),
+fig, ax = plt.subplots(len(changes_vec) + 1, 3, figsize=(10,2*len(changes_vec)),
                        sharex=False)
 ax[0,0].imshow(zscored_hists_pca.T, **img_kwargs) 
 ax[0,0].set_title('Actual Data PCA')
@@ -262,25 +354,41 @@ ax[0,1].scatter(run_frame.changes, run_frame.elbo, alpha=0.5,
              linewidth = 1, facecolor='none', edgecolor='black')
 ax[0,1].plot(median_elbo_df.changes, median_elbo_df.elbo, 'r', label='Median ELBO')
 ax[0,1].axvline(best_change, color='black', linestyle='--', label=f'Best Change={best_change}')
-ax[0,1].legend()
+# put legend on top of plot
+ax[0,1].legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, 1.5))
 ax[0,1].set_xlabel('n_changes')
 ax[0,1].set_ylabel('ELBO')
 for i, n_change in enumerate(changes_vec): 
     this_frame = run_frame[run_frame.changes == n_change]
-    mean_mean_ppc = np.stack(this_frame.ppc.values).mean(axis=0)
+    # shape: n_repeats x n_changes x n_bins
+    tau_hists = np.stack(this_frame.tau_hist.values)
+    mean_mean_ppc = np.stack(this_frame.mean_ppc.values).mean(axis=0)
+    mean_var_ppc = np.stack(this_frame.var_ppc.values).mean(axis=0)
     median_elbo = this_frame.elbo.median()
-    ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs)
+    ax[i+1,0].imshow(mean_mean_ppc, **img_kwargs, vmin=mean_vmin, vmax=mean_vmax)
+    ax[i+1,1].imshow(mean_var_ppc, **img_kwargs, vmin=var_vmin, vmax=var_vmax)
     ax[i+1,0].set_title(
             f'n_changes: {changes_vec[i]}, Median ELBO: {median_elbo:.2f}')
     for row_ind, this_row in this_frame.iterrows():
         for c_i, this_mode in enumerate(this_row['mode']):
-            ax[i+1,1].scatter(this_mode, this_row['repeat'],
+            ax[i+1,2].scatter(bins[this_mode], this_row['repeat'],
                               c = change_colors[c_i], cmap = 'tab10')
+    for this_change in range(tau_hists.shape[1]):
+        ax[i+1,2] = ridge_plot(
+                bins[:-1],
+                tau_hists[:,this_change,:],
+                ax[i+1,2],
+                [change_colors[this_change]]*n_repeats,
+                alpha=0.7,
+                )
     ax[i+1,0].set_xlim(0, len(bins)) 
     ax[i+1,1].set_xlim(0, len(bins))
     ax[i+1,1].set_ylabel('Repeat #')
     ax[i+1,0].set_ylabel('Component #')
-ax[0,1].set_title('Changepoint Samples')
+ax[0,1].set_title('ELBO Comparison')
+ax[1,0].set_title('Mean Posterior Predictive')
+ax[1,1].set_title('Variance Posterior Predictive')
+ax[1,2].set_title('Changepoint Distributions')
 ax[-1,0].set_xlabel('Bin #')
 ax[-1,1].set_xlabel('Bin #')
 plt.tight_layout()
