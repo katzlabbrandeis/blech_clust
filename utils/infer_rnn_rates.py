@@ -159,9 +159,9 @@ for idx, (name, spike_data) in processing_items:
     # taste_spikes = np.concatenate(spike_array)
     # Cut taste_spikes to time limits
     # Shape: (trials, neurons, time)
-    taste_spikes = taste_spikes[..., time_lims[0]:time_lims[1]]
+    spike_data = spike_data[..., time_lims[0]:time_lims[1]]
 
-    trial_num = np.arange(taste_spikes.shape[0])
+    trial_num = np.arange(spike_data.shape[0])
 
     # Bin spikes
     # (tastes x trials, neurons, time)
@@ -254,7 +254,7 @@ for idx, (name, spike_data) in processing_items:
                        zscore_bool=False,)
     fig = plt.gcf()
     plt.suptitle('RNN Inputs')
-    fig.savefig(os.path.join(plots_dir, f'inputs_taste_{taste_ind}.png'))
+    fig.savefig(os.path.join(plots_dir, f'inputs_taste_{idx}.png'))
     plt.close(fig)
 
     ############################################################
@@ -310,9 +310,9 @@ for idx, (name, spike_data) in processing_items:
         dropout=0.2,
     )
 
-    loss_path = os.path.join(artifacts_dir, f'loss_taste_{taste_ind}.json')
+    loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
     cross_val_loss_path = os.path.join(
-        artifacts_dir, f'cross_val_loss_taste_{taste_ind}.json')
+        artifacts_dir, f'cross_val_loss_taste_{idx}.json')
     if (not os.path.exists(model_save_path)) or args.retrain:
         if args.retrain:
             print('Retraining model')
@@ -406,7 +406,7 @@ for idx, (name, spike_data) in processing_items:
         bbox_to_anchor=(1.05, 1),
         loc='upper left', borderaxespad=0.)
     ax.set_title(f'Losses')
-    fig.savefig(os.path.join(plots_dir, f'run_loss_taste_{taste_ind}.png'),
+    fig.savefig(os.path.join(plots_dir, f'run_loss_taste_{idx}.png'),
                 bbox_inches='tight')
     plt.close(fig)
 
@@ -414,13 +414,13 @@ for idx, (name, spike_data) in processing_items:
     vz.firing_overview(pred_firing.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('RNN Predicted Firing Rates')
-    fig.savefig(os.path.join(plots_dir, f'firing_pred_taste_{taste_ind}.png'))
+    fig.savefig(os.path.join(plots_dir, f'firing_pred_taste_{idx}.png'))
     plt.close(fig)
     vz.firing_overview(binned_spikes.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('Binned Firing Rates')
     fig.savefig(os.path.join(
-        plots_dir, f'firing_binned_taste_{taste_ind}.png'))
+        plots_dir, f'firing_binned_taste_{idx}.png'))
     plt.close(fig)
 
     # Latent factors
@@ -430,7 +430,7 @@ for idx, (name, spike_data) in processing_items:
         ax[i].imshow(latent_outs[..., i].T, aspect='auto')
     plt.suptitle('Latent Factors')
     fig.savefig(os.path.join(
-        plots_dir, f'latent_factors_taste_{taste_ind}.png'))
+        plots_dir, f'latent_factors_taste_{idx}.png'))
     plt.close(fig)
 
     # Mean firing rates
@@ -442,7 +442,7 @@ for idx, (name, spike_data) in processing_items:
     ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
     ax[0].set_title('Pred')
     ax[1].set_title('True')
-    fig.savefig(os.path.join(plots_dir, f'mean_firing_taste_{taste_ind}.png'))
+    fig.savefig(os.path.join(plots_dir, f'mean_firing_taste_{idx}.png'))
     plt.close(fig)
     # plt.show()
 
@@ -454,7 +454,7 @@ for idx, (name, spike_data) in processing_items:
     ax[0].set_title('Pred')
     ax[1].set_title('True')
     fig.savefig(os.path.join(
-        plots_dir, f'mean_firing_zscored_taste_{taste_ind}.png'))
+        plots_dir, f'mean_firing_zscored_taste_{idx}.png'))
     plt.close(fig)
 
     # For every neuron, plot 1) spike raster, 2) convolved firing rate ,
@@ -492,7 +492,7 @@ for idx, (name, spike_data) in processing_items:
         ax[2].set_title('RNN Predicted Firing Rate')
         fig.savefig(
             os.path.join(ind_plot_dir,
-                         f'neuron_{i}_taste_{taste_ind}_raster_conv_pred.png')
+                         f'neuron_{i}_taste_{idx}_raster_conv_pred.png')
         )
         plt.close(fig)
 
@@ -507,7 +507,7 @@ for idx, (name, spike_data) in processing_items:
         ax[0].set_title(f'Latent factors for trial {i}')
         ax[1].plot(zscore(latent_outs[1:, i], axis=0), alpha=0.5)
         fig.savefig(os.path.join(trial_latent_dir,
-                    f'taste_{taste_ind}_trial_{i}_latent.png'))
+                    f'taste_{idx}_trial_{i}_latent.png'))
         plt.close(fig)
 
 ############################################################
