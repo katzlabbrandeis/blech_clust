@@ -48,10 +48,13 @@ import os  # noqa
 from pprint import pprint  # noqa
 import json  # noqa
 from itertools import product  # noqa
+import pandas as pd  # noqa
 
 data_dir = args.data_dir
+# data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
 script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+# blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
 
 if args.override_config:
     print('Overriding config file\nUsing provided arguments\n')
@@ -139,17 +142,15 @@ if args.separate_regions:
     spike_arrays = [spike_arrays[i] for i in keep_inds]
     print(f'Processing regions: {region_names}')
     # Product of region and taste indices
-    processing_inds = list(
-        product(range(len(region_names)), range(len(spike_arrays[0]))))
-    # processing_items = list(enumerate(zip(region_names, spike_arrays)))
-    processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind]))
-                        for region_ind, taste_ind in processing_inds]
 else:
     print('Processing all regions together')
-    spike_array = np.stack(data.spikes)
-    processing_items = [(i, ('all', taste_spikes))
-                        for i, taste_spikes in enumerate(spike_array)]
+    region_names = ['all']
+    spike_arrays = [np.stack(data.spikes)]
 
+processing_inds = list(
+    product(range(len(region_names)), range(len(spike_arrays[0]))))
+processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind]))
+                    for region_ind, taste_ind in processing_inds]
 processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
 print('Processing the following items:')
 pprint(processing_str)
@@ -160,11 +161,15 @@ conv_rate_list = []
 conv_x_list = []
 binned_spikes_list = []
 latent_out_list = []
+region_name_list = []
+taste_ind_list = []
 
 # Train model for each taste/region combination
 for idx, (name, spike_data) in processing_items:
 
     iden_str = f'{name}_taste_{idx}'
+    region_name_list.append(name)
+    taste_ind_list.append(idx)
 
     print(f'Processing region {name}, taste {idx}')
     model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
@@ -527,79 +532,126 @@ for idx, (name, spike_data) in processing_items:
 ############################################################
 ############################################################
 
-# Mean neuron firing
-pred_firing_taste_mean = np.stack(
-    [pred_firing_list[i].mean(axis=0) for i in range(len(pred_firing_list))])
-binned_spikes_taste_mean = np.stack(
-    [bin_spikes.mean(axis=0) for bin_spikes in binned_spikes_list])
+pred_frame = pd.DataFrame(
+    dict(
+        region_name=region_name_list,
+        taste_ind=taste_ind_list,
+        pred_firing=pred_firing_list,
+        latent_out=latent_out_list,
+        pred_x=pred_x_list,
+        conv_rate=conv_rate_list,
+        conv_x=conv_x_list,
+        binned_spikes=binned_spikes_list,
+    )
+)
 
-cmap = plt.get_cmap('tab10')
-fig, ax = vz.gen_square_subplots(len(pred_firing_mean),
-                                 figsize=(10, 10),
-                                 sharex=True,)
-for nrn_ind in range(pred_firing_taste_mean.shape[1]):
-    for taste_ind, (pred, bin) in enumerate(
-            zip(pred_firing_taste_mean, binned_spikes_taste_mean)
-    ):
-        ax.flatten()[nrn_ind].plot(pred[nrn_ind], alpha=1, c=cmap(taste_ind))
-        ax.flatten()[nrn_ind].plot(bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
-    ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
-fig.savefig(os.path.join(plots_dir, f'mean_neuron_firing.png'))
-plt.close(fig)
+all_pred_firing_taste_mean = [
+    [x.mean(axis=0) for x in pred_frame.loc[pred_frame.region_name ==
+                                            region_name, 'pred_firing'].to_list()]
+    for region_name in region_names
+]
+
+all_binned_spikes_taste_mean = [
+    [x.mean(axis=0) for x in pred_frame.loc[pred_frame.region_name ==
+                                            region_name, 'binned_spikes'].to_list()]
+    for region_name in region_names
+]
+
+# Mean neuron firing
+# pred_firing_taste_mean = np.stack(
+#     [pred_firing_list[i].mean(axis=0) for i in range(len(pred_firing_list))])
+# binned_spikes_taste_mean = np.stack(
+#     [bin_spikes.mean(axis=0) for bin_spikes in binned_spikes_list])
+
+for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
+        all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
+):
+    cmap = plt.get_cmap('tab10')
+    region_nrn_count = pred_firing_taste_mean[0].shape[0]
+    fig, ax = vz.gen_square_subplots(region_nrn_count,
+                                     figsize=(10, 10),
+                                     sharex=True,)
+    for nrn_ind in range(region_nrn_count):
+        for taste_ind, (pred, bin) in enumerate(
+                zip(pred_firing_taste_mean, binned_spikes_taste_mean)
+        ):
+            ax.flatten()[nrn_ind].plot(
+                pred[nrn_ind], alpha=1, c=cmap(taste_ind))
+            ax.flatten()[nrn_ind].plot(
+                bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
+        ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
+    fig.savefig(os.path.join(
+        plots_dir, f'mean_neuron_firing_{region_name}.png'))
+    plt.close(fig)
 
 # Make another plot with taste_mean firing rates
-cmap = plt.get_cmap('tab10')
-# Iterate over neurons
-for i in range(binned_spikes.shape[1]):
-    fig, ax = plt.subplots(3, 1, figsize=(10, 10),
-                           sharex=True, sharey=False)
-    # Get spikes from all tastes for this neuron
-    this_spikes_list = [x[:, i] for x in spike_array]
-    trial_counts = [len(x) for x in this_spikes_list]
-    cum_trial_counts = np.cumsum([0, *trial_counts])
-    this_cat_spikes = np.concatenate(
-        this_spikes_list)[..., time_lims[0]:time_lims[1]]
+for spike_array, region_name in zip(spike_arrays, region_names):
+    region_nrn_count = spike_array[0].shape[1]
+    region_conv_rate_list = pred_frame.loc[pred_frame.region_name ==
+                                           region_name, 'conv_rate'].to_list()
+    region_pred_firing_list = pred_frame.loc[pred_frame.region_name ==
+                                             region_name, 'pred_firing'].to_list()
+    cmap = plt.get_cmap('tab10')
+    # Iterate over neurons
+    for i in range(region_nrn_count):
+        fig, ax = plt.subplots(3, 1, figsize=(10, 10),
+                               sharex=True, sharey=False)
+        # Get spikes from all tastes for this neuron
+        this_spikes_list = [x[:, i] for x in spike_array]
+        trial_counts = [len(x) for x in this_spikes_list]
+        cum_trial_counts = np.cumsum([0, *trial_counts])
+        this_cat_spikes = np.concatenate(
+            this_spikes_list, axis=0)[..., time_lims[0]:time_lims[1]]
 
-    ax[0] = vz.raster(ax[0], this_cat_spikes, marker='|', color='k')
-    # Plot colors behind raster traces
-    for j in range(len(cum_trial_counts)-1):
-        ax[0].axhspan(cum_trial_counts[j], cum_trial_counts[j+1],
-                      color=cmap(j), alpha=0.1, zorder=0)
+        ax[0] = vz.raster(ax[0], this_cat_spikes, marker='|', color='k')
+        # Plot colors behind raster traces
+        for j in range(len(cum_trial_counts)-1):
+            ax[0].axhspan(cum_trial_counts[j], cum_trial_counts[j+1],
+                          color=cmap(j), alpha=0.1, zorder=0)
 
-    this_conv_rate = np.stack([x[:, i] for x in conv_rate_list])
-    this_pred_firing = np.stack([x[:, i] for x in pred_firing_list])
+        # this_conv_rate = np.stack([x[:, i] for x in region_conv_rate_list])
+        # this_pred_firing = np.stack([x[:, i] for x in region_pred_firing_list])
 
-    mean_conv_rate = this_conv_rate.mean(axis=1)
-    mean_pred_firing = this_pred_firing.mean(axis=1)
-    sd_conv_rate = this_conv_rate.std(axis=1)
-    sd_pred_firing = this_pred_firing.std(axis=1)
-    for j in range(mean_conv_rate.shape[0]):
-        ax[1].plot(conv_x, mean_conv_rate[j].T, c=cmap(j),
-                   linewidth=2)
-        ax[1].fill_between(
-            conv_x,
-            mean_conv_rate[j] - sd_conv_rate[j],
-            mean_conv_rate[j] + sd_conv_rate[j],
-            color=cmap(j), alpha=0.1)
-        # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
-        ax[2].plot(binned_x[1:], mean_pred_firing[j].T,
-                   c=cmap(j), linewidth=2)
-        ax[2].fill_between(
-            binned_x[1:],
-            mean_pred_firing[j] - sd_pred_firing[j],
-            mean_pred_firing[j] + sd_pred_firing[j],
-            color=cmap(j), alpha=0.1)
-        # ax[2].sharey(ax[1])
-    for this_ax in ax:
-        # this_ax.set_xlim([1500, 4000])
-        this_ax.axvline(stim_time_val, c='r', linestyle='--')
-    ax[1].set_title(f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
-    ax[2].set_title('RNN Predicted Firing Rate')
-    fig.savefig(
-        os.path.join(
-            ind_plot_dir,
-            f'neuron_{i}_mean_raster_conv_pred.png'))
-    plt.close(fig)
+        # mean_conv_rate = this_conv_rate.mean(axis=1)
+        # mean_pred_firing = this_pred_firing.mean(axis=1)
+        # sd_conv_rate = this_conv_rate.std(axis=1)
+        # sd_pred_firing = this_pred_firing.std(axis=1)
+        mean_conv_rate = np.stack([x[:, i].mean(axis=0)
+                                  for x in region_conv_rate_list])
+        mean_pred_firing = np.stack([x[:, i].mean(axis=0)
+                                    for x in region_pred_firing_list])
+        sd_conv_rate = np.stack([x[:, i].std(axis=0)
+                                for x in region_conv_rate_list])
+        sd_pred_firing = np.stack([x[:, i].std(axis=0)
+                                  for x in region_pred_firing_list])
+        for j in range(mean_conv_rate.shape[0]):
+            ax[1].plot(conv_x, mean_conv_rate[j].T, c=cmap(j),
+                       linewidth=2)
+            ax[1].fill_between(
+                conv_x,
+                mean_conv_rate[j] - sd_conv_rate[j],
+                mean_conv_rate[j] + sd_conv_rate[j],
+                color=cmap(j), alpha=0.1)
+            # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
+            ax[2].plot(binned_x[1:], mean_pred_firing[j].T,
+                       c=cmap(j), linewidth=2)
+            ax[2].fill_between(
+                binned_x[1:],
+                mean_pred_firing[j] - sd_pred_firing[j],
+                mean_pred_firing[j] + sd_pred_firing[j],
+                color=cmap(j), alpha=0.1)
+            # ax[2].sharey(ax[1])
+        for this_ax in ax:
+            # this_ax.set_xlim([1500, 4000])
+            this_ax.axvline(stim_time_val, c='r', linestyle='--')
+        ax[1].set_title(
+            f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
+        ax[2].set_title('RNN Predicted Firing Rate')
+        fig.savefig(
+            os.path.join(
+                ind_plot_dir,
+                f'neuron_{i}_region_{region_name}_mean_raster_conv_pred.png'))
+        plt.close(fig)
 
 
 # Plot predicted activity vs true activity for every neuron
@@ -643,12 +695,8 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
 
     # Write out latents and predicted firing rates
     for idx, (name, _) in processing_items:
-        if args.separate_regions:
-            group_name = f'region_{name}_taste_{idx}'
-            group_desc = f'Region {name} Taste {idx}'
-        else:
-            group_name = f'taste_{idx}'
-            group_desc = f'Taste {idx}'
+        group_name = f'region_{name}_taste_{idx}'
+        group_desc = f'Region {name} Taste {idx}'
 
         taste_grp = hf5.create_group(rnn_output, group_name, group_desc)
         hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[idx])
