@@ -281,7 +281,7 @@ for idx, (name, spike_data) in processing_items:
                        zscore_bool=False,)
     fig = plt.gcf()
     plt.suptitle('RNN Inputs')
-    fig.savefig(os.path.join(plots_dir, f'inputs_taste_{idx}.png'))
+    fig.savefig(os.path.join(plots_dir, f'inputs_{iden_str}.png'))
     plt.close(fig)
 
     ############################################################
