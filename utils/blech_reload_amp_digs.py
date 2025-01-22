@@ -23,15 +23,12 @@ import shutil
 # Get blech_clust path
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.basename(script_path))
-import sys
 sys.path.append(blech_clust_dir)
-
 # Necessary blech_clust modules
-from utils import read_file
-from utils import qa_utils as qa
-from utils.blech_utils import entry_checker, imp_metadata
-from utils.blech_process_utils import path_handler
-
+from utils.blech_process_utils import path_handler  # noqa: E402
+from utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
+from utils import qa_utils as qa  # noqa: E402
+from utils import read_file  # noqa: E402
 
 ############################################################
 
@@ -88,7 +85,7 @@ dig_in_list = sorted(dig_in_list)
 info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
 sampling_rate = int(info_file[2])
 
-# Read the time.dat file for use in separating out 
+# Read the time.dat file for use in separating out
 # the one file per signal type data
 num_recorded_samples = len(np.fromfile(
     dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
@@ -115,7 +112,7 @@ elif file_type == ['one file per signal type']:
     dig_in = np.arange(info_dict['dig_ins']['count'])
 
 check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
-            f'\n digital inputs on intan board: {dig_in}'
+    f'\n digital inputs on intan board: {dig_in}'
 
 print(check_str)
 

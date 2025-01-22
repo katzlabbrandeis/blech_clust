@@ -1,6 +1,8 @@
 # Adrian Foy September 2023
 
 """This module provides functions for loading and processing Intan RHD data files, commonly used in electrophysiology research. It includes utilities for reading file headers, extracting and scaling data, applying filters, and plotting channel data.
+# Code for loading traditional intan format from
+# https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 - `load_file(filename)`: Loads an RHD file, returning a dictionary of results and a boolean indicating if data is present.
 - `print_all_channel_names(result)`: Prints the names of all channels present in the result dictionary.

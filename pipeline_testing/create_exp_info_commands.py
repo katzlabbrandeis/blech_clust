@@ -48,8 +48,10 @@ optional arguments:
 import os
 import sys
 import argparse
-parser = argparse.ArgumentParser(description='Creates files with experiment info')
-parser.add_argument('dir_name', type=str, help='Directory containing data files')
+parser = argparse.ArgumentParser(
+    description='Creates files with experiment info')
+parser.add_argument('dir_name', type=str,
+                    help='Directory containing data files')
 parser.add_argument('file_type', type=str, help='File type to create',
                     choices=['ofpc', 'trad'])
 parser.add_argument('key', type=str, help='Key for command to run',
@@ -57,7 +59,7 @@ parser.add_argument('key', type=str, help='Key for command to run',
 
 ofpc_command_dict = {}
 ofpc_stem_str = \
-"""python blech_exp_info.py $DIR \
+    """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
 --taste-digins 0,1,2,3 \
@@ -66,14 +68,14 @@ ofpc_stem_str = \
 --palatability 1,2,3,4 \
 """
 
-wanted_emg_inds = [8,9]
+wanted_emg_inds = [8, 9]
 car_groups = ['none']*32
 for ind in wanted_emg_inds:
     car_groups[ind] = 'emg'
 car_groups = ','.join(car_groups)
 ofpc_command_dict['emg_only'] = \
-ofpc_stem_str + \
-f"""--car-groups "{car_groups}" \
+    ofpc_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # --programmatic \
 # --emg-muscle ad \
@@ -84,14 +86,14 @@ f"""--car-groups "{car_groups}" \
 # --car-groups "{car_groups}" \
 # """
 
-wanted_gc_inds = [0,1,2,29]
+wanted_gc_inds = [0, 1, 2, 29]
 car_groups = ['none']*32
 for ind in wanted_gc_inds:
     car_groups[ind] = 'gc'
 car_groups = ','.join(car_groups)
 ofpc_command_dict['spike_only'] = \
-ofpc_stem_str + \
-f"""--car-groups "{car_groups}" \
+    ofpc_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # """python blech_exp_info.py $DIR \
 # --programmatic \
@@ -110,8 +112,8 @@ for ind in wanted_emg_inds:
     car_groups[ind] = 'emg'
 car_groups = ','.join(car_groups)
 ofpc_command_dict['emg_spike'] = \
-ofpc_stem_str + \
-f"""--car-groups "{car_groups}" \
+    ofpc_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # """python blech_exp_info.py $DIR \
 # --programmatic \
@@ -125,7 +127,7 @@ f"""--car-groups "{car_groups}" \
 
 trad_command_dict = {}
 trad_stem_str = \
-"""python blech_exp_info.py $DIR \
+    """python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
 --taste-digins 3,4 \
@@ -134,14 +136,14 @@ trad_stem_str = \
 --palatability 1,2 \
 """
 
-wanted_gc_inds = [39,44,63]
+wanted_gc_inds = [39, 44, 63]
 car_groups = ['none']*64
 for ind in wanted_gc_inds:
     car_groups[ind] = 'gc'
 car_groups = ','.join(car_groups)
 trad_command_dict['spike_only'] = \
-trad_stem_str + \
-f"""--car-groups "{car_groups}" \
+    trad_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # f"""python blech_exp_info.py $DIR \
 # --programmatic \
@@ -153,14 +155,14 @@ f"""--car-groups "{car_groups}" \
 # --car-groups "{car_groups}" \
 # """
 
-wanted_emg_inds = [8,9]
+wanted_emg_inds = [8, 9]
 car_groups = ['none']*64
 for ind in wanted_emg_inds:
     car_groups[ind] = 'emg'
 car_groups = ','.join(car_groups)
 trad_command_dict['emg_only'] = \
-trad_stem_str + \
-f"""--car-groups "{car_groups}" \
+    trad_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # f"""python blech_exp_info.py $DIR \
 # --programmatic \
@@ -179,8 +181,8 @@ for ind in wanted_emg_inds:
     car_groups[ind] = 'emg'
 car_groups = ','.join(car_groups)
 trad_command_dict['emg_spike'] = \
-trad_stem_str + \
-f"""--car-groups "{car_groups}" \
+    trad_stem_str + \
+    f"""--car-groups "{car_groups}" \
 """
 # f"""python blech_exp_info.py $DIR \
 # --programmatic \
@@ -200,7 +202,7 @@ command_dict['trad'] = trad_command_dict
 if __name__ == '__main__':
     from pprint import pprint as pp
     args = parser.parse_args()
-    data_dir =  args.dir_name
+    data_dir = args.dir_name
     file_type = args.file_type
     key = args.key
 

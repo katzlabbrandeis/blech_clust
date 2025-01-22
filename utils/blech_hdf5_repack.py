@@ -19,11 +19,12 @@ os.chdir(dir_name)
 file_list = os.listdir('./')
 hdf5_name = ''
 for files in file_list:
-	if files[-2:] == 'h5':
-		hdf5_name = files
+    if files[-2:] == 'h5':
+        hdf5_name = files
 
 # Use ptrepack to save a clean and fresh copy of the hdf5 file as tmp.hf5
-os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc " + hdf5_name + " " +  "tmp.h5")
+os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc " +
+          hdf5_name + " " + "tmp.h5")
 
 # Delete the old hdf5 file
 os.remove(hdf5_name)

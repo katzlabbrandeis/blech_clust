@@ -1,5 +1,12 @@
 # Use the results in Li et al. 2016 to get gapes on taste trials
 
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+import itertools
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
+from sklearn.svm import SVC
+from utils.blech_utils import imp_metadata
 import os
 import sys
 from glob import glob
@@ -19,23 +26,16 @@ from scipy.signal import welch
 from detect_peaks import detect_peaks
 from QDA_classifier import QDA
 sys.path.append('../..')
-from utils.blech_utils import imp_metadata
-from sklearn.svm import SVC
-from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
-from sklearn.neural_network import MLPClassifier
-import itertools
-from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans, AgglomerativeClustering
 
 
-#from xgboost import XGBClassifier
-##import shap
-#from umap import UMAP
+# from xgboost import XGBClassifier
+# import shap
+# from umap import UMAP
 
 
 # TODO: Add function to check for and chop up segments with double peaks
 
-def extract_movements(this_trial_dat, size = 250):
+def extract_movements(this_trial_dat, size=250):
     filtered_dat = white_tophat(this_trial_dat, size=size)
     segments_raw = np.where(filtered_dat)[0]
     segments = np.zeros_like(filtered_dat)
@@ -127,6 +127,7 @@ def extract_features(segment_dat, segment_starts, segment_ends):
     ]
     return feature_array, feature_names, segment_dat, segment_starts, segment_ends
 
+
 def find_segment(gape_locs, segment_starts, segment_ends):
     segment_bounds = list(zip(segment_starts, segment_ends))
     all_segment_inds = []
@@ -135,7 +136,7 @@ def find_segment(gape_locs, segment_starts, segment_ends):
         for i, bounds in enumerate(segment_bounds):
             if bounds[0] < this_gape < bounds[1]:
                 this_segment_inds.append(i)
-        if len(this_segment_inds) ==0:
+        if len(this_segment_inds) == 0:
             this_segment_inds.append(np.nan)
         all_segment_inds.append(this_segment_inds)
     return np.array(all_segment_inds).flatten()
@@ -148,7 +149,7 @@ def find_segment(gape_locs, segment_starts, segment_ends):
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-#data_dir = '/media/fastdata/KM45/KM45_5tastes_210620_113227_new'
+# data_dir = '/media/fastdata/KM45/KM45_5tastes_210620_113227_new'
 data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
 metadata_handler = imp_metadata([[], data_dir])
 data_dir = metadata_handler.dir_name
@@ -251,11 +252,11 @@ for this_ind in inds:
     segment_starts, segment_ends, segment_dat = extract_movements(
         this_trial_dat, size=200)
 
-    #plt.plot(this_trial_dat, linewidth=2)
-    #for this_start, this_end, this_dat in zip(segment_starts, segment_ends, segment_dat):
+    # plt.plot(this_trial_dat, linewidth=2)
+    # for this_start, this_end, this_dat in zip(segment_starts, segment_ends, segment_dat):
     #    plt.plot(np.arange(this_start, this_end), this_dat,
     #             linewidth = 5, alpha = 0.7)
-    #plt.show()
+    # plt.show()
 
     (feature_array,
      feature_names,
@@ -265,7 +266,7 @@ for this_ind in inds:
         segment_dat, segment_starts, segment_ends)
 
     segment_bounds = list(zip(segment_starts, segment_ends))
-    merged_dat = [feature_array, segment_dat, segment_bounds] 
+    merged_dat = [feature_array, segment_dat, segment_bounds]
     segment_dat_list.append(merged_dat)
 
     # Get the indices, in the smoothed signal,
@@ -332,7 +333,8 @@ for this_ind in inds:
         for peak in range(len(durations) - 1):
             gape = QDA(intervals[peak+1], durations[peak+1])
             if gape and peak_ind[peak+1] - pre_stim <= post_stim:
-                gapes_Li[this_ind[0], this_ind[1], this_ind[2], peak_ind[peak+1]] = 1.0
+                gapes_Li[this_ind[0], this_ind[1],
+                         this_ind[2], peak_ind[peak+1]] = 1.0
 
         # If there are no gapes on a trial, mark these as 0
         # on sig_trials_final and 0 on first_gape.
@@ -346,7 +348,7 @@ for this_ind in inds:
 
 
 ############################################################
-## Cluster waveforms 
+# Cluster waveforms
 ############################################################
 # For each cluster, return:
 # 1) Features
@@ -354,13 +356,13 @@ for this_ind in inds:
 # 3) Fraction of classifier gapes
 
 # Convert segment_dat and gapes_Li to pandas dataframe for easuer handling
-gape_frame = pd.DataFrame(data = inds, 
-                          columns = ['channel', 'taste', 'trial'])
+gape_frame = pd.DataFrame(data=inds,
+                          columns=['channel', 'taste', 'trial'])
 # Standardize features
 gape_frame['features'] = [x[0] for x in segment_dat_list]
 gape_frame['segment_raw'] = [x[1] for x in segment_dat_list]
 gape_frame['segment_bounds'] = [x[2] for x in segment_dat_list]
-gape_frame = gape_frame.explode(['features','segment_raw','segment_bounds'])
+gape_frame = gape_frame.explode(['features', 'segment_raw', 'segment_bounds'])
 
 # Standardize features
 raw_features = np.stack(gape_frame['features'].values)
@@ -368,7 +370,8 @@ scaled_features = StandardScaler().fit_transform(raw_features)
 gape_frame['features'] = [x for x in scaled_features]
 
 # Add index for each segment
-gape_frame['segment_num'] = gape_frame.groupby(['channel', 'taste', 'trial']).cumcount()
+gape_frame['segment_num'] = gape_frame.groupby(
+    ['channel', 'taste', 'trial']).cumcount()
 gape_frame = gape_frame.reset_index(drop=True)
 
 # Add classifier boolean
@@ -391,56 +394,61 @@ if not os.path.exists(this_plot_dir):
 taste_groups = list(gape_frame.groupby(['taste']))
 for taste_num, this_taste in taste_groups:
     trial_count = this_taste.trial.nunique()
-    fig,ax = plt.subplots(trial_count,1, sharex=True, sharey=True,
-                          figsize=(10,trial_count*2))
+    fig, ax = plt.subplots(trial_count, 1, sharex=True, sharey=True,
+                           figsize=(10, trial_count*2))
     for num, this_row in this_taste.iterrows():
         ax[this_row.trial].plot(np.arange(*this_row.segment_bounds), this_row.segment_raw,
-                                linewidth = 3)
-    for this_trial in range(env_final[:,taste_num].shape[1]):
-        ax[this_trial].plot(env_final[:,taste_num][:,this_trial].flatten(),
-                            color = 'k', linewidth = 0.5)
+                                linewidth=3)
+    for this_trial in range(env_final[:, taste_num].shape[1]):
+        ax[this_trial].plot(env_final[:, taste_num][:, this_trial].flatten(),
+                            color='k', linewidth=0.5)
     fig.suptitle(str(this_taste.taste.unique()[0]))
     fig.savefig(os.path.join(this_plot_dir, 'taste_' + str(this_taste.taste.unique()[0]) + '.png'),
-                dpi = 300, bbox_inches = 'tight')
+                dpi=300, bbox_inches='tight')
     plt.close(fig)
 
 ############################################################
 
 ############################################################
 # Compare clusters
+
+
 def median_zscore(x, axis=0):
     """
     Subtract median and divide by MAD
     """
     return (x - np.median(x, axis=axis)) / np.median(np.abs(x - np.median(x, axis=axis)), axis=axis)
 
+
 n_components = 20
-#gmm = GaussianMixture(n_components=n_components, covariance_type='full', random_state=0)
-#gmm.fit(X)
-#labels = gmm.predict(X)
-#kmeans = KMeans(n_clusters=n_components, random_state=0).fit(X)
-#labels = kmeans.labels_
-## Project features onto 3D
-#pca = PCA(n_components=3)
-#X_pca = pca.fit_transform(scaled_features)
+# gmm = GaussianMixture(n_components=n_components, covariance_type='full', random_state=0)
+# gmm.fit(X)
+# labels = gmm.predict(X)
+# kmeans = KMeans(n_clusters=n_components, random_state=0).fit(X)
+# labels = kmeans.labels_
+# Project features onto 3D
+# pca = PCA(n_components=3)
+# X_pca = pca.fit_transform(scaled_features)
 
 # Use agglomerative clustering
-clustering = AgglomerativeClustering(n_clusters=n_components).fit(scaled_features)
-#clustering = AgglomerativeClustering(n_clusters=n_components).fit(X_pca)
+clustering = AgglomerativeClustering(
+    n_clusters=n_components).fit(scaled_features)
+# clustering = AgglomerativeClustering(n_clusters=n_components).fit(X_pca)
 labels = clustering.labels_
 
 # Classifier gapes by labels
 gape_bool = gape_frame['classifier'].values
-class_gape_per_label = [np.mean(gape_bool[labels == x]) for x in range(n_components)]
+class_gape_per_label = [np.mean(gape_bool[labels == x])
+                        for x in range(n_components)]
 class_gape_per_label = np.round(class_gape_per_label, 3)
 
 # Plot
 # Sorted features by label, concatenated with cluster_labels
 sorted_labels = np.sort(labels)
 sorted_features = np.stack(gape_frame['features'].values)[np.argsort(labels)]
-#plot_dat = np.concatenate((sorted_features, sorted_labels[:,None]), axis=1)
+# plot_dat = np.concatenate((sorted_features, sorted_labels[:,None]), axis=1)
 plot_dat = sorted_features
-plot_dat = median_zscore(plot_dat,axis=0)
+plot_dat = median_zscore(plot_dat, axis=0)
 
 # Plot n representative waveforms per cluster
 # and overlay the mean waveform
@@ -452,50 +460,55 @@ for this_clust in range(n_components):
     clust_dat = gape_frame['segment_raw'].values[clust_inds]
     # Get n random waveforms
     this_plot_n = np.min([plot_n, len(clust_dat)])
-    rand_inds = np.random.choice(np.arange(len(clust_dat)), this_plot_n, replace=False)
+    rand_inds = np.random.choice(
+        np.arange(len(clust_dat)), this_plot_n, replace=False)
     clust_waveforms.append(clust_dat[rand_inds])
-    ## Get mean waveform
-    #mean_waveforms.append(np.mean(clust_dat, axis=0))
+    # Get mean waveform
+    # mean_waveforms.append(np.mean(clust_dat, axis=0))
 
 # Plot
 fig = plt.figure(constrained_layout=True)
 gs = fig.add_gridspec(1, 10)
-ax = [fig.add_subplot(gs[0, :1]), 
+ax = [fig.add_subplot(gs[0, :1]),
       fig.add_subplot(gs[0, 2:7]),
       fig.add_subplot(gs[0, 8:])]
-im = ax[1].imshow(plot_dat, 
-          aspect='auto', cmap='viridis', interpolation='none',
-          vmin=-5, vmax=5, origin='lower')
+im = ax[1].imshow(plot_dat,
+                  aspect='auto', cmap='viridis', interpolation='none',
+                  vmin=-5, vmax=5, origin='lower')
 plt.colorbar(im, ax=ax[1])
 ax[1].set_title('Features')
 ax[1].set_xticks(np.arange(len(feature_names)))
 ax[1].set_xticklabels(feature_names, rotation=90)
 ax[2].barh(np.arange(n_components), class_gape_per_label)
-ax[2].set_xlim(0,1)
+ax[2].set_xlim(0, 1)
 ax[2].set_title('Mean Gape probability')
 ax[2].set_xlabel('Probability')
 ax[2].set_ylabel('Cluster')
 # Add a subplot to plot the cluster labels and share the y-axis
 # with the image
-im = ax[0].imshow(sorted_labels[::-1, None], aspect='auto', cmap='tab20', interpolation='none',)
+im = ax[0].imshow(sorted_labels[::-1, None], aspect='auto',
+                  cmap='tab20', interpolation='none',)
 # Plot number of each cluster at center of cluster
 for this_clust in range(n_components):
-    ax[0].text(0, len(sorted_labels) - np.mean(np.where(sorted_labels == this_clust)), this_clust, 
+    ax[0].text(0, len(sorted_labels) - np.mean(np.where(sorted_labels == this_clust)), this_clust,
                ha='center', va='center', color='k', fontsize=12)
 ax[0].set_title('Cluster labels')
 fig.suptitle('Gape cluster breakdown')
-fig.savefig(os.path.join(this_plot_dir, 'gape_cluster_breakdown.png'), dpi=300, bbox_inches='tight')
+fig.savefig(os.path.join(this_plot_dir, 'gape_cluster_breakdown.png'),
+            dpi=300, bbox_inches='tight')
 plt.close(fig)
 
-fig,ax = plt.subplots(n_components,1,sharex=True, sharey=True,
-                      figsize=(3,n_components))
+fig, ax = plt.subplots(n_components, 1, sharex=True, sharey=True,
+                       figsize=(3, n_components))
 for this_clust in range(n_components):
     for this_wave in clust_waveforms[this_clust]:
         ax[this_clust].plot(this_wave, color='grey', alpha=0.3)
-    ax[this_clust].set_title(f'Cluster {this_clust}, mean_prob = {class_gape_per_label[this_clust]}')
+    ax[this_clust].set_title(
+        f'Cluster {this_clust}, mean_prob = {class_gape_per_label[this_clust]}')
 ax[-1].set_xlabel('Time (ms)')
 plt.suptitle('Random waveforms from each cluster')
-fig.savefig(os.path.join(this_plot_dir, 'gape_cluster_waveforms.png'), dpi=300, bbox_inches='tight')
+fig.savefig(os.path.join(this_plot_dir, 'gape_cluster_waveforms.png'),
+            dpi=300, bbox_inches='tight')
 plt.close(fig)
 
 ############################################################

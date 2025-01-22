@@ -10,6 +10,8 @@ This module analyzes unit similarity in neural spike data, identifying and repor
 - The script also includes a main execution block that processes input data, calculates similarities, generates reports, and logs the process.
 """
 # Import stuff!
+from numba import jit
+from tqdm import tqdm
 from collections import Counter
 import numpy as np
 import tables
@@ -22,9 +24,7 @@ script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-from tqdm import tqdm
-from numba import jit
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 
 def unit_similarity_abu(all_spk_times):
@@ -131,23 +131,24 @@ def parse_collision_mat(unit_distances, similarity_cutoff):
 def plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir):
     """
     Creates a figure showing raw similarity matrix and thresholded values
-    
+
     Inputs:
     unit_distances: matrix of unit similarity values
     similarity_cutoff: threshold for considering units similar
     output_dir: directory to save plot
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    
+
     # Raw similarity matrix
     im1 = ax1.matshow(unit_distances, cmap='viridis')
     plt.colorbar(im1, ax=ax1)
     ax1.set_title('Raw Similarity Matrix')
     ax1.set_xlabel('Unit #')
     ax1.set_ylabel('Unit #')
-    
+
     # Thresholded matrix
-    thresholded = np.where(unit_distances > similarity_cutoff, unit_distances, np.nan)
+    thresholded = np.where(
+        unit_distances > similarity_cutoff, unit_distances, np.nan)
     im2 = ax2.matshow(thresholded, cmap='hot')
     plt.colorbar(im2, ax=ax2)
     ax2.set_title(f'Values > {similarity_cutoff}% (similarity cutoff)')
@@ -155,10 +156,11 @@ def plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir):
     ax2.set_ylabel('Unit #')
 
     fig.suptitle('Unit Similarity Matrix')
-    
+
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'similarity_matrix.png'))
     plt.close()
+
 
 def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w', waveform_count_cutoff=None):
     """
@@ -175,7 +177,7 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
     # Generate dataframe with unit numbers, similarity and waveform counts
     unit1_waveforms = [waveform_counts[x[0]] for x in unique_pairs]
     unit2_waveforms = [waveform_counts[x[1]] for x in unique_pairs]
-    
+
     similarity_frame = pd.DataFrame({
         'unit1': [x[0] for x in unique_pairs],
         'unit2': [x[1] for x in unique_pairs],
@@ -183,7 +185,7 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
         'unit1_waveforms': unit1_waveforms,
         'unit2_waveforms': unit2_waveforms
     })
-    
+
     if waveform_count_cutoff is not None:
         # Calculate percentage difference between waveform counts
         max_counts = np.maximum(unit1_waveforms, unit2_waveforms)
@@ -195,6 +197,7 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
         print(similarity_frame.to_string(), file=unit_similarity_violations)
 
 ############################################################
+
 
 if __name__ == '__main__':
     # Get name of directory with the data files
@@ -238,12 +241,13 @@ if __name__ == '__main__':
     print("Similarity calculation starting")
     print(f"Similarity cutoff ::: {similarity_cutoff}")
     unit_distances = unit_similarity_abu(all_spk_times)
-    unique_pairs, unique_pairs_collisions = parse_collision_mat(unit_distances, similarity_cutoff)
-    write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w', 
-                         waveform_count_cutoff=similarity_waveform_count_cutoff)
+    unique_pairs, unique_pairs_collisions = parse_collision_mat(
+        unit_distances, similarity_cutoff)
+    write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, out_path, mode='w',
+                          waveform_count_cutoff=similarity_waveform_count_cutoff)
     print("Similarity calculation complete, results being saved to file")
     print("==================")
-    
+
     # Generate visualization
     plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir)
 
@@ -258,7 +262,7 @@ if __name__ == '__main__':
             print('Similarity cutoff ::: %f' % similarity_cutoff, file=f)
             print("", file=f)
         write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts, warnings_file_path, mode='a',
-                            waveform_count_cutoff=similarity_waveform_count_cutoff)
+                              waveform_count_cutoff=similarity_waveform_count_cutoff)
         with open(warnings_file_path, 'a') as f:
             print("", file=f)
             print('=== End Similarity cutoff warning ===', file=f)

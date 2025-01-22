@@ -25,7 +25,7 @@ import tables
 import ast
 
 sys.path.append('..')
-from utils.blech_utils import imp_metadata, pipeline_graph_check
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)
@@ -66,18 +66,18 @@ print(f'Using pre-stim duration : {pre_stim}' + '\n')
 m, n = butter(2, 2.0*300.0/1000.0, 'highpass')
 c, d = butter(2, 2.0*15.0/1000.0, 'lowpass')
 
-## todo: This can be pulled from info file
-## check how many EMG channels used in this experiment
-layout_path = glob.glob(os.path.join(dir_name,"*layout.csv"))[0]
-electrode_layout_frame = pd.read_csv(layout_path) 
+# todo: This can be pulled from info file
+# check how many EMG channels used in this experiment
+layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
+electrode_layout_frame = pd.read_csv(layout_path)
 
 # Change CAR_group col to lower
 electrode_layout_frame['CAR_group'] = electrode_layout_frame['CAR_group'].str.lower()
 
 # Allow for multiple emg CAR groups
 wanted_rows = pd.DataFrame(
-        [x for num,x in electrode_layout_frame.iterrows() \
-                if 'emg' in x.CAR_group])
+    [x for num, x in electrode_layout_frame.iterrows()
+     if 'emg' in x.CAR_group])
 wanted_rows = wanted_rows.sort_values('electrode_ind')
 wanted_rows.reset_index(inplace=True, drop=True)
 
@@ -87,7 +87,8 @@ wanted_rows.reset_index(inplace=True, drop=True)
 emg_car_groups = [x[1] for x in wanted_rows.groupby('CAR_group')]
 emg_car_names = [x.CAR_group.unique()[0] for x in emg_car_groups]
 # emg_car_inds = [x.index.values for x in emg_car_groups]
-emg_car_inds = [[inverse_map[x] for x in y.electrode_ind.values] for y in emg_car_groups]
+emg_car_inds = [[inverse_map[x] for x in y.electrode_ind.values]
+                for y in emg_car_groups]
 
 print('EMG CAR Groups with more than 1 channel will be differenced')
 print('EMG CAR groups as follows:')
@@ -96,13 +97,13 @@ for x in emg_car_groups:
     print()
 
 # TODO: This question can go into an EMG params file
-# Bandpass filter the emg signals, and store them in a numpy array. 
+# Bandpass filter the emg signals, and store them in a numpy array.
 # Low pass filter the bandpassed signals, and store them in another array
 # Take difference between pairs of channels
 # emg_data = List of arrays (per dig-in) of shape : channels x trials x time
 # emg_data_grouped = list of lists
-#       outer list : emg CAR groups 
-#       inner list : dig-ins 
+#       outer list : emg CAR groups
+#       inner list : dig-ins
 #       element_array : channels x trials x time
 emg_data_grouped = [[dat[x] for dat in emg_data] for x in emg_car_inds]
 # Make sure all element arrays are 3D with shape: channels x trials x time
@@ -116,7 +117,7 @@ for this_car in emg_data_grouped:
     this_car_diff = []
     for this_dig in this_car:
         if len(this_dig) > 1:
-            this_car_diff.append(np.squeeze(np.diff(this_dig,axis=0)))
+            this_car_diff.append(np.squeeze(np.diff(this_dig, axis=0)))
         elif len(this_dig) > 2:
             raise Exception("More than 2 per EMG CAR currently not supported")
         else:
@@ -145,21 +146,22 @@ n_dig = len(emg_diff_data[0])
 trial_lens = [[len(x) for x in y] for y in emg_diff_data]
 
 ind_frame = pd.DataFrame(
-        dict(
-            car_group = [x for x in range(n_cars) for y in range(n_dig)],
-            dig_in = [y for x in range(n_cars) for y in range(n_dig)],
-            trial_len = [np.arange(trial_lens[x][y]) for x in range(n_cars) for y in range(n_dig)]
-            )
-        )
+    dict(
+        car_group=[x for x in range(n_cars) for y in range(n_dig)],
+        dig_in=[y for x in range(n_cars) for y in range(n_dig)],
+        trial_len=[np.arange(trial_lens[x][y])
+                   for x in range(n_cars) for y in range(n_dig)]
+    )
+)
 # Explode the trial_len column
 ind_frame = ind_frame.explode('trial_len')
 
 sig_trials_list = []
-for i, this_row in ind_frame.iterrows(): 
+for i, this_row in ind_frame.iterrows():
     this_ind = this_row.values
     this_dat = emg_filt_list[this_ind[0]][this_ind[1]][this_ind[2]]
-    ## Get mean and std of baseline emg activity, 
-    ## and use it to select trials that have significant post stimulus activity
+    # Get mean and std of baseline emg activity,
+    # and use it to select trials that have significant post stimulus activity
     # sig_trials (assumed shape) : tastes x trials
     pre_m = np.mean(np.abs(this_dat[:pre_stim]))
     pre_s = np.std(np.abs(this_dat[:pre_stim]))
@@ -179,28 +181,28 @@ for i, this_row in ind_frame.iterrows():
 
 ind_frame['sig_trials'] = sig_trials_list
 
-# Save the highpass filtered signal, 
+# Save the highpass filtered signal,
 # the envelope and the indicator of significant trials as a np array
-# Iterate over channels and save them in different directories 
+# Iterate over channels and save them in different directories
 ind_frame.to_hdf(metadata_handler.hdf5_name, '/emg_data/emg_sig_trials')
 
 with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
     for digin_ind, digin_name in enumerate(emg_digin_names):
         digin_path = f'/emg_data/{digin_name}'
         if f'{digin_path}/processed_emg' in hf5:
-            hf5.remove_node(f'{digin_path}/processed_emg', recursive = True)
+            hf5.remove_node(f'{digin_path}/processed_emg', recursive=True)
         hf5.create_group(f'{digin_path}', 'processed_emg')
-        for car_ind , this_car_name in enumerate(emg_car_names): 
+        for car_ind, this_car_name in enumerate(emg_car_names):
             hf5.create_array(
-                    f'{digin_path}/processed_emg', 
-                    f'{this_car_name}_emg_filt', 
-                    emg_filt_list[car_ind][digin_ind]
-                    )
+                f'{digin_path}/processed_emg',
+                f'{this_car_name}_emg_filt',
+                emg_filt_list[car_ind][digin_ind]
+            )
             hf5.create_array(
-                    f'{digin_path}/processed_emg',
-                    f'{this_car_name}_emg_env',
-                    emg_env_list[car_ind][digin_ind]
-                    )
+                f'{digin_path}/processed_emg',
+                f'{this_car_name}_emg_env',
+                emg_env_list[car_ind][digin_ind]
+            )
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')

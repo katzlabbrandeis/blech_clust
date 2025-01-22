@@ -23,9 +23,10 @@ import datetime
 from scipy import signal
 import json
 script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path)) 
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-from utils.blech_utils import pipeline_graph_check
+from utils.blech_utils import pipeline_graph_check  # noqa: E402
+
 
 class Logger(object):
     def __init__(self, log_file_path):
@@ -40,56 +41,58 @@ class Logger(object):
     def write(self, message):
         ap_msg = self.append_time(message)
         self.terminal.write(ap_msg)
-        self.log.write(ap_msg)  
+        self.log.write(ap_msg)
 
     def flush(self):
         self.terminal.flush()
-        self.log.flush()  
+        self.log.flush()
 
 ############################################################
-# Define functions 
+# Define functions
 ############################################################
 
-def calc_stft(trial, max_freq,time_range_tuple,\
-            Fs,signal_window,window_overlap):
+
+def calc_stft(trial, max_freq, time_range_tuple,
+              Fs, signal_window, window_overlap):
     """
     trial : 1D array
     max_freq : where to lob off the transform
     time_range_tuple : (start,end) in seconds, time_lims of spectrogram
                             from start of trial snippet`
     """
-    f,t,this_stft = signal.stft(
-                signal.detrend(trial),
-                fs=Fs,
-                # window='hann', # don't specify window to avoid version issues
-                nperseg=signal_window,
-                noverlap=signal_window-(signal_window-window_overlap))
-    freq_bool = f<=max_freq
-    this_stft =  this_stft[np.where(freq_bool)[0]]
-    this_stft = this_stft[:,np.where((t>=time_range_tuple[0])*\
-                                            (t<time_range_tuple[1]))[0]]
+    f, t, this_stft = signal.stft(
+        signal.detrend(trial),
+        fs=Fs,
+        # window='hann', # don't specify window to avoid version issues
+        nperseg=signal_window,
+        noverlap=signal_window-(signal_window-window_overlap))
+    freq_bool = f <= max_freq
+    this_stft = this_stft[np.where(freq_bool)[0]]
+    this_stft = this_stft[:, np.where((t >= time_range_tuple[0]) *
+                                      (t < time_range_tuple[1]))[0]]
     fin_freq = f[freq_bool]
-    fin_t = t[np.where((t>=time_range_tuple[0])*(t<time_range_tuple[1]))]
-    return  fin_freq, fin_t, this_stft
+    fin_t = t[np.where((t >= time_range_tuple[0])*(t < time_range_tuple[1]))]
+    return fin_freq, fin_t, this_stft
 
-def calc_stft_mode_freq(dat, BSA_output = True, **stft_params):
+
+def calc_stft_mode_freq(dat, BSA_output=True, **stft_params):
     """
     Calculate the mode frequency of the STFT of a signal
 
     Inputs:
         dat : 1D array, signal to be analyzed
         stft_params : dict, parameters for STFT calculation
-        BSA_output : bool, whether to output in a similar format to the BSA 
+        BSA_output : bool, whether to output in a similar format to the BSA
 
     Outputs:
         freq_vec : 1D array, frequency vector for STFT
         t_vec : 1D array, time vector for STFT
         weight_mean : 1D array, time averaged mode frequency
     """
-    freq_vec, t_vec, stft  = calc_stft(dat, **stft_params)
+    freq_vec, t_vec, stft = calc_stft(dat, **stft_params)
     mag = np.abs(stft)
     time_norm_mag = mag / mag.sum(axis=0)
-    weight_mean = (freq_vec[:,None] * time_norm_mag).sum(axis=0)
+    weight_mean = (freq_vec[:, None] * time_norm_mag).sum(axis=0)
     if BSA_output:
         # This is only needed if stft_step size > 1
         # Interpolate output to same length as input
@@ -97,9 +100,10 @@ def calc_stft_mode_freq(dat, BSA_output = True, **stft_params):
                               stft_params['time_range_tuple'][1],
                               1/stft_params['Fs'])
         new_weight_mean = np.interp(new_t_vec, t_vec, weight_mean)
-        new_freq = np.arange(0,10,0.5)
+        new_freq = np.arange(0, 10, 0.5)
         new_weight_mean = np.zeros((len(new_freq), len(t_vec)))
-        closest_freq = np.argmin(np.abs(weight_mean[:,None] - new_freq), axis=1)
+        closest_freq = np.argmin(
+            np.abs(weight_mean[:, None] - new_freq), axis=1)
         new_weight_mean[closest_freq, np.arange(len(t_vec))] = 1
         return new_freq, new_t_vec, new_weight_mean
     else:
@@ -116,16 +120,17 @@ emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
 
 if not os.path.exists(emg_params_path):
     print('=== Environment params file not found. ===')
-    print('==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
+    print(
+        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
     exit()
 
 emg_params_dict = json.load(open(emg_params_path, 'r'))
 stft_params = emg_params_dict['stft_params']
 
 ##############################
-# Calculate STFT 
+# Calculate STFT
 ##############################
-# Read blech.dir, and cd to that directory. 
+# Read blech.dir, and cd to that directory.
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
 
@@ -136,7 +141,7 @@ this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # If there is more than one dir in BSA_run.dir,
 # loop over both, as both sets will have the same number of trials
-# for dir_name in dir_list: 
+# for dir_name in dir_list:
 sys.stdout = Logger(os.path.join(dir_name, 'BSA_log.txt'))
 os.chdir(os.path.join(dir_name, 'emg_output'))
 
@@ -157,19 +162,19 @@ input_data = emg_env[task]
 if not any(np.isnan(input_data)):
 
     omega, t_vec, p = calc_stft_mode_freq(
-            input_data, **stft_params, BSA_output = True)
+        input_data, **stft_params, BSA_output=True)
     p = p.T
     print(f'Trial {task:03} succesfully processed')
 else:
     print(f'NANs in trial {task:03}, BSA will also output NANs')
-    p = np.zeros((7000,20))
+    p = np.zeros((7000, 20))
     omega = np.zeros(20)
     p[:] = np.nan
     omega = np.nan
 
 # Save p and omega by taste and trial number
-np.save(os.path.join('emg_BSA_results',f'trial{task:03}_p.npy'), p)
-np.save(os.path.join('emg_BSA_results',f'trial{task:03}_omega.npy'), omega)
+np.save(os.path.join('emg_BSA_results', f'trial{task:03}_p.npy'), p)
+np.save(os.path.join('emg_BSA_results', f'trial{task:03}_omega.npy'), omega)
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
