@@ -645,7 +645,7 @@ def emg_only_test():
         run_EMG_QDA_test()
     else:
         try:
-            prep_data_flow(data_type=data_type)
+            prep_data_flow(file_type='ofpc', data_type='emg')
         except:
             print('Failed to prep data')
         try:
