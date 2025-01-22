@@ -54,7 +54,15 @@ data_dir = args.data_dir
 # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
 script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_path)  # noqa
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 # blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
+
+metadata_handler = imp_metadata([[], args.data_dir])
+# Perform pipeline graph check
+this_pipeline_check = pipeline_graph_check(args.data_dir)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 if args.override_config:
     print('Overriding config file\nUsing provided arguments\n')
@@ -703,3 +711,6 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
         hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[idx])
         hf5.create_array(taste_grp, 'latent_out', latent_out_list[idx])
         hf5.create_array(taste_grp, 'pred_x', pred_x_list[idx])
+
+# Write successful execution to log
+this_pipeline_check.write_to_log(script_path, 'completed')
