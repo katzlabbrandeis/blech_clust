@@ -166,8 +166,8 @@ for idx, (name, spike_data) in processing_items:
     # Bin spikes
     # (tastes x trials, neurons, time)
     # for example : (120, 35, 280)
-    binned_spikes = np.reshape(taste_spikes,
-                               (*taste_spikes.shape[:2], -1, bin_size)).sum(-1)
+    binned_spikes = np.reshape(spike_data,
+                               (*spike_data.shape[:2], -1, bin_size)).sum(-1)
     binned_spikes_list.append(binned_spikes)
 
     # ** The naming of inputs / labels throughouts is confusing as hell
@@ -469,16 +469,16 @@ for idx, (name, spike_data) in processing_items:
     conv_kern = np.ones(250) / 250
     conv_rate = np.apply_along_axis(
         lambda m: np.convolve(m, conv_kern, mode='valid'),
-        axis=-1, arr=taste_spikes)*bin_size
+        axis=-1, arr=spike_data)*bin_size
     conv_x = np.convolve(
-        np.arange(taste_spikes.shape[-1]), conv_kern, mode='valid')
+        np.arange(spike_data.shape[-1]), conv_kern, mode='valid')
     conv_rate_list.append(conv_rate)
     conv_x_list.append(conv_x)
 
     for i in range(binned_spikes.shape[1]):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
                                sharex=True, sharey=False)
-        ax[0] = vz.raster(ax[0], taste_spikes[:, i], marker='|')
+        ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
         ax[1].plot(conv_x, conv_rate[:, i].T, c='k', alpha=0.1)
         # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
         ax[2].plot(binned_x[1:], pred_firing[:, i].T,
