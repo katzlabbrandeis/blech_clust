@@ -23,6 +23,8 @@ parser.add_argument('--all', action='store_true',
                     help='Run all tests')
 parser.add_argument('--spike-emg', action='store_true',
                     help='Run spike + emg in single test')
+parser.add_argument('--rnn', action='store_true',
+                    help='Run RNN test only')
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
 args = parser.parse_args()
@@ -363,6 +365,16 @@ def run_gapes_Li(data_dir):
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
 
+@task(log_prints=True)
+def run_rnn(data_dir):
+    """Run RNN firing rate inference"""
+    script_name = 'utils/infer_rnn_rates.py'
+    # Use 100 training steps for testing
+    process = Popen(["python", script_name, data_dir, "--train_steps", "100"],
+                    stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(data_dir, process, stderr, stdout)
+
 ############################################################
 # Define Flows
 ############################################################
@@ -647,11 +659,33 @@ def emg_only_test():
 
 
 @flow(log_prints=True)
+def rnn_test():
+    """Run RNN test on both file types"""
+    if break_bool:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running RNN test with file type: {file_type}")
+            prep_data_flow(file_type, data_type='spike')
+            run_spike_test(data_dir)
+            run_rnn(data_dir)
+    else:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running RNN test with file type: {file_type}")
+            try:
+                prep_data_flow(file_type, data_type='spike')
+                run_spike_test(data_dir)
+                run_rnn(data_dir)
+            except:
+                print('Failed to run RNN test')
+
+@flow(log_prints=True)
 def full_test():
     if break_bool:
         spike_only_test()
         emg_only_test()
         spike_emg_test()
+        rnn_test()
     else:
         try:
             spike_only_test()
@@ -665,6 +699,10 @@ def full_test():
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
+        try:
+            rnn_test()
+        except:
+            print('Failed to run RNN test')
 
 
 ############################################################
@@ -695,3 +733,6 @@ elif args.stft:
 elif args.spike_emg:
     print('Running spike then emg test')
     spike_emg_test(return_state=True)
+elif args.rnn:
+    print('Running RNN test only')
+    rnn_test(return_state=True)
