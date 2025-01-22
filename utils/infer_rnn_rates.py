@@ -109,8 +109,6 @@ from src.model import autoencoderRNN  # noqa
 loss_name = 'mse'
 
 output_path = os.path.join(data_dir, 'rnn_output')
-if args.separate_regions:
-    output_path = os.path.join(output_path, 'regions')
 artifacts_dir = os.path.join(output_path, 'artifacts')
 plots_dir = os.path.join(output_path, 'plots')
 
@@ -141,10 +139,11 @@ if args.separate_regions:
     spike_arrays = [spike_arrays[i] for i in keep_inds]
     print(f'Processing regions: {region_names}')
     # Product of region and taste indices
-    processing_inds = list(product(range(len(region_names)), range(len(spike_arrays[0]))))
+    processing_inds = list(
+        product(range(len(region_names)), range(len(spike_arrays[0]))))
     # processing_items = list(enumerate(zip(region_names, spike_arrays)))
-    processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind])) \
-            for region_ind, taste_ind in processing_inds]
+    processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind]))
+                        for region_ind, taste_ind in processing_inds]
 else:
     print('Processing all regions together')
     spike_array = np.stack(data.spikes)
@@ -167,12 +166,8 @@ for idx, (name, spike_data) in processing_items:
 
     iden_str = f'{name}_taste_{idx}'
 
-    if args.separate_regions:
-        print(f'Processing region {name}, taste {idx}')
-        model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
-    else:
-        print(f'Processing taste {idx}')
-        model_name = f'taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
+    print(f'Processing region {name}, taste {idx}')
+    model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
     # taste_spikes = np.concatenate(spike_array)
@@ -641,11 +636,10 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
         hf5.create_group('/', 'rnn_output', 'RNN Output')
     rnn_output = hf5.get_node('/rnn_output')
 
-    if args.separate_regions:
-        if '/rnn_output/regions' not in hf5:
-            hf5.create_group('/rnn_output', 'regions',
-                             'Region-specific RNN Output')
-        rnn_output = hf5.get_node('/rnn_output/regions')
+    if '/rnn_output/regions' not in hf5:
+        hf5.create_group('/rnn_output', 'regions',
+                         'Region-specific RNN Output')
+    rnn_output = hf5.get_node('/rnn_output/regions')
 
     # Write out latents and predicted firing rates
     for idx, (name, _) in processing_items:
