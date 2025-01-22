@@ -358,6 +358,7 @@ for idx, (name, spike_data) in processing_items:
         with open(os.path.join(artifacts_dir, 'params.json'), 'w') as f:
             json.dump(params_dict, f)
     else:
+        print('Model already exists. Loading model')
         net = torch.load(model_save_path)
         # loss = np.load(loss_path, allow_pickle = True)
         # cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
