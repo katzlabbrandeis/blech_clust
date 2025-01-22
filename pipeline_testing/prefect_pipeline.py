@@ -365,11 +365,15 @@ def run_gapes_Li(data_dir):
 
 
 @task(log_prints=True)
-def run_rnn(data_dir):
+def run_rnn(data_dir, separate_regions=False):
     """Run RNN firing rate inference"""
     script_name = 'utils/infer_rnn_rates.py'
     # Use 100 training steps for testing
-    process = Popen(["python", script_name, data_dir, "--train_steps", "100"],
+    args = ["python", script_name, data_dir,
+            "--train_steps", "100", "--retrain"]
+    if separate_regions:
+        args.append("--separate_regions")
+    process = Popen(args,
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
@@ -414,7 +418,8 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
-    run_rnn(data_dir)
+    run_rnn(data_dir, separate_regions=False)
+    run_rnn(data_dir, separate_regions=True)
 
 
 @flow(log_prints=True)
