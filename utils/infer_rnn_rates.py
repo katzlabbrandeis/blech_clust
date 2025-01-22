@@ -47,6 +47,7 @@ import sys  # noqa
 import os  # noqa
 from pprint import pprint  # noqa
 import json  # noqa
+from itertools import product  # noqa
 
 data_dir = args.data_dir
 script_path = os.path.abspath(__file__)
@@ -131,6 +132,7 @@ if args.separate_regions:
     print(data.region_units)
     region_names = data.region_names
     # Get spikes for each region
+    # Shape : (tastes, trials, neurons, time)
     spike_arrays = [data.return_region_spikes(
         region) for region in region_names]
     # Remove None
@@ -138,12 +140,20 @@ if args.separate_regions:
     region_names = [region_names[i] for i in keep_inds]
     spike_arrays = [spike_arrays[i] for i in keep_inds]
     print(f'Processing regions: {region_names}')
-    processing_items = list(enumerate(zip(region_names, spike_arrays)))
+    # Product of region and taste indices
+    processing_inds = list(product(range(len(region_names)), range(len(spike_arrays[0]))))
+    # processing_items = list(enumerate(zip(region_names, spike_arrays)))
+    processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind])) \
+            for region_ind, taste_ind in processing_inds]
 else:
     print('Processing all regions together')
     spike_array = np.stack(data.spikes)
     processing_items = [(i, ('all', taste_spikes))
                         for i, taste_spikes in enumerate(spike_array)]
+
+processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
+print('Processing the following items:')
+pprint(processing_str)
 
 pred_firing_list = []
 pred_x_list = []
@@ -154,6 +164,9 @@ latent_out_list = []
 
 # Train model for each taste/region combination
 for idx, (name, spike_data) in processing_items:
+
+    iden_str = f'{name}_taste_{idx}'
+
     if args.separate_regions:
         print(f'Processing region {name}, taste {idx}')
         model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
@@ -412,7 +425,7 @@ for idx, (name, spike_data) in processing_items:
         bbox_to_anchor=(1.05, 1),
         loc='upper left', borderaxespad=0.)
     ax.set_title(f'Losses')
-    fig.savefig(os.path.join(plots_dir, f'run_loss_taste_{idx}.png'),
+    fig.savefig(os.path.join(plots_dir, f'run_loss_{iden_str}.png'),
                 bbox_inches='tight')
     plt.close(fig)
 
@@ -420,13 +433,13 @@ for idx, (name, spike_data) in processing_items:
     vz.firing_overview(pred_firing.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('RNN Predicted Firing Rates')
-    fig.savefig(os.path.join(plots_dir, f'firing_pred_taste_{idx}.png'))
+    fig.savefig(os.path.join(plots_dir, f'firing_pred_{iden_str}.png'))
     plt.close(fig)
     vz.firing_overview(binned_spikes.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('Binned Firing Rates')
     fig.savefig(os.path.join(
-        plots_dir, f'firing_binned_taste_{idx}.png'))
+        plots_dir, f'firing_binned_{iden_str}.png'))
     plt.close(fig)
 
     # Latent factors
@@ -436,7 +449,7 @@ for idx, (name, spike_data) in processing_items:
         ax[i].imshow(latent_outs[..., i].T, aspect='auto')
     plt.suptitle('Latent Factors')
     fig.savefig(os.path.join(
-        plots_dir, f'latent_factors_taste_{idx}.png'))
+        plots_dir, f'latent_factors_{iden_str}.png'))
     plt.close(fig)
 
     # Mean firing rates
@@ -448,7 +461,7 @@ for idx, (name, spike_data) in processing_items:
     ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
     ax[0].set_title('Pred')
     ax[1].set_title('True')
-    fig.savefig(os.path.join(plots_dir, f'mean_firing_taste_{idx}.png'))
+    fig.savefig(os.path.join(plots_dir, f'mean_firing_{iden_str}.png'))
     plt.close(fig)
     # plt.show()
 
@@ -460,7 +473,7 @@ for idx, (name, spike_data) in processing_items:
     ax[0].set_title('Pred')
     ax[1].set_title('True')
     fig.savefig(os.path.join(
-        plots_dir, f'mean_firing_zscored_taste_{idx}.png'))
+        plots_dir, f'mean_firing_zscored_{iden_str}.png'))
     plt.close(fig)
 
     # For every neuron, plot 1) spike raster, 2) convolved firing rate ,
@@ -498,7 +511,7 @@ for idx, (name, spike_data) in processing_items:
         ax[2].set_title('RNN Predicted Firing Rate')
         fig.savefig(
             os.path.join(ind_plot_dir,
-                         f'neuron_{i}_taste_{idx}_raster_conv_pred.png')
+                         f'neuron_{i}_{iden_str}_raster_conv_pred.png')
         )
         plt.close(fig)
 
@@ -513,7 +526,7 @@ for idx, (name, spike_data) in processing_items:
         ax[0].set_title(f'Latent factors for trial {i}')
         ax[1].plot(zscore(latent_outs[1:, i], axis=0), alpha=0.5)
         fig.savefig(os.path.join(trial_latent_dir,
-                    f'taste_{idx}_trial_{i}_latent.png'))
+                    f'{iden_str}_trial_{i}_latent.png'))
         plt.close(fig)
 
 ############################################################
