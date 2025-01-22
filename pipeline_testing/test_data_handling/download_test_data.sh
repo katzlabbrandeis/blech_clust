@@ -32,7 +32,7 @@ do
         # Use gdown to download the model to DATA_DIR
         # gdown -O <output_file> <link_to_file>
         # -O option specifies the output file name
-        gdown ${LINK_TO_DATA[i]} -O $DATA_DIR/ 
+        gdown ${LINK_TO_DATA[i]} -O $DATA_DIR/
 
         # Unzip the downloaded file
         # unzip <zip_file> -d <destination_folder>

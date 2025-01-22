@@ -63,11 +63,11 @@ if [ -z "$USE_CLASSIFIER" ]; then
 fi
 
 
-#============================================================  
+#============================================================
 if [ $FORCE -eq 1 ]; then
-    bash blech_clust_pre.sh $DIR --force 
+    bash blech_clust_pre.sh $DIR --force
 else
-    bash blech_clust_pre.sh $DIR 
+    bash blech_clust_pre.sh $DIR
 fi
 
 echo === Post Process ===

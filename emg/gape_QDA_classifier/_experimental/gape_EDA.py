@@ -1,5 +1,14 @@
 # Use the results in Li et al. 2016 to get gapes on taste trials
 
+import shap
+from xgboost import XGBClassifier
+from umap import UMAP
+from sklearn.mixture import GaussianMixture
+import itertools
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
+from sklearn.svm import SVC
+from utils.blech_utils import imp_metadata
 import os
 import sys
 from glob import glob
@@ -15,17 +24,6 @@ from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from detect_peaks import detect_peaks
 from QDA_classifier import QDA
 sys.path.append('../..')
-from utils.blech_utils import imp_metadata
-from sklearn.svm import SVC
-from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
-from sklearn.neural_network import MLPClassifier
-import itertools
-from sklearn.mixture import GaussianMixture
-
-from umap import UMAP
-
-from xgboost import XGBClassifier
-import shap
 
 
 # TODO: Add function to check for and chop up segments with double peaks
@@ -117,6 +115,7 @@ def extract_features(segment_dat, segment_starts, segment_ends):
     ]
     return feature_array, feature_names, segment_dat, segment_starts, segment_ends
 
+
 def find_segment(gape_locs, segment_starts, segment_ends):
     segment_bounds = list(zip(segment_starts, segment_ends))
     all_segment_inds = []
@@ -125,7 +124,7 @@ def find_segment(gape_locs, segment_starts, segment_ends):
         for i, bounds in enumerate(segment_bounds):
             if bounds[0] < this_gape < bounds[1]:
                 this_segment_inds.append(i)
-        if len(this_segment_inds) ==0:
+        if len(this_segment_inds) == 0:
             this_segment_inds.append(np.nan)
         all_segment_inds.append(this_segment_inds)
     return np.array(all_segment_inds).flatten()
@@ -138,7 +137,7 @@ def find_segment(gape_locs, segment_starts, segment_ends):
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-#data_dir = '/media/fastdata/KM45/KM45_5tastes_210620_113227_new'
+# data_dir = '/media/fastdata/KM45/KM45_5tastes_210620_113227_new'
 data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
 metadata_handler = imp_metadata([[], data_dir])
 data_dir = metadata_handler.dir_name
@@ -242,23 +241,23 @@ for this_ind in inds:
         np.std(this_laser_prestim_dat)
     )
 
-    #sizes = [50, 100, 150, 200]
-    #fig, ax = plt.subplots(len(sizes)+1, 1, sharex=True, sharey=True)
-    #ax[0].plot(this_trial_dat)
-    #for i, size in enumerate(sizes):
+    # sizes = [50, 100, 150, 200]
+    # fig, ax = plt.subplots(len(sizes)+1, 1, sharex=True, sharey=True)
+    # ax[0].plot(this_trial_dat)
+    # for i, size in enumerate(sizes):
     #   ax[i+1].plot(white_tophat(this_trial_dat, size))
-    #plt.show()
+    # plt.show()
 
     segment_starts, segment_ends, segment_dat = extract_movements(
         this_trial_dat, size=200)
 
-    ## Plot the segments
-    #fig, ax = plt.subplots(2,1, sharex=True)
-    #for this_start, this_end, this_dat in zip(segment_starts, segment_ends, segment_dat):
+    # Plot the segments
+    # fig, ax = plt.subplots(2,1, sharex=True)
+    # for this_start, this_end, this_dat in zip(segment_starts, segment_ends, segment_dat):
     #    ax[0].fill_between(np.arange(this_start, this_end), 0, this_dat, alpha = 0.7)
     #    ax[0].plot(np.arange(this_start, this_end), this_dat)
-    #ax[1].plot(this_trial_dat)
-    #plt.show()
+    # ax[1].plot(this_trial_dat)
+    # plt.show()
 
     (feature_array,
      feature_names,
@@ -268,25 +267,25 @@ for this_ind in inds:
         segment_dat, segment_starts, segment_ends)
 
     segment_bounds = list(zip(segment_starts, segment_ends))
-    merged_dat = [feature_array, segment_dat, segment_bounds] 
+    merged_dat = [feature_array, segment_dat, segment_bounds]
     segment_dat_list.append(merged_dat)
 
-    #scaled_feature_array = StandardScaler().fit_transform(feature_array)
+    # scaled_feature_array = StandardScaler().fit_transform(feature_array)
 
-    #plt.matshow(scaled_feature_array)
-    #plt.show()
+    # plt.matshow(scaled_feature_array)
+    # plt.show()
 
-    #plt.plot(this_trial_dat)
-    #for start, end, dat in zip(segment_starts, segment_ends, segment_dat):
+    # plt.plot(this_trial_dat)
+    # for start, end, dat in zip(segment_starts, segment_ends, segment_dat):
     #    plt.plot(np.arange(start, end), dat, linewidth=3)
-    #plt.show()
+    # plt.show()
 
-    #plt.plot(this_trial_dat)
-    #plt.plot(peak_ind, this_trial_dat[peak_ind], 'ro')
-    #plt.axhline(np.mean(this_laser_prestim_dat) +
+    # plt.plot(this_trial_dat)
+    # plt.plot(peak_ind, this_trial_dat[peak_ind], 'ro')
+    # plt.axhline(np.mean(this_laser_prestim_dat) +
     #              np.std(this_laser_prestim_dat),
     #              color='red', linestyle='--')
-    #plt.show()
+    # plt.show()
 
     # Get the indices, in the smoothed signal,
     # that are below the mean of the smoothed signal
@@ -352,7 +351,8 @@ for this_ind in inds:
         for peak in range(len(durations) - 1):
             gape = QDA(intervals[peak+1], durations[peak+1])
             if gape and peak_ind[peak+1] - pre_stim <= post_stim:
-                gapes_Li[this_ind[0], this_ind[1], this_ind[2], peak_ind[peak+1]] = 1.0
+                gapes_Li[this_ind[0], this_ind[1],
+                         this_ind[2], peak_ind[peak+1]] = 1.0
 
         # If there are no gapes on a trial, mark these as 0
         # on sig_trials_final and 0 on first_gape.
@@ -365,7 +365,7 @@ for this_ind in inds:
                 gapes_Li[this_ind] > 0.0)[0][0]
 
 ############################################################
-## Compare early vs late gapes
+# Compare early vs late gapes
 ############################################################
 
 # Plot overview of gape position per taste
@@ -383,14 +383,15 @@ quin_inds = np.where(quin_dat)
 
 gape_dividers = [2600, 4000]
 plt.hist(quin_inds[1], bins=50)
-plt.xlim(2000,7000)
+plt.xlim(2000, 7000)
 for x in gape_dividers:
     plt.axvline(x, color='red', linestyle='--')
 plt.show()
 
 # For each gape indicated by gapes_Li, find corresponding segment
 # and see if the different kinds of gapes are separable
-trial_inds_inds = [i for i, this_ind in enumerate(inds) if this_ind[:2] == (0,0)]
+trial_inds_inds = [i for i, this_ind in enumerate(
+    inds) if this_ind[:2] == (0, 0)]
 trial_inds = [inds[i] for i in trial_inds_inds]
 
 wanted_gapes_Li = [gapes_Li[this_ind] for this_ind in trial_inds]
@@ -405,21 +406,23 @@ for trial_num in range(len(trial_inds)):
     this_starts, this_ends = list(zip(*segment_dat_list[trial_num][-1]))
     this_starts = np.array(this_starts)
     this_ends = np.array(this_ends)
-    gape_segment_inds = find_segment(wanted_gapes_loc[trial_num], this_starts, this_ends) 
-    #print(gape_segment_inds)
+    gape_segment_inds = find_segment(
+        wanted_gapes_loc[trial_num], this_starts, this_ends)
+    # print(gape_segment_inds)
     not_nan_inds = np.where(~np.isnan(gape_segment_inds))[0]
     gape_segment_inds = gape_segment_inds[not_nan_inds]
     gape_segment_inds = np.vectorize(int)(gape_segment_inds)
     temp_wanted_gapes = wanted_gapes_loc[trial_num][not_nan_inds]
     gape_segment_features = segment_dat_list[trial_num][0][gape_segment_inds]
-    non_gape_inds = [i for i in range(len(this_starts)) if i not in gape_segment_inds]
+    non_gape_inds = [i for i in range(
+        len(this_starts)) if i not in gape_segment_inds]
     non_gape_features = segment_dat_list[trial_num][0][non_gape_inds]
     gape_starts.append(this_starts[gape_segment_inds])
     non_gape_starts.append(this_starts[non_gape_inds])
     all_non_gape_features.append(non_gape_features)
     all_locs.append(temp_wanted_gapes)
     all_gape_features.append(gape_segment_features)
-all_locs = np.concatenate(all_locs) 
+all_locs = np.concatenate(all_locs)
 all_gape_features = np.concatenate(all_gape_features)
 all_non_gape_features = np.concatenate(all_non_gape_features)
 gape_starts = np.concatenate(gape_starts)
@@ -438,7 +441,7 @@ group_names = ['Early', 'Middle', 'Late']
 group_pairs = list(itertools.combinations(groups, 2))
 
 fig, ax = plt.subplots(1, len(group_pairs),
-                       figsize = (10,3))#, sharex=True, sharey=True)
+                       figsize=(10, 3))  # , sharex=True, sharey=True)
 for i, group_pair in enumerate(group_pairs):
     this_inds = np.where(np.isin(y, group_pair))[0]
     this_X = X[this_inds]
@@ -449,18 +452,18 @@ for i, group_pair in enumerate(group_pairs):
     # Calculate classification accuracy
     clf = SVC(kernel='rbf', C=1)
     scores = cross_val_score(clf, this_X, this_y, cv=5)
-    #print('Accuracy for {} vs {}: {:.2f} +/- {:.2f}'.format(
+    # print('Accuracy for {} vs {}: {:.2f} +/- {:.2f}'.format(
     #    this_labels[0], this_labels[1], np.mean(scores), np.std(scores)))
-    scatter = ax[i].scatter(X_nca[:, 0], X_nca[:, 1], 
-                            c=this_y, cmap='rainbow', alpha = 0.7)
-    ax[i].legend(handles=scatter.legend_elements()[0], 
-               labels=this_labels)
+    scatter = ax[i].scatter(X_nca[:, 0], X_nca[:, 1],
+                            c=this_y, cmap='rainbow', alpha=0.7)
+    ax[i].legend(handles=scatter.legend_elements()[0],
+                 labels=this_labels)
     ax[i].set_title('Accuracy: {:.2f} +/- {:.2f}'.format(
         np.mean(scores), np.std(scores)))
 plt.show()
 
 ############################################################
-# Run XGBoost with SHAP analysis to see which features are most important 
+# Run XGBoost with SHAP analysis to see which features are most important
 # for differentiating early vs late gapes
 ############################################################
 clf = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
@@ -481,7 +484,7 @@ print('Accuracy: {:.2f} +/- {:.2f}'.format(
     np.mean(scores), np.std(scores)))
 
 ############################################################
-## Compare gapes with non-gapes
+# Compare gapes with non-gapes
 ############################################################
 X_raw = np.concatenate((all_gape_features, all_non_gape_features))
 X = StandardScaler().fit_transform(X_raw)
@@ -526,12 +529,12 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(X_nca[:, 0], X_nca[:, 1], X_nca[:, 2], c=y, cmap='rainbow')
 plt.show()
 
-plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y, 
-            cmap='rainbow', alpha = 0.5)
+plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y,
+            cmap='rainbow', alpha=0.5)
 plt.show()
 
 ############################################################
-## Include time as a feature 
+# Include time as a feature
 ############################################################
 X_raw = np.concatenate((all_gape_features, all_non_gape_features))
 all_times = np.concatenate((gape_starts, non_gape_starts))
@@ -579,12 +582,12 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(X_nca[:, 0], X_nca[:, 1], X_nca[:, 2], c=y, cmap='rainbow')
 plt.show()
 
-#plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y, 
+# plt.scatter(X_nca[:, 0], X_nca[:, 1], c=y,
 #            cmap='rainbow', alpha = 0.5)
-#plt.show()
+# plt.show()
 
 ############################################################
-## Cluster X and check if gapes are clustered together 
+# Cluster X and check if gapes are clustered together
 ############################################################
 # Uses GMM to cluster X
 gmm = GaussianMixture(n_components=8, random_state=42)
@@ -604,13 +607,13 @@ y_sorted = y[cluster_ind_sorted]
 clust_num_sorted = cluster_ind[cluster_ind_sorted]
 
 # Plot X  and y
-fig, ax = plt.subplots(1,3, figsize=(5, 10), sharey=True)
+fig, ax = plt.subplots(1, 3, figsize=(5, 10), sharey=True)
 ax[0].imshow(X_sorted, aspect='auto', interpolation='none')
 ax[1].plot(y_sorted, np.arange(len(X)), '-x')
 ax[2].plot(clust_num_sorted, np.arange(len(X)), '-x')
 plt.show()
 
 ############################################################
-## Use supervised clustering to cluster waveforms
-## more predictive of quinine during the palatability epoch
+# Use supervised clustering to cluster waveforms
+# more predictive of quinine during the palatability epoch
 ############################################################
