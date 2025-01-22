@@ -31,6 +31,8 @@ parser.add_argument('--retrain', action='store_true',
                     ' (default: %(default)s)')
 parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500],
                     help='Time limits inferred firing rates (default: %(default)s)')
+parser.add_argument('--separate_regions', action='store_true',
+                    help='Fit RNNs for each region separately (default: %(default)s)')
 
 args = parser.parse_args()
 
@@ -106,15 +108,14 @@ from src.model import autoencoderRNN  # noqa
 loss_name = 'mse'
 
 output_path = os.path.join(data_dir, 'rnn_output')
+if args.separate_regions:
+    output_path = os.path.join(output_path, 'regions')
 artifacts_dir = os.path.join(output_path, 'artifacts')
 plots_dir = os.path.join(output_path, 'plots')
 
-if not os.path.exists(output_path):
-    os.mkdir(output_path)
-if not os.path.exists(artifacts_dir):
-    os.mkdir(artifacts_dir)
-if not os.path.exists(plots_dir):
-    os.mkdir(plots_dir)
+for dir_path in [output_path, artifacts_dir, plots_dir]:
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
 
 print(f'Processing data from {data_dir}')
@@ -124,7 +125,19 @@ data.get_spikes()
 
 ############################################################
 
-spike_array = np.stack(data.spikes)
+if args.separate_regions:
+    print('Processing regions separately')
+    data.get_region_units()
+    region_names = data.region_names
+    # Get spikes for each region
+    spike_arrays = [data.return_region_spikes(region) for region in region_names]
+    processing_items = list(enumerate(zip(region_names, spike_arrays)))
+    print(f'Found regions: {region_names}')
+else:
+    print('Processing all regions together')
+    spike_array = np.stack(data.spikes)
+    processing_items = [(i, ('all', taste_spikes)) 
+                       for i, taste_spikes in enumerate(spike_array)]
 
 pred_firing_list = []
 pred_x_list = []
@@ -132,11 +145,15 @@ conv_rate_list = []
 conv_x_list = []
 binned_spikes_list = []
 latent_out_list = []
-# Train model for each taste separately
-for taste_ind, taste_spikes in enumerate(spike_array):
 
-    print(f'Processing taste {taste_ind}')
-    model_name = f'taste_{taste_ind}_hidden_{hidden_size}_loss_{loss_name}'
+# Train model for each taste/region combination
+for idx, (name, spike_data) in processing_items:
+    if args.separate_regions:
+        print(f'Processing region {name}, taste {idx}')
+        model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
+    else:
+        print(f'Processing taste {idx}')
+        model_name = f'taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
     # taste_spikes = np.concatenate(spike_array)
@@ -604,13 +621,22 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
     if '/rnn_output' not in hf5:
         hf5.create_group('/', 'rnn_output', 'RNN Output')
     rnn_output = hf5.get_node('/rnn_output')
-    # Write out latents and predicted firing rates for each
-    # taste in separate arrays
-    for taste_ind, (pred_firing, latent_out) in enumerate(
-            zip(pred_firing_list, latent_out_list)
-    ):
-        taste_grp = hf5.create_group(
-            rnn_output, f'taste_{taste_ind}', f'Taste {taste_ind}')
-        hf5.create_array(taste_grp, 'pred_firing', pred_firing)
-        hf5.create_array(taste_grp, 'latent_out', latent_out)
-        hf5.create_array(taste_grp, 'pred_x', pred_x_list[taste_ind])
+    
+    if args.separate_regions:
+        if '/rnn_output/regions' not in hf5:
+            hf5.create_group('/rnn_output', 'regions', 'Region-specific RNN Output')
+        rnn_output = hf5.get_node('/rnn_output/regions')
+    
+    # Write out latents and predicted firing rates
+    for idx, (name, _) in processing_items:
+        if args.separate_regions:
+            group_name = f'region_{name}_taste_{idx}'
+            group_desc = f'Region {name} Taste {idx}'
+        else:
+            group_name = f'taste_{idx}'
+            group_desc = f'Taste {idx}'
+            
+        taste_grp = hf5.create_group(rnn_output, group_name, group_desc)
+        hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[idx])
+        hf5.create_array(taste_grp, 'latent_out', latent_out_list[idx])
+        hf5.create_array(taste_grp, 'pred_x', pred_x_list[idx])
