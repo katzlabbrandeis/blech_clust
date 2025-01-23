@@ -791,9 +791,14 @@ class ephys_data():
                                 'acceptable options are' +
                                 '\n' + f"===> {self.region_names, 'all'}")
             else:
-                this_region_units = self.region_units[region_ind[0]]
-                region_spikes = [x[:, this_region_units] for x in self.spikes]
-                return np.array(region_spikes)
+                if region_ind[0] < len(self.region_units):
+                    this_region_units = self.region_units[region_ind[0]]
+                    region_spikes = [x[:, this_region_units]
+                                     for x in self.spikes]
+                    return np.array(region_spikes)
+                else:
+                    print(f'No units found in this region: {region_name}')
+                    return None
         else:
             return np.array(self.spikes)
 

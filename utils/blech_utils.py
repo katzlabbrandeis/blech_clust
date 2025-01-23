@@ -92,10 +92,14 @@ def log_wait(func):
             try:
                 func(*args, **kwargs)
                 break
-            except:
+            except Exception as e:
+                print(f'Exception : {e}')
                 print(
                     f'Unable to access log with func : {func.__name__}, waiting {wait_time} seconds')
                 time.sleep(wait_time)
+            else:
+                raise Exception(
+                    f'Unable to access log with func : {func.__name__}')
     return wrapper
 
 
@@ -111,7 +115,7 @@ class pipeline_graph_check():
 
     def __init__(self, data_dir):
         self.data_dir = data_dir
-        # self.tee = Tee(data_dir)
+        self.tee = Tee(data_dir)
         self.load_graph()
         self.get_git_info()
         self.check_graph()
@@ -143,7 +147,6 @@ class pipeline_graph_check():
         """
         this_path_handler = path_handler()
         self.blech_clust_dir = this_path_handler.blech_clust_dir
-        # self.blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
         graph_path = os.path.join(
             self.blech_clust_dir,
             'params',

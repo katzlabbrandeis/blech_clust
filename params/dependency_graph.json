@@ -13,7 +13,8 @@
                 "blech_units_plot.py"
             ],
             "utils/qa_utils/unit_similarity.py": "blech_post_process.py",
-            "utils/qa_utils/drift_check.py": "blech_post_process.py"
+            "utils/qa_utils/drift_check.py": "blech_post_process.py",
+            "utils/infer_rnn_rates.py": "blech_make_arrays.py"
         },
         "emg/": {
             "emg_freq_setup.py": "emg_filter.py",
