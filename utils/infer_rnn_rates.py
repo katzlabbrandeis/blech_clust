@@ -61,6 +61,17 @@ this_pipeline_check = pipeline_graph_check(args.data_dir)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 
+output_path = os.path.join(data_dir, 'rnn_output')
+artifacts_dir = os.path.join(output_path, 'artifacts')
+plots_dir = os.path.join(output_path, 'plots')
+
+for dir_path in [output_path, artifacts_dir, plots_dir]:
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
+
+print(f'Processing data from {data_dir}')
+
 config_path = os.path.join(
     blech_clust_path, 'params', 'blechrnn_params.json')
 if not os.path.exists(config_path):
@@ -106,6 +117,11 @@ params_dict = dict(
 )
 pprint(params_dict)
 
+# Write out to json
+with open(os.path.join(output_path, 'fit_params.json'), 'w') as f:
+    json.dump(params_dict, f, indent=4)
+
+
 ##############################
 
 # Check that blechRNN is on the Desktop, if so, add to path
@@ -127,16 +143,6 @@ from src.model import autoencoderRNN  # noqa
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
-output_path = os.path.join(data_dir, 'rnn_output')
-artifacts_dir = os.path.join(output_path, 'artifacts')
-plots_dir = os.path.join(output_path, 'plots')
-
-for dir_path in [output_path, artifacts_dir, plots_dir]:
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-
-print(f'Processing data from {data_dir}')
 
 data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
