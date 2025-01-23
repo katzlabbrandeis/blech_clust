@@ -12,24 +12,21 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 import argparse  # noqa: E402
 parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
 parser.add_argument('data_dir', help='Path to data directory')
-parser.add_argument('--override_config', action='store_true',
-                    help='Override config file and use provided arguments' +
-                    '(default: %(default)s)')
-parser.add_argument('--train_steps', type=int, default=15000,
+parser.add_argument('--train_steps', type=int,
                     help='Number of training steps (default: %(default)s)')
 # Hidden size of 8 was tested to be optimal across multiple datasets
-parser.add_argument('--hidden_size', type=int, default=8,
+parser.add_argument('--hidden_size', type=int,
                     help='Hidden size of RNN (default: %(default)s)')
-parser.add_argument('--bin_size', type=int, default=25,
+parser.add_argument('--bin_size', type=int,
                     help='Bin size for binning spikes (default: %(default)s)')
-parser.add_argument('--train_test_split', type=float, default=0.75,
+parser.add_argument('--train_test_split', type=float,
                     help='Fraction of data to use for training (default: %(default)s)')
 parser.add_argument('--no_pca', action='store_true',
                     help='Do not use PCA for preprocessing (default: %(default)s)')
 parser.add_argument('--retrain', action='store_true',
                     help='Force retraining of model. Will overwrite existing model' +
                     ' (default: %(default)s)')
-parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500],
+parser.add_argument('--time_lims', type=int, nargs=2,
                     help='Time limits inferred firing rates (default: %(default)s)')
 parser.add_argument('--separate_regions', action='store_true',
                     help='Fit RNNs for each region separately (default: %(default)s)')
@@ -64,29 +61,40 @@ this_pipeline_check = pipeline_graph_check(args.data_dir)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 
-if args.override_config:
-    print('Overriding config file\nUsing provided arguments\n')
+config_path = os.path.join(
+    blech_clust_path, 'params', 'blechrnn_params.json')
+if not os.path.exists(config_path):
+    raise FileNotFoundError(
+        f'BlechRNN Config file not found @ {config_path}')
+with open(config_path, 'r') as f:
+    config = json.load(f)
+print('Loaded config file\n')
+train_steps = config['train_steps']
+hidden_size = config['hidden_size']
+bin_size = config['bin_size']
+train_test_split = config['train_test_split']
+use_pca = config['use_pca']
+time_lims = config['time_lims']
+
+# If any argument provided, use those instead
+if args.train_steps:
+    print(f'Using provided train_steps: {args.train_steps}')
     train_steps = args.train_steps
+if args.hidden_size:
+    print(f'Using provided hidden_size: {args.hidden_size}')
     hidden_size = args.hidden_size
+if args.bin_size:
+    print(f'Using provided bin_size: {args.bin_size}')
     bin_size = args.bin_size
+if args.train_test_split:
+    print(f'Using provided train_test_split: {args.train_test_split}')
     train_test_split = args.train_test_split
+if args.no_pca:
+    print(f'Using provided pca setting: {not args.no_pca}')
     use_pca = not args.no_pca
+if args.time_lims:
+    print(f'Using provided time_lims: {args.time_lims}')
     time_lims = args.time_lims
-else:
-    config_path = os.path.join(
-        blech_clust_path, 'params', 'blechrnn_params.json')
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(
-            f'BlechRNN Config file not found @ {config_path}')
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    print('Using config file\n')
-    train_steps = config['train_steps']
-    hidden_size = config['hidden_size']
-    bin_size = config['bin_size']
-    train_test_split = config['train_test_split']
-    use_pca = config['use_pca']
-    time_lims = config['time_lims']
 
 params_dict = dict(
     train_steps=train_steps,
