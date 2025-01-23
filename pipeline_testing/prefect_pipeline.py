@@ -363,6 +363,21 @@ def run_gapes_Li(data_dir):
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
 
+
+@task(log_prints=True)
+def run_rnn(data_dir, separate_regions=False):
+    """Run RNN firing rate inference"""
+    script_name = 'utils/infer_rnn_rates.py'
+    # Use 100 training steps for testing
+    args = ["python", script_name, data_dir,
+            "--train_steps", "100", "--retrain"]
+    if separate_regions:
+        args.append("--separate_regions")
+    process = Popen(args,
+                    stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(data_dir, process, stderr, stdout)
+
 ############################################################
 # Define Flows
 ############################################################
@@ -403,6 +418,8 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
+    run_rnn(data_dir, separate_regions=False)
+    run_rnn(data_dir, separate_regions=True)
 
 
 @flow(log_prints=True)
@@ -632,10 +649,6 @@ def emg_only_test():
         run_emg_freq_only()
         run_EMG_QDA_test()
     else:
-        try:
-            prep_data_flow(data_type=data_type)
-        except:
-            print('Failed to prep data')
         try:
             run_emg_freq_only()
         except:
