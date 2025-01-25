@@ -29,7 +29,7 @@ def raisedCosFun(x, ctr, dCtr):
     return y
 
 
-def gen_spread(n, n_basis, spread='linear'):
+def gen_spread(n, n_basis, spread='linear', **kwargs):
     """
     Generate spread for basis functions
 
@@ -37,6 +37,9 @@ def gen_spread(n, n_basis, spread='linear'):
         n: number of time bins
         n_basis: number of basis functions
         spread: 'linear' or 'log'
+        kwargs: additional arguments
+            - a: sigmoid scale
+            - b: sigmoid shift
 
     returns:
         ctrs: centers of basis functions
@@ -56,22 +59,55 @@ def gen_spread(n, n_basis, spread='linear'):
         dctrs = np.concatenate([[0.1], dctrs, [0.1]])
         dctrs = np.stack([dctrs[:-1], dctrs[1:]]).T
 
+    if spread == 'sigmoid':
+        # Check if a and b are provided
+        if 'a' in kwargs.keys():
+            a = kwargs['a']
+        else:
+            raise ValueError('Sigmoid scale (a) must be provided')
+        if 'b' in kwargs.keys():
+            b = kwargs['b']
+        else:
+            raise ValueError('Sigmoid shift (b) must be provided')
+        raw_ctrs = np.linspace(0, n, n_basis)
+        # sigmoid = lambda x, a: (2 / (1 + np.exp(-a*x))) - 1
+        def sigmoid(x, a, b): return 1 / (1 + np.exp(-a*(x-b)))
+        # ctrs_deltas = sigmoid(raw_ctrs, 0.005, 1000)
+        ctrs_deltas = sigmoid(raw_ctrs, a, b)
+        ctrs = np.cumsum(ctrs_deltas)
+        # Rescale ctrs to be between 0 and n
+        ctrs = (ctrs - ctrs.min()) / (ctrs.max() - ctrs.min()) * n
+        # Calculate widths
+        dctrs = np.diff(ctrs)
+        dctrs = np.concatenate([[0.1], dctrs, [0.1]])
+        dctrs = np.stack([dctrs[:-1], dctrs[1:]]).T
+
+        # fig, ax = plt.subplots(2,1)
+        # ax[0].plot(ctrs_deltas, 'o')
+        # ax[1].plot(ctrs, 'o')
+        # plt.show()
+
     return ctrs, dctrs
 
+# linear_ctrs, linear_dctrs = gen_spread(1000, 10, spread='linear')
+# log_ctrs, log_dctrs = gen_spread(1000, 10, spread='log')
+#
+# plt.plot(linear_ctrs, np.zeros_like(linear_ctrs), 'o', label='Linear')
+# plt.scatter(log_ctrs, np.ones_like(log_ctrs), label='Log', alpha=0.5, linewidth=1, edgecolor='k')
+# plt.show()
 
-def gen_raised_cosine_basis(n, n_basis, spread='linear'):
+
+def gen_raised_cosine_basis(n, ctrs, dctrs):
     """
     Generate raised cosine basis functions
 
     args:
-        n: number of time bins
-        n_basis: number of basis functions
-        spread: 'linear' or 'log'
+        ctrs: centers of basis functions
+        dctrs: widths of basis functions
 
     returns:
         basis: n_basis x n matrix of basis functions
     """
-    ctrs, dctrs = gen_spread(n, n_basis, spread=spread)
     basis_funcs = np.stack(
         [
             raisedCosFun(
@@ -84,10 +120,17 @@ def gen_raised_cosine_basis(n, n_basis, spread='linear'):
 
 if __name__ == '__main__':
     import pylab as plt
-    linear_basis_funcs = gen_raised_cosine_basis(1000, 10, spread='linear')
-    log_basis_funcs = gen_raised_cosine_basis(1000, 10, spread='log')
+    n = 1000
+    n_basis = 10
+    lin_ctrs, lin_dctrs = gen_spread(n, n_basis, spread='linear')
+    log_ctrs, log_dctrs = gen_spread(n, n_basis, spread='log')
+    sig_ctrs, sig_dctrs = gen_spread(
+        n, n_basis, spread='sigmoid', a=0.02, b=200)
+    linear_basis_funcs = gen_raised_cosine_basis(n, lin_ctrs, lin_dctrs)
+    log_basis_funcs = gen_raised_cosine_basis(n, log_ctrs, log_dctrs)
+    sigmoid_basis_funcs = gen_raised_cosine_basis(n, sig_ctrs, sig_dctrs)
 
-    fig, ax = plt.subplots(2, 2, sharex='col', sharey=True)
+    fig, ax = plt.subplots(3, 2, sharex='col', sharey=True, figsize=(10, 10))
     ax[0, 0].plot(linear_basis_funcs.T, color='k')
     ax[0, 0].plot(linear_basis_funcs.sum(axis=0), color='r', linewidth=3)
     ax[0, 0].set_title('Linearly spaced basis functions')
@@ -100,8 +143,17 @@ if __name__ == '__main__':
     ax[1, 1].plot(log_basis_funcs.T, color='k')
     ax[1, 1].plot(log_basis_funcs.sum(axis=0), color='r', linewidth=3)
     ax[1, 1].set_title('Logarithmically spaced basis functions')
+    ax[2, 0].plot(sigmoid_basis_funcs.T, color='k')
+    ax[2, 0].plot(sigmoid_basis_funcs.sum(axis=0), color='r', linewidth=3)
+    ax[2, 0].set_title('Sigmoidally spaced basis functions')
+    ax[2, 1].plot(sigmoid_basis_funcs.T, color='k')
+    ax[2, 1].plot(sigmoid_basis_funcs.sum(axis=0), color='r', linewidth=3)
+    ax[2, 1].set_title('Sigmoidally spaced basis functions')
     ax[0, 1].set_xscale('log')
     ax[1, 1].set_xscale('log')
-    ax[1, 0].set_xlabel('Time (linear scale)')
-    ax[1, 1].set_xlabel('Time (log scale)')
+    ax[-1, 0].set_xlabel('Time (linear scale)')
+    ax[-1, 1].set_xlabel('Time (log scale)')
+    ax[0, 0].set_xlim([0, n])
+    ax[0, 1].set_xlim([0, n])
+    plt.tight_layout()
     plt.show()
