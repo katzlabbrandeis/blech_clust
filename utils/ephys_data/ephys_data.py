@@ -40,6 +40,7 @@ This module provides a class for streamlined electrophysiology data analysis, fo
   - `get_sequestered_firing`: Sequesters firing rates into categories based on tastes and laser conditions.
   - `get_sequestered_data`: Sequesters both spikes and firing rates into categories based on tastes and laser conditions.
 """
+
 import os
 import warnings
 import numpy as np
@@ -61,6 +62,14 @@ from . import lfp_processing
 from pprint import pprint as pp
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+import sys  # noqa
+from pathlib import Path  # noqa
+script_path = Path(__file__)  # noqa
+blech_dir = script_path.parent.parent  # noqa
+sys.path.append(str(blech_dir))  # noqa
+from utils import makeRaisedCosBasis as mrcb  # noqa
 
 #  ______       _                      _____        _
 # |  ____|     | |                    |  __ \      | |
@@ -124,6 +133,47 @@ Installation:
     $ pip install numpy scipy tables pandas tqdm matplotlib
 """
 
+# def fit_basis(basis_funcs, wanted_dat):
+#     """
+#     Fit basis functions to data
+#
+#     args:
+#         basis_funcs: n_basis x n matrix of basis functions
+#         wanted_dat: n x 1 vector of data to fit
+#
+#     returns:
+#         fit: n x 1 vector of fitted data
+#     """
+#     lr = LinearRegression()
+#     lr.fit(basis_funcs.T, wanted_dat)
+#     fit = lr.predict(basis_funcs.T)
+#     return fit
+
+
+def fit_basis(basis_funcs, wanted_dat):
+    """
+    Fit basis functions to data
+
+    args:
+        basis_funcs: n_basis x n matrix of basis functions
+        wanted_dat: array of spike_trains with last dimension as time
+    returns:
+        fit: predicted firing rates with same shape as wanted_dat
+    """
+    pred_basis_coeffs = np.tensordot(
+        wanted_dat,
+        basis_funcs,
+        axes=(-1, -1)
+    )
+
+    pred_rates = np.tensordot(
+        pred_basis_coeffs,
+        basis_funcs,
+        axes=(-1, 0)
+    )
+
+    return pred_rates
+
 
 class ephys_data():
 
@@ -167,6 +217,77 @@ class ephys_data():
     @staticmethod
     def parallelize(func, iterator):
         return Parallel(n_jobs=mp.cpu_count()-2)(delayed(func)(this_iter) for this_iter in tqdm(iterator))
+
+    @staticmethod
+    def _calc_basis_rates(
+            spike_array,
+            stim_t,
+            pre_stim,
+            post_stim,
+    ):
+        """
+        spike_array :: params :: N-D array with time as last dimension
+        stim_t :: params :: Time of stimulus onset (in ms)
+        pre_stim :: params :: Time to include before stimulus (in ms)
+        post_stim :: params :: Time to include after stimulus (in ms)
+        """
+
+        n_post_basis = int(post_stim//100)
+        n_pre_basis = int(pre_stim//100)
+        n_total_basis = n_pre_basis + n_post_basis
+
+        sig_ctrs, sig_dctrs = mrcb.gen_spread(
+            post_stim, n_post_basis, spread='sigmoid', a=0.0025, b=750)
+        stim_sigmoid_basis_funcs = mrcb.gen_raised_cosine_basis(
+            post_stim, sig_ctrs, sig_dctrs)
+        pre_stim_basis_params = mrcb.gen_spread(
+            pre_stim, n_pre_basis, spread='linear')
+        pre_stim_basis = mrcb.gen_raised_cosine_basis(
+            pre_stim, *pre_stim_basis_params)
+        full_basis = np.zeros((n_total_basis-1, pre_stim + post_stim))
+        sigmoid_basis_funcs = full_basis.copy()
+        sigmoid_basis_funcs[:n_pre_basis, 0:pre_stim] = pre_stim_basis
+        sigmoid_basis_funcs[n_pre_basis-1:,
+                            pre_stim:] = stim_sigmoid_basis_funcs
+
+        return fit_basis(sigmoid_basis_funcs, spike_array)
+
+        # taste_array = self.spikes[0].copy()
+        #
+        # pred_basis_coeffs = np.tensordot(
+        #     taste_array,
+        #     sigmoid_basis_funcs,
+        #     axes=(-1, -1)
+        #     )
+        #
+        # pred_rates = np.tensordot(
+        #     pred_basis_coeffs,
+        #     sigmoid_basis_funcs,
+        #     axes=(-1, 0)
+        #     )
+        #
+        # vz.firing_overview(
+        #         pred_rates.swapaxes(0,1),
+        #         )
+        # plt.show()
+        #
+        # plt.plot(
+        #         pred_rates.mean(axis=0
+
+        # sigmoid_fit = np.stack([fit_basis(sigmoid_basis_funcs, this_trial)
+        #                        for this_trial in wanted_dat])
+
+        # # Add bias to sigmoid basis functions
+        # bias_vec = np.ones((1, sigmoid_basis_funcs.shape[1]))
+        # sigmoid_basis_funcs = np.concatenate((bias_vec, sigmoid_basis_funcs))
+
+        # t = np.arange(spike_array.shape[-1])
+        # array_inds = list(np.ndindex((spike_array.shape[:-1])))
+        # firing_rate_array = np.zeros((*spike_array.shape[:-1], len(t)))
+        # for this_inds in tqdm(array_inds):
+        #     this_firing = fit_basis(sigmoid_basis_funcs, spike_array[this_inds])
+        #     firing_rate_array[this_inds] = this_firing
+        # return firing_rate_array
 
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt, spike_array):
@@ -512,30 +633,22 @@ class ephys_data():
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
 
-        type_list = ['conv', 'baks']
-        type_exists_bool = 'type' in params.keys()
-        if not type_exists_bool:
-            raise Exception('Firing rate calculation type not specified.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
+        def raise_type_exception(): return Exception('Firing rate calculation type not specified.'
+                                                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
+
+        def raise_param_exception(): return Exception('All required firing rate parameters'
+                                                      ' have not been specified \n{}'.format(
+                                                          '\n'.join(map(str,
+                                                                    list(zip(param_exists_bool, param_name_list))))))
+        type_list = ['conv', 'baks', 'basis']
         if params['type'] not in type_list:
-            raise Exception('Firing rate calculation type not recognized.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
+            raise raise_type_exception()
 
         def check_firing_rate_params(params, param_name_list):
-            param_exists_bool = [True if x in params.keys() else False
-                                 for x in param_name_list]
-            if not all(param_exists_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_exists_bool, param_name_list))))))
             param_present_bool = [params[x] is not None
                                   for x in param_name_list]
             if not all(param_present_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_present_bool, param_name_list))))))
+                raise raise_param_exception()
 
         if params['type'] == 'conv':
             param_name_list = ['step_size', 'window_size', 'dt']
@@ -564,6 +677,22 @@ class ephys_data():
                         resolution=self.firing_rate_params['baks_resolution'],
                         dt=self.firing_rate_params['baks_dt'],
                         spike_array=data)
+                return firing_rate
+
+        if params['type'] == 'basis':
+            self.get_params_dict()
+            spike_array_durations = self.params_dict['spike_array_durations']
+            pre_stim, post_stim = spike_array_durations
+            # param_name_list = ['pre_stim', 'post_stim']
+            # check_firing_rate_params(params, param_name_list)
+
+            def calc_firing_func(data):
+                firing_rate = \
+                    self._calc_basis_rates(
+                        spike_array=data,
+                        stim_t=pre_stim,
+                        pre_stim=pre_stim,
+                        post_stim=post_stim)
                 return firing_rate
 
         return calc_firing_func
@@ -598,12 +727,6 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
 
         if np.sum([self.firing_list[0].shape == x.shape
                    for x in self.firing_list]) == len(self.firing_list):
@@ -640,8 +763,6 @@ class ephys_data():
                 swapaxes(0, 1)
 
         else:
-            # raise Exception('Cannot currently handle different'\
-            #         'numbers of trials')
             print('Uneven numbers of trials...not stacking into firing rates array')
 
     def calc_palatability(self):
@@ -715,6 +836,16 @@ class ephys_data():
             self.info_dict = json_dict = json.load(open(json_path, 'r'))
         else:
             raise Exception('No info file found')
+
+    def get_params_dict(self):
+        """
+        Get params dict from info file
+        """
+        json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
+        if os.path.exists(json_path):
+            self.params_dict = json_dict = json.load(open(json_path, 'r'))
+        else:
+            raise Exception('No params file found')
 
     def get_region_electrodes(self):
         """
