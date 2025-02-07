@@ -1,0 +1,6 @@
+{
+    "use_neuRecommend": true,
+    "use_classifier": true,
+    "throw_out_noise": false,
+    "min_suggestion_count": 2000
+}

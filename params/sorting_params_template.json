@@ -1,0 +1,74 @@
+{
+    "max_parallel_cpu": 16,
+    "waveform_threshold": 5,
+    "voltage_cutoff": 10000,
+    "max_breach_rate": 1,
+    "max_secs_above_cutoff": 60,
+    "max_mean_breach_rate_persec": 100,
+    "wf_amplitude_sd_cutoff": 3,
+    "bandpass_lower_cutoff": 300,
+    "bandpass_upper_cutoff": 3000,
+    "spike_snapshot_before": 1,
+    "spike_snapshot_after": 1.5,
+    "clustering_params": {
+        "max_clusters": 7,
+        "num_iter": 1000,
+        "thresh": 0.0001,
+        "num_restarts": 10,
+        "auto_params": {
+            "auto_cluster": false,
+            "auto_post_process": false,
+            "max_autosort_clusters": 10,
+            "cluster_count_threshold": 2000,
+            "chi_square_alpha": 0.05,
+            "mahalanobis_merge_thresh": 3,
+            "ISI_violations_thresholds": [
+                0.5,
+                2
+            ]
+        }
+    },
+    "qa_params": {
+        "n_corr_samples": 10000,
+        "bridged_channel_threshold": 0.9,
+        "similarity_cutoff": 50,
+        "similarity_waveform_count_cutoff": 10,
+        "drift_params": {
+            "alpha": 0.05,
+            "n_trial_bins": 4,
+            "baseline_duration": 1000,
+            "post_stim_duration": 2500,
+            "plot_bin_size": 1000
+        }
+    },
+    "psth_params": {
+        "durations": [
+            500,
+            2000
+        ],
+        "window_size": 250,
+        "step_size": 25
+    },
+    "sampling_rate": 30000,
+    "spike_array_durations": [
+        2000,
+        5000
+    ],
+    "responsiveness_pre_post_durations": [
+        1000,
+        2000
+    ],
+    "pal_iden_calc_params": {
+        "window_size": 250,
+        "step_size": 25
+    },
+    "discrim_analysis_params": {
+        "bin_num": 4,
+        "bin_width": 500,
+        "p-value": 0.05
+    },
+    "palatability_window": [
+        700,
+        1200
+    ]
+}
