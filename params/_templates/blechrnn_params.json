@@ -7,5 +7,6 @@
     "hidden_size": 8,
     "bin_size": 25,
     "train_test_split": 0.75,
+    "forecast_time": 100,
     "use_pca": true
 }
