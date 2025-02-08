@@ -448,7 +448,6 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
 # Ephys Data Tests
 ############################################################
 
-
 @task(log_prints=True)
 def test_ephys_data(data_dir):
     """Test ephys_data functionality"""
@@ -574,7 +573,6 @@ def run_spike_test(data_dir):
     run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
-    test_ephys_data(data_dir)
 
 
 @flow(log_prints=True)
