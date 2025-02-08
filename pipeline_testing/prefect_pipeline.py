@@ -444,11 +444,12 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
 # Ephys Data Tests
 ############################################################
 
+
 @task(log_prints=True)
 def test_ephys_data(data_dir):
     """Test ephys_data functionality"""
     print("Testing ephys_data with directory:", data_dir)
-    
+
     dat = ephys_data(data_dir)
     dat.firing_rate_params = dat.default_firing_params
 
@@ -457,11 +458,11 @@ def test_ephys_data(data_dir):
     dat.get_spikes()
     dat.get_firing_rates()
     dat.get_lfps()
-    
+
     # Test region/electrode handling
     dat.get_region_units()
     dat.get_lfp_electrodes()
-    
+
     # Test STFT functionality
     dat.get_stft()
     aggregate_amplitude = dat.get_mean_stft_amplitude()
