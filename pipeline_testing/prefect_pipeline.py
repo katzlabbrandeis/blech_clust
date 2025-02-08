@@ -448,6 +448,7 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
 # Ephys Data Tests
 ############################################################
 
+
 @task(log_prints=True)
 def test_ephys_data(data_dir):
     """Test ephys_data functionality"""
