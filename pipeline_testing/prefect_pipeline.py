@@ -4,7 +4,6 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
-
 test_bool = False
 
 import argparse  # noqa
@@ -442,6 +441,54 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
     raise_error_if_error(data_dir, process, stderr, stdout)
 
 ############################################################
+# Ephys Data Tests
+############################################################
+
+@task(log_prints=True)
+def test_ephys_data(data_dir):
+    """Test ephys_data functionality"""
+    print("Testing ephys_data with directory:", data_dir)
+    
+    dat = ephys_data(data_dir)
+    dat.firing_rate_params = dat.default_firing_params
+
+    # Test core functionality
+    dat.get_unit_descriptors()
+    dat.get_spikes()
+    dat.get_firing_rates()
+    dat.get_lfps()
+    
+    # Test region/electrode handling
+    dat.get_region_units()
+    dat.get_lfp_electrodes()
+    
+    # Test STFT functionality
+    dat.get_stft()
+    aggregate_amplitude = dat.get_mean_stft_amplitude()
+
+    # Basic visualization test
+    def normalize_timeseries(array, time_vec, stim_time):
+        mean_baseline = np.mean(
+            array[..., time_vec < stim_time], axis=-1)[..., np.newaxis]
+        array = array/mean_baseline
+        return array
+
+    time_vec = dat.time_vec
+    stim_time = 2
+    fig, ax = plt.subplots(1, len(aggregate_amplitude))
+    for num, (region, this_ax) in enumerate(zip(aggregate_amplitude, ax.flatten())):
+        this_ax.imshow(zscore(
+            normalize_timeseries(region, time_vec, stim_time), axis=-1),
+            aspect='auto', origin='lower')
+        this_ax.set_title(dat.region_names[num])
+        this_ax.set_yticks(np.arange(len(dat.freq_vec)))
+        this_ax.set_yticklabels(dat.freq_vec)
+    plt.savefig(os.path.join(data_dir, 'ephys_test_plot.png'))
+    plt.close()
+
+    print("Ephys data tests completed successfully")
+
+############################################################
 # Define Flows
 ############################################################
 
@@ -494,6 +541,7 @@ def run_spike_test(data_dir):
     run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
+    test_ephys_data(data_dir)
 
 
 @flow(log_prints=True)
