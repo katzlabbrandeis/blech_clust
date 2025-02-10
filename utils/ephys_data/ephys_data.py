@@ -660,12 +660,6 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
 
         self.normalized_firing_list = self.normalize_firing(self.firing_list)
 
@@ -689,40 +683,6 @@ class ephys_data():
                 reshape(-1, self.normalized_firing_array.shape[1],
                         self.normalized_firing_array.shape[-1]).\
                 swapaxes(0, 1)
-        #
-        #     # Reshape for backward compatiblity
-        #     self.firing_array = np.asarray(self.firing_list).swapaxes(1, 2)
-        #     # Concatenate firing across all tastes
-        #     self.all_firing_array = \
-        #         self.firing_array.\
-        #         swapaxes(1, 2).\
-        #         reshape(-1, self.firing_array.shape[1],
-        #                 self.firing_array.shape[-1]).\
-        #         swapaxes(0, 1)
-        #
-        #     # Calculate normalized firing
-        #     min_vals = [np.min(self.firing_array[:, nrn, :, :], axis=None)
-        #                 for nrn in range(self.firing_array.shape[1])]
-        #     max_vals = [np.max(self.firing_array[:, nrn, :, :], axis=None)
-        #                 for nrn in range(self.firing_array.shape[1])]
-        #     self.normalized_firing = np.asarray(
-        #         [(self.firing_array[:, nrn, :, :] - min_vals[nrn]) /
-        #          (max_vals[nrn] - min_vals[nrn])
-        #          for nrn in range(self.firing_array.shape[1])]).\
-        #         swapaxes(0, 1)
-        #
-        #     # Concatenate normalized firing across all tastes
-        #     self.all_normalized_firing = \
-        #         self.normalized_firing.\
-        #         swapaxes(1, 2).\
-        #         reshape(-1, self.normalized_firing.shape[1],
-        #                 self.normalized_firing.shape[-1]).\
-        #         swapaxes(0, 1)
-        #
-        # else:
-        #     # raise Exception('Cannot currently handle different'\
-        #     #         'numbers of trials')
-        #     print('Uneven numbers of trials...not stacking into firing rates array')
 
     def calc_palatability(self):
         """
