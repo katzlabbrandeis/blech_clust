@@ -697,6 +697,68 @@ class ephys_data():
 
         return calc_firing_func
 
+    @staticmethod
+    def normalize_firing(firing_array):
+        """
+        Normalize firing rates given a 3D or 4D array
+
+        Args:
+            firing_array (np.ndarray): 3D or 4D array of firing rates
+                - if 3D, shape is (n_neurons, n_trials, n_timepoints)
+                - if 4D, shape is (n_tastes, n_neurons, n_trials, n_timepoints)
+            OR
+            firing_list (list): List of 3D arrays of firing rates
+                - each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
+                - each element corresponds to a single taste
+
+        Returns:
+            np.ndarray: Normalized firing rates
+        """
+
+        if isinstance(firing_array, list):
+            n_neurons = firing_array[0].shape[1]
+            n_tastes = len(firing_array)
+            min_vals = []
+            max_vals = []
+            for i in range(n_neurons):
+                min_vals.append(
+                    np.min([firing_array[taste][:, i, :].min() for taste in range(n_tastes)]))
+                max_vals.append(
+                    np.max([firing_array[taste][:, i, :].max() for taste in range(n_tastes)]))
+
+            min_vals = np.array(min_vals)
+            max_vals = np.array(max_vals)
+            normalized_firing = []
+            for taste in range(n_tastes):
+                normalized_firing.append(
+                    (firing_array[taste] - min_vals[None, :, None]) /
+                    (max_vals[None, :, None] - min_vals[None, :, None]))
+
+        elif isinstance(firing_array, np.ndarray):
+            if len(firing_array.shape) == 3:
+                # Calculate min and max for each neuron
+                min_vals = np.min(firing_array, axis=(1, 2))
+                max_vals = np.max(firing_array, axis=(1, 2))
+
+                # Normalize firing rates
+                normalized_firing = (firing_array - min_vals[:, None, None]) / \
+                    (max_vals[:, None, None] - min_vals[:, None, None])
+
+            elif len(firing_array.shape) == 4:
+                # Calculate min and max for each neuron
+                min_vals = [np.min(firing_array[:, nrn, :, :], axis=None)
+                            for nrn in range(firing_array.shape[1])]
+                max_vals = [np.max(firing_array[:, nrn, :, :], axis=None)
+                            for nrn in range(firing_array.shape[1])]
+
+                # Normalize firing rates
+                normalized_firing = np.asarray(
+                    [(firing_array[:, nrn, :, :] - min_vals[nrn]) /
+                     (max_vals[nrn] - min_vals[nrn])
+                     for nrn in range(firing_array.shape[1])]).swapaxes(0, 1)
+
+        return normalized_firing
+
     def get_firing_rates(self):
         """
         Converts spikes to firing rates
@@ -728,38 +790,27 @@ class ephys_data():
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
 
+        self.normalized_firing_list = self.normalize_firing(self.firing_list)
+
+        # If all tastes have same number of trials, concatenate
+
         if np.sum([self.firing_list[0].shape == x.shape
                    for x in self.firing_list]) == len(self.firing_list):
-            print('All tastes have equal dimensions,'
-                  'concatenating and normalizing')
-
-            # Reshape for backward compatiblity
-            self.firing_array = np.asarray(self.firing_list).swapaxes(1, 2)
-            # Concatenate firing across all tastes
+            print('All tastes have equal dimensions concatenating')
+            self.firing_array = np.array(self.firing_list)
             self.all_firing_array = \
                 self.firing_array.\
                 swapaxes(1, 2).\
                 reshape(-1, self.firing_array.shape[1],
                         self.firing_array.shape[-1]).\
                 swapaxes(0, 1)
-
-            # Calculate normalized firing
-            min_vals = [np.min(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            max_vals = [np.max(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            self.normalized_firing = np.asarray(
-                [(self.firing_array[:, nrn, :, :] - min_vals[nrn]) /
-                 (max_vals[nrn] - min_vals[nrn])
-                 for nrn in range(self.firing_array.shape[1])]).\
-                swapaxes(0, 1)
-
-            # Concatenate normalized firing across all tastes
+            self.normalized_firing_array = np.array(
+                self.normalized_firing_list)
             self.all_normalized_firing = \
-                self.normalized_firing.\
+                self.normalized_firing_array.\
                 swapaxes(1, 2).\
-                reshape(-1, self.normalized_firing.shape[1],
-                        self.normalized_firing.shape[-1]).\
+                reshape(-1, self.normalized_firing_array.shape[1],
+                        self.normalized_firing_array.shape[-1]).\
                 swapaxes(0, 1)
 
         else:
