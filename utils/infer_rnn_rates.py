@@ -169,12 +169,16 @@ if args.separate_regions:
 else:
     print('Processing all regions together')
     region_names = ['all']
-    spike_arrays = [np.stack(data.spikes)]
+    # spike_arrays = [np.stack(data.spikes)]
+    # taste (list) --> array (trials, neurons, time)
+    spike_arrays = [data.spikes]
 
 processing_inds = list(
     product(range(len(region_names)), range(len(spike_arrays[0]))))
-processing_items = [(taste_ind, (region_names[region_ind], spike_arrays[region_ind][taste_ind]))
-                    for region_ind, taste_ind in processing_inds]
+processing_items = [
+    (taste_ind, (region_names[region_ind],
+     spike_arrays[region_ind][taste_ind]))
+    for region_ind, taste_ind in processing_inds]
 processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
 print('Processing the following items:')
 pprint(processing_str)
@@ -203,6 +207,7 @@ for idx, (name, spike_data) in processing_items:
     # Cut taste_spikes to time limits
     # Shape: (trials, neurons, time)
     spike_data = spike_data[..., time_lims[0]:time_lims[1]]
+    print(f'Spike data shape: {spike_data.shape}')
 
     trial_num = np.arange(spike_data.shape[0])
 
