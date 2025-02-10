@@ -40,6 +40,7 @@ This module provides a class for streamlined electrophysiology data analysis, fo
   - `get_sequestered_firing`: Sequesters firing rates into categories based on tastes and laser conditions.
   - `get_sequestered_data`: Sequesters both spikes and firing rates into categories based on tastes and laser conditions.
 """
+
 import os
 import warnings
 import numpy as np
@@ -61,6 +62,14 @@ from . import lfp_processing
 from pprint import pprint as pp
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+import sys  # noqa
+from pathlib import Path  # noqa
+script_path = Path(__file__)  # noqa
+blech_dir = script_path.parent.parent  # noqa
+sys.path.append(str(blech_dir))  # noqa
+from utils import makeRaisedCosBasis as mrcb  # noqa
 
 #  ______       _                      _____        _
 # |  ____|     | |                    |  __ \      | |
@@ -124,6 +133,47 @@ Installation:
     $ pip install numpy scipy tables pandas tqdm matplotlib
 """
 
+# def fit_basis(basis_funcs, wanted_dat):
+#     """
+#     Fit basis functions to data
+#
+#     args:
+#         basis_funcs: n_basis x n matrix of basis functions
+#         wanted_dat: n x 1 vector of data to fit
+#
+#     returns:
+#         fit: n x 1 vector of fitted data
+#     """
+#     lr = LinearRegression()
+#     lr.fit(basis_funcs.T, wanted_dat)
+#     fit = lr.predict(basis_funcs.T)
+#     return fit
+
+
+def fit_basis(basis_funcs, wanted_dat):
+    """
+    Fit basis functions to data
+
+    args:
+        basis_funcs: n_basis x n matrix of basis functions
+        wanted_dat: array of spike_trains with last dimension as time
+    returns:
+        fit: predicted firing rates with same shape as wanted_dat
+    """
+    pred_basis_coeffs = np.tensordot(
+        wanted_dat,
+        basis_funcs,
+        axes=(-1, -1)
+    )
+
+    pred_rates = np.tensordot(
+        pred_basis_coeffs,
+        basis_funcs,
+        axes=(-1, 0)
+    )
+
+    return pred_rates
+
 
 class ephys_data():
 
@@ -167,6 +217,40 @@ class ephys_data():
     @staticmethod
     def parallelize(func, iterator):
         return Parallel(n_jobs=mp.cpu_count()-2)(delayed(func)(this_iter) for this_iter in tqdm(iterator))
+
+    @staticmethod
+    def _calc_basis_rates(
+            spike_array,
+            stim_t,
+            pre_stim,
+            post_stim,
+    ):
+        """
+        spike_array :: params :: N-D array with time as last dimension
+        stim_t :: params :: Time of stimulus onset (in ms)
+        pre_stim :: params :: Time to include before stimulus (in ms)
+        post_stim :: params :: Time to include after stimulus (in ms)
+        """
+
+        n_post_basis = int(post_stim//100)
+        n_pre_basis = int(pre_stim//100)
+        n_total_basis = n_pre_basis + n_post_basis
+
+        sig_ctrs, sig_dctrs = mrcb.gen_spread(
+            post_stim, n_post_basis, spread='sigmoid', a=0.0025, b=750)
+        stim_sigmoid_basis_funcs = mrcb.gen_raised_cosine_basis(
+            post_stim, sig_ctrs, sig_dctrs)
+        pre_stim_basis_params = mrcb.gen_spread(
+            pre_stim, n_pre_basis, spread='linear')
+        pre_stim_basis = mrcb.gen_raised_cosine_basis(
+            pre_stim, *pre_stim_basis_params)
+        full_basis = np.zeros((n_total_basis-1, pre_stim + post_stim))
+        sigmoid_basis_funcs = full_basis.copy()
+        sigmoid_basis_funcs[:n_pre_basis, 0:pre_stim] = pre_stim_basis
+        sigmoid_basis_funcs[n_pre_basis-1:,
+                            pre_stim:] = stim_sigmoid_basis_funcs
+
+        return fit_basis(sigmoid_basis_funcs, spike_array)
 
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt, spike_array):
@@ -329,13 +413,6 @@ class ephys_data():
             'max_freq': 20,
             'time_range_tuple': (0, 5)
         }
-
-    # class access:
-    #    def __init__(self, key_name):
-    #        os.environ[key_name] = '0'
-
-    #    def check(self):
-    #        access_bool =
 
     def extract_and_process(self):
         self.get_unit_descriptors()
@@ -512,30 +589,22 @@ class ephys_data():
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
 
-        type_list = ['conv', 'baks']
-        type_exists_bool = 'type' in params.keys()
-        if not type_exists_bool:
-            raise Exception('Firing rate calculation type not specified.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
+        def raise_type_exception(): return Exception('Firing rate calculation type not specified.'
+                                                     '\nPlease use: \n {}'.format('\n'.join(type_list)))
+
+        def raise_param_exception(): return Exception('All required firing rate parameters'
+                                                      ' have not been specified \n{}'.format(
+                                                          '\n'.join(map(str,
+                                                                    list(zip(param_exists_bool, param_name_list))))))
+        type_list = ['conv', 'baks', 'basis']
         if params['type'] not in type_list:
-            raise Exception('Firing rate calculation type not recognized.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
+            raise raise_type_exception()
 
         def check_firing_rate_params(params, param_name_list):
-            param_exists_bool = [True if x in params.keys() else False
-                                 for x in param_name_list]
-            if not all(param_exists_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_exists_bool, param_name_list))))))
             param_present_bool = [params[x] is not None
                                   for x in param_name_list]
             if not all(param_present_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_present_bool, param_name_list))))))
+                raise raise_param_exception()
 
         if params['type'] == 'conv':
             param_name_list = ['step_size', 'window_size', 'dt']
@@ -566,7 +635,85 @@ class ephys_data():
                         spike_array=data)
                 return firing_rate
 
+        if params['type'] == 'basis':
+            self.get_params_dict()
+            spike_array_durations = self.params_dict['spike_array_durations']
+            pre_stim, post_stim = spike_array_durations
+            # param_name_list = ['pre_stim', 'post_stim']
+            # check_firing_rate_params(params, param_name_list)
+
+            def calc_firing_func(data):
+                firing_rate = \
+                    self._calc_basis_rates(
+                        spike_array=data,
+                        stim_t=pre_stim,
+                        pre_stim=pre_stim,
+                        post_stim=post_stim)
+                return firing_rate
+
         return calc_firing_func
+
+    @staticmethod
+    def normalize_firing(firing_array):
+        """
+        Normalize firing rates given a 3D or 4D array
+
+        Args:
+            firing_array (np.ndarray): 3D or 4D array of firing rates
+                - if 3D, shape is (n_neurons, n_trials, n_timepoints)
+                - if 4D, shape is (n_tastes, n_neurons, n_trials, n_timepoints)
+            OR
+            firing_list (list): List of 3D arrays of firing rates
+                - each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
+                - each element corresponds to a single taste
+
+        Returns:
+            np.ndarray: Normalized firing rates
+        """
+
+        if isinstance(firing_array, list):
+            n_neurons = firing_array[0].shape[1]
+            n_tastes = len(firing_array)
+            min_vals = []
+            max_vals = []
+            for i in range(n_neurons):
+                min_vals.append(
+                    np.min([firing_array[taste][:, i, :].min() for taste in range(n_tastes)]))
+                max_vals.append(
+                    np.max([firing_array[taste][:, i, :].max() for taste in range(n_tastes)]))
+
+            min_vals = np.array(min_vals)
+            max_vals = np.array(max_vals)
+            normalized_firing = []
+            for taste in range(n_tastes):
+                normalized_firing.append(
+                    (firing_array[taste] - min_vals[None, :, None]) /
+                    (max_vals[None, :, None] - min_vals[None, :, None]))
+
+        elif isinstance(firing_array, np.ndarray):
+            if len(firing_array.shape) == 3:
+                # Calculate min and max for each neuron
+                min_vals = np.min(firing_array, axis=(1, 2))
+                max_vals = np.max(firing_array, axis=(1, 2))
+
+                # Normalize firing rates
+                normalized_firing = (firing_array - min_vals[:, None, None]) / \
+                    (max_vals[:, None, None] - min_vals[:, None, None])
+
+            elif len(firing_array.shape) == 4:
+                # Calculate min and max for each neuron
+                min_vals = [np.min(firing_array[:, nrn, :, :], axis=None)
+                            for nrn in range(firing_array.shape[1])]
+                max_vals = [np.max(firing_array[:, nrn, :, :], axis=None)
+                            for nrn in range(firing_array.shape[1])]
+
+                # Normalize firing rates
+                normalized_firing = np.asarray(
+                    [(firing_array[:, nrn, :, :] - min_vals[nrn]) /
+                     (max_vals[nrn] - min_vals[nrn])
+                     for nrn in range(firing_array.shape[1])]).swapaxes(0, 1)
+
+        return normalized_firing
 
     def get_firing_rates(self):
         """
@@ -598,50 +745,31 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
+
+        self.normalized_firing_list = self.normalize_firing(self.firing_list)
+
+        # If all tastes have same number of trials, concatenate
 
         if np.sum([self.firing_list[0].shape == x.shape
                    for x in self.firing_list]) == len(self.firing_list):
-            print('All tastes have equal dimensions,'
-                  'concatenating and normalizing')
-
-            # Reshape for backward compatiblity
-            self.firing_array = np.asarray(self.firing_list).swapaxes(1, 2)
-            # Concatenate firing across all tastes
+            print('All tastes have equal dimensions concatenating')
+            self.firing_array = np.array(self.firing_list)
             self.all_firing_array = \
                 self.firing_array.\
                 swapaxes(1, 2).\
                 reshape(-1, self.firing_array.shape[1],
                         self.firing_array.shape[-1]).\
                 swapaxes(0, 1)
-
-            # Calculate normalized firing
-            min_vals = [np.min(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            max_vals = [np.max(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            self.normalized_firing = np.asarray(
-                [(self.firing_array[:, nrn, :, :] - min_vals[nrn]) /
-                 (max_vals[nrn] - min_vals[nrn])
-                 for nrn in range(self.firing_array.shape[1])]).\
-                swapaxes(0, 1)
-
-            # Concatenate normalized firing across all tastes
+            self.normalized_firing_array = np.array(
+                self.normalized_firing_list)
             self.all_normalized_firing = \
-                self.normalized_firing.\
+                self.normalized_firing_array.\
                 swapaxes(1, 2).\
-                reshape(-1, self.normalized_firing.shape[1],
-                        self.normalized_firing.shape[-1]).\
+                reshape(-1, self.normalized_firing_array.shape[1],
+                        self.normalized_firing_array.shape[-1]).\
                 swapaxes(0, 1)
 
         else:
-            # raise Exception('Cannot currently handle different'\
-            #         'numbers of trials')
             print('Uneven numbers of trials...not stacking into firing rates array')
 
     def calc_palatability(self):
@@ -715,6 +843,16 @@ class ephys_data():
             self.info_dict = json_dict = json.load(open(json_path, 'r'))
         else:
             raise Exception('No info file found')
+
+    def get_params_dict(self):
+        """
+        Get params dict from info file
+        """
+        json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
+        if os.path.exists(json_path):
+            self.params_dict = json_dict = json.load(open(json_path, 'r'))
+        else:
+            raise Exception('No params file found')
 
     def get_region_electrodes(self):
         """
