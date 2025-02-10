@@ -252,43 +252,6 @@ class ephys_data():
 
         return fit_basis(sigmoid_basis_funcs, spike_array)
 
-        # taste_array = self.spikes[0].copy()
-        #
-        # pred_basis_coeffs = np.tensordot(
-        #     taste_array,
-        #     sigmoid_basis_funcs,
-        #     axes=(-1, -1)
-        #     )
-        #
-        # pred_rates = np.tensordot(
-        #     pred_basis_coeffs,
-        #     sigmoid_basis_funcs,
-        #     axes=(-1, 0)
-        #     )
-        #
-        # vz.firing_overview(
-        #         pred_rates.swapaxes(0,1),
-        #         )
-        # plt.show()
-        #
-        # plt.plot(
-        #         pred_rates.mean(axis=0
-
-        # sigmoid_fit = np.stack([fit_basis(sigmoid_basis_funcs, this_trial)
-        #                        for this_trial in wanted_dat])
-
-        # # Add bias to sigmoid basis functions
-        # bias_vec = np.ones((1, sigmoid_basis_funcs.shape[1]))
-        # sigmoid_basis_funcs = np.concatenate((bias_vec, sigmoid_basis_funcs))
-
-        # t = np.arange(spike_array.shape[-1])
-        # array_inds = list(np.ndindex((spike_array.shape[:-1])))
-        # firing_rate_array = np.zeros((*spike_array.shape[:-1], len(t)))
-        # for this_inds in tqdm(array_inds):
-        #     this_firing = fit_basis(sigmoid_basis_funcs, spike_array[this_inds])
-        #     firing_rate_array[this_inds] = this_firing
-        # return firing_rate_array
-
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt, spike_array):
         """
@@ -450,13 +413,6 @@ class ephys_data():
             'max_freq': 20,
             'time_range_tuple': (0, 5)
         }
-
-    # class access:
-    #    def __init__(self, key_name):
-    #        os.environ[key_name] = '0'
-
-    #    def check(self):
-    #        access_bool =
 
     def extract_and_process(self):
         self.get_unit_descriptors()
