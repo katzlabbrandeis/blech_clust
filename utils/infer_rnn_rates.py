@@ -10,32 +10,56 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 - Handles file paths and directories for saving models, plots, and outputs, ensuring necessary directories exist.
 """
 import argparse  # noqa: E402
-parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
-parser.add_argument('data_dir', help='Path to data directory')
-parser.add_argument('--train_steps', type=int,
-                    help='Number of training steps (default: %(default)s)')
-# Hidden size of 8 was tested to be optimal across multiple datasets
-parser.add_argument('--hidden_size', type=int,
-                    help='Hidden size of RNN (default: %(default)s)')
-parser.add_argument('--bin_size', type=int,
-                    help='Bin size for binning spikes (default: %(default)s)')
-parser.add_argument('--train_test_split', type=float,
-                    help='Fraction of data to use for training (default: %(default)s)')
-parser.add_argument('--no_pca', action='store_true',
-                    help='Do not use PCA for preprocessing (default: %(default)s)')
-parser.add_argument('--retrain', action='store_true',
-                    help='Force retraining of model. Will overwrite existing model' +
-                    ' (default: %(default)s)')
-parser.add_argument('--time_lims', type=int, nargs=2,
-                    help='Time limits inferred firing rates (default: %(default)s)')
-parser.add_argument('--separate_regions', action='store_true',
-                    help='Fit RNNs for each region separately (default: %(default)s)')
-parser.add_argument('--forecast_time', type=int,
-                    help='Time to forecast into the future (default: %(default)s)')
-parser.add_argument('--separate_tastes', action='store_true',
-                    help='Fit RNNs for each taste separately (default: %(default)s)')
+test_mode = False
+if test_mode:
+    data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+    blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
+    args = argparse.Namespace(
+        data_dir=data_dir,
+        train_steps=1000,
+        hidden_size=8,
+        bin_size=100,
+        train_test_split=0.8,
+        no_pca=False,
+        retrain=False,
+        time_lims=[1500, 4000],
+        separate_regions=False,
+        forecast_time=1000,
+        separate_tastes=True
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Infer firing rates using RNN')
+    parser.add_argument('data_dir', help='Path to data directory')
+    parser.add_argument('--train_steps', type=int,
+                        help='Number of training steps (default: %(default)s)')
+    # Hidden size of 8 was tested to be optimal across multiple datasets
+    parser.add_argument('--hidden_size', type=int,
+                        help='Hidden size of RNN (default: %(default)s)')
+    parser.add_argument('--bin_size', type=int,
+                        help='Bin size for binning spikes (default: %(default)s)')
+    parser.add_argument('--train_test_split', type=float,
+                        help='Fraction of data to use for training (default: %(default)s)')
+    parser.add_argument('--no_pca', action='store_true',
+                        help='Do not use PCA for preprocessing (default: %(default)s)')
+    parser.add_argument('--retrain', action='store_true',
+                        help='Force retraining of model. Will overwrite existing model' +
+                        ' (default: %(default)s)')
+    parser.add_argument('--time_lims', type=int, nargs=2,
+                        help='Time limits inferred firing rates (default: %(default)s)')
+    parser.add_argument('--separate_regions', action='store_true',
+                        help='Fit RNNs for each region separately (default: %(default)s)')
+    parser.add_argument('--forecast_time', type=int,
+                        help='Time to forecast into the future (default: %(default)s)')
+    parser.add_argument('--separate_tastes', action='store_true',
+                        help='Fit RNNs for each taste separately (default: %(default)s)')
 
-args = parser.parse_args()
+    args = parser.parse_args()
+
+    data_dir = args.data_dir
+    script_path = os.path.abspath(__file__)
+    blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 
 ############################################################
 ############################################################
@@ -54,58 +78,108 @@ import json  # noqa
 from itertools import product  # noqa
 import pandas as pd  # noqa
 
-data_dir = args.data_dir
-# data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
-script_path = os.path.abspath(__file__)
-blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_path)  # noqa
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
 from utils.ephys_data import visualize as vz  # noqa
 from utils.ephys_data import ephys_data  # noqa
 from src.train import train_model  # noqa
 from src.model import autoencoderRNN  # noqa
-# blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
 
 ############################################################
 ############################################################
 
 
-def spikes_to_frame(spikes_list, region_units_dict):
+def load_config():
+    config_path = os.path.join(
+        blech_clust_path, 'params', 'blechrnn_params.json')
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(
+            f'BlechRNN Config file not found @ {config_path}')
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    print('Loaded config file\n')
+    params_dict = dict(
+        train_steps=train_steps,
+        hidden_size=hidden_size,
+        bin_size=bin_size,
+        train_test_split=train_test_split,
+        use_pca=use_pca,
+        time_lims=time_lims,
+        forecast_time=forecast_time
+    )
+    return config, params_dict
+
+
+def update_config_from_args(params_dict, args):
+    # If any argument provided, use those instead
+    if args.train_steps:
+        print(f'Using provided train_steps: {args.train_steps}')
+        params_dict['train_steps'] = args.train_steps
+    if args.hidden_size:
+        print(f'Using provided hidden_size: {args.hidden_size}')
+        params_dict['hidden_size'] = args.hidden_size
+    if args.bin_size:
+        print(f'Using provided bin_size: {args.bin_size}')
+        params_dict['bin_size'] = args.bin_size
+    if args.train_test_split:
+        print(f'Using provided train_test_split: {args.train_test_split}')
+        params_dict['train_test_split'] = args.train_test_split
+    if args.no_pca:
+        print(f'Using provided pca setting: {not args.no_pca}')
+        params_dict['use_pca'] = not args.no_pca
+    if args.time_lims:
+        print(f'Using provided time_lims: {args.time_lims}')
+        params_dict['time_lims'] = args.time_lims
+    if args.forecast_time:
+        print(f'Using provided forecast_time: {args.forecast_time}')
+        params_dict['forecast_time'] = args.forecast_time
+    return params_dict
+
+
+def parse_group_by(spikes_xr, group_by_list):
     """
-    Convert list of spike arrays to a dataframe
+    Parse group_by_list to get the appropriate data for processing
 
     Args:
-        spikes_list : list of spike arrays
-            - List (tastes) of arrays (trials, neurons, time)
-            - Kept as list to handle uneven trials across tastes
-        region_units_dict : dict
-            - keys : region names
-            - values : list of unit numbers
+        spikes_xr : list of xr.DataArray
+        group_by_list : list of str
 
     Returns:
-        spikes_frame : pd.DataFrame
-
+        processing_items : list of np.ndarray
+        taste_inds : list of int
+        region_inds : list of str
     """
-    # Columns : Taste, Neuron
-    taste_ind = np.arange(len(spikes_list))
-    units_ind = np.sort(np.concatenate(list(region_units_dict.values())))
-    taste_units = list(product(taste_ind, units_ind))
-    data_list = []
-    for taste_ind, unit_ind in taste_units:
-        spikes = spikes_list[taste_ind][:, unit_ind]
-        data_list.append(
-            dict(
-                taste=taste_ind,
-                neuron=unit_ind,
-                spikes=spikes
-            )
-        )
-    spikes_frame = pd.DataFrame(data_list)
-    spikes_frame['region'] = spikes_frame['neuron'].apply(
-        lambda x: [k for k, v in region_units_dict.items() if x in v][0])
-    return spikes_frame
 
+    if len(group_by_list) > 0:
+        if len(group_by_list) == 1 and 'taste' in group_by_list:
+            processing_items = [x.values for x in spikes_xr]
+            taste_inds = np.arange(len(spikes_xr))
+            region_inds = ['all']
+        elif len(group_by_list) == 1 and 'region' in group_by_list:
+            processing_items = [
+                np.concatenate(
+                    [x[:, x.region == this_region] for x in spikes_xr], axis=0
+                ) for this_region in data.region_names
+            ]
+            taste_inds = ['all']
+            region_inds = np.arange(len(data.region_names))
+
+        else:  # Group by both region and taste
+            processing_items = [
+                [x[:, x.region == this_region] for x in spikes_xr]
+                for this_region in data.region_names
+            ]
+            processing_items = [
+                x for sublist in processing_items for x in sublist]
+            taste_inds = np.arange(len(spikes_xr))
+            region_inds = data.region_names
+
+    else:
+        processing_items = [np.concatenate(spikes_xr, axis=0)]
+        taste_inds = ['all']
+        region_inds = ['all']
+
+    return processing_items, taste_inds, region_inds
 ############################################################
 ############################################################
 
@@ -127,54 +201,8 @@ for dir_path in [output_path, artifacts_dir, plots_dir]:
 
 print(f'Processing data from {data_dir}')
 
-config_path = os.path.join(
-    blech_clust_path, 'params', 'blechrnn_params.json')
-if not os.path.exists(config_path):
-    raise FileNotFoundError(
-        f'BlechRNN Config file not found @ {config_path}')
-with open(config_path, 'r') as f:
-    config = json.load(f)
-print('Loaded config file\n')
-train_steps = config['train_steps']
-hidden_size = config['hidden_size']
-bin_size = config['bin_size']
-train_test_split = config['train_test_split']
-use_pca = config['use_pca']
-time_lims = config['time_lims']
-forecast_time = config['forecast_time']
-
-# If any argument provided, use those instead
-if args.train_steps:
-    print(f'Using provided train_steps: {args.train_steps}')
-    train_steps = args.train_steps
-if args.hidden_size:
-    print(f'Using provided hidden_size: {args.hidden_size}')
-    hidden_size = args.hidden_size
-if args.bin_size:
-    print(f'Using provided bin_size: {args.bin_size}')
-    bin_size = args.bin_size
-if args.train_test_split:
-    print(f'Using provided train_test_split: {args.train_test_split}')
-    train_test_split = args.train_test_split
-if args.no_pca:
-    print(f'Using provided pca setting: {not args.no_pca}')
-    use_pca = not args.no_pca
-if args.time_lims:
-    print(f'Using provided time_lims: {args.time_lims}')
-    time_lims = args.time_lims
-if args.forecast_time:
-    print(f'Using provided forecast_time: {args.forecast_time}')
-    forecast_time = args.forecast_time
-
-params_dict = dict(
-    train_steps=train_steps,
-    hidden_size=hidden_size,
-    bin_size=bin_size,
-    train_test_split=train_test_split,
-    use_pca=use_pca,
-    time_lims=time_lims,
-    forecast_time=forecast_time
-)
+config, params_dict = load_config()
+params_dict = update_config_from_args(params_dict, args)
 pprint(params_dict)
 
 ##############################
@@ -223,87 +251,16 @@ if args.separate_regions:
     group_by_list.append('region')
 
 
-def agg_selector(group_by_list):
-    if len(group_by_list) == 1 and 'region' in group_by_list:
-        return np.concatenate
-
-
-if len(group_by_list) > 0:
-    if len(group_by_list) == 1 and 'taste' in group_by_list:
-        processing_items = [x.values for x in spikes_xr]
-        taste_inds = np.arange(len(spikes_xr))
-        region_inds = ['all']
-    elif len(group_by_list) == 1 and 'region' in group_by_list:
-        processing_items = [
-            np.concatenate(
-                [x[:, x.region == this_region] for x in spikes_xr], axis=0
-            ) for this_region in data.region_names
-        ]
-        taste_inds = ['all']
-        region_inds = np.arange(len(data.region_names))
-
-    else:  # Group by both region and taste
-        processing_items = [
-            [x[:, x.region == this_region] for x in spikes_xr]
-            for this_region in data.region_names
-        ]
-        processing_str = [
-            [f'Taste {i}, Region {this_region}' for i in range(len(spikes_xr))]
-            for this_region in data.region_names
-        ]
-        processing_items = [x for sublist in processing_items for x in sublist]
-        processing_str = [x for sublist in processing_str for x in sublist]
-        taste_inds = np.arange(len(spikes_xr))
-        region_inds = data.region_names
-
+processing_items, taste_inds, region_inds = parse_group_by(
+    spikes_xr, group_by_list)
 processing_inds = list(product(region_inds, taste_inds))
 processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
 
-# spikes_grouped = list(spikes_frame.groupby(group_by_list))
-# processing_str = spikes_grouped.groups.keys()
-# agg_func = agg_selector(group_by_list)
-# processing_items = [agg_func(x[1]['spikes'].values,axis=0) for x in spikes_grouped]
-
-# processing_items = [
-#     (taste_ind,
-#      (
-#          region_name,
-#          np.stack(spikes_grouped.get_group((taste_ind, region_name))['spikes'].values, axis=0)
-#                   )
-#      )
-#     for taste_ind, region_name in processing_str]
-
-# if args.separate_regions:
-#     print('Processing regions separately')
-#     print(data.region_units)
-#     region_names = data.region_names
-#     # Get spikes for each region
-#     # Shape : (tastes, trials, neurons, time)
-#     spike_arrays = [data.return_region_spikes(
-#         region) for region in region_names]
-#     # Remove None
-#     keep_inds = [i for i, x in enumerate(spike_arrays) if x is not None]
-#     region_names = [region_names[i] for i in keep_inds]
-#     spike_arrays = [spike_arrays[i] for i in keep_inds]
-#     print(f'Processing regions: {region_names}')
-#     # Product of region and taste indices
-# else:
-#     print('Processing all regions together')
-#     region_names = ['all']
-#     # spike_arrays = [np.stack(data.spikes)]
-#     # taste (list) --> array (trials, neurons, time)
-#     spike_arrays = [data.spikes]
-
-# processing_inds = list(
-#     product(range(len(region_names)), range(len(spike_arrays[0]))))
-# processing_items = [
-#     (taste_ind, (region_names[region_ind],
-#      spike_arrays[region_ind][taste_ind]))
-#     for region_ind, taste_ind in processing_inds]
-# processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
-
 print('Processing the following items:')
 pprint(processing_str)
+
+############################################################
+############################################################
 
 pred_firing_list = []
 pred_x_list = []
