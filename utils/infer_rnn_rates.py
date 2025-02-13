@@ -231,15 +231,17 @@ def agg_selector(group_by_list):
 if len(group_by_list) > 0:
     if len(group_by_list) == 1 and 'taste' in group_by_list:
         processing_items = [x.values for x in spikes_xr]
-        processing_str = [f'Taste {i}' for i in range(len(spikes_xr))]
+        taste_inds = np.arange(len(spikes_xr))
+        region_inds = ['all']
     elif len(group_by_list) == 1 and 'region' in group_by_list:
         processing_items = [
             np.concatenate(
                 [x[:, x.region == this_region] for x in spikes_xr], axis=0
             ) for this_region in data.region_names
         ]
-        processing_str = [
-            f'Region {this_region}' for this_region in data.region_names]
+        taste_inds = ['all']
+        region_inds = np.arange(len(data.region_names))
+
     else:  # Group by both region and taste
         processing_items = [
             [x[:, x.region == this_region] for x in spikes_xr]
@@ -251,20 +253,25 @@ if len(group_by_list) > 0:
         ]
         processing_items = [x for sublist in processing_items for x in sublist]
         processing_str = [x for sublist in processing_str for x in sublist]
+        taste_inds = np.arange(len(spikes_xr))
+        region_inds = data.region_names
 
-    # spikes_grouped = list(spikes_frame.groupby(group_by_list))
-    # processing_str = spikes_grouped.groups.keys()
-    # agg_func = agg_selector(group_by_list)
-    # processing_items = [agg_func(x[1]['spikes'].values,axis=0) for x in spikes_grouped]
+processing_inds = list(product(region_inds, taste_inds))
+processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
 
-    # processing_items = [
-    #     (taste_ind,
-    #      (
-    #          region_name,
-    #          np.stack(spikes_grouped.get_group((taste_ind, region_name))['spikes'].values, axis=0)
-    #                   )
-    #      )
-    #     for taste_ind, region_name in processing_str]
+# spikes_grouped = list(spikes_frame.groupby(group_by_list))
+# processing_str = spikes_grouped.groups.keys()
+# agg_func = agg_selector(group_by_list)
+# processing_items = [agg_func(x[1]['spikes'].values,axis=0) for x in spikes_grouped]
+
+# processing_items = [
+#     (taste_ind,
+#      (
+#          region_name,
+#          np.stack(spikes_grouped.get_group((taste_ind, region_name))['spikes'].values, axis=0)
+#                   )
+#      )
+#     for taste_ind, region_name in processing_str]
 
 # if args.separate_regions:
 #     print('Processing regions separately')
@@ -308,7 +315,7 @@ region_name_list = []
 taste_ind_list = []
 
 # Train model for each taste/region combination
-for idx, (name, spike_data) in processing_items:
+for (name, idx), spike_data in zip(processing_inds, processing_items):
 
     iden_str = f'{name}_taste_{idx}'
     region_name_list.append(name)
@@ -860,7 +867,8 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
     rnn_output = hf5.get_node('/rnn_output/regions')
 
     # Write out latents and predicted firing rates
-    for idx, (name, _) in processing_items:
+    # for idx, (name, _) in processing_items:
+    for (name, idx), spike_data in zip(processing_inds, processing_items):
         group_name = f'region_{name}_taste_{idx}'
         group_desc = f'Region {name} Taste {idx}'
 
