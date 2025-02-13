@@ -4,7 +4,6 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
-from utils.ephys_data.ephys_data import ephys_data
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import zscore
@@ -70,6 +69,8 @@ def raise_error_if_error(data_dir, process, stderr, stdout):
 # TODO: Replace with call to blech_process_utils.path_handler
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_dir)
+from utils.ephys_data.ephys_data import ephys_data  # noqa
 
 # Read emg_env path
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
