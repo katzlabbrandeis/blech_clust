@@ -9,24 +9,27 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 - Writes the predicted firing rates and latent outputs to an HDF5 file for each taste.
 - Handles file paths and directories for saving models, plots, and outputs, ensuring necessary directories exist.
 """
+
 import argparse  # noqa: E402
-test_mode = False
+import os  # noqa
+test_mode = True
 if test_mode:
-    data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
+    # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
+    data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/TG23/FlavorDay1_230625_115542'
     script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
     blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
     args = argparse.Namespace(
         data_dir=data_dir,
         train_steps=1000,
-        hidden_size=8,
-        bin_size=100,
-        train_test_split=0.8,
+        hidden_size=3,
+        bin_size=25,
+        train_test_split=0.9,
         no_pca=False,
         retrain=False,
         time_lims=[1500, 4000],
-        separate_regions=False,
-        forecast_time=1000,
-        separate_tastes=True
+        separate_regions=True,
+        forecast_time=25,
+        separate_tastes=False,
     )
 else:
     parser = argparse.ArgumentParser(
@@ -72,13 +75,20 @@ from sklearn.decomposition import PCA  # noqa
 from sklearn.preprocessing import StandardScaler  # noqa
 import numpy as np  # noqa
 import sys  # noqa
-import os  # noqa
 from pprint import pprint  # noqa
 import json  # noqa
 from itertools import product  # noqa
 import pandas as pd  # noqa
+import xarray as xr  # noqa
 
 sys.path.append(blech_clust_path)  # noqa
+# Check that blechRNN is on the Desktop, if so, add to path
+blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
+if os.path.exists(blechRNN_path):
+    sys.path.append(blechRNN_path)
+else:
+    raise FileNotFoundError('blechRNN not found on Desktop')
+
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils.ephys_data import visualize as vz  # noqa
 from utils.ephys_data import ephys_data  # noqa
@@ -98,16 +108,7 @@ def load_config():
     with open(config_path, 'r') as f:
         config = json.load(f)
     print('Loaded config file\n')
-    params_dict = dict(
-        train_steps=train_steps,
-        hidden_size=hidden_size,
-        bin_size=bin_size,
-        train_test_split=train_test_split,
-        use_pca=use_pca,
-        time_lims=time_lims,
-        forecast_time=forecast_time
-    )
-    return config, params_dict
+    return config
 
 
 def update_config_from_args(params_dict, args):
@@ -162,7 +163,7 @@ def parse_group_by(spikes_xr, group_by_list):
                 ) for this_region in data.region_names
             ]
             taste_inds = ['all']
-            region_inds = np.arange(len(data.region_names))
+            region_inds = data.region_names
 
         else:  # Group by both region and taste
             processing_items = [
@@ -184,11 +185,12 @@ def parse_group_by(spikes_xr, group_by_list):
 ############################################################
 
 
-metadata_handler = imp_metadata([[], args.data_dir])
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(args.data_dir)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if not test_mode:
+    metadata_handler = imp_metadata([[], args.data_dir])
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 output_path = os.path.join(data_dir, 'rnn_output')
 artifacts_dir = os.path.join(output_path, 'artifacts')
@@ -198,22 +200,14 @@ for dir_path in [output_path, artifacts_dir, plots_dir]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-
 print(f'Processing data from {data_dir}')
 
-config, params_dict = load_config()
+params_dict = load_config()
 params_dict = update_config_from_args(params_dict, args)
 pprint(params_dict)
 
 ##############################
 
-# Check that blechRNN is on the Desktop, if so, add to path
-
-blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
-if os.path.exists(blechRNN_path):
-    sys.path.append(blechRNN_path)
-else:
-    raise FileNotFoundError('blechRNN not found on Desktop')
 
 # mse loss performs better than poisson loss
 loss_name = 'mse'
@@ -256,11 +250,15 @@ processing_items, taste_inds, region_inds = parse_group_by(
 processing_inds = list(product(region_inds, taste_inds))
 processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
 
+region_names = region_inds.copy()
+spike_arrays = processing_items.copy()
 print('Processing the following items:')
 pprint(processing_str)
 
 ############################################################
 ############################################################
+# Set all keys in params_dict to variables
+locals().update(params_dict)
 
 pred_firing_list = []
 pred_x_list = []
@@ -401,7 +399,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     # Instead of predicting activity in the SAME time-bin,
     # predict activity in the NEXT time-bin
     # Forcing the model to learn temporal dependencies
-    forecast_time = params_dict['forecast_time']
     forecast_bins = int(forecast_time // bin_size)
     inputs_plus_context = inputs_plus_context[:-forecast_bins]
     inputs = inputs[forecast_bins:]
@@ -648,6 +645,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
 ############################################################
 ############################################################
 
+
 pred_frame = pd.DataFrame(
     dict(
         region_name=region_name_list,
@@ -684,10 +682,6 @@ all_binned_spikes_taste_mean = [
 ]
 
 # Mean neuron firing
-# pred_firing_taste_mean = np.stack(
-#     [pred_firing_list[i].mean(axis=0) for i in range(len(pred_firing_list))])
-# binned_spikes_taste_mean = np.stack(
-#     [bin_spikes.mean(axis=0) for bin_spikes in binned_spikes_list])
 
 for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
         all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
@@ -711,37 +705,43 @@ for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
     plt.close(fig)
 
 # Make another plot with taste_mean firing rates
+trial_counts = [len(x) for x in data.spikes]
+cum_trial_counts = np.cumsum([0, *trial_counts])
+cat_spikes = np.concatenate(
+    data.spikes, axis=0)[..., time_lims[0]:time_lims[1]]
+
+region_names = region_inds.copy()
+if 'region' in group_by_list:
+    spike_arrays = [cat_spikes[:, units] for units in data.region_units]
+else:
+    spike_arrays = [cat_spikes]
+
 for spike_array, region_name in zip(spike_arrays, region_names):
-    region_nrn_count = spike_array[0].shape[1]
+    region_nrn_count = spike_array.shape[1]
     region_conv_rate_list = pred_frame.loc[pred_frame.region_name ==
                                            region_name, 'conv_rate'].to_list()
     region_pred_firing_list = pred_frame.loc[pred_frame.region_name ==
                                              region_name, 'pred_firing'].to_list()
+    if 'taste' not in group_by_list:
+        region_conv_rate_list = region_conv_rate_list[0]
+        region_pred_firing_list = region_pred_firing_list[0]
+        region_conv_rate_list = [region_conv_rate_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                 for i in range(len(trial_counts)-1)]
+        region_pred_firing_list = [region_pred_firing_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                   for i in range(len(trial_counts)-1)]
     cmap = plt.get_cmap('tab10')
     # Iterate over neurons
     for i in range(region_nrn_count):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
                                sharex=True, sharey=False)
         # Get spikes from all tastes for this neuron
-        this_spikes_list = [x[:, i] for x in spike_array]
-        trial_counts = [len(x) for x in this_spikes_list]
-        cum_trial_counts = np.cumsum([0, *trial_counts])
-        this_cat_spikes = np.concatenate(
-            this_spikes_list, axis=0)[..., time_lims[0]:time_lims[1]]
 
-        ax[0] = vz.raster(ax[0], this_cat_spikes, marker='|', color='k')
+        ax[0] = vz.raster(ax[0], spike_array[:, i], marker='|', color='k')
         # Plot colors behind raster traces
         for j in range(len(cum_trial_counts)-1):
             ax[0].axhspan(cum_trial_counts[j], cum_trial_counts[j+1],
                           color=cmap(j), alpha=0.1, zorder=0)
 
-        # this_conv_rate = np.stack([x[:, i] for x in region_conv_rate_list])
-        # this_pred_firing = np.stack([x[:, i] for x in region_pred_firing_list])
-
-        # mean_conv_rate = this_conv_rate.mean(axis=1)
-        # mean_pred_firing = this_pred_firing.mean(axis=1)
-        # sd_conv_rate = this_conv_rate.std(axis=1)
-        # sd_pred_firing = this_pred_firing.std(axis=1)
         mean_conv_rate = np.stack([x[:, i].mean(axis=0)
                                   for x in region_conv_rate_list])
         mean_pred_firing = np.stack([x[:, i].mean(axis=0)
