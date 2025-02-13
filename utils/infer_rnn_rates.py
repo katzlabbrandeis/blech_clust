@@ -32,8 +32,13 @@ parser.add_argument('--separate_regions', action='store_true',
                     help='Fit RNNs for each region separately (default: %(default)s)')
 parser.add_argument('--forecast_time', type=int,
                     help='Time to forecast into the future (default: %(default)s)')
+parser.add_argument('--separate_tastes', action='store_true',
+                    help='Fit RNNs for each taste separately (default: %(default)s)')
 
 args = parser.parse_args()
+
+############################################################
+############################################################
 
 import tables  # noqa
 from scipy.stats import zscore  # noqa
@@ -55,7 +60,55 @@ script_path = os.path.abspath(__file__)
 blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_path)  # noqa
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+from utils.ephys_data import visualize as vz  # noqa
+from utils.ephys_data import ephys_data  # noqa
+from src.train import train_model  # noqa
+from src.model import autoencoderRNN  # noqa
 # blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
+
+############################################################
+############################################################
+
+
+def spikes_to_frame(spikes_list, region_units_dict):
+    """
+    Convert list of spike arrays to a dataframe
+
+    Args:
+        spikes_list : list of spike arrays
+            - List (tastes) of arrays (trials, neurons, time)
+            - Kept as list to handle uneven trials across tastes
+        region_units_dict : dict
+            - keys : region names
+            - values : list of unit numbers
+
+    Returns:
+        spikes_frame : pd.DataFrame
+
+    """
+    # Columns : Taste, Neuron
+    taste_ind = np.arange(len(spikes_list))
+    units_ind = np.sort(np.concatenate(list(region_units_dict.values())))
+    taste_units = list(product(taste_ind, units_ind))
+    data_list = []
+    for taste_ind, unit_ind in taste_units:
+        spikes = spikes_list[taste_ind][:, unit_ind]
+        data_list.append(
+            dict(
+                taste=taste_ind,
+                neuron=unit_ind,
+                spikes=spikes
+            )
+        )
+    spikes_frame = pd.DataFrame(data_list)
+    spikes_frame['region'] = spikes_frame['neuron'].apply(
+        lambda x: [k for k, v in region_units_dict.items() if x in v][0])
+    return spikes_frame
+
+############################################################
+############################################################
+
 
 metadata_handler = imp_metadata([[], args.data_dir])
 # Perform pipeline graph check
@@ -134,52 +187,114 @@ if os.path.exists(blechRNN_path):
 else:
     raise FileNotFoundError('blechRNN not found on Desktop')
 
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
-sys.path.append(blech_clust_path)
-
-from utils.ephys_data import visualize as vz  # noqa
-from utils.ephys_data import ephys_data  # noqa
-from src.train import train_model  # noqa
-from src.model import autoencoderRNN  # noqa
-
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
-
 data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
+data.get_region_units()
+
+region_dict = dict(zip(data.region_names, data.region_units))
+region_vec = np.zeros(len(np.concatenate(data.region_units)), dtype=object)
+for region_name, unit_list in region_dict.items():
+    region_vec[unit_list] = region_name
+
+# Create xr dataset with each array in dataset corresponding to a taste
+spikes_xr = [xr.DataArray(
+    x,
+    dims=['trials', 'neurons', 'time'],
+    coords={
+        'trials': np.arange(x.shape[0]),
+        'neurons': np.arange(x.shape[1]),
+        'time': np.arange(x.shape[2]),
+        'region': (['neurons'], region_vec)
+    }
+) for x in data.spikes]
 
 ############################################################
 
-if args.separate_regions:
-    print('Processing regions separately')
-    data.get_region_units()
-    print(data.region_units)
-    region_names = data.region_names
-    # Get spikes for each region
-    # Shape : (tastes, trials, neurons, time)
-    spike_arrays = [data.return_region_spikes(
-        region) for region in region_names]
-    # Remove None
-    keep_inds = [i for i, x in enumerate(spike_arrays) if x is not None]
-    region_names = [region_names[i] for i in keep_inds]
-    spike_arrays = [spike_arrays[i] for i in keep_inds]
-    print(f'Processing regions: {region_names}')
-    # Product of region and taste indices
-else:
-    print('Processing all regions together')
-    region_names = ['all']
-    # spike_arrays = [np.stack(data.spikes)]
-    # taste (list) --> array (trials, neurons, time)
-    spike_arrays = [data.spikes]
+# Create a dataframet to handle indexing
+# spikes_frame = spikes_to_frame(data.spikes, region_dict)
 
-processing_inds = list(
-    product(range(len(region_names)), range(len(spike_arrays[0]))))
-processing_items = [
-    (taste_ind, (region_names[region_ind],
-     spike_arrays[region_ind][taste_ind]))
-    for region_ind, taste_ind in processing_inds]
-processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
+group_by_list = []
+if args.separate_tastes:
+    group_by_list.append('taste')
+if args.separate_regions:
+    group_by_list.append('region')
+
+
+def agg_selector(group_by_list):
+    if len(group_by_list) == 1 and 'region' in group_by_list:
+        return np.concatenate
+
+
+if len(group_by_list) > 0:
+    if len(group_by_list) == 1 and 'taste' in group_by_list:
+        processing_items = [x.values for x in spikes_xr]
+        processing_str = [f'Taste {i}' for i in range(len(spikes_xr))]
+    elif len(group_by_list) == 1 and 'region' in group_by_list:
+        processing_items = [
+            np.concatenate(
+                [x[:, x.region == this_region] for x in spikes_xr], axis=0
+            ) for this_region in data.region_names
+        ]
+        processing_str = [
+            f'Region {this_region}' for this_region in data.region_names]
+    else:  # Group by both region and taste
+        processing_items = [
+            [x[:, x.region == this_region] for x in spikes_xr]
+            for this_region in data.region_names
+        ]
+        processing_str = [
+            [f'Taste {i}, Region {this_region}' for i in range(len(spikes_xr))]
+            for this_region in data.region_names
+        ]
+        processing_items = [x for sublist in processing_items for x in sublist]
+        processing_str = [x for sublist in processing_str for x in sublist]
+
+    # spikes_grouped = list(spikes_frame.groupby(group_by_list))
+    # processing_str = spikes_grouped.groups.keys()
+    # agg_func = agg_selector(group_by_list)
+    # processing_items = [agg_func(x[1]['spikes'].values,axis=0) for x in spikes_grouped]
+
+    # processing_items = [
+    #     (taste_ind,
+    #      (
+    #          region_name,
+    #          np.stack(spikes_grouped.get_group((taste_ind, region_name))['spikes'].values, axis=0)
+    #                   )
+    #      )
+    #     for taste_ind, region_name in processing_str]
+
+# if args.separate_regions:
+#     print('Processing regions separately')
+#     print(data.region_units)
+#     region_names = data.region_names
+#     # Get spikes for each region
+#     # Shape : (tastes, trials, neurons, time)
+#     spike_arrays = [data.return_region_spikes(
+#         region) for region in region_names]
+#     # Remove None
+#     keep_inds = [i for i, x in enumerate(spike_arrays) if x is not None]
+#     region_names = [region_names[i] for i in keep_inds]
+#     spike_arrays = [spike_arrays[i] for i in keep_inds]
+#     print(f'Processing regions: {region_names}')
+#     # Product of region and taste indices
+# else:
+#     print('Processing all regions together')
+#     region_names = ['all']
+#     # spike_arrays = [np.stack(data.spikes)]
+#     # taste (list) --> array (trials, neurons, time)
+#     spike_arrays = [data.spikes]
+
+# processing_inds = list(
+#     product(range(len(region_names)), range(len(spike_arrays[0]))))
+# processing_items = [
+#     (taste_ind, (region_names[region_ind],
+#      spike_arrays[region_ind][taste_ind]))
+#     for region_ind, taste_ind in processing_inds]
+# processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
+
 print('Processing the following items:')
 pprint(processing_str)
 
