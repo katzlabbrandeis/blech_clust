@@ -12,8 +12,12 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 
 import argparse  # noqa: E402
 import os  # noqa
-test_mode = True
+test_mode = False
 if test_mode:
+
+    print('====================')
+    print('Running in test mode')
+    print('====================')
     # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
     data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/TG23/FlavorDay1_230625_115542'
     script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
