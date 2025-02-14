@@ -12,16 +12,18 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 
 import argparse  # noqa: E402
 import os  # noqa
-test_mode = False
+test_mode = True
 if test_mode:
 
     print('====================')
     print('Running in test mode')
     print('====================')
     # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
-    data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/TG23/FlavorDay1_230625_115542'
-    script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
-    blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
+    # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/TG23/FlavorDay1_230625_115542'
+    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    # script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+    script_path = '/home/abuzarmahmood/projects/blech_clust/utils/infer_rnn_rates.py'
+    blech_clust_path = os.path.dirname(os.path.dirname(script_path)) 
     args = argparse.Namespace(
         data_dir=data_dir,
         train_steps=1000,
@@ -251,6 +253,14 @@ if args.separate_regions:
 
 processing_items, taste_inds, region_inds = parse_group_by(
     spikes_xr, group_by_list)
+
+# Drop any items with 'none' in region_inds
+region_inds = [x.lower() for x in region_inds]
+wanted_inds = [i for i, x in enumerate(region_inds) if x != 'none']
+region_inds = [region_inds[i] for i in wanted_inds]
+taste_inds = [taste_inds[i] for i in wanted_inds]
+processing_items = [processing_items[i] for i in wanted_inds]
+
 processing_inds = list(product(region_inds, taste_inds))
 processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
 
