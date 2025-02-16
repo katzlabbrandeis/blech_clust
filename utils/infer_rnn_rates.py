@@ -12,7 +12,7 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 
 import argparse  # noqa: E402
 import os  # noqa
-test_mode = True
+test_mode = False
 if test_mode:
 
     print('====================')
@@ -35,7 +35,7 @@ if test_mode:
         time_lims=[1500, 4000],
         separate_regions=True,
         forecast_time=25,
-        separate_tastes=False,
+        separate_tastes=True,
     )
 else:
     parser = argparse.ArgumentParser(
@@ -186,7 +186,8 @@ def parse_group_by(spikes_xr, group_by_list):
         taste_inds = ['all']
         region_inds = ['all']
 
-    return processing_items, taste_inds, region_inds
+    processing_inds = list(product(region_inds, taste_inds))
+    return processing_items, processing_inds, taste_inds, region_inds
 
 ############################################################
 ############################################################
@@ -251,17 +252,17 @@ if args.separate_regions:
     group_by_list.append('region')
 
 
-processing_items, taste_inds, region_inds = parse_group_by(
+processing_items, processing_inds, taste_inds, region_inds = parse_group_by(
     spikes_xr, group_by_list)
 
 # Drop any items with 'none' in region_inds
 region_inds = [x.lower() for x in region_inds]
 wanted_inds = [i for i, x in enumerate(region_inds) if x != 'none']
 region_inds = [region_inds[i] for i in wanted_inds]
-taste_inds = [taste_inds[i] for i in wanted_inds]
-processing_items = [processing_items[i] for i in wanted_inds]
+wanted_processing_inds = [i for i,x in enumerate(processing_inds) if x[0] != 'none']
+processing_inds = [processing_inds[i] for i in wanted_processing_inds]
+processing_items = [processing_items[i] for i in wanted_processing_inds]
 
-processing_inds = list(product(region_inds, taste_inds))
 processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
 
 region_names = region_inds.copy()
@@ -305,6 +306,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     # Bin spikes
     # (tastes x trials, neurons, time)
     # for example : (120, 35, 280)
+    spike_data = spike_data.to_numpy()
     binned_spikes = np.reshape(spike_data,
                                (*spike_data.shape[:2], -1, bin_size)).sum(-1)
     binned_spikes_list.append(binned_spikes)
@@ -748,10 +750,11 @@ if 'taste' not in group_by_list:
             append_frames.append(this_frame)
     taste_pred_frame = pd.concat(append_frames)
     taste_pred_frame['pred_x'] = [pred_x_list[0]] * len(taste_pred_frame)
-    binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
-    taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
 else:
     taste_pred_frame = pred_frame.copy()
+
+binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
+taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
 
 for this_region in region_names:
     region_taste_binned = taste_pred_frame.loc[
@@ -761,7 +764,7 @@ for this_region in region_names:
     # Shape: taste x neurons x time
     region_taste_mean_binned = np.stack([x.mean(axis=0) for x in region_taste_binned])
     region_taste_mean_pred = np.stack([x.mean(axis=0) for x in region_taste_pred])
-    region_nrn_count = region_taste_mean_binned.shape[0] 
+    region_nrn_count = region_taste_mean_binned.shape[1] 
     binned_x = taste_pred_frame.loc[
         taste_pred_frame.region_name == this_region, 'binned_x'].to_list()[0]
     pred_x = taste_pred_frame.loc[
