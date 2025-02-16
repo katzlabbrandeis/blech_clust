@@ -712,14 +712,27 @@ cat_spikes = np.concatenate(
 if 'taste' not in group_by_list:
     append_frames = []
     for this_region in region_names:
+        # Binned spikes
         wanted_region_binned = pred_frame.loc[
                 pred_frame.region_name == this_region, 'binned_spikes'].to_list()[0]
         region_binned_taste = [wanted_region_binned[cum_trial_counts[i]:cum_trial_counts[i+1]]
                                  for i in range(len(trial_counts)-1)]
+        # Predicted firing
         wanted_region_pred = pred_frame.loc[
                 pred_frame.region_name == this_region, 'pred_firing'].to_list()[0]
         region_pred_taste = [wanted_region_pred[cum_trial_counts[i]:cum_trial_counts[i+1]]
                                     for i in range(len(trial_counts)-1)]
+        # Latent factors
+        wanted_region_latent = pred_frame.loc[
+                pred_frame.region_name == this_region, 'latent_out'].to_list()[0]
+        region_latent_taste = [wanted_region_latent[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                               for i in range(len(trial_counts)-1)]
+        # Convolved firing rates
+        wanted_region_conv_rate = pred_frame.loc[
+                pred_frame.region_name == this_region, 'conv_rate'].to_list()[0]
+        region_conv_rate_taste = [wanted_region_conv_rate[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                  for i in range(len(trial_counts)-1)]
+        # Create a new frame
         for i, taste_binned in enumerate(region_binned_taste):
             this_frame = pd.DataFrame(
                 dict(
@@ -727,6 +740,8 @@ if 'taste' not in group_by_list:
                     taste_ind=i,
                     binned_spikes=[taste_binned],
                     pred_firing=[region_pred_taste[i]],
+                    latent_out=[region_latent_taste[i]],
+                    conv_rate=[region_conv_rate_taste[i]],
                 ),
                 index=[0],
             )
@@ -903,14 +918,14 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
 
     # Write out latents and predicted firing rates
     # for idx, (name, _) in processing_items:
-    for (name, idx), spike_data in zip(processing_inds, processing_items):
+    for i, ((name, idx), spike_data) in enumerate(zip(processing_inds, processing_items)):
         group_name = f'region_{name}_taste_{idx}'
         group_desc = f'Region {name} Taste {idx}'
 
         taste_grp = hf5.create_group(rnn_output, group_name, group_desc)
-        hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[idx])
-        hf5.create_array(taste_grp, 'latent_out', latent_out_list[idx])
-        hf5.create_array(taste_grp, 'pred_x', pred_x_list[idx])
+        hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[i])
+        hf5.create_array(taste_grp, 'latent_out', latent_out_list[i])
+        hf5.create_array(taste_grp, 'pred_x', pred_x_list[i])
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
