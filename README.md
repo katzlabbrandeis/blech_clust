@@ -72,7 +72,6 @@ conda activate blech_clust                                  # Activate blech_clu
 conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
 bash install_gnu_parallel.sh                                # Install GNU Parallel
 pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
-bash patch_dependencies.sh                                  # Fix issues with dependencies
 
 ### Install neuRecommend (classifier)
 cd ~/Desktop                                                # Relocate to download classifier library
@@ -93,6 +92,8 @@ pip install $(cat requirements.txt | egrep "torch")         # Install only pytor
 **Note: If you'd like to use GPU, you'll need to install CUDA
 -- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
 
+### Tweaking dependency versions
+bash patch_dependencies.sh                                  # Fix issues with dependencies
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
