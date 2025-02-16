@@ -306,7 +306,8 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     # Bin spikes
     # (tastes x trials, neurons, time)
     # for example : (120, 35, 280)
-    spike_data = spike_data.to_numpy()
+    if 'xarray' in str(type(spike_data)):
+        spike_data = spike_data.to_numpy()
     binned_spikes = np.reshape(spike_data,
                                (*spike_data.shape[:2], -1, bin_size)).sum(-1)
     binned_spikes_list.append(binned_spikes)
