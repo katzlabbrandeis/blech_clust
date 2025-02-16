@@ -187,9 +187,9 @@ def parse_group_by(spikes_xr, group_by_list):
         region_inds = ['all']
 
     return processing_items, taste_inds, region_inds
-############################################################
-############################################################
 
+############################################################
+############################################################
 
 if not test_mode:
     metadata_handler = imp_metadata([[], args.data_dir])
@@ -214,10 +214,10 @@ pprint(params_dict)
 
 ##############################
 
-
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
+basename = os.path.basename(data_dir)
 data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
 data.get_region_units()
@@ -659,7 +659,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
 ############################################################
 ############################################################
 
-
 pred_frame = pd.DataFrame(
     dict(
         region_name=region_name_list,
@@ -672,6 +671,14 @@ pred_frame = pd.DataFrame(
         binned_spikes=binned_spikes_list,
     )
 )
+
+if 'taste' not in group_by_list:
+    region_conv_rate_list = region_conv_rate_list[0]
+    region_pred_firing_list = region_pred_firing_list[0]
+    region_conv_rate_list = [region_conv_rate_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                             for i in range(len(trial_counts)-1)]
+    region_pred_firing_list = [region_pred_firing_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                               for i in range(len(trial_counts)-1)]
 
 all_pred_firing_taste = [
     [x for x in pred_frame.loc[pred_frame.region_name ==
@@ -697,32 +704,89 @@ all_binned_spikes_taste_mean = [
 
 # Mean neuron firing
 
-for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
-        all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
-):
-    cmap = plt.get_cmap('tab10')
-    region_nrn_count = pred_firing_taste_mean[0].shape[0]
-    fig, ax = vz.gen_square_subplots(region_nrn_count,
-                                     figsize=(10, 10),
-                                     sharex=True,)
-    for nrn_ind in range(region_nrn_count):
-        for taste_ind, (pred, bin) in enumerate(
-                zip(pred_firing_taste_mean, binned_spikes_taste_mean)
-        ):
-            ax.flatten()[nrn_ind].plot(
-                pred[nrn_ind], alpha=1, c=cmap(taste_ind))
-            ax.flatten()[nrn_ind].plot(
-                bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
-        ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
-    fig.savefig(os.path.join(
-        plots_dir, f'mean_neuron_firing_{region_name}.png'))
-    plt.close(fig)
-
-# Make another plot with taste_mean firing rates
 trial_counts = [len(x) for x in data.spikes]
 cum_trial_counts = np.cumsum([0, *trial_counts])
 cat_spikes = np.concatenate(
     data.spikes, axis=0)[..., time_lims[0]:time_lims[1]]
+
+if 'taste' not in group_by_list:
+    append_frames = []
+    for this_region in region_names:
+        wanted_region_binned = pred_frame.loc[
+                pred_frame.region_name == this_region, 'binned_spikes'].to_list()[0]
+        region_binned_taste = [wanted_region_binned[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                 for i in range(len(trial_counts)-1)]
+        wanted_region_pred = pred_frame.loc[
+                pred_frame.region_name == this_region, 'pred_firing'].to_list()[0]
+        region_pred_taste = [wanted_region_pred[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                    for i in range(len(trial_counts)-1)]
+        for i, taste_binned in enumerate(region_binned_taste):
+            this_frame = pd.DataFrame(
+                dict(
+                    region_name=this_region,
+                    taste_ind=i,
+                    binned_spikes=[taste_binned],
+                    pred_firing=[region_pred_taste[i]],
+                ),
+                index=[0],
+            )
+            append_frames.append(this_frame)
+    taste_pred_frame = pd.concat(append_frames)
+    taste_pred_frame['pred_x'] = [pred_x_list[0]] * len(taste_pred_frame)
+    binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
+    taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
+else:
+    taste_pred_frame = pred_frame.copy()
+
+for this_region in region_names:
+    region_taste_binned = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'binned_spikes'].to_list()
+    region_taste_pred = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'pred_firing'].to_list()
+    # Shape: taste x neurons x time
+    region_taste_mean_binned = np.stack([x.mean(axis=0) for x in region_taste_binned])
+    region_taste_mean_pred = np.stack([x.mean(axis=0) for x in region_taste_pred])
+    region_nrn_count = region_taste_mean_binned.shape[0] 
+    binned_x = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'binned_x'].to_list()[0]
+    pred_x = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'pred_x'].to_list()[0]
+    fig, ax = vz.gen_square_subplots(region_nrn_count,
+                                     figsize=(10, 10),
+                                     sharex=True,)
+    for nrn_ind in range(region_nrn_count):
+        ax.flatten()[nrn_ind].plot(
+                binned_x, region_taste_mean_binned[:,nrn_ind].T, alpha=0.5)
+        ax.flatten()[nrn_ind].plot(
+                pred_x, region_taste_mean_pred[:,nrn_ind].T, alpha=0.5)
+    fig.suptitle(basename + '\n' + f'Mean Neuron Firing Rates : {this_region}')
+    fig.savefig(os.path.join(
+        plots_dir, f'mean_neuron_firing_{this_region}.png'))
+    plt.close(fig)
+
+
+# for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
+#         all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
+# ):
+#     cmap = plt.get_cmap('tab10')
+#     region_nrn_count = pred_firing_taste_mean[0].shape[0]
+#     fig, ax = vz.gen_square_subplots(region_nrn_count,
+#                                      figsize=(10, 10),
+#                                      sharex=True,)
+#     for nrn_ind in range(region_nrn_count):
+#         for taste_ind, (pred, bin) in enumerate(
+#                 zip(pred_firing_taste_mean, binned_spikes_taste_mean)
+#         ):
+#             ax.flatten()[nrn_ind].plot(
+#                 pred[nrn_ind], alpha=1, c=cmap(taste_ind))
+#             ax.flatten()[nrn_ind].plot(
+#                 bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
+#         ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
+#     fig.savefig(os.path.join(
+#         plots_dir, f'mean_neuron_firing_{region_name}.png'))
+#     plt.close(fig)
+#
+# Make another plot with taste_mean firing rates
 
 region_names = region_inds.copy()
 if 'region' in group_by_list:
