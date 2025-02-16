@@ -23,7 +23,7 @@ if test_mode:
     data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     # script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
     script_path = '/home/abuzarmahmood/projects/blech_clust/utils/infer_rnn_rates.py'
-    blech_clust_path = os.path.dirname(os.path.dirname(script_path)) 
+    blech_clust_path = os.path.dirname(os.path.dirname(script_path))
     args = argparse.Namespace(
         data_dir=data_dir,
         train_steps=1000,
@@ -192,6 +192,7 @@ def parse_group_by(spikes_xr, group_by_list):
 ############################################################
 ############################################################
 
+
 if not test_mode:
     metadata_handler = imp_metadata([[], args.data_dir])
     # Perform pipeline graph check
@@ -259,7 +260,8 @@ processing_items, processing_inds, taste_inds, region_inds = parse_group_by(
 region_inds = [x.lower() for x in region_inds]
 wanted_inds = [i for i, x in enumerate(region_inds) if x != 'none']
 region_inds = [region_inds[i] for i in wanted_inds]
-wanted_processing_inds = [i for i,x in enumerate(processing_inds) if x[0] != 'none']
+wanted_processing_inds = [i for i, x in enumerate(
+    processing_inds) if x[0] != 'none']
 processing_inds = [processing_inds[i] for i in wanted_processing_inds]
 processing_items = [processing_items[i] for i in wanted_processing_inds]
 
@@ -675,14 +677,6 @@ pred_frame = pd.DataFrame(
     )
 )
 
-if 'taste' not in group_by_list:
-    region_conv_rate_list = region_conv_rate_list[0]
-    region_pred_firing_list = region_pred_firing_list[0]
-    region_conv_rate_list = [region_conv_rate_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                             for i in range(len(trial_counts)-1)]
-    region_pred_firing_list = [region_pred_firing_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                               for i in range(len(trial_counts)-1)]
-
 all_pred_firing_taste = [
     [x for x in pred_frame.loc[pred_frame.region_name ==
                                region_name, 'pred_firing'].to_list()]
@@ -717,22 +711,22 @@ if 'taste' not in group_by_list:
     for this_region in region_names:
         # Binned spikes
         wanted_region_binned = pred_frame.loc[
-                pred_frame.region_name == this_region, 'binned_spikes'].to_list()[0]
+            pred_frame.region_name == this_region, 'binned_spikes'].to_list()[0]
         region_binned_taste = [wanted_region_binned[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                                 for i in range(len(trial_counts)-1)]
+                               for i in range(len(trial_counts)-1)]
         # Predicted firing
         wanted_region_pred = pred_frame.loc[
-                pred_frame.region_name == this_region, 'pred_firing'].to_list()[0]
+            pred_frame.region_name == this_region, 'pred_firing'].to_list()[0]
         region_pred_taste = [wanted_region_pred[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                                    for i in range(len(trial_counts)-1)]
+                             for i in range(len(trial_counts)-1)]
         # Latent factors
         wanted_region_latent = pred_frame.loc[
-                pred_frame.region_name == this_region, 'latent_out'].to_list()[0]
+            pred_frame.region_name == this_region, 'latent_out'].to_list()[0]
         region_latent_taste = [wanted_region_latent[cum_trial_counts[i]:cum_trial_counts[i+1]]
                                for i in range(len(trial_counts)-1)]
         # Convolved firing rates
         wanted_region_conv_rate = pred_frame.loc[
-                pred_frame.region_name == this_region, 'conv_rate'].to_list()[0]
+            pred_frame.region_name == this_region, 'conv_rate'].to_list()[0]
         region_conv_rate_taste = [wanted_region_conv_rate[cum_trial_counts[i]:cum_trial_counts[i+1]]
                                   for i in range(len(trial_counts)-1)]
         # Create a new frame
@@ -763,9 +757,11 @@ for this_region in region_names:
     region_taste_pred = taste_pred_frame.loc[
         taste_pred_frame.region_name == this_region, 'pred_firing'].to_list()
     # Shape: taste x neurons x time
-    region_taste_mean_binned = np.stack([x.mean(axis=0) for x in region_taste_binned])
-    region_taste_mean_pred = np.stack([x.mean(axis=0) for x in region_taste_pred])
-    region_nrn_count = region_taste_mean_binned.shape[1] 
+    region_taste_mean_binned = np.stack(
+        [x.mean(axis=0) for x in region_taste_binned])
+    region_taste_mean_pred = np.stack(
+        [x.mean(axis=0) for x in region_taste_pred])
+    region_nrn_count = region_taste_mean_binned.shape[1]
     binned_x = taste_pred_frame.loc[
         taste_pred_frame.region_name == this_region, 'binned_x'].to_list()[0]
     pred_x = taste_pred_frame.loc[
@@ -775,9 +771,9 @@ for this_region in region_names:
                                      sharex=True,)
     for nrn_ind in range(region_nrn_count):
         ax.flatten()[nrn_ind].plot(
-                binned_x, region_taste_mean_binned[:,nrn_ind].T, alpha=0.5)
+            binned_x, region_taste_mean_binned[:, nrn_ind].T, alpha=0.5)
         ax.flatten()[nrn_ind].plot(
-                pred_x, region_taste_mean_pred[:,nrn_ind].T, alpha=0.5)
+            pred_x, region_taste_mean_pred[:, nrn_ind].T, alpha=0.5)
     fig.suptitle(basename + '\n' + f'Mean Neuron Firing Rates : {this_region}')
     fig.savefig(os.path.join(
         plots_dir, f'mean_neuron_firing_{this_region}.png'))
