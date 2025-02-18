@@ -98,7 +98,7 @@ else:
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils.ephys_data import visualize as vz  # noqa
 from utils.ephys_data import ephys_data  # noqa
-from src.train import train_model  # noqa
+from src.train import train_model, MSELoss  # noqa
 from src.model import autoencoderRNN  # noqa
 
 ############################################################
@@ -455,9 +455,11 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         dropout=0.2,
     )
 
-    loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
+    # loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
+    loss_path = os.path.join(artifacts_dir, model_name + '_loss.json')
     cross_val_loss_path = os.path.join(
-        artifacts_dir, f'cross_val_loss_taste_{idx}.json')
+        artifacts_dir, model_name + '_cross_val_loss.json')
+    # artifacts_dir, f'cross_val_loss_taste_{idx}.json')
     if (not os.path.exists(model_save_path)) or args.retrain:
         if args.retrain:
             print('Retraining model')
@@ -469,7 +471,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
             output_size=output_size,
             lr=0.001,
             train_steps=train_steps,
-            loss=loss_name,
+            criterion=MSELoss(),
             test_inputs=test_inputs,
             test_labels=test_labels,
         )
@@ -482,6 +484,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
             json.dump(loss_dict, f, indent=4)
         with open(cross_val_loss_path, 'w') as f:
             json.dump(cross_val_loss, f, indent=4)
+        params_dict['loss_func'] = str(MSELoss)
         with open(os.path.join(artifacts_dir, 'params.json'), 'w') as f:
             json.dump(params_dict, f, indent=4)
     else:
@@ -548,9 +551,12 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     ############################################################
 
     # Loss plot
+    print('-- Plotting loss')
     fig, ax = plt.subplots()
-    ax.plot(loss_dict.keys(), loss_dict.values(), label='Train Loss')
-    ax.plot(cross_val_loss.keys(), cross_val_loss.values(), label='Test Loss')
+    ax.plot(np.vectorize(int)(list(loss_dict.keys())),
+            loss_dict.values(), label='Train Loss')
+    ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
+            cross_val_loss.values(), label='Test Loss')
     ax.legend(
         bbox_to_anchor=(1.05, 1),
         loc='upper left', borderaxespad=0.)
@@ -560,6 +566,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     plt.close(fig)
 
     # Firing rate plots
+    print('-- Plotting firing rates')
     vz.firing_overview(pred_firing.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('RNN Predicted Firing Rates')
@@ -573,6 +580,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     plt.close(fig)
 
     # Latent factors
+    print('-- Plotting latent factors')
     fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize=(5, 10),
                            sharex=True, sharey=True)
     for i in range(latent_outs.shape[-1]):
@@ -586,6 +594,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     pred_firing_mean = pred_firing.mean(axis=0)
     binned_spikes_mean = binned_spikes.mean(axis=0)
 
+    print('-- Plotting mean firing rates')
     fig, ax = plt.subplots(1, 2)
     ax[0].imshow(pred_firing_mean, aspect='auto', interpolation='none')
     ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
@@ -595,6 +604,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     plt.close(fig)
     # plt.show()
 
+    print('-- Plotting zscored mean firing rates')
     fig, ax = plt.subplots(1, 2)
     ax[0].imshow(zscore(pred_firing_mean, axis=-1),
                  aspect='auto', interpolation='none')
@@ -626,7 +636,8 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     conv_rate_list.append(conv_rate)
     conv_x_list.append(conv_x)
 
-    for i in range(binned_spikes.shape[1]):
+    print('-- Plotting individual neurons rates')
+    for i in range(conv_rate.shape[1]):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
                                sharex=True, sharey=False)
         ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
@@ -652,6 +663,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     if not os.path.exists(trial_latent_dir):
         os.makedirs(trial_latent_dir)
 
+    print('-- Plotting single trial latent factors')
     for i in range(latent_outs.shape[1]):
         fig, ax = plt.subplots(2, 1)
         ax[0].plot(latent_outs[1:, i], alpha=0.5)
@@ -751,6 +763,7 @@ else:
 binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
 taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
 
+print('-- Plotting mean neuron firing rates')
 for this_region in region_names:
     region_taste_binned = taste_pred_frame.loc[
         taste_pred_frame.region_name == this_region, 'binned_spikes'].to_list()
@@ -769,39 +782,20 @@ for this_region in region_names:
     fig, ax = vz.gen_square_subplots(region_nrn_count,
                                      figsize=(10, 10),
                                      sharex=True,)
+    cmap = plt.get_cmap('tab10')
     for nrn_ind in range(region_nrn_count):
-        ax.flatten()[nrn_ind].plot(
-            binned_x, region_taste_mean_binned[:, nrn_ind].T, alpha=0.5)
-        ax.flatten()[nrn_ind].plot(
-            pred_x, region_taste_mean_pred[:, nrn_ind].T, alpha=0.5)
+        for taste_ind in range(len(region_taste_mean_binned)):
+            ax.flatten()[nrn_ind].plot(
+                binned_x, region_taste_mean_binned[taste_ind, nrn_ind],
+                alpha=0.3, c=cmap(taste_ind))
+            ax.flatten()[nrn_ind].plot(
+                pred_x, region_taste_mean_pred[taste_ind, nrn_ind],
+                alpha=0.5, c=cmap(taste_ind))
     fig.suptitle(basename + '\n' + f'Mean Neuron Firing Rates : {this_region}')
     fig.savefig(os.path.join(
         plots_dir, f'mean_neuron_firing_{this_region}.png'))
     plt.close(fig)
 
-
-# for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
-#         all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
-# ):
-#     cmap = plt.get_cmap('tab10')
-#     region_nrn_count = pred_firing_taste_mean[0].shape[0]
-#     fig, ax = vz.gen_square_subplots(region_nrn_count,
-#                                      figsize=(10, 10),
-#                                      sharex=True,)
-#     for nrn_ind in range(region_nrn_count):
-#         for taste_ind, (pred, bin) in enumerate(
-#                 zip(pred_firing_taste_mean, binned_spikes_taste_mean)
-#         ):
-#             ax.flatten()[nrn_ind].plot(
-#                 pred[nrn_ind], alpha=1, c=cmap(taste_ind))
-#             ax.flatten()[nrn_ind].plot(
-#                 bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
-#         ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
-#     fig.savefig(os.path.join(
-#         plots_dir, f'mean_neuron_firing_{region_name}.png'))
-#     plt.close(fig)
-#
-# Make another plot with taste_mean firing rates
 
 region_names = region_inds.copy()
 if 'region' in group_by_list:
@@ -809,6 +803,7 @@ if 'region' in group_by_list:
 else:
     spike_arrays = [cat_spikes]
 
+print('-- Plotting individual neurons rates')
 for spike_array, region_name in zip(spike_arrays, region_names):
     region_nrn_count = spike_array.shape[1]
     region_conv_rate_list = pred_frame.loc[pred_frame.region_name ==
@@ -874,6 +869,7 @@ for spike_array, region_name in zip(spike_arrays, region_names):
 
 
 # Plot predicted activity vs true activity for every neuron
+print('-- Plotting predicted vs true activity')
 for binned_region, pred_region, region_name in zip(all_binned_spikes_taste, all_pred_firing_taste, region_names):
     for i in range(binned_region[0].shape[1]):
         cat_pred_firing = np.concatenate([x[:, i] for x in pred_region])
@@ -902,6 +898,7 @@ for binned_region, pred_region, region_name in zip(all_binned_spikes_taste, all_
 ############################################################
 ############################################################
 # Write out firing rates to file
+print('-- Writing out firing rates to file')
 hdf5_path = data.hdf5_path
 with tables.open_file(hdf5_path, 'r+') as hf5:
     # Create directory for rnn output
