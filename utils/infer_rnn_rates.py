@@ -814,9 +814,9 @@ for spike_array, region_name in zip(spike_arrays, region_names):
         region_conv_rate_list = region_conv_rate_list[0]
         region_pred_firing_list = region_pred_firing_list[0]
         region_conv_rate_list = [region_conv_rate_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                                 for i in range(len(trial_counts)-1)]
+                                 for i in range(len(cum_trial_counts)-1)]
         region_pred_firing_list = [region_pred_firing_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
-                                   for i in range(len(trial_counts)-1)]
+                                   for i in range(len(cum_trial_counts)-1)]
     cmap = plt.get_cmap('tab10')
     # Iterate over neurons
     for i in range(region_nrn_count):
