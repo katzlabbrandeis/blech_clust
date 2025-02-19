@@ -38,18 +38,26 @@ Author: Abuzar Mahmood
 """
 
 # Import stuff!
+import os
+from utils.blech_utils import imp_metadata, pipeline_graph_check
+import json
+import glob
+from tqdm import tqdm
+import sys
+import easygui
 import tables
 import numpy as np
+
 
 def identify_dead_channels(raw_electrodes, threshold=0.01):
     """
     Identify dead channels based on a threshold.
     Channels with variance below the threshold are considered dead.
-    
+
     Args:
         raw_electrodes (list): List of electrode data arrays.
         threshold (float): Variance threshold to identify dead channels.
-        
+
     Returns:
         list: Indices of dead channels.
     """
@@ -58,14 +66,6 @@ def identify_dead_channels(raw_electrodes, threshold=0.01):
         if np.var(electrode[:]) < threshold:
             dead_channels.append(i)
     return dead_channels
-import os
-import easygui
-import sys
-from tqdm import tqdm
-import glob
-import json
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-import numpy as np
 
 
 def get_electrode_by_name(raw_electrodes, name):
@@ -125,7 +125,8 @@ all_car_group_names = [x[0] for x in grouped_layout]
 all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
 # Exclude dead channels from CAR groups
-CAR_electrodes = [np.setdiff1d(group, dead_channels) for group in all_car_group_vals]
+CAR_electrodes = [np.setdiff1d(group, dead_channels)
+                  for group in all_car_group_vals]
 num_groups = len(CAR_electrodes)
 print(f" Number of groups : {num_groups}")
 for region, vals in zip(all_car_group_names, all_car_group_vals):
