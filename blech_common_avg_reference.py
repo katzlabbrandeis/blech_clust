@@ -47,6 +47,7 @@ from tqdm import tqdm
 import glob
 import json
 from utils.blech_utils import imp_metadata, pipeline_graph_check
+import numpy as np
 
 
 def get_electrode_by_name(raw_electrodes, name):
@@ -59,7 +60,23 @@ def get_electrode_by_name(raw_electrodes, name):
         x for x in raw_electrodes if str_name in x._v_pathname][0]
     return wanted_electrode_ind
 
-############################################################
+def identify_dead_channels(raw_electrodes, threshold=0.01):
+    """
+    Identify dead channels based on a threshold.
+    Channels with variance below the threshold are considered dead.
+    
+    Args:
+        raw_electrodes (list): List of electrode data arrays.
+        threshold (float): Variance threshold to identify dead channels.
+        
+    Returns:
+        list: Indices of dead channels.
+    """
+    dead_channels = []
+    for i, electrode in enumerate(raw_electrodes):
+        if np.var(electrode[:]) < threshold:
+            dead_channels.append(i)
+    return dead_channels
 ############################################################
 
 
@@ -86,7 +103,10 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # emg is a separate group
 info_dict = metadata_handler.info_dict
 electrode_layout_frame = metadata_handler.layout
-# Remove emg and none channels from the electrode layout frame
+# Identify dead channels
+dead_channels = identify_dead_channels(raw_electrodes)
+
+# Remove emg, none, and dead channels from the electrode layout frame
 emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
@@ -100,7 +120,8 @@ all_car_group_names = [x[0] for x in grouped_layout]
 # specified in the layout file
 all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
-CAR_electrodes = all_car_group_vals
+# Exclude dead channels from CAR groups
+CAR_electrodes = [np.setdiff1d(group, dead_channels) for group in all_car_group_vals]
 num_groups = len(CAR_electrodes)
 print(f" Number of groups : {num_groups}")
 for region, vals in zip(all_car_group_names, all_car_group_vals):
