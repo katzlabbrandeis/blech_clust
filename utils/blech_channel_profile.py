@@ -73,22 +73,22 @@ if file_type == ['one file per channel']:
     plt.close(fig)
 elif file_type == ['one file per signal type']:
     amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
-        num_electrodes = int(len(amplifier_data)/num_recorded_samples)
-        amp_reshape = np.reshape(amplifier_data, (int(
-            len(amplifier_data)/num_electrodes), num_electrodes)).T
-        row_num = np.min((row_lim, num_electrodes))
-        col_num = int(np.ceil(num_electrodes/row_num))
-        # Create plot
-        fig, ax = plt.subplots(row_num, col_num,
-                               sharex=True, sharey=True, figsize=(15, 10))
-        for e_i in tqdm(range(num_electrodes)):
-            data = amp_reshape[e_i, :]
-            ax_i = plt.subplot(row_num, col_num, e_i+1)
-            ax_i.plot(data[::downsample])
-            ax_i.set_ylabel('amp_' + str(e_i))
-        plt.suptitle('Amplifier Data')
-        fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
-        plt.close(fig)
+    num_electrodes = int(len(amplifier_data)/num_recorded_samples)
+    amp_reshape = np.reshape(amplifier_data, (int(
+        len(amplifier_data)/num_electrodes), num_electrodes)).T
+    row_num = np.min((row_lim, num_electrodes))
+    col_num = int(np.ceil(num_electrodes/row_num))
+    # Create plot
+    fig, ax = plt.subplots(row_num, col_num,
+                           sharex=True, sharey=True, figsize=(15, 10))
+    for e_i in tqdm(range(num_electrodes)):
+        data = amp_reshape[e_i, :]
+        ax_i = plt.subplot(row_num, col_num, e_i+1)
+        ax_i.plot(data[::downsample])
+        ax_i.set_ylabel('amp_' + str(e_i))
+    plt.suptitle('Amplifier Data')
+    fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
+    plt.close(fig)
 
 print("Now plotting digital input signals")
 if file_type == ['one file per channel']:
