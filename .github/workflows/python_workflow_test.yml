@@ -33,6 +33,7 @@ jobs:
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
   Install:
     runs-on: self-hosted
+    needs: Preamble
     if: github.ref == 'refs/tags/install'
     steps:
       - name: Install dependencies
