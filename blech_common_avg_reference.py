@@ -103,7 +103,9 @@ all_car_group_names = [x[0] for x in grouped_layout]
 # specified in the layout file
 all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
-num_groups = len(all_car_group_vals)
+# Exclude dead channels from CAR groups
+CAR_electrodes = [np.setdiff1d(group, dead_channels) for group in all_car_group_vals]
+num_groups = len(CAR_electrodes)
 print(f" Number of groups : {num_groups}")
 for region, vals in zip(all_car_group_names, all_car_group_vals):
     print(f" {region} :: {vals}")
