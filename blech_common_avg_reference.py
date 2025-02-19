@@ -89,10 +89,7 @@ electrode_layout_frame = metadata_handler.layout
 # Pull out the raw electrode nodes of the HDF5 file
 raw_electrodes = hf5.list_nodes('/raw')
 
-# Identify dead channels
-dead_channels = identify_dead_channels(raw_electrodes)
-
-# Remove emg, none, and dead channels from the electrode layout frame
+# Remove emg and none channels from the electrode layout frame
 emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
@@ -106,9 +103,7 @@ all_car_group_names = [x[0] for x in grouped_layout]
 # specified in the layout file
 all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
-# Exclude dead channels from CAR groups
-CAR_electrodes = [np.setdiff1d(group, dead_channels) for group in all_car_group_vals]
-num_groups = len(CAR_electrodes)
+num_groups = len(all_car_group_vals)
 print(f" Number of groups : {num_groups}")
 for region, vals in zip(all_car_group_names, all_car_group_vals):
     print(f" {region} :: {vals}")
