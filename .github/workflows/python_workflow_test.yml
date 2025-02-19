@@ -3,7 +3,12 @@
 
 name: Python test
 run-name: python_test
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    tags:
+      - 'install'  # This will trigger the workflow on the 'install' tag
+
 jobs:
   Preamble:
     runs-on: self-hosted
@@ -26,7 +31,41 @@ jobs:
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
-  Spike-Only:
+  Install:
+    runs-on: self-hosted
+    if: github.ref == 'refs/tags/install'
+    steps:
+      - name: Install dependencies
+        run: |
+          echo "Running installation for tag ${{ github.ref }}"
+          conda deactivate
+          conda update -n base conda
+          cd /home/exouser/Desktop/blech_clust/requirements
+          conda clean --all -y
+          conda create --name blech_clust python=3.8.13 -y
+          conda activate blech_clust
+          conda install -c conda-forge -y --file conda_requirements_base.txt
+          bash install_gnu_parallel.sh
+          pip install -r pip_requirements_base.txt
+          bash patch_dependencies.sh
+      - name: Install neuRecommend
+        run: |
+          cd ~/Desktop
+          git clone https://github.com/abuzarmahmood/neuRecommend.git
+          pip install -r neuRecommend/requirements.txt
+      - name: Install BlechRNN
+        run: |
+          cd ~/Desktop
+          git clone https://github.com/abuzarmahmood/blechRNN.git
+          cd blechRNN
+          pip install $(cat requirements.txt | egrep "torch")
+      - name: Install Prefect
+        run: |
+          pip install -U prefect
+      - name: Install EMG
+        run: |
+          cd /home/exouser/Desktop/blech_clust/requirements
+          bash emg_install.sh
     runs-on: self-hosted
     needs: Preamble
     concurrency:
