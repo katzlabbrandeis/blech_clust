@@ -1,6 +1,6 @@
 """
-This module generates plots for the entire timeseries of digital inputs (DIG_INs) and 
-amplifier (AMP) channels from data files in a specified directory. It handles two types 
+This module generates plots for the entire timeseries of digital inputs (DIG_INs) and
+amplifier (AMP) channels from data files in a specified directory. It handles two types
 of file structures: one file per channel and one file per signal type.
 """
 
@@ -10,10 +10,11 @@ import numpy as np
 import pylab as plt
 from tqdm import tqdm
 
+
 def plot_channels(dir_path, output_dir):
     """
     Generate plots for all channels and digital inputs
-    
+
     Args:
         dir_path: Directory containing the data files
         output_dir: Directory to save the plot outputs
@@ -42,7 +43,8 @@ def plot_channels(dir_path, output_dir):
         amp_files = glob.glob(os.path.join(dir_path, "amp*dat"))
         digin_files = glob.glob(os.path.join(dir_path, "dig*dat"))
         # Use info file for port list calculation
-        info_file = np.fromfile(os.path.join(dir_path, 'info.rhd'), dtype=np.dtype('float32'))
+        info_file = np.fromfile(os.path.join(
+            dir_path, 'info.rhd'), dtype=np.dtype('float32'))
         sampling_rate = int(info_file[2])
         # Read the time.dat file for use in separating out the one file per signal type data
         num_recorded_samples = len(np.fromfile(
@@ -52,6 +54,7 @@ def plot_channels(dir_path, output_dir):
     if len(amp_files) < 1:
         raise Exception("Couldn't find amp*.dat files in dir" + "\n" +
                         f"{dir_path}")
+
 
 # Plot files
 print("Now plotting ampilfier signals")
