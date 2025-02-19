@@ -40,6 +40,24 @@ Author: Abuzar Mahmood
 # Import stuff!
 import tables
 import numpy as np
+
+def identify_dead_channels(raw_electrodes, threshold=0.01):
+    """
+    Identify dead channels based on a threshold.
+    Channels with variance below the threshold are considered dead.
+    
+    Args:
+        raw_electrodes (list): List of electrode data arrays.
+        threshold (float): Variance threshold to identify dead channels.
+        
+    Returns:
+        list: Indices of dead channels.
+    """
+    dead_channels = []
+    for i, electrode in enumerate(raw_electrodes):
+        if np.var(electrode[:]) < threshold:
+            dead_channels.append(i)
+    return dead_channels
 import os
 import easygui
 import sys
