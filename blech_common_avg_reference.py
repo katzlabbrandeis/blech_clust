@@ -103,6 +103,9 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # emg is a separate group
 info_dict = metadata_handler.info_dict
 electrode_layout_frame = metadata_handler.layout
+# Pull out the raw electrode nodes of the HDF5 file
+raw_electrodes = hf5.list_nodes('/raw')
+
 # Identify dead channels
 dead_channels = identify_dead_channels(raw_electrodes)
 
