@@ -71,9 +71,8 @@ if file_type == ['one file per channel']:
     plt.suptitle('Amplifier Data')
     fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
     plt.close(fig)
-
-    elif file_type == ['one file per signal type']:
-        amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
+elif file_type == ['one file per signal type']:
+    amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
         num_electrodes = int(len(amplifier_data)/num_recorded_samples)
         amp_reshape = np.reshape(amplifier_data, (int(
             len(amplifier_data)/num_electrodes), num_electrodes)).T
