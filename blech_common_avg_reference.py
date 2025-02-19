@@ -60,23 +60,6 @@ def get_electrode_by_name(raw_electrodes, name):
         x for x in raw_electrodes if str_name in x._v_pathname][0]
     return wanted_electrode_ind
 
-def identify_dead_channels(raw_electrodes, threshold=0.01):
-    """
-    Identify dead channels based on a threshold.
-    Channels with variance below the threshold are considered dead.
-    
-    Args:
-        raw_electrodes (list): List of electrode data arrays.
-        threshold (float): Variance threshold to identify dead channels.
-        
-    Returns:
-        list: Indices of dead channels.
-    """
-    dead_channels = []
-    for i, electrode in enumerate(raw_electrodes):
-        if np.var(electrode[:]) < threshold:
-            dead_channels.append(i)
-    return dead_channels
 ############################################################
 
 
