@@ -54,6 +54,7 @@ from utils.blech_process_utils import path_handler  # noqa
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils.qa_utils import channel_corr  # noqa
 from utils import read_file  # noqa
+from utils.blech_channel_profile import plot_channels  # noqa
 # Necessary python modules
 from ast import literal_eval  # noqa
 import pylab as plt  # noqa
@@ -388,6 +389,10 @@ else:
 channel_corr.gen_corr_output(corr_mat,
                              qa_out_path,
                              qa_threshold,)
+
+# Generate channel profile plots
+print('\nGenerating channel profile plots')
+plot_channels(dir_name, qa_out_path)
 ##############################
 
 ##############################

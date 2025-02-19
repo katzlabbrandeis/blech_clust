@@ -1,40 +1,30 @@
 """
-This module generates plots for the entire timeseries of digital inputs (DIG_INs) and amplifier (AMP) channels from data files in a specified directory. It handles two types of file structures: one file per channel and one file per signal type.
-
-- Sets up an argument parser to handle command-line inputs for plotting DIG_INs and AMP files.
-- Determines the directory path for data files using metadata from the `imp_metadata` function.
-- Creates a directory for storing plot outputs if it does not already exist.
-- Identifies the file structure (one file per channel or one file per signal type) by checking for the presence of specific files.
-- Reads amplifier data files and plots the data, handling both file structures.
-- Reads digital input data files and plots the data, handling both file structures.
-- Saves the generated plots in the specified directory.
+This module generates plots for the entire timeseries of digital inputs (DIG_INs) and 
+amplifier (AMP) channels from data files in a specified directory. It handles two types 
+of file structures: one file per channel and one file per signal type.
 """
 
-import argparse
 import glob
 import os
-import sys
-
 import numpy as np
 import pylab as plt
 from tqdm import tqdm
 
-from utils.blech_utils import imp_metadata
+def plot_channels(dir_path, output_dir):
+    """
+    Generate plots for all channels and digital inputs
+    
+    Args:
+        dir_path: Directory containing the data files
+        output_dir: Directory to save the plot outputs
+    """
 
-# Get name of directory with the data files
-# Create argument parser
-parser = argparse.ArgumentParser(description='Plots DIG_INs and AMP files')
-metadata_handler = imp_metadata(sys.argv)
-dir_path = metadata_handler.dir_name
+    # Create plot dir
+    plot_dir = os.path.join(output_dir, "channel_profile_plots")
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
 
-# Create plot dir
-plot_dir = os.path.join(dir_path, "channel_profile_plots")
-if not os.path.exists(plot_dir):
-    os.makedirs(plot_dir)
-
-# Get files to read
-
-# HANNAH CHANGE: ADDED TEST OF ONE FILE PER SIGNAL TYPE
+    # Get files to read
 print("Testing File Type")
 file_list = os.listdir(dir_path)
 try:
@@ -81,6 +71,21 @@ if file_type == ['one file per channel']:
     plt.suptitle('Amplifier Data')
     fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
     plt.close(fig)
+
+    if __name__ == '__main__':
+        import argparse
+        import sys
+        from utils.blech_utils import imp_metadata
+    
+        # Create argument parser
+        parser = argparse.ArgumentParser(description='Plots DIG_INs and AMP files')
+        metadata_handler = imp_metadata(sys.argv)
+        dir_path = metadata_handler.dir_name
+    
+        # Default output directory is in the data directory
+        output_dir = os.path.join(dir_path, "channel_profile_plots")
+    
+        plot_channels(dir_path, output_dir)
 elif file_type == ['one file per signal type']:
     amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
     num_electrodes = int(len(amplifier_data)/num_recorded_samples)
