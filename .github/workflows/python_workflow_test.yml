@@ -67,6 +67,7 @@ jobs:
         run: |
           cd /home/exouser/Desktop/blech_clust/requirements
           bash emg_install.sh
+  Spike-Only:
     runs-on: self-hosted
     needs: Preamble
     concurrency:
