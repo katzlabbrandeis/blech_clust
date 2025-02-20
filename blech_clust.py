@@ -254,7 +254,7 @@ print('Created dirs in data folder')
 file_lists = {
     'one_file_per_signal_type': {
         'electrodes': ['amplifier.dat'],
-    },
+    }, 
     'one_file_per_channel': {
         'electrodes': sorted([name for name in file_list if name.startswith('amp-')]),
     },
@@ -262,6 +262,11 @@ file_lists = {
         'rhd': sorted([name for name in file_list if name.endswith('.rhd')])
     }
 }
+
+# Valid file types
+VALID_FILE_TYPES = ['one_file_per_signal_type', 'one_file_per_channel', 'traditional']
+if file_type not in VALID_FILE_TYPES:
+    raise ValueError(f"Invalid file_type: {file_type}. Must be one of: {VALID_FILE_TYPES}")
 
 # Get digin and laser info
 print('Getting trial markers from digital inputs')
@@ -393,7 +398,7 @@ channel_corr.gen_corr_output(corr_mat,
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one_file_per_channel', 'one_file_per_signal_type']:
     print('\nGenerating channel profile plots')
-    plot_channels(dir_name, qa_out_path)
+    plot_channels(dir_name, qa_out_path, file_type)
 ##############################
 
 ##############################
