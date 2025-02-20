@@ -252,10 +252,10 @@ print('Created dirs in data folder')
 
 # Get lists of amplifier and digital input files
 file_lists = {
-    'one_file_per_signal_type': {
+    'one file per signal type': {
         'electrodes': ['amplifier.dat'],
     },
-    'one_file_per_channel': {
+    'one file per channel': {
         'electrodes': sorted([name for name in file_list if name.startswith('amp-')]),
     },
     'traditional': {
