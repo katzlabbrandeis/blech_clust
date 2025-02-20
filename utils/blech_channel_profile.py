@@ -128,6 +128,7 @@ def plot_channels(dir_path, output_dir):
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
 
+
 if __name__ == '__main__':
     import argparse
     import sys
