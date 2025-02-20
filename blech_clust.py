@@ -264,7 +264,7 @@ file_lists = {
 }
 
 # Valid file types
-VALID_FILE_TYPES = ['one_file_per_signal_type', 'one_file_per_channel', 'traditional']
+VALID_FILE_TYPES = ['one file per signal type', 'one file per channel', 'traditional']
 if file_type not in VALID_FILE_TYPES:
     raise ValueError(f"Invalid file_type: {file_type}. Must be one of: {VALID_FILE_TYPES}")
 
@@ -280,9 +280,9 @@ print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
 if file_type != 'traditional':
     electrodes_list = file_lists[file_type]['electrodes']
 
-    if file_type == 'one_file_per_channel':
+    if file_type == 'one file per channel':
         print("\tOne file per CHANNEL Detected")
-    elif file_type == 'one_file_per_signal_type':
+    elif file_type == 'one file per signal type':
         print("\tOne file per SIGNAL Detected")
 
     # Use info file for port list calculation
@@ -396,7 +396,7 @@ channel_corr.gen_corr_output(corr_mat,
                              qa_threshold,)
 
 # Generate channel profile plots for non-traditional file types
-if file_type in ['one_file_per_channel', 'one_file_per_signal_type']:
+if file_type in ['one file per channel', 'one file per signal type']:
     print('\nGenerating channel profile plots')
     plot_channels(dir_name, qa_out_path, file_type)
 ##############################
