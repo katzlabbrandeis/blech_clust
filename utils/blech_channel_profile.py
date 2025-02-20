@@ -21,7 +21,8 @@ def plot_channels(dir_path, output_dir, file_type):
         file_type: Either 'one file per channel' or 'one file per signal type'
     """
     if file_type not in ['one file per channel', 'one file per signal type']:
-        raise ValueError("file_type must be either 'one file per channel' or 'one file per signal type'")
+        raise ValueError(
+            "file_type must be either 'one file per channel' or 'one file per signal type'")
 
     # Create plot dir
     plot_dir = os.path.join(output_dir, "channel_profile_plots")
@@ -135,11 +136,12 @@ if __name__ == '__main__':
 
     # Create argument parser
     parser.add_argument('--file-type', type=str, required=True,
-                      choices=['one file per channel', 'one file per signal type'],
-                      help='The type of file organization')
+                        choices=['one file per channel',
+                                 'one file per signal type'],
+                        help='The type of file organization')
     args = parser.parse_args()
 
-    # Default output directory is in the data directory 
+    # Default output directory is in the data directory
     output_dir = os.path.join(dir_path, "channel_profile_plots")
 
     plot_channels(dir_path, output_dir, args.file_type)
