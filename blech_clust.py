@@ -252,10 +252,10 @@ print('Created dirs in data folder')
 
 # Get lists of amplifier and digital input files
 file_lists = {
-    'one file per signal type': {
+    'one_file_per_signal_type': {
         'electrodes': ['amplifier.dat'],
     },
-    'one file per channel': {
+    'one_file_per_channel': {
         'electrodes': sorted([name for name in file_list if name.startswith('amp-')]),
     },
     'traditional': {
@@ -275,9 +275,9 @@ print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
 if file_type != 'traditional':
     electrodes_list = file_lists[file_type]['electrodes']
 
-    if file_type == 'one file per channel':
+    if file_type == 'one_file_per_channel':
         print("\tOne file per CHANNEL Detected")
-    elif file_type == 'one file per signal type':
+    elif file_type == 'one_file_per_signal_type':
         print("\tOne file per SIGNAL Detected")
 
     # Use info file for port list calculation
@@ -335,12 +335,12 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 # Read data files, and append to electrode arrays
 if reload_data_str in ['y', 'yes']:
-    if file_type == 'one file per channel':
+    if file_type == 'one_file_per_channel':
         # read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
         read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
         if len(emg_channels) > 0:
             read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
-    elif file_type == 'one file per signal type':
+    elif file_type == 'one_file_per_signal_type':
         # read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
         # This next line takes care of both electrodes and emgs
         read_file.read_electrode_emg_channels_single_file(
@@ -390,9 +390,10 @@ channel_corr.gen_corr_output(corr_mat,
                              qa_out_path,
                              qa_threshold,)
 
-# Generate channel profile plots
-print('\nGenerating channel profile plots')
-plot_channels(dir_name, qa_out_path)
+# Generate channel profile plots for non-traditional file types
+if file_type in ['one_file_per_channel', 'one_file_per_signal_type']:
+    print('\nGenerating channel profile plots')
+    plot_channels(dir_name, qa_out_path)
 ##############################
 
 ##############################
