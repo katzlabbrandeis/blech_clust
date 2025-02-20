@@ -11,14 +11,17 @@ import pylab as plt
 from tqdm import tqdm
 
 
-def plot_channels(dir_path, output_dir):
+def plot_channels(dir_path, output_dir, file_type):
     """
     Generate plots for all channels and digital inputs
 
     Args:
         dir_path: Directory containing the data files
         output_dir: Directory to save the plot outputs
+        file_type: Either 'one file per channel' or 'one file per signal type'
     """
+    if file_type not in ['one file per channel', 'one file per signal type']:
+        raise ValueError("file_type must be either 'one file per channel' or 'one file per signal type'")
 
     # Create plot dir
     plot_dir = os.path.join(output_dir, "channel_profile_plots")
@@ -26,20 +29,11 @@ def plot_channels(dir_path, output_dir):
         os.makedirs(plot_dir)
 
     # Get files to read
-    print("Testing File Type")
-    file_list = os.listdir(dir_path)
-    try:
-        file_list.index('auxiliary.dat')
-        file_type = ['one file per signal type']
-    except:
-        file_type = ['one file per channel']
-    print("\tFile Type = " + file_type[0])
-
-    if file_type == ['one file per channel']:
+    if file_type == 'one file per channel':
         amp_files = glob.glob(os.path.join(dir_path, "amp*dat"))
         amp_files = sorted(amp_files)
         digin_files = sorted(glob.glob(os.path.join(dir_path, "board-DI*")))
-    elif file_type == ['one file per signal type']:
+    elif file_type == 'one file per signal type':
         amp_files = glob.glob(os.path.join(dir_path, "amp*dat"))
         digin_files = glob.glob(os.path.join(dir_path, "dig*dat"))
         # Use info file for port list calculation
@@ -59,7 +53,7 @@ def plot_channels(dir_path, output_dir):
     print("Now plotting ampilfier signals")
     downsample = 100
     row_lim = 8
-    if file_type == ['one file per channel']:
+    if file_type == 'one file per channel':
         row_num = np.min((row_lim, len(amp_files)))
         col_num = int(np.ceil(len(amp_files)/row_num))
         # Create plot
@@ -73,7 +67,7 @@ def plot_channels(dir_path, output_dir):
         plt.suptitle('Amplifier Data')
         fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
         plt.close(fig)
-    elif file_type == ['one file per signal type']:
+    elif file_type == 'one file per signal type':
         amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
         num_electrodes = int(len(amplifier_data)/num_recorded_samples)
         amp_reshape = np.reshape(amplifier_data, (int(
@@ -139,7 +133,13 @@ if __name__ == '__main__':
     metadata_handler = imp_metadata(sys.argv)
     dir_path = metadata_handler.dir_name
 
-    # Default output directory is in the data directory
+    # Create argument parser
+    parser.add_argument('--file-type', type=str, required=True,
+                      choices=['one file per channel', 'one file per signal type'],
+                      help='The type of file organization')
+    args = parser.parse_args()
+
+    # Default output directory is in the data directory 
     output_dir = os.path.join(dir_path, "channel_profile_plots")
 
-    plot_channels(dir_path, output_dir)
+    plot_channels(dir_path, output_dir, args.file_type)
