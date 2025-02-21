@@ -88,7 +88,7 @@ def plot_channels(dir_path, output_dir, file_type):
         plt.close(fig)
 
     print("Now plotting digital input signals")
-    if file_type == ['one file per channel']:
+    if file_type == 'one file per channel':
         fig, ax = plt.subplots(len(digin_files),
                                sharex=True, sharey=True, figsize=(8, 10))
         for this_file, this_ax in tqdm(zip(digin_files, ax.flatten())):
@@ -99,7 +99,7 @@ def plot_channels(dir_path, output_dir, file_type):
         plt.suptitle('DIGIN Data')
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
-    elif file_type == ['one file per signal type']:
+    elif file_type == 'one file per signal type':
         d_inputs = np.fromfile(digin_files[0], dtype=np.dtype('uint16'))
         d_inputs_str = d_inputs.astype('str')
         d_in_str_int = d_inputs_str.astype('int64')
