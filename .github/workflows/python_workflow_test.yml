@@ -8,7 +8,7 @@ jobs:
   Preamble:
     runs-on: self-hosted
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} preamble
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - run: pwd
@@ -30,7 +30,7 @@ jobs:
     runs-on: self-hosted
     needs: Preamble
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - name: Prefect SPIKE only test
@@ -44,7 +44,7 @@ jobs:
     runs-on: self-hosted
     needs: Preamble
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - name: Prefect EMG only test
@@ -58,7 +58,7 @@ jobs:
     runs-on: self-hosted
     needs: Preamble
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - name: Prefect SPIKE then EMG test
