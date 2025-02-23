@@ -34,6 +34,10 @@ from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
 from create_exp_info_commands import command_dict  # noqa
+from utils.blech_utils import upload_to_s3
+
+# S3 configuration
+S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 
 print(args.raise_exception)
 break_bool = args.raise_exception
@@ -669,6 +673,12 @@ def full_test():
         spike_only_test()
         emg_only_test()
         spike_emg_test()
+        
+        # Upload results to S3 after all tests complete
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
+            upload_to_s3(data_dir, S3_BUCKET, s3_dir)
     else:
         try:
             spike_only_test()
@@ -682,6 +692,15 @@ def full_test():
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
+            
+        # Upload results to S3 even if some tests failed
+        try:
+            for file_type in ['ofpc', 'trad']:
+                data_dir = data_dirs_dict[file_type]
+                s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
+                upload_to_s3(data_dir, S3_BUCKET, s3_dir)
+        except:
+            print('Failed to upload results to S3')
 
 
 ############################################################

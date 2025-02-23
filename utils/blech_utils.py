@@ -43,6 +43,8 @@ import pandas as pd
 import sys
 from datetime import datetime
 import time
+import boto3
+from typing import Dict, List
 
 
 class Tee:
@@ -283,6 +285,52 @@ def entry_checker(msg, check_func, fail_response):
             print(fail_response)
     return msg_input, continue_bool
 
+
+def find_output_files(data_dir: str) -> Dict[str, List[str]]:
+    """Find all output files that should be uploaded to S3.
+    
+    Args:
+        data_dir (str): The directory to search for files
+        
+    Returns:
+        dict: Dictionary mapping extensions to lists of file paths
+    """
+    file_types = ['*.png', '*.txt', '*.csv', '*.params', '*.info', '*.log']
+    found_files = {ext: [] for ext in file_types}
+    
+    for ext in file_types:
+        found_files[ext] = glob.glob(os.path.join(data_dir, '**', ext), recursive=True)
+    
+    return found_files
+
+def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str) -> None:
+    """Upload files to S3 bucket preserving directory structure.
+    
+    Args:
+        local_directory (str): Local directory containing files to upload
+        bucket_name (str): Name of S3 bucket
+        s3_directory (str): Directory prefix in S3 bucket
+    """
+    try:
+        s3_client = boto3.client('s3')
+        
+        # Find all output files
+        files_dict = find_output_files(local_directory)
+        
+        # Upload each file
+        for ext, file_list in files_dict.items():
+            for local_path in file_list:
+                # Get path relative to local_directory
+                relative_path = os.path.relpath(local_path, local_directory)
+                # Create S3 path preserving structure
+                s3_path = os.path.join(s3_directory, relative_path)
+                # Replace backslashes with forward slashes for S3
+                s3_path = s3_path.replace('\\', '/')
+                print(f"Uploading {local_path} to s3://{bucket_name}/{s3_path}")
+                s3_client.upload_file(local_path, bucket_name, s3_path)
+                
+    except Exception as e:
+        print(f"Error uploading to S3: {str(e)}")
 
 class imp_metadata():
     def __init__(self, args):
