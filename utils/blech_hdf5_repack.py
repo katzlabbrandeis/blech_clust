@@ -9,11 +9,11 @@ This module automates the process of cleaning and compressing an HDF5 file using
 
 Example Usage:
     # After processing LFP or spike data that creates large HDF5 files:
-    
+
     # 1. Run this script directly:
     $ python blech_hdf5_repack.py
     # This will open a GUI to select the directory
-    
+
     # 2. Or import and use in code:
     >>> import os
     >>> from utils.blech_hdf5_repack import *
