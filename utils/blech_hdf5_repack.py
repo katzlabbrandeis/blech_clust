@@ -6,6 +6,19 @@ This module automates the process of cleaning and compressing an HDF5 file using
 - Uses the `ptrepack` command-line tool to create a compressed and optimized copy of the HDF5 file named `tmp.h5`.
 - Deletes the original HDF5 file.
 - Renames the compressed file `tmp.h5` back to the original HDF5 file name.
+
+Example Usage:
+    # After processing LFP or spike data that creates large HDF5 files:
+    
+    # 1. Run this script directly:
+    $ python blech_hdf5_repack.py
+    # This will open a GUI to select the directory
+    
+    # 2. Or import and use in code:
+    >>> import os
+    >>> from utils.blech_hdf5_repack import *
+    >>> os.chdir('/path/to/data')  # Instead of GUI selection
+    >>> # Rest of script will run automatically
 """
 import os
 import tables
