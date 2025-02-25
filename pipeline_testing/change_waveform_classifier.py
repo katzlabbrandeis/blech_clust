@@ -6,7 +6,8 @@ import json
 import argparse
 
 # Parse arguments
-parser = argparse.ArgumentParser(description='Change use_classifier parameter in waveform_classifier_params.json')
+parser = argparse.ArgumentParser(
+    description='Change use_classifier parameter in waveform_classifier_params.json')
 parser.add_argument('use_classifier', type=int, choices=[0, 1],
                     help='Set use_classifier to True (1) or False (0)')
 args = parser.parse_args()
@@ -23,7 +24,8 @@ if not os.path.exists(params_dir):
 
 # Load template if params file doesn't exist
 if not os.path.exists(params_file):
-    template_file = os.path.join(params_dir, '_templates', 'waveform_classifier_params.json')
+    template_file = os.path.join(
+        params_dir, '_templates', 'waveform_classifier_params.json')
     with open(template_file, 'r') as f:
         params = json.load(f)
 else:

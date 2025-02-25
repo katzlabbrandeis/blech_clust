@@ -1,5 +1,39 @@
 """
-Utilities to support blech_clust processing
+This module provides utility functions and classes to support the `blech_clust` processing, including logging, path handling, and metadata management.
+
+- `Tee` class: Redirects output to both stdout/stderr and a log file.
+  - `__init__`: Initializes the Tee object with a log file.
+  - `write`: Writes data to both the log file and stdout.
+  - `flush`: Flushes the log file.
+  - `close`: Restores original stdout/stderr and closes the log file.
+
+- `path_handler` class: Manages paths related to the `blech_clust` directory.
+  - `__init__`: Initializes the path handler with the home directory and `blech_clust` directory path.
+
+- `log_wait` decorator: Implements log-waiting to handle file access issues in parallel processes.
+
+- `pipeline_graph_check` class: Ensures proper execution order of scripts based on a computation graph.
+  - `__init__`: Initializes the object, loads the computation graph, and checks it.
+  - `get_git_info`: Retrieves and prints git branch and commit information.
+  - `load_graph`: Loads the computation graph from a file.
+  - `make_full_path`: Constructs full file paths.
+  - `check_graph`: Verifies the presence of all scripts in the computation graph.
+  - `check_previous`: Checks if the previous script was executed successfully.
+  - `write_to_log`: Writes script execution attempts and completions to a log file.
+
+- `entry_checker` function: Validates user input against a check function, allowing exit with "x".
+
+- `imp_metadata` class: Manages metadata for a given directory, including file lists and parameters.
+  - `__init__`: Initializes the object and loads metadata.
+  - `get_dir_name`: Retrieves the directory name from arguments or user input.
+  - `get_file_list`: Lists files in the directory.
+  - `get_hdf5_name`: Finds the HDF5 file in the directory.
+  - `get_params_path`: Finds the parameters file in the directory.
+  - `get_layout_path`: Finds the layout CSV file in the directory.
+  - `load_params`: Loads parameters from the parameters file.
+  - `get_info_path`: Finds the info file in the directory.
+  - `load_info`: Loads information from the info file.
+  - `load_layout`: Loads layout data from the layout CSV file.
 """
 import easygui
 import os
@@ -8,9 +42,12 @@ import json
 import pandas as pd
 import sys
 from datetime import datetime
+import time
+
 
 class Tee:
     """Tee output to both stdout/stderr and a log file"""
+
     def __init__(self, data_dir, name='output.log'):
         self.log_path = os.path.join(data_dir, name)
         self.file = open(self.log_path, 'a')
@@ -18,33 +55,58 @@ class Tee:
         self.stderr = sys.stderr
         sys.stdout = self
         sys.stderr = self
-    
+
     def write(self, data):
         self.file.write(data)
         self.stdout.write(data)
         self.file.flush()
-        
+        self.stdout.flush()
+
     def flush(self):
         self.file.flush()
-        
+
     def close(self):
         sys.stdout = self.stdout
         sys.stderr = self.stderr
         self.file.close()
+
 
 class path_handler():
 
     def __init__(self):
         self.home_dir = os.getenv('HOME')
         file_path = os.path.abspath(__file__)
-        blech_clust_dir =  ('/').join(file_path.split('/')[:-2])
+        blech_clust_dir = ('/').join(file_path.split('/')[:-2])
         self.blech_clust_dir = blech_clust_dir
+
+# If multiple processes are running and trying to access the file (parallel steps)
+# this will cause errors when trying to write to the file
+# Use decorator to implement log-waiting if there are issues
+
+
+def log_wait(func):
+    wait_times = [0.1, 0.5, 1, 2, 5, 10]
+
+    def wrapper(*args, **kwargs):
+        for wait_time in wait_times:
+            try:
+                func(*args, **kwargs)
+                break
+            except Exception as e:
+                print(f'Exception : {e}')
+                print(
+                    f'Unable to access log with func : {func.__name__}, waiting {wait_time} seconds')
+                time.sleep(wait_time)
+            else:
+                raise Exception(
+                    f'Unable to access log with func : {func.__name__}')
+    return wrapper
 
 
 class pipeline_graph_check():
     """
-    Check that parent scripts executed properly before running child scripts 
-    
+    Check that parent scripts executed properly before running child scripts
+
     1) Check that computation graph is present
     2) Check that all scripts mentioned in computation graph are present
     3) For current run script, check that previous run script is present and executed successfully
@@ -55,28 +117,51 @@ class pipeline_graph_check():
         self.data_dir = data_dir
         self.tee = Tee(data_dir)
         self.load_graph()
+        self.get_git_info()
         self.check_graph()
 
+    def get_git_info(self):
+        """
+        Get branch and commit info, and print
+        If not in git repo, print warning
+        """
+        if not hasattr(self, 'blech_clust_dir'):
+            print('Run load_graph() first')
+            exit()
+        pwd = os.getcwd()
+        # Change to blech_clust directory
+        os.chdir(self.blech_clust_dir)
+        git_branch = os.popen('git rev-parse --abbrev-ref HEAD').read().strip()
+        git_commit = os.popen('git rev-parse HEAD').read().strip()
+        if git_branch == '' or git_commit == '':
+            print(
+                'Not in git repository, please clone blech_clust rather than downloading zip')
+        self.git_str = f'Git branch: {git_branch}\nGit commit: {git_commit}'
+        # change back to original directory
+        os.chdir(pwd)
+
+    @log_wait
     def load_graph(self):
         """
         Load computation graph from file, if file is present
         """
         this_path_handler = path_handler()
         self.blech_clust_dir = this_path_handler.blech_clust_dir
-        # self.blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
         graph_path = os.path.join(
-                self.blech_clust_dir, 
-                'params', 
-                'dependency_graph.json')
+            self.blech_clust_dir,
+            'params',
+            'dependency_graph.json')
         if os.path.exists(graph_path):
             with open(graph_path, 'r') as graph_file_connect:
                 self.graph = json.load(graph_file_connect)['graph']
         else:
-            raise FileNotFoundError(f'Dependency graph not found, looking for {graph_path}')
+            raise FileNotFoundError(
+                f'Dependency graph not found, looking for {graph_path}')
 
     def make_full_path(self, x, dir_name):
         return os.path.join(self.blech_clust_dir, dir_name, x)
 
+    @log_wait
     def check_graph(self):
         """
         Check that all scripts mentioned in computation graph are present
@@ -92,14 +177,16 @@ class pipeline_graph_check():
 
         for dir_name, this_dir in zip(directory_names, directories):
             for this_parent, this_children in this_dir.items():
-                this_parent_full = self.make_full_path(this_parent, dir_name) 
+                this_parent_full = self.make_full_path(this_parent, dir_name)
                 all_files.append(this_parent_full)
                 if type(this_children) == list:
-                    this_children_full = [self.make_full_path(x, dir_name) for x in this_children]
+                    this_children_full = [self.make_full_path(
+                        x, dir_name) for x in this_children]
                     for this_child in this_children_full:
                         all_files.append(this_child)
                 else:
-                    this_children_full = self.make_full_path(this_children, dir_name)
+                    this_children_full = self.make_full_path(
+                        this_children, dir_name)
                     all_files.append(this_children_full)
                 flat_graph[this_parent_full] = this_children_full
 
@@ -110,9 +197,11 @@ class pipeline_graph_check():
         if all(all_files_present):
             return True
         else:
-            missing_files = [x for x, y in zip(all_files, all_files_present) if not y]
+            missing_files = [x for x, y in zip(
+                all_files, all_files_present) if not y]
             raise FileNotFoundError(f'Missing files ::: {missing_files}')
 
+    @log_wait
     def check_previous(self, script_path):
         """
         Check that previous run script is present and executed successfully
@@ -132,17 +221,22 @@ class pipeline_graph_check():
                 if any([x in log_dict['completed'].keys() for x in parent_script]):
                     return True
                 else:
-                    raise ValueError(f'Parent script [{parent_script}] not found in log')
+                    raise ValueError(
+                        f'Parent script [{parent_script}] not found in log')
         else:
-            raise ValueError(f'Script path [{script_path}] not found in flat graph')
+            raise ValueError(
+                f'Script path [{script_path}] not found in flat graph')
 
-    def write_to_log(self, script_path, type = 'attempted'):
+    @log_wait
+    def write_to_log(self, script_path, type='attempted'):
         """
         Write to log file
 
         type = 'attempted' : script was attempted
         type = 'completed' : script was completed
         """
+        if not hasattr(self, 'git_str'):
+            raise ValueError('Run get_git_info() first')
         self.log_path = os.path.join(self.data_dir, 'execution_log.json')
         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if os.path.exists(self.log_path):
@@ -155,28 +249,32 @@ class pipeline_graph_check():
                 log_dict['attempted'] = {}
             log_dict['attempted'][script_path] = current_datetime
             print('============================================================')
-            print(f'Attempting {os.path.basename(script_path)}, started at {current_datetime}')
+            print(
+                f'Attempting {os.path.basename(script_path)}, started at {current_datetime}')
+            print(self.git_str)
             print('============================================================')
         elif type == 'completed':
             if 'completed' not in log_dict.keys():
                 log_dict['completed'] = {}
             log_dict['completed'][script_path] = current_datetime
             print('============================================================')
-            print(f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
+            print(
+                f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
             print('============================================================')
             # Close tee when completing
             if hasattr(self, 'tee'):
                 self.tee.close()
         # log_dict[script_path] = current_datetime
         with open(self.log_path, 'w') as log_file_connect:
-            json.dump(log_dict, log_file_connect, indent = 4)
+            json.dump(log_dict, log_file_connect, indent=4)
+
 
 def entry_checker(msg, check_func, fail_response):
     check_bool = False
     continue_bool = True
     exit_str = '"x" to exit :: '
     while not check_bool:
-        msg_input = input(msg.join([' ',exit_str]))
+        msg_input = input(msg.join([' ', exit_str]))
         if msg_input == 'x':
             continue_bool = False
             break
@@ -201,28 +299,28 @@ class imp_metadata():
             if dir_name[-1] != '/':
                 dir_name += '/'
         else:
-            dir_name = easygui.diropenbox(msg = 'Please select data directory')
+            dir_name = easygui.diropenbox(msg='Please select data directory')
         return dir_name
 
     def get_file_list(self,):
         self.file_list = os.listdir(self.dir_name)
-        
+
     def get_hdf5_name(self,):
-        file_list = glob.glob(os.path.join(self.dir_name,'**.h5'))
+        file_list = glob.glob(os.path.join(self.dir_name, '**.h5'))
         if len(file_list) > 0:
             self.hdf5_name = file_list[0]
         else:
             print('No HDF5 file found')
 
     def get_params_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name,'**.params'))
+        file_list = glob.glob(os.path.join(self.dir_name, '**.params'))
         if len(file_list) > 0:
             self.params_file_path = file_list[0]
         else:
             print('No PARAMS file found')
 
     def get_layout_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name,'**layout.csv'))
+        file_list = glob.glob(os.path.join(self.dir_name, '**layout.csv'))
         if len(file_list) > 0:
             self.layout_file_path = file_list[0]
         else:
@@ -235,7 +333,7 @@ class imp_metadata():
                 self.params_dict = json.load(params_file_connect)
 
     def get_info_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name,'**.info'))
+        file_list = glob.glob(os.path.join(self.dir_name, '**.info'))
         if len(file_list) > 0:
             self.info_file_path = file_list[0]
         else:
@@ -250,4 +348,4 @@ class imp_metadata():
     def load_layout(self,):
         self.get_layout_path()
         if 'layout_file_path' in dir(self):
-            self.layout = pd.read_csv(self.layout_file_path, index_col = 0)
+            self.layout = pd.read_csv(self.layout_file_path, index_col=0)

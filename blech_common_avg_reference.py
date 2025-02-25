@@ -125,7 +125,8 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
     for electrode_name in tqdm(CAR_electrodes[group_num]):
         common_average_reference[group_num, :] += \
             get_electrode_by_name(raw_electrodes, electrode_name)[:]
-    common_average_reference[group_num, :] /= float(len(CAR_electrodes[group_num]))
+    common_average_reference[group_num,
+                             :] /= float(len(CAR_electrodes[group_num]))
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 
@@ -138,7 +139,8 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
         # Subtract the common average reference for that group from the
         # voltage data of the electrode
         wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
-        referenced_data = wanted_electrode[:] - common_average_reference[group_num]
+        referenced_data = wanted_electrode[:] - \
+            common_average_reference[group_num]
         # Overwrite the electrode data with the referenced data
         wanted_electrode[:] = referenced_data
         hf5.flush()

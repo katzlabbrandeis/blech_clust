@@ -1,8 +1,8 @@
 # Description: This is a test workflow for running a Python script on a self-hosted runner
 # Don't chain jobs together as any failure in one job will stop the workflow
 
-name: Python test 
-run-name: python_test 
+name: Python test
+run-name: python_test
 on: [pull_request]
 jobs:
   Preamble:
@@ -19,7 +19,7 @@ jobs:
       - run: git status
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
       - name: Copy files to working-directory
-        run: cp -r ./* /home/exouser/Desktop/blech_clust 
+        run: cp -r ./* /home/exouser/Desktop/blech_clust
       - name: Check files in working-directory
         run: ls -R /home/exouser/Desktop/blech_clust
       - name: Setup params
@@ -42,7 +42,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
-    needs: Preamble 
+    needs: Preamble
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -56,7 +56,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: Preamble 
+    needs: Preamble
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
@@ -68,4 +68,3 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-
