@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params precommit
+.PHONY: all base emg neurec blechrnn clean params 
 
 # Store sudo password
 define get_sudo_password
@@ -65,9 +65,6 @@ params:
 # Install Prefect
 prefect:
 	conda run -n blech_clust pip install -U prefect
-
-precommit:
-	conda run -n blech_clust pre-commit install
 
 # Clean up environments 
 clean:
