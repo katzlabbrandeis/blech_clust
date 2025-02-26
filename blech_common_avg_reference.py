@@ -49,22 +49,39 @@ import tables
 import numpy as np
 
 
-def identify_dead_channels(raw_electrodes, threshold=0.01):
+def identify_dead_channels(raw_electrodes, abs_threshold=0.01, rel_threshold=0.05):
     """
-    Identify dead channels based on a threshold.
-    Channels with variance below the threshold are considered dead.
-
+    Identify dead channels based on absolute and relative variance thresholds.
+    
+    Channels are considered dead if either:
+    1. Their variance is below the absolute threshold
+    2. Their variance is below rel_threshold * median variance of all channels
+    
     Args:
         raw_electrodes (list): List of electrode data arrays.
-        threshold (float): Variance threshold to identify dead channels.
-
+        abs_threshold (float): Absolute variance threshold to identify dead channels.
+        rel_threshold (float): Relative variance threshold as a fraction of median variance.
+        
     Returns:
         list: Indices of dead channels.
     """
+    # Calculate variance for all electrodes
+    variances = np.array([np.var(electrode[:]) for electrode in raw_electrodes])
+    
+    # Calculate median variance across all channels
+    median_variance = np.median(variances)
+    
+    # Identify dead channels using both absolute and relative thresholds
     dead_channels = []
-    for i, electrode in enumerate(raw_electrodes):
-        if np.var(electrode[:]) < threshold:
+    for i, variance in enumerate(variances):
+        if variance < abs_threshold or variance < (rel_threshold * median_variance):
             dead_channels.append(i)
+            
+    print(f"Identified {len(dead_channels)} dead channels out of {len(raw_electrodes)}")
+    if len(dead_channels) > 0:
+        print(f"Median variance: {median_variance:.6f}")
+        print(f"Relative threshold: {rel_threshold * median_variance:.6f}")
+        
     return dead_channels
 
 
