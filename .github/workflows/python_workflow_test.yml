@@ -5,9 +5,6 @@ name: Python test
 run-name: python_test
 on:
   pull_request:
-  push:
-    tags:
-      - 'install'  # This will trigger the workflow on the 'install' tag
 
 jobs:
   Preamble:
