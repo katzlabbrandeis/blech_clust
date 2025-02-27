@@ -34,7 +34,7 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
-    if: github.ref == 'refs/tags/install'
+    if: github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))
     steps:
       - name: Install dependencies
         run: |
@@ -69,7 +69,8 @@ jobs:
           bash emg_install.sh
   Spike-Only:
     runs-on: self-hosted
-    needs: Preamble
+    needs: >-
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
@@ -83,7 +84,8 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
-    needs: Preamble
+    needs: >-
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -97,7 +99,8 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: Preamble
+    needs: >-
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
