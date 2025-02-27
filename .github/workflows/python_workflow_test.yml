@@ -34,7 +34,7 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
-    if: github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))
+    if: github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && github.ref == 'refs/tags/install')
     steps:
       - name: Install dependencies
         run: |
@@ -70,7 +70,7 @@ jobs:
   Spike-Only:
     runs-on: self-hosted
     needs: >-
-      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && github.ref == 'refs/tags/install')) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
@@ -85,7 +85,7 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: >-
-      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && github.ref == 'refs/tags/install')) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -100,7 +100,7 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: >-
-      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'install'))) && 'Install' || 'Preamble' }}
+      ${{ (github.ref == 'refs/tags/install' || (github.event_name == 'pull_request' && github.ref == 'refs/tags/install')) && 'Install' || 'Preamble' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
