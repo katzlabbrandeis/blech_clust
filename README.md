@@ -72,7 +72,6 @@ make all
 ```
 
 Or install components individually:
-
 ```bash
 make base      # Install base environment and dependencies
 make emg       # Install EMG analysis requirements (optional)
