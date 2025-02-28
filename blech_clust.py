@@ -54,6 +54,7 @@ from utils.blech_process_utils import path_handler  # noqa
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils.qa_utils import channel_corr  # noqa
 from utils import read_file  # noqa
+from utils.blech_channel_profile import plot_channels  # noqa
 # Necessary python modules
 from ast import literal_eval  # noqa
 import pylab as plt  # noqa
@@ -262,6 +263,13 @@ file_lists = {
     }
 }
 
+# Valid file types
+VALID_FILE_TYPES = ['one file per signal type',
+                    'one file per channel', 'traditional']
+if file_type not in VALID_FILE_TYPES:
+    raise ValueError(
+        f"Invalid file_type: {file_type}. Must be one of: {VALID_FILE_TYPES}")
+
 # Get digin and laser info
 print('Getting trial markers from digital inputs')
 # dig_in_array = hdf5_handler.get_digital_inputs(sampling_rate)
@@ -388,6 +396,11 @@ else:
 channel_corr.gen_corr_output(corr_mat,
                              qa_out_path,
                              qa_threshold,)
+
+# Generate channel profile plots for non-traditional file types
+if file_type in ['one file per channel', 'one file per signal type']:
+    print('\nGenerating channel profile plots')
+    plot_channels(dir_name, qa_out_path, file_type)
 ##############################
 
 ##############################

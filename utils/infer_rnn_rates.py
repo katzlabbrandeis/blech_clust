@@ -9,31 +9,69 @@ This module uses an Auto-regressive Recurrent Neural Network (RNN) to infer firi
 - Writes the predicted firing rates and latent outputs to an HDF5 file for each taste.
 - Handles file paths and directories for saving models, plots, and outputs, ensuring necessary directories exist.
 """
-import argparse  # noqa: E402
-parser = argparse.ArgumentParser(description='Infer firing rates using RNN')
-parser.add_argument('data_dir', help='Path to data directory')
-parser.add_argument('--train_steps', type=int,
-                    help='Number of training steps (default: %(default)s)')
-# Hidden size of 8 was tested to be optimal across multiple datasets
-parser.add_argument('--hidden_size', type=int,
-                    help='Hidden size of RNN (default: %(default)s)')
-parser.add_argument('--bin_size', type=int,
-                    help='Bin size for binning spikes (default: %(default)s)')
-parser.add_argument('--train_test_split', type=float,
-                    help='Fraction of data to use for training (default: %(default)s)')
-parser.add_argument('--no_pca', action='store_true',
-                    help='Do not use PCA for preprocessing (default: %(default)s)')
-parser.add_argument('--retrain', action='store_true',
-                    help='Force retraining of model. Will overwrite existing model' +
-                    ' (default: %(default)s)')
-parser.add_argument('--time_lims', type=int, nargs=2,
-                    help='Time limits inferred firing rates (default: %(default)s)')
-parser.add_argument('--separate_regions', action='store_true',
-                    help='Fit RNNs for each region separately (default: %(default)s)')
-parser.add_argument('--forecast_time', type=int,
-                    help='Time to forecast into the future (default: %(default)s)')
 
-args = parser.parse_args()
+import argparse  # noqa: E402
+import os  # noqa
+test_mode = False
+if test_mode:
+
+    print('====================')
+    print('Running in test mode')
+    print('====================')
+    # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
+    # data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/TG23/FlavorDay1_230625_115542'
+    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    # script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
+    script_path = '/home/abuzarmahmood/projects/blech_clust/utils/infer_rnn_rates.py'
+    blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+    args = argparse.Namespace(
+        data_dir=data_dir,
+        train_steps=1000,
+        hidden_size=3,
+        bin_size=25,
+        train_test_split=0.9,
+        no_pca=False,
+        retrain=False,
+        time_lims=[1500, 4000],
+        separate_regions=True,
+        forecast_time=25,
+        separate_tastes=True,
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Infer firing rates using RNN')
+    parser.add_argument('data_dir', help='Path to data directory')
+    parser.add_argument('--train_steps', type=int,
+                        help='Number of training steps (default: %(default)s)')
+    # Hidden size of 8 was tested to be optimal across multiple datasets
+    parser.add_argument('--hidden_size', type=int,
+                        help='Hidden size of RNN (default: %(default)s)')
+    parser.add_argument('--bin_size', type=int,
+                        help='Bin size for binning spikes (default: %(default)s)')
+    parser.add_argument('--train_test_split', type=float,
+                        help='Fraction of data to use for training (default: %(default)s)')
+    parser.add_argument('--no_pca', action='store_true',
+                        help='Do not use PCA for preprocessing (default: %(default)s)')
+    parser.add_argument('--retrain', action='store_true',
+                        help='Force retraining of model. Will overwrite existing model' +
+                        ' (default: %(default)s)')
+    parser.add_argument('--time_lims', type=int, nargs=2,
+                        help='Time limits inferred firing rates (default: %(default)s)')
+    parser.add_argument('--separate_regions', action='store_true',
+                        help='Fit RNNs for each region separately (default: %(default)s)')
+    parser.add_argument('--forecast_time', type=int,
+                        help='Time to forecast into the future (default: %(default)s)')
+    parser.add_argument('--separate_tastes', action='store_true',
+                        help='Fit RNNs for each taste separately (default: %(default)s)')
+
+    args = parser.parse_args()
+
+    data_dir = args.data_dir
+    script_path = os.path.abspath(__file__)
+    blech_clust_path = os.path.dirname(os.path.dirname(script_path))
+
+############################################################
+############################################################
 
 import tables  # noqa
 from scipy.stats import zscore  # noqa
@@ -43,25 +81,124 @@ from sklearn.decomposition import PCA  # noqa
 from sklearn.preprocessing import StandardScaler  # noqa
 import numpy as np  # noqa
 import sys  # noqa
-import os  # noqa
 from pprint import pprint  # noqa
 import json  # noqa
 from itertools import product  # noqa
 import pandas as pd  # noqa
+import xarray as xr  # noqa
 
-data_dir = args.data_dir
-# data_dir = '/media/fastdata/Thomas_Data/data/sorted_new/EB13/Day3Exp120trl_230529_110345'
-script_path = os.path.abspath(__file__)
-blech_clust_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_path)  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
-# blech_clust_path = '/home/abuzarmahmood/Desktop/blech_clust'
+# Check that blechRNN is on the Desktop, if so, add to path
+blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
+if os.path.exists(blechRNN_path):
+    sys.path.append(blechRNN_path)
+else:
+    raise FileNotFoundError('blechRNN not found on Desktop')
 
-metadata_handler = imp_metadata([[], args.data_dir])
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(args.data_dir)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from utils.ephys_data import visualize as vz  # noqa
+from utils.ephys_data import ephys_data  # noqa
+from src.train import train_model, MSELoss  # noqa
+from src.model import autoencoderRNN  # noqa
+
+############################################################
+############################################################
+
+
+def load_config():
+    config_path = os.path.join(
+        blech_clust_path, 'params', 'blechrnn_params.json')
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(
+            f'BlechRNN Config file not found @ {config_path}')
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    print('Loaded config file\n')
+    return config
+
+
+def update_config_from_args(params_dict, args):
+    # If any argument provided, use those instead
+    if args.train_steps:
+        print(f'Using provided train_steps: {args.train_steps}')
+        params_dict['train_steps'] = args.train_steps
+    if args.hidden_size:
+        print(f'Using provided hidden_size: {args.hidden_size}')
+        params_dict['hidden_size'] = args.hidden_size
+    if args.bin_size:
+        print(f'Using provided bin_size: {args.bin_size}')
+        params_dict['bin_size'] = args.bin_size
+    if args.train_test_split:
+        print(f'Using provided train_test_split: {args.train_test_split}')
+        params_dict['train_test_split'] = args.train_test_split
+    if args.no_pca:
+        print(f'Using provided pca setting: {not args.no_pca}')
+        params_dict['use_pca'] = not args.no_pca
+    if args.time_lims:
+        print(f'Using provided time_lims: {args.time_lims}')
+        params_dict['time_lims'] = args.time_lims
+    if args.forecast_time:
+        print(f'Using provided forecast_time: {args.forecast_time}')
+        params_dict['forecast_time'] = args.forecast_time
+    return params_dict
+
+
+def parse_group_by(spikes_xr, group_by_list):
+    """
+    Parse group_by_list to get the appropriate data for processing
+
+    Args:
+        spikes_xr : list of xr.DataArray
+        group_by_list : list of str
+
+    Returns:
+        processing_items : list of np.ndarray
+        taste_inds : list of int
+        region_inds : list of str
+    """
+
+    if len(group_by_list) > 0:
+        if len(group_by_list) == 1 and 'taste' in group_by_list:
+            processing_items = [x.values for x in spikes_xr]
+            taste_inds = np.arange(len(spikes_xr))
+            region_inds = ['all']
+        elif len(group_by_list) == 1 and 'region' in group_by_list:
+            processing_items = [
+                np.concatenate(
+                    [x[:, x.region == this_region] for x in spikes_xr], axis=0
+                ) for this_region in data.region_names
+            ]
+            taste_inds = ['all']
+            region_inds = data.region_names
+
+        else:  # Group by both region and taste
+            processing_items = [
+                [x[:, x.region == this_region] for x in spikes_xr]
+                for this_region in data.region_names
+            ]
+            processing_items = [
+                x for sublist in processing_items for x in sublist]
+            taste_inds = np.arange(len(spikes_xr))
+            region_inds = data.region_names
+
+    else:
+        processing_items = [np.concatenate(spikes_xr, axis=0)]
+        taste_inds = ['all']
+        region_inds = ['all']
+
+    processing_inds = list(product(region_inds, taste_inds))
+    return processing_items, processing_inds, taste_inds, region_inds
+
+############################################################
+############################################################
+
+
+if not test_mode:
+    metadata_handler = imp_metadata([[], args.data_dir])
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 output_path = os.path.join(data_dir, 'rnn_output')
 artifacts_dir = os.path.join(output_path, 'artifacts')
@@ -71,117 +208,74 @@ for dir_path in [output_path, artifacts_dir, plots_dir]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-
 print(f'Processing data from {data_dir}')
 
-config_path = os.path.join(
-    blech_clust_path, 'params', 'blechrnn_params.json')
-if not os.path.exists(config_path):
-    raise FileNotFoundError(
-        f'BlechRNN Config file not found @ {config_path}')
-with open(config_path, 'r') as f:
-    config = json.load(f)
-print('Loaded config file\n')
-train_steps = config['train_steps']
-hidden_size = config['hidden_size']
-bin_size = config['bin_size']
-train_test_split = config['train_test_split']
-use_pca = config['use_pca']
-time_lims = config['time_lims']
-forecast_time = config['forecast_time']
-
-# If any argument provided, use those instead
-if args.train_steps:
-    print(f'Using provided train_steps: {args.train_steps}')
-    train_steps = args.train_steps
-if args.hidden_size:
-    print(f'Using provided hidden_size: {args.hidden_size}')
-    hidden_size = args.hidden_size
-if args.bin_size:
-    print(f'Using provided bin_size: {args.bin_size}')
-    bin_size = args.bin_size
-if args.train_test_split:
-    print(f'Using provided train_test_split: {args.train_test_split}')
-    train_test_split = args.train_test_split
-if args.no_pca:
-    print(f'Using provided pca setting: {not args.no_pca}')
-    use_pca = not args.no_pca
-if args.time_lims:
-    print(f'Using provided time_lims: {args.time_lims}')
-    time_lims = args.time_lims
-if args.forecast_time:
-    print(f'Using provided forecast_time: {args.forecast_time}')
-    forecast_time = args.forecast_time
-
-params_dict = dict(
-    train_steps=train_steps,
-    hidden_size=hidden_size,
-    bin_size=bin_size,
-    train_test_split=train_test_split,
-    use_pca=use_pca,
-    time_lims=time_lims,
-    forecast_time=forecast_time
-)
+params_dict = load_config()
+params_dict = update_config_from_args(params_dict, args)
 pprint(params_dict)
 
 ##############################
 
-# Check that blechRNN is on the Desktop, if so, add to path
-
-blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
-if os.path.exists(blechRNN_path):
-    sys.path.append(blechRNN_path)
-else:
-    raise FileNotFoundError('blechRNN not found on Desktop')
-
-# script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/infer_rnn_rates.py'
-sys.path.append(blech_clust_path)
-
-from utils.ephys_data import visualize as vz  # noqa
-from utils.ephys_data import ephys_data  # noqa
-from src.train import train_model  # noqa
-from src.model import autoencoderRNN  # noqa
-
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
-
+basename = os.path.basename(data_dir)
 data = ephys_data.ephys_data(data_dir)
 data.get_spikes()
+data.get_region_units()
+
+region_dict = dict(zip(data.region_names, data.region_units))
+region_vec = np.zeros(len(np.concatenate(data.region_units)), dtype=object)
+for region_name, unit_list in region_dict.items():
+    region_vec[unit_list] = region_name
+
+# Create xr dataset with each array in dataset corresponding to a taste
+spikes_xr = [xr.DataArray(
+    x,
+    dims=['trials', 'neurons', 'time'],
+    coords={
+        'trials': np.arange(x.shape[0]),
+        'neurons': np.arange(x.shape[1]),
+        'time': np.arange(x.shape[2]),
+        'region': (['neurons'], region_vec)
+    }
+) for x in data.spikes]
 
 ############################################################
 
-if args.separate_regions:
-    print('Processing regions separately')
-    data.get_region_units()
-    print(data.region_units)
-    region_names = data.region_names
-    # Get spikes for each region
-    # Shape : (tastes, trials, neurons, time)
-    spike_arrays = [data.return_region_spikes(
-        region) for region in region_names]
-    # Remove None
-    keep_inds = [i for i, x in enumerate(spike_arrays) if x is not None]
-    region_names = [region_names[i] for i in keep_inds]
-    spike_arrays = [spike_arrays[i] for i in keep_inds]
-    print(f'Processing regions: {region_names}')
-    # Product of region and taste indices
-else:
-    print('Processing all regions together')
-    region_names = ['all']
-    # spike_arrays = [np.stack(data.spikes)]
-    # taste (list) --> array (trials, neurons, time)
-    spike_arrays = [data.spikes]
+# Create a dataframet to handle indexing
+# spikes_frame = spikes_to_frame(data.spikes, region_dict)
 
-processing_inds = list(
-    product(range(len(region_names)), range(len(spike_arrays[0]))))
-processing_items = [
-    (taste_ind, (region_names[region_ind],
-     spike_arrays[region_ind][taste_ind]))
-    for region_ind, taste_ind in processing_inds]
-processing_str = [[f'Taste {i}, Region {j[0]}'] for i, j in processing_items]
+group_by_list = []
+if args.separate_tastes:
+    group_by_list.append('taste')
+if args.separate_regions:
+    group_by_list.append('region')
+
+
+processing_items, processing_inds, taste_inds, region_inds = parse_group_by(
+    spikes_xr, group_by_list)
+
+# Drop any items with 'none' in region_inds
+region_inds = [x.lower() for x in region_inds]
+wanted_inds = [i for i, x in enumerate(region_inds) if x != 'none']
+region_inds = [region_inds[i] for i in wanted_inds]
+wanted_processing_inds = [i for i, x in enumerate(
+    processing_inds) if x[0] != 'none']
+processing_inds = [processing_inds[i] for i in wanted_processing_inds]
+processing_items = [processing_items[i] for i in wanted_processing_inds]
+
+processing_str = [f'Taste {i}, Region {j}' for j, i in processing_inds]
+
+region_names = region_inds.copy()
+spike_arrays = processing_items.copy()
 print('Processing the following items:')
 pprint(processing_str)
+
+############################################################
+############################################################
+# Set all keys in params_dict to variables
+locals().update(params_dict)
 
 pred_firing_list = []
 pred_x_list = []
@@ -193,7 +287,7 @@ region_name_list = []
 taste_ind_list = []
 
 # Train model for each taste/region combination
-for idx, (name, spike_data) in processing_items:
+for (name, idx), spike_data in zip(processing_inds, processing_items):
 
     iden_str = f'{name}_taste_{idx}'
     region_name_list.append(name)
@@ -214,6 +308,8 @@ for idx, (name, spike_data) in processing_items:
     # Bin spikes
     # (tastes x trials, neurons, time)
     # for example : (120, 35, 280)
+    if 'xarray' in str(type(spike_data)):
+        spike_data = spike_data.to_numpy()
     binned_spikes = np.reshape(spike_data,
                                (*spike_data.shape[:2], -1, bin_size)).sum(-1)
     binned_spikes_list.append(binned_spikes)
@@ -322,7 +418,6 @@ for idx, (name, spike_data) in processing_items:
     # Instead of predicting activity in the SAME time-bin,
     # predict activity in the NEXT time-bin
     # Forcing the model to learn temporal dependencies
-    forecast_time = params_dict['forecast_time']
     forecast_bins = int(forecast_time // bin_size)
     inputs_plus_context = inputs_plus_context[:-forecast_bins]
     inputs = inputs[forecast_bins:]
@@ -360,9 +455,11 @@ for idx, (name, spike_data) in processing_items:
         dropout=0.2,
     )
 
-    loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
+    # loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
+    loss_path = os.path.join(artifacts_dir, model_name + '_loss.json')
     cross_val_loss_path = os.path.join(
-        artifacts_dir, f'cross_val_loss_taste_{idx}.json')
+        artifacts_dir, model_name + '_cross_val_loss.json')
+    # artifacts_dir, f'cross_val_loss_taste_{idx}.json')
     if (not os.path.exists(model_save_path)) or args.retrain:
         if args.retrain:
             print('Retraining model')
@@ -374,7 +471,7 @@ for idx, (name, spike_data) in processing_items:
             output_size=output_size,
             lr=0.001,
             train_steps=train_steps,
-            loss=loss_name,
+            criterion=MSELoss(),
             test_inputs=test_inputs,
             test_labels=test_labels,
         )
@@ -387,6 +484,7 @@ for idx, (name, spike_data) in processing_items:
             json.dump(loss_dict, f, indent=4)
         with open(cross_val_loss_path, 'w') as f:
             json.dump(cross_val_loss, f, indent=4)
+        params_dict['loss_func'] = str(MSELoss)
         with open(os.path.join(artifacts_dir, 'params.json'), 'w') as f:
             json.dump(params_dict, f, indent=4)
     else:
@@ -453,9 +551,12 @@ for idx, (name, spike_data) in processing_items:
     ############################################################
 
     # Loss plot
+    print('-- Plotting loss')
     fig, ax = plt.subplots()
-    ax.plot(loss_dict.keys(), loss_dict.values(), label='Train Loss')
-    ax.plot(cross_val_loss.keys(), cross_val_loss.values(), label='Test Loss')
+    ax.plot(np.vectorize(int)(list(loss_dict.keys())),
+            loss_dict.values(), label='Train Loss')
+    ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
+            cross_val_loss.values(), label='Test Loss')
     ax.legend(
         bbox_to_anchor=(1.05, 1),
         loc='upper left', borderaxespad=0.)
@@ -465,6 +566,7 @@ for idx, (name, spike_data) in processing_items:
     plt.close(fig)
 
     # Firing rate plots
+    print('-- Plotting firing rates')
     vz.firing_overview(pred_firing.swapaxes(0, 1))
     fig = plt.gcf()
     plt.suptitle('RNN Predicted Firing Rates')
@@ -478,6 +580,7 @@ for idx, (name, spike_data) in processing_items:
     plt.close(fig)
 
     # Latent factors
+    print('-- Plotting latent factors')
     fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize=(5, 10),
                            sharex=True, sharey=True)
     for i in range(latent_outs.shape[-1]):
@@ -491,6 +594,7 @@ for idx, (name, spike_data) in processing_items:
     pred_firing_mean = pred_firing.mean(axis=0)
     binned_spikes_mean = binned_spikes.mean(axis=0)
 
+    print('-- Plotting mean firing rates')
     fig, ax = plt.subplots(1, 2)
     ax[0].imshow(pred_firing_mean, aspect='auto', interpolation='none')
     ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
@@ -500,6 +604,7 @@ for idx, (name, spike_data) in processing_items:
     plt.close(fig)
     # plt.show()
 
+    print('-- Plotting zscored mean firing rates')
     fig, ax = plt.subplots(1, 2)
     ax[0].imshow(zscore(pred_firing_mean, axis=-1),
                  aspect='auto', interpolation='none')
@@ -531,7 +636,8 @@ for idx, (name, spike_data) in processing_items:
     conv_rate_list.append(conv_rate)
     conv_x_list.append(conv_x)
 
-    for i in range(binned_spikes.shape[1]):
+    print('-- Plotting individual neurons rates')
+    for i in range(conv_rate.shape[1]):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
                                sharex=True, sharey=False)
         ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
@@ -557,6 +663,7 @@ for idx, (name, spike_data) in processing_items:
     if not os.path.exists(trial_latent_dir):
         os.makedirs(trial_latent_dir)
 
+    print('-- Plotting single trial latent factors')
     for i in range(latent_outs.shape[1]):
         fig, ax = plt.subplots(2, 1)
         ax[0].plot(latent_outs[1:, i], alpha=0.5)
@@ -605,64 +712,124 @@ all_binned_spikes_taste_mean = [
 ]
 
 # Mean neuron firing
-# pred_firing_taste_mean = np.stack(
-#     [pred_firing_list[i].mean(axis=0) for i in range(len(pred_firing_list))])
-# binned_spikes_taste_mean = np.stack(
-#     [bin_spikes.mean(axis=0) for bin_spikes in binned_spikes_list])
 
-for pred_firing_taste_mean, binned_spikes_taste_mean, region_name in zip(
-        all_pred_firing_taste_mean, all_binned_spikes_taste_mean, region_names
-):
-    cmap = plt.get_cmap('tab10')
-    region_nrn_count = pred_firing_taste_mean[0].shape[0]
+trial_counts = [len(x) for x in data.spikes]
+cum_trial_counts = np.cumsum([0, *trial_counts])
+cat_spikes = np.concatenate(
+    data.spikes, axis=0)[..., time_lims[0]:time_lims[1]]
+
+if 'taste' not in group_by_list:
+    append_frames = []
+    for this_region in region_names:
+        # Binned spikes
+        wanted_region_binned = pred_frame.loc[
+            pred_frame.region_name == this_region, 'binned_spikes'].to_list()[0]
+        region_binned_taste = [wanted_region_binned[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                               for i in range(len(trial_counts)-1)]
+        # Predicted firing
+        wanted_region_pred = pred_frame.loc[
+            pred_frame.region_name == this_region, 'pred_firing'].to_list()[0]
+        region_pred_taste = [wanted_region_pred[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                             for i in range(len(trial_counts)-1)]
+        # Latent factors
+        wanted_region_latent = pred_frame.loc[
+            pred_frame.region_name == this_region, 'latent_out'].to_list()[0]
+        region_latent_taste = [wanted_region_latent[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                               for i in range(len(trial_counts)-1)]
+        # Convolved firing rates
+        wanted_region_conv_rate = pred_frame.loc[
+            pred_frame.region_name == this_region, 'conv_rate'].to_list()[0]
+        region_conv_rate_taste = [wanted_region_conv_rate[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                  for i in range(len(trial_counts)-1)]
+        # Create a new frame
+        for i, taste_binned in enumerate(region_binned_taste):
+            this_frame = pd.DataFrame(
+                dict(
+                    region_name=this_region,
+                    taste_ind=i,
+                    binned_spikes=[taste_binned],
+                    pred_firing=[region_pred_taste[i]],
+                    latent_out=[region_latent_taste[i]],
+                    conv_rate=[region_conv_rate_taste[i]],
+                ),
+                index=[0],
+            )
+            append_frames.append(this_frame)
+    taste_pred_frame = pd.concat(append_frames)
+    taste_pred_frame['pred_x'] = [pred_x_list[0]] * len(taste_pred_frame)
+else:
+    taste_pred_frame = pred_frame.copy()
+
+binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
+taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
+
+print('-- Plotting mean neuron firing rates')
+for this_region in region_names:
+    region_taste_binned = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'binned_spikes'].to_list()
+    region_taste_pred = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'pred_firing'].to_list()
+    # Shape: taste x neurons x time
+    region_taste_mean_binned = np.stack(
+        [x.mean(axis=0) for x in region_taste_binned])
+    region_taste_mean_pred = np.stack(
+        [x.mean(axis=0) for x in region_taste_pred])
+    region_nrn_count = region_taste_mean_binned.shape[1]
+    binned_x = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'binned_x'].to_list()[0]
+    pred_x = taste_pred_frame.loc[
+        taste_pred_frame.region_name == this_region, 'pred_x'].to_list()[0]
     fig, ax = vz.gen_square_subplots(region_nrn_count,
                                      figsize=(10, 10),
                                      sharex=True,)
+    cmap = plt.get_cmap('tab10')
     for nrn_ind in range(region_nrn_count):
-        for taste_ind, (pred, bin) in enumerate(
-                zip(pred_firing_taste_mean, binned_spikes_taste_mean)
-        ):
+        for taste_ind in range(len(region_taste_mean_binned)):
             ax.flatten()[nrn_ind].plot(
-                pred[nrn_ind], alpha=1, c=cmap(taste_ind))
+                binned_x, region_taste_mean_binned[taste_ind, nrn_ind],
+                alpha=0.3, c=cmap(taste_ind))
             ax.flatten()[nrn_ind].plot(
-                bin[nrn_ind], alpha=0.3, c=cmap(taste_ind))
-        ax.flatten()[nrn_ind].set_ylabel(str(nrn_ind))
+                pred_x, region_taste_mean_pred[taste_ind, nrn_ind],
+                alpha=0.5, c=cmap(taste_ind))
+    fig.suptitle(basename + '\n' + f'Mean Neuron Firing Rates : {this_region}')
     fig.savefig(os.path.join(
-        plots_dir, f'mean_neuron_firing_{region_name}.png'))
+        plots_dir, f'mean_neuron_firing_{this_region}.png'))
     plt.close(fig)
 
-# Make another plot with taste_mean firing rates
+
+region_names = region_inds.copy()
+if 'region' in group_by_list:
+    spike_arrays = [cat_spikes[:, units] for units in data.region_units]
+else:
+    spike_arrays = [cat_spikes]
+
+print('-- Plotting individual neurons rates')
 for spike_array, region_name in zip(spike_arrays, region_names):
-    region_nrn_count = spike_array[0].shape[1]
+    region_nrn_count = spike_array.shape[1]
     region_conv_rate_list = pred_frame.loc[pred_frame.region_name ==
                                            region_name, 'conv_rate'].to_list()
     region_pred_firing_list = pred_frame.loc[pred_frame.region_name ==
                                              region_name, 'pred_firing'].to_list()
+    if 'taste' not in group_by_list:
+        region_conv_rate_list = region_conv_rate_list[0]
+        region_pred_firing_list = region_pred_firing_list[0]
+        region_conv_rate_list = [region_conv_rate_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                 for i in range(len(cum_trial_counts)-1)]
+        region_pred_firing_list = [region_pred_firing_list[cum_trial_counts[i]:cum_trial_counts[i+1]]
+                                   for i in range(len(cum_trial_counts)-1)]
     cmap = plt.get_cmap('tab10')
     # Iterate over neurons
     for i in range(region_nrn_count):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
                                sharex=True, sharey=False)
         # Get spikes from all tastes for this neuron
-        this_spikes_list = [x[:, i] for x in spike_array]
-        trial_counts = [len(x) for x in this_spikes_list]
-        cum_trial_counts = np.cumsum([0, *trial_counts])
-        this_cat_spikes = np.concatenate(
-            this_spikes_list, axis=0)[..., time_lims[0]:time_lims[1]]
 
-        ax[0] = vz.raster(ax[0], this_cat_spikes, marker='|', color='k')
+        ax[0] = vz.raster(ax[0], spike_array[:, i], marker='|', color='k')
         # Plot colors behind raster traces
         for j in range(len(cum_trial_counts)-1):
             ax[0].axhspan(cum_trial_counts[j], cum_trial_counts[j+1],
                           color=cmap(j), alpha=0.1, zorder=0)
 
-        # this_conv_rate = np.stack([x[:, i] for x in region_conv_rate_list])
-        # this_pred_firing = np.stack([x[:, i] for x in region_pred_firing_list])
-
-        # mean_conv_rate = this_conv_rate.mean(axis=1)
-        # mean_pred_firing = this_pred_firing.mean(axis=1)
-        # sd_conv_rate = this_conv_rate.std(axis=1)
-        # sd_pred_firing = this_pred_firing.std(axis=1)
         mean_conv_rate = np.stack([x[:, i].mean(axis=0)
                                   for x in region_conv_rate_list])
         mean_pred_firing = np.stack([x[:, i].mean(axis=0)
@@ -702,6 +869,7 @@ for spike_array, region_name in zip(spike_arrays, region_names):
 
 
 # Plot predicted activity vs true activity for every neuron
+print('-- Plotting predicted vs true activity')
 for binned_region, pred_region, region_name in zip(all_binned_spikes_taste, all_pred_firing_taste, region_names):
     for i in range(binned_region[0].shape[1]):
         cat_pred_firing = np.concatenate([x[:, i] for x in pred_region])
@@ -730,6 +898,7 @@ for binned_region, pred_region, region_name in zip(all_binned_spikes_taste, all_
 ############################################################
 ############################################################
 # Write out firing rates to file
+print('-- Writing out firing rates to file')
 hdf5_path = data.hdf5_path
 with tables.open_file(hdf5_path, 'r+') as hf5:
     # Create directory for rnn output
@@ -745,14 +914,15 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
     rnn_output = hf5.get_node('/rnn_output/regions')
 
     # Write out latents and predicted firing rates
-    for idx, (name, _) in processing_items:
+    # for idx, (name, _) in processing_items:
+    for i, ((name, idx), spike_data) in enumerate(zip(processing_inds, processing_items)):
         group_name = f'region_{name}_taste_{idx}'
         group_desc = f'Region {name} Taste {idx}'
 
         taste_grp = hf5.create_group(rnn_output, group_name, group_desc)
-        hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[idx])
-        hf5.create_array(taste_grp, 'latent_out', latent_out_list[idx])
-        hf5.create_array(taste_grp, 'pred_x', pred_x_list[idx])
+        hf5.create_array(taste_grp, 'pred_firing', pred_firing_list[i])
+        hf5.create_array(taste_grp, 'latent_out', latent_out_list[i])
+        hf5.create_array(taste_grp, 'pred_x', pred_x_list[i])
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
