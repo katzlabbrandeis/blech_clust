@@ -63,46 +63,35 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
 ### Setup
+
+The installation process is managed through a Makefile that handles all dependencies and environment setup.
+
+To install everything (recommended):
+```bash
+make all
 ```
-conda deactivate                                            # Make sure we're in the base environemnt
-conda update -n base conda                                  # Update conda to have the new Libmamba solver
 
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda clean --all -y                                        # Removes unused packages and caches
-conda create --name blech_clust python=3.8.13 -y            # Create "blech_clust" environment with conda requirements
-conda activate blech_clust                                  # Activate blech_clust environment
-conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
-bash install_gnu_parallel.sh                                # Install GNU Parallel
-pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
-bash patch_dependencies.sh                                  # Fix issues with dependencies
+Or install components individually:
+```bash
+make base      # Install base environment and dependencies
+make emg       # Install EMG analysis requirements (optional)
+make neurec    # Install neuRecommend classifier
+make blechrnn  # Install BlechRNN for firing rate estimation (optional)
+```
 
-### Install neuRecommend (classifier)
-cd ~/Desktop                                                # Relocate to download classifier library
-git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifier library
-pip install -r neuRecommend/requirements.txt
+**Note:** If you plan to use GPU with BlechRNN, you'll need to install CUDA separately.
+See: [Installing PyTorch with GPU Support](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266)
 
-### Install EMG (BSA) requirements (OPTIONAL)
-# Tested with installation after neuRecommend requirements
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
-bash emg_install.sh                                         # Install EMG requirements
-
-### Install BlechRNN for firing rate estimation (OPTIONAL)
-cd ~/Desktop                                                # Relocate to download BlechRNN
-git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
-cd blechRNN                                                 # Move into BlechRNN directory
-pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements
-**Note: If you'd like to use GPU, you'll need to install CUDA
--- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
-
+To remove the environment and start fresh:
+```bash
+make clean
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
 ### Testing
-```
+```bash
 cd <path_to_blech_clust>                                    # Move to blech_clust directory
-conda activate blech_clust                                  # Activate blech_clust environment
-pip install -U prefect                                      # Update prefect
+make prefect                                                # Install/update Prefect
 python pipeline_testing/prefect_pipeline.py --all           # Run all tests
 ```
 
