@@ -31,43 +31,30 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
-    if: ${{ github.ref == 'refs/tags/install' }}
+    if: ${{ contains( github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Install dependencies
         run: |
           echo "Running installation for tag ${{ github.ref }}"
-          conda deactivate
-          conda update -n base conda
-          cd /home/exouser/Desktop/blech_clust/requirements
-          conda clean --all -y
-          conda create --name blech_clust python=3.8.13 -y
-          conda activate blech_clust
-          conda install -c conda-forge -y --file conda_requirements_base.txt
-          bash install_gnu_parallel.sh
-          pip install -r pip_requirements_base.txt
-          bash patch_dependencies.sh
-      - name: Install neuRecommend
-        run: |
-          cd ~/Desktop
-          git clone https://github.com/abuzarmahmood/neuRecommend.git
-          pip install -r neuRecommend/requirements.txt
-      - name: Install BlechRNN
-        run: |
-          cd ~/Desktop
-          git clone https://github.com/abuzarmahmood/blechRNN.git
-          cd blechRNN
-          pip install $(cat requirements.txt | egrep "torch")
-      - name: Install Prefect
-        run: |
-          pip install -U prefect
+          make base
       - name: Install EMG
         run: |
-          cd /home/exouser/Desktop/blech_clust/requirements
-          bash emg_install.sh
+          make emg
+      - name: Install neuRecommend
+        run: |
+          make neurec
+      - name: Install BlechRNN
+        run: |
+          make blechrnn
+      - name: Install Prefect
+        run: |
+          make prefect
+      - name: Patch dependencies
+        run: |
+          make patch
   Spike-Only:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
@@ -82,7 +69,6 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -97,7 +83,6 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
