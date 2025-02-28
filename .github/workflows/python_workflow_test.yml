@@ -31,7 +31,7 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
-    if: ${{ github.ref == 'refs/tags/install' }} 
+    if: ${{ github.ref == 'refs/tags/install' }}
     steps:
       - name: Install dependencies
         run: |
@@ -67,7 +67,7 @@ jobs:
   Spike-Only:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }} 
+    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
@@ -82,7 +82,7 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }} 
+    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -97,7 +97,7 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: [Preamble, Install]
-    if: ${{ github.ref == 'refs/tags/install' }} 
+    if: ${{ github.ref == 'refs/tags/install' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
