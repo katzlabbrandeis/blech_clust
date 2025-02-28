@@ -22,7 +22,7 @@ base: params
 	conda create --name blech_clust python=3.8 -y
 	conda run -n blech_clust conda install -c conda-forge -y --file requirements/conda_requirements_base.txt
 	# bash requirements/install_gnu_parallel.sh "$(SUDO_PASS)"
-	conda run -n blech_clust pip install -r requirements/pip_requirements_base.txt
+	conda run -n blech_clust pip install --no-cache-dir -r requirements/pip_requirements_base.txt
 
 # Install EMG (BSA) requirements
 emg:
@@ -42,7 +42,7 @@ neurec:
 		echo "neuRecommend already exists"; \
 	fi
 	cd ~/Desktop && \
-	conda run -n blech_clust pip install -r neuRecommend/requirements.txt
+	conda run -n blech_clust pip install --no-cache-dir -r neuRecommend/requirements.txt
 
 # Install BlechRNN (optional)
 blechrnn:
@@ -54,7 +54,7 @@ blechrnn:
 	fi
 	cd ~/Desktop && \
 	cd blechRNN && \
-	conda run -n blech_clust pip install $$(cat requirements.txt | egrep "torch")
+	conda run -n blech_clust pip install --no-cache-dir $$(cat requirements.txt | egrep "torch")
 
 # Patch dependencies
 patch:
@@ -73,7 +73,7 @@ params:
 
 # Install Prefect
 prefect:
-	conda run -n blech_clust pip install -U prefect
+	conda run -n blech_clust pip install --no-cache-dir -U prefect
 
 # Clean up environments
 clean:
