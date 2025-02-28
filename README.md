@@ -112,7 +112,7 @@ python pipeline_testing/prefect_pipeline.py --all
 # Run only spike sorting tests
 python pipeline_testing/prefect_pipeline.py -s
 
-# Run only EMG analysis tests  
+# Run only EMG analysis tests
 python pipeline_testing/prefect_pipeline.py -e
 
 # Run spike sorting followed by EMG analysis

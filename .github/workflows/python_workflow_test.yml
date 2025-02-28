@@ -77,7 +77,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
-    # Test EMG analysis pipeline in isolation  
+    # Test EMG analysis pipeline in isolation
     steps:
       - name: Prefect EMG only test
         shell: bash
