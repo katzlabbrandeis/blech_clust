@@ -89,13 +89,45 @@ make clean
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
 ### Testing
+
+#### Local Testing with Prefect
+The project uses Prefect for orchestrating test pipelines locally. To run tests:
+
+1. Start the Prefect server in a separate terminal:
 ```bash
-cd <path_to_blech_clust>                                    # Move to blech_clust directory
-make prefect                                                # Install/update Prefect
-python pipeline_testing/prefect_pipeline.py --all           # Run all tests
+prefect server start
 ```
 
-Use `prefect server start` to start the prefect server in a different terminal window, and monitor the progress of the pipeline in th Prefect UI.
+2. In another terminal, run the tests:
+```bash
+cd <path_to_blech_clust>                # Move to blech_clust directory
+make prefect                            # Install/update Prefect
+```
+
+3. Run specific test suites:
+```bash
+# Run all tests
+python pipeline_testing/prefect_pipeline.py --all
+
+# Run only spike sorting tests
+python pipeline_testing/prefect_pipeline.py -s
+
+# Run only EMG analysis tests  
+python pipeline_testing/prefect_pipeline.py -e
+
+# Run spike sorting followed by EMG analysis
+python pipeline_testing/prefect_pipeline.py --spike-emg
+```
+
+You can monitor test progress and results in the Prefect UI at http://localhost:4200
+
+#### Continuous Integration
+The project uses GitHub Actions for automated testing on pull requests:
+
+- Pre-commit checks run automatically on all PRs to enforce code style and quality
+- The full test suite runs on self-hosted runners when PRs are labeled with 'install'
+- Test results are reported in the PR checks interface
+- The workflow configuration is in `.github/workflows/python_workflow_test.yml`
 
 
 ### Convenience scripts
