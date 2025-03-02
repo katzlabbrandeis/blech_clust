@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # 1. Open a GUI dialog to select a directory
     # 2. Find the HDF5 file in that directory
     # 3. Compress and optimize the file using ptrepack
-    
+
     # Example manual usage in Python:
     # import os
     # from utils.blech_hdf5_repack import *
@@ -61,10 +61,10 @@ if __name__ == "__main__":
     # # Instead of using the GUI dialog, set directory directly
     # os.chdir('/path/to/data_directory')
     # # The rest of the script will run automatically
-    
+
     # Command-line alternative (without using this script):
     # $ cd /path/to/data_directory
     # $ ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc original.h5 tmp.h5
     # $ mv tmp.h5 original.h5
-    
+
     print("HDF5 file successfully repacked and optimized")
