@@ -37,10 +37,14 @@ jobs:
     if: ${{ contains( github.event.pull_request.labels.*.name, 'install') }}
     # Only run installation when PR has 'install' label
     steps:
-      - name: Install dependencies
+      - name: Clean install 
         working-directory: /home/exouser/Desktop/blech_clust
         run: |
           echo "Running installation for tag ${{ github.ref }}"
+          make clean
+      - name: Install dependencies
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
           make base
       - name: Install EMG
         working-directory: /home/exouser/Desktop/blech_clust
