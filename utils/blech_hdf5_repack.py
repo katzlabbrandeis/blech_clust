@@ -20,6 +20,7 @@ Example Usage:
     >>> os.chdir('/path/to/data')  # Instead of GUI selection
     >>> # Rest of script will run automatically
 """
+
 import os
 import tables
 import easygui
