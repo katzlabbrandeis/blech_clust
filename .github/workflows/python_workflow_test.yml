@@ -34,6 +34,8 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
+    # Only run installation when PR has 'install' label
     if: ${{ contains( github.event.pull_request.labels.*.name, 'install') }}
     # Only run installation when PR has 'install' label
     steps:
@@ -68,7 +70,7 @@ jobs:
           make patch
   Spike-Only:
     runs-on: self-hosted
-    needs: [Preamble, Install]
+    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
@@ -83,7 +85,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
-    needs: [Preamble, Install]
+    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -98,7 +100,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: [Preamble, Install]
+    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
