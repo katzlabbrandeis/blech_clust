@@ -62,6 +62,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
+### Blog
+
+For more insights and updates, visit our [Blog Page](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html).
+
 ### Setup
 ```
 conda deactivate                                            # Make sure we're in the base environemnt
