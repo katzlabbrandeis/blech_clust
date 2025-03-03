@@ -90,7 +90,7 @@ t_vec = np.arange(n_timepoints) * 10  # 10ms bins
 
 # Generate firing rate overview
 fig, ax = firing_overview(
-    data, 
+    data,
     t_vec=t_vec,
     cmap='viridis',
     cmap_lims='shared',
