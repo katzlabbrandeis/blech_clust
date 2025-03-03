@@ -68,3 +68,57 @@ if __name__ == "__main__":
     # $ mv tmp.h5 original.h5
 
     print("HDF5 file successfully repacked and optimized")
+
+"""
+EXAMPLE WORKFLOW:
+
+This script is typically used after processing large datasets that create HDF5 files,
+to reduce file size and optimize access speed.
+
+Workflow 1: Direct execution (recommended for most users)
+-----------------------------------------------------
+1. Run the script directly:
+   $ python utils/blech_hdf5_repack.py
+
+2. Use the GUI dialog to select the directory containing your HDF5 file
+   - The script automatically finds the HDF5 file in the directory
+   - Compresses and optimizes it in place
+
+Workflow 2: Programmatic usage in analysis scripts
+-----------------------------------------------------
+# After processing data that creates large HDF5 files
+import os
+from utils.blech_hdf5_repack import *
+
+# Option 1: Use with GUI dialog
+# Just import and call the script - it runs automatically
+
+# Option 2: Specify directory programmatically
+os.chdir('/path/to/data_directory')  # Set directory containing HDF5 file
+# The rest of the script runs automatically when imported
+
+Workflow 3: Batch processing multiple datasets
+-----------------------------------------------------
+import os
+import glob
+
+# Find all data directories
+data_dirs = glob.glob('/path/to/experiment/*/data')
+
+for data_dir in data_dirs:
+    os.chdir(data_dir)
+    # Look for the hdf5 file in the directory
+    file_list = os.listdir('./')
+    hdf5_name = ''
+    for files in file_list:
+        if files[-2:] == 'h5':
+            hdf5_name = files
+    
+    if hdf5_name:
+        print(f"Repacking {data_dir}/{hdf5_name}")
+        # Use ptrepack to compress
+        os.system("ptrepack --chunkshape=auto --propindexes --complevel=9 --complib=blosc " +
+                  hdf5_name + " " + "tmp.h5")
+        os.remove(hdf5_name)
+        os.rename("tmp.h5", hdf5_name)
+"""
