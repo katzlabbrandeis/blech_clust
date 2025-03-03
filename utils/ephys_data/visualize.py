@@ -5,6 +5,106 @@ This module provides functions for visualizing neural data, including raster plo
 - `imshow(x, cmap='viridis')`: Displays a heatmap of the input data using the specified colormap, with settings for better visualization.
 - `gen_square_subplots(num, figsize=None, sharex=False, sharey=False)`: Generates a grid of subplots arranged in a square layout, returning the figure and axes.
 - `firing_overview(data, t_vec=None, y_values_vec=None, interpolation='nearest', cmap='jet', cmap_lims='individual', subplot_labels=None, zscore_bool=False, figsize=None, backend='pcolormesh')`: Generates heatmaps of firing rates from a 3D numpy array, with options for z-scoring, colormap limits, and subplot labels. Returns the figure and axes.
+
+EXAMPLE WORKFLOWS:
+
+This module provides visualization tools for neural data analysis. Here are some common usage patterns:
+
+Workflow 1: Basic Raster Plot
+-----------------------------------------------------
+import numpy as np
+import matplotlib.pyplot as plt
+from utils.ephys_data.visualize import raster
+
+# Create sample spike data (binary array where 1 indicates a spike)
+spike_array = np.zeros((10, 100))  # 10 trials, 100 time points
+spike_array[2, 20:25] = 1  # Add some spikes
+spike_array[5, 40:45] = 1
+spike_array[7, 60:65] = 1
+
+# Create a figure and axis
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Generate raster plot
+raster(ax, spike_array, marker='|', color='black')
+ax.set_xlabel('Time (ms)')
+ax.set_ylabel('Trial')
+ax.set_title('Example Raster Plot')
+plt.show()
+
+Workflow 2: Firing Rate Heatmaps
+-----------------------------------------------------
+import numpy as np
+import matplotlib.pyplot as plt
+from utils.ephys_data.visualize import firing_overview
+
+# Create sample firing rate data for multiple neurons
+# Shape: (neurons, trials, time points)
+n_neurons = 4
+n_trials = 10
+n_timepoints = 100
+data = np.random.rand(n_neurons, n_trials, n_timepoints)
+
+# Add some structure to the data
+for i in range(n_neurons):
+    # Create a peak at different times for each neuron
+    peak_time = 20 + i*15
+    data[i, :, peak_time-5:peak_time+5] += 2
+
+# Create time vector (in ms)
+t_vec = np.arange(n_timepoints) * 10  # 10ms bins
+
+# Generate firing rate overview
+fig, ax = firing_overview(
+    data,
+    t_vec=t_vec,
+    cmap='viridis',
+    cmap_lims='shared',
+    subplot_labels=np.arange(n_neurons),
+    zscore_bool=True,
+    figsize=(12, 10)
+)
+
+# Add overall title
+fig.suptitle('Firing Rate Overview for Multiple Neurons')
+plt.tight_layout()
+plt.show()
+
+Workflow 3: Combining Multiple Visualization Types
+-----------------------------------------------------
+import numpy as np
+import matplotlib.pyplot as plt
+from utils.ephys_data.visualize import raster, imshow
+
+# Create sample data
+spike_array = np.zeros((10, 100))
+spike_array[2, 20:25] = 1
+spike_array[5, 40:45] = 1
+spike_array[7, 60:65] = 1
+
+# Create firing rate by convolving with a gaussian
+from scipy.ndimage import gaussian_filter1d
+firing_rate = np.zeros((10, 100))
+for i in range(10):
+    firing_rate[i] = gaussian_filter1d(spike_array[i], sigma=2)
+
+# Create a figure with two subplots
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+# Plot raster
+raster(ax1, spike_array, marker='|', color='black')
+ax1.set_ylabel('Trial')
+ax1.set_title('Spike Raster')
+
+# Plot firing rate heatmap
+plt.sca(ax2)
+imshow(firing_rate)
+ax2.set_xlabel('Time (ms)')
+ax2.set_ylabel('Trial')
+ax2.set_title('Firing Rate')
+
+plt.tight_layout()
+plt.show()
 """
 import numpy as np
 import pylab as plt
