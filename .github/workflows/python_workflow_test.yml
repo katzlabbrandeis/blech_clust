@@ -44,7 +44,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
-    needs: Preamble
+    needs: Spike-Only
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -58,7 +58,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: Preamble
+    needs: EMG-Only
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
