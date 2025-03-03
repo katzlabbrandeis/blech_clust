@@ -113,7 +113,7 @@ for data_dir in data_dirs:
     for files in file_list:
         if files[-2:] == 'h5':
             hdf5_name = files
-    
+
     if hdf5_name:
         print(f"Repacking {data_dir}/{hdf5_name}")
         # Use ptrepack to compress
