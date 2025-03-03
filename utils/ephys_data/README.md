@@ -148,7 +148,7 @@ region_spikes = data.return_region_spikes('GC')  # Gustatory cortex example
 data.check_laser()
 if data.laser_exists:
     data.separate_laser_data()
-    
+
     # Compare firing rates between conditions
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)

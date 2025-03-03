@@ -26,7 +26,7 @@ firing_rate = BAKS(spike_times, time_vector)
 # Plot the results
 plt.figure(figsize=(10, 6))
 plt.plot(time_vector, firing_rate, 'b-', linewidth=2)
-plt.stem(spike_times, np.ones_like(spike_times) * np.max(firing_rate) * 0.1, 
+plt.stem(spike_times, np.ones_like(spike_times) * np.max(firing_rate) * 0.1,
          'r', markerfmt='ro', basefmt=' ', label='Spikes')
 plt.xlabel('Time (s)')
 plt.ylabel('Firing Rate (Hz)')
