@@ -7,16 +7,18 @@ This script resets a data folder to an almost raw form by deleting most processi
 - Identifies files to be removed by excluding the files matching the keep patterns.
 - Attempts to remove each file or directory not matching the keep patterns using `shutil.rmtree` or `os.remove`.
 """
-# Import stuff!
 import os
 import shutil
-import sys
 import glob
-from utils.blech_utils import imp_metadata
+import argparse
 
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
-file_list = metadata_handler.file_list
+# Set up argument parsing
+parser = argparse.ArgumentParser(description='Reset a data folder to near-raw form while preserving specific file types')
+parser.add_argument('dir_path', help='Path to the data directory to clean')
+args = parser.parse_args()
+
+dir_name = args.dir_path
+file_list = os.listdir(dir_name)
 
 # Keep certain files and remove everything else
 keep_pattern = ['*.dat', '*.info', '*.rhd',
