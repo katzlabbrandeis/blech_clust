@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
       - run: git status
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+      - name: check labels
+        run: echo "${{ github.event.pull_request.labels.*.name }}"
       - name: Copy files to working-directory
         run: cp -r ./* /home/exouser/Desktop/blech_clust
       - name: Check files in working-directory
@@ -35,8 +37,6 @@ jobs:
     runs-on: self-hosted
     needs: Preamble
     if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
-    # Only run installation when PR has 'install' label
-    if: ${{ contains( github.event.pull_request.labels.*.name, 'install') }}
     # Only run installation when PR has 'install' label
     steps:
       - name: Clean install
