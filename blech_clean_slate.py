@@ -13,7 +13,8 @@ import glob
 import argparse
 
 # Set up argument parsing
-parser = argparse.ArgumentParser(description='Reset a data folder to near-raw form while preserving specific file types')
+parser = argparse.ArgumentParser(
+    description='Reset a data folder to near-raw form while preserving specific file types')
 parser.add_argument('dir_path', help='Path to the data directory to clean')
 args = parser.parse_args()
 
