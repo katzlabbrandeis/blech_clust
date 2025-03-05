@@ -319,7 +319,7 @@ class cluster_handler():
         clf_threshold = classifier_handler.clf_threshold
         all_waveforms = self.spike_set.slices_dejittered
         all_times = self.spike_set.times_dejittered
-        
+
         # Store correlations for each cluster
         correlations = {}
 
@@ -359,7 +359,7 @@ class cluster_handler():
 
                 if sum(spike_bool):
                     spike_inds = np.random.choice(
-                        np.where(spike_bool)[0], 
+                        np.where(spike_bool)[0],
                         min(max_plot_count, np.sum(spike_bool)))
                     spike_prob = classifier_prob[spike_inds]
                     spike_waves = all_waveforms[spike_inds]
@@ -379,7 +379,7 @@ class cluster_handler():
 
                 if sum(noise_bool):
                     noise_inds = np.random.choice(
-                        np.where(noise_bool)[0], 
+                        np.where(noise_bool)[0],
                         min(max_plot_count, np.sum(noise_bool)))
                     noise_prob = classifier_prob[noise_inds]
                     noise_waves = all_waveforms[noise_inds]
@@ -417,32 +417,34 @@ class cluster_handler():
                                           orientation='horizontal')
                         prob_hist_ax.axhline(clf_threshold,
                                              linestyle='--', color='k')
-                
+
                 # Calculate correlation between spike and noise time histograms
                 if spike_times is not None and noise_times is not None and len(spike_times) > 0 and len(noise_times) > 0:
                     correlation, spike_hist, noise_hist, bins = calculate_spike_time_histogram_correlation(
                         spike_times, noise_times, bin_size=0.1
                     )
                     correlations[cluster] = correlation
-                    
+
                     # Plot histograms for visual comparison
                     bin_centers = (bins[:-1] + bins[1:]) / 2
-                    corr_ax.plot(bin_centers, spike_hist, 'b-', alpha=0.7, label='Spikes')
-                    corr_ax.plot(bin_centers, noise_hist, 'r-', alpha=0.7, label='Noise')
+                    corr_ax.plot(bin_centers, spike_hist, 'b-',
+                                 alpha=0.7, label='Spikes')
+                    corr_ax.plot(bin_centers, noise_hist, 'r-',
+                                 alpha=0.7, label='Noise')
                     corr_ax.legend(loc='upper right')
                     corr_ax.set_title(f'Correlation: {correlation:.3f}')
                 else:
                     correlations[cluster] = np.nan
                     corr_ax.text(0.5, 0.5, 'Insufficient data for correlation',
-                                horizontalalignment='center',
-                                verticalalignment='center',
-                                transform=corr_ax.transAxes)
-                
+                                 horizontalalignment='center',
+                                 verticalalignment='center',
+                                 transform=corr_ax.transAxes)
+
                 fig.suptitle(f'Cluster {cluster}')
                 fig.savefig(os.path.join(
                     self.clust_plot_dir, f'Cluster{cluster}_classifier'))
                 plt.close(fig)
-        
+
         # Create a summary plot of correlations
         if correlations:
             self.plot_correlation_summary(correlations)
@@ -542,16 +544,16 @@ class cluster_handler():
     def plot_correlation_summary(self, correlations):
         """
         Create a summary plot of correlations between spike and noise time histograms
-        
+
         Parameters:
         - correlations: dict, mapping cluster numbers to correlation values
         """
         clusters = list(correlations.keys())
         corr_values = [correlations[c] for c in clusters]
-        
+
         fig, ax = plt.subplots(figsize=(10, 6))
         bars = ax.bar(clusters, corr_values, color='skyblue')
-        
+
         # Add correlation values on top of bars
         for i, bar in enumerate(bars):
             height = bar.get_height()
@@ -561,20 +563,21 @@ class cluster_handler():
             else:
                 ax.text(bar.get_x() + bar.get_width()/2., 0.02,
                         'N/A', ha='center', va='bottom')
-        
+
         ax.set_xlabel('Cluster')
         ax.set_ylabel('Correlation')
         ax.set_title('Correlation Between Spike and Noise Time Histograms')
         ax.set_ylim(-1.1, 1.1)  # Correlation ranges from -1 to 1
         ax.axhline(y=0, color='k', linestyle='-', alpha=0.3)
-        
+
         # Add a horizontal line at correlation = 0.5 as a reference
         ax.axhline(y=0.5, color='r', linestyle='--', alpha=0.5)
-        ax.text(ax.get_xlim()[1], 0.5, ' High correlation threshold', 
+        ax.text(ax.get_xlim()[1], 0.5, ' High correlation threshold',
                 va='center', ha='left', color='r')
-        
+
         plt.tight_layout()
-        plt.savefig(os.path.join(self.clust_plot_dir, 'correlation_summary.png'))
+        plt.savefig(os.path.join(self.clust_plot_dir,
+                    'correlation_summary.png'))
         plt.close(fig)
 
     # def create_auto_output_plots(self,
@@ -1515,13 +1518,13 @@ def trim_data(data, n_max=20000):
 def calculate_spike_time_histogram_correlation(spike_times, noise_times, bin_size=0.1, max_time=None):
     """
     Calculate the correlation between spike time histograms of putative units and noise.
-    
+
     Parameters:
     - spike_times: array-like, spike times of putative units
     - noise_times: array-like, spike times of noise
     - bin_size: float, size of the bins for the histogram in seconds
     - max_time: float, maximum time to consider (if None, use max of both arrays)
-    
+
     Returns:
     - correlation: float, correlation coefficient between the histograms
     - spike_hist: array, spike histogram
@@ -1530,22 +1533,22 @@ def calculate_spike_time_histogram_correlation(spike_times, noise_times, bin_siz
     """
     if len(spike_times) == 0 or len(noise_times) == 0:
         return np.nan, None, None, None
-    
+
     # Determine the maximum time if not provided
     if max_time is None:
         max_time = max(np.max(spike_times), np.max(noise_times))
-    
+
     # Create bins
     bins = np.arange(0, max_time + bin_size, bin_size)
-    
+
     # Create histograms
     spike_hist, _ = np.histogram(spike_times, bins=bins)
     noise_hist, _ = np.histogram(noise_times, bins=bins)
-    
+
     # Calculate correlation
     if np.std(spike_hist) > 0 and np.std(noise_hist) > 0:
         correlation = np.corrcoef(spike_hist, noise_hist)[0, 1]
     else:
         correlation = np.nan
-    
+
     return correlation, spike_hist, noise_hist, bins
