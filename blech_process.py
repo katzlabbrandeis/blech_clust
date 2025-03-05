@@ -196,6 +196,26 @@ if classifier_params['use_classifier'] and \
     )
     classifier_handler.gen_plots()
     classifier_handler.write_out_recommendations()
+    
+    # Calculate and log correlation between spike and noise time histograms
+    if len(classifier_handler.pos_spike_dict['spiketimes']) > 0 and len(classifier_handler.neg_spike_dict['spiketimes']) > 0:
+        correlation, _, _, _ = bpu.calculate_spike_time_histogram_correlation(
+            classifier_handler.pos_spike_dict['spiketimes'],
+            classifier_handler.neg_spike_dict['spiketimes'],
+            bin_size=0.1
+        )
+        print(f'Overall correlation between spike and noise time histograms: {correlation:.3f}')
+        
+        # Save correlation to a file for later analysis
+        corr_dir = os.path.join(data_dir_name, 'quality_metrics')
+        if not os.path.exists(corr_dir):
+            os.makedirs(corr_dir)
+        
+        corr_file = os.path.join(corr_dir, f'electrode{electrode_num:02}_correlation.json')
+        with open(corr_file, 'w') as f:
+            json.dump({'electrode': electrode_num, 'correlation': float(correlation)}, f)
+    else:
+        print('Insufficient data to calculate correlation between spike and noise time histograms')
 
     if classifier_params['throw_out_noise'] or auto_cluster:
         print('== Throwing out noise waveforms ==')
