@@ -68,13 +68,14 @@ jobs:
         working-directory: /home/exouser/Desktop/blech_clust
         run: |
           make patch
-  Spike-Only:
+  Spike-Only Install:
     runs-on: self-hosted
-    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
+    needs: ['Install']
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike
       cancel-in-progress: true
     # Test spike sorting pipeline in isolation
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE only test
         shell: bash
@@ -83,9 +84,9 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only:
+  EMG-Only Install:
     runs-on: self-hosted
-    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
+    needs: ['Install']
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -98,13 +99,62 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  Spike-EMG:
+  Spike-EMG Install:
     runs-on: self-hosted
-    needs: ${{ contains(github.event.pull_request.labels.*.name, 'install') ? ['Preamble', 'Install'] : ['Preamble'] }}
+    needs: ['Install']
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect SPIKE then EMG test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  Spike-Only:
+    runs-on: self-hosted
+    needs: ['Preamble']
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} spike
+      cancel-in-progress: true
+    # Test spike sorting pipeline in isolation
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect SPIKE only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -s 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  EMG-Only:
+    runs-on: self-hosted
+    needs: ['Preamble']
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} emg
+      cancel-in-progress: true
+    # Test EMG analysis pipeline in isolation
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect EMG only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  Spike-EMG:
+    runs-on: self-hosted
+    needs: ['Preamble']
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
+      cancel-in-progress: true
+    # Test full pipeline with both spike sorting and EMG analysis
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
