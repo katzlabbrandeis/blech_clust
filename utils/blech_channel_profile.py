@@ -11,13 +11,12 @@ import pylab as plt
 from tqdm import tqdm
 
 
-def plot_channels(dir_path, output_dir, file_type):
+def plot_channels(dir_path, file_type):
     """
     Generate plots for all channels and digital inputs
 
     Args:
         dir_path: Directory containing the data files
-        output_dir: Directory to save the plot outputs
         file_type: Either 'one file per channel' or 'one file per signal type'
     """
     if file_type not in ['one file per channel', 'one file per signal type']:
@@ -25,7 +24,7 @@ def plot_channels(dir_path, output_dir, file_type):
             "file_type must be either 'one file per channel' or 'one file per signal type'")
 
     # Create plot dir
-    plot_dir = os.path.join(output_dir, "channel_profile_plots")
+    plot_dir = os.path.join(dir_path, "channel_profile_plots")
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
@@ -127,21 +126,19 @@ def plot_channels(dir_path, output_dir, file_type):
 if __name__ == '__main__':
     import argparse
     import sys
-    from utils.blech_utils import imp_metadata
 
     # Create argument parser
     parser = argparse.ArgumentParser(description='Plots DIG_INs and AMP files')
-    metadata_handler = imp_metadata(sys.argv)
-    dir_path = metadata_handler.dir_name
 
     # Create argument parser
+    parser.add_argument('dir_path', type=str,
+                        help='The directory containing the data files')
     parser.add_argument('--file-type', type=str, required=True,
                         choices=['one file per channel',
                                  'one file per signal type'],
                         help='The type of file organization')
     args = parser.parse_args()
 
-    # Default output directory is in the data directory
-    output_dir = os.path.join(dir_path, "channel_profile_plots")
+    dir_path = args.dir_path
 
-    plot_channels(dir_path, output_dir, args.file_type)
+    plot_channels(dir_path, args.file_type)
