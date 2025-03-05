@@ -125,7 +125,21 @@ for unit in trange(len(units)):
 plot_dir = os.path.join('unit_waveforms_plots', 'waveforms_only')
 os.mkdir(plot_dir)
 
+# Create datashader_temp directory inside unit_waveforms_plots
+datashader_temp_dir = os.path.join('unit_waveforms_plots', 'datashader_temp')
+os.makedirs(datashader_temp_dir, exist_ok=True)
+
 for unit in trange(len(units)):
+    # Clear contents of datashader_temp directory at each iteration
+    for filename in os.listdir(datashader_temp_dir):
+        file_path = os.path.join(datashader_temp_dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f'Failed to delete {file_path}. Reason: {e}')
     waveforms = units[unit].waveforms[:]
     x = np.arange(waveforms.shape[1]) + 1
     times = units[unit].times[:]
@@ -133,7 +147,7 @@ for unit in trange(len(units)):
 
     fig, ax = blech_waveforms_datashader.\
         waveforms_datashader(waveforms, x, downsample=False,
-                             )
+                             dir_name=datashader_temp_dir)
     ax.set_xlabel('Sample (30 samples per ms)')
     ax.set_ylabel('Voltage (microvolts)')
     fig.savefig(os.path.join(plot_dir, 'Unit%i_datashader.png' %
