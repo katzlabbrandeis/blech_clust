@@ -13,7 +13,7 @@ jobs:
   Preamble:
     runs-on: self-hosted
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} preamble
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - run: pwd
@@ -70,9 +70,9 @@ jobs:
           make patch
   Spike-Only Install:
     runs-on: self-hosted
-    needs: ['Install']
+    needs: Install
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test spike sorting pipeline in isolation
     if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
@@ -86,7 +86,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only Install:
     runs-on: self-hosted
-    needs: ['Install']
+    needs: Spike-Only Install
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -101,7 +101,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG Install:
     runs-on: self-hosted
-    needs: ['Install']
+    needs: EMG-Only Install
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
@@ -117,9 +117,9 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-Only:
     runs-on: self-hosted
-    needs: ['Preamble']
+    needs: Preamble
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test spike sorting pipeline in isolation
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
@@ -133,9 +133,9 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   EMG-Only:
     runs-on: self-hosted
-    needs: ['Preamble']
+    needs: Spike-Only
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test EMG analysis pipeline in isolation
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
@@ -149,9 +149,9 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: ['Preamble']
+    needs: EMG-Only
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
