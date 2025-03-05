@@ -707,7 +707,7 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3, deviation_threshold=None):
     # Use provided deviation_threshold or default to MAD_threshold
     if deviation_threshold is None:
         deviation_threshold = MAD_threshold
-        
+
     lfp_median = np.median(data, axis=1)
     lfp_MAD = MAD(data, axis=1)
     # Use total deviation per trial scaled by MAD to remove trial
@@ -730,6 +730,7 @@ def return_good_lfp_trials(data, MAD_threshold=3, deviation_threshold=None):
     deviation_threshold : number of MADs to use as threshold for trial deviation
                          (defaults to MAD_threshold if None)
     """
-    good_trials_bool = return_good_lfp_trial_inds(data, MAD_threshold, deviation_threshold)
+    good_trials_bool = return_good_lfp_trial_inds(
+        data, MAD_threshold, deviation_threshold)
     good_lfp_data = data.copy()
     return good_lfp_data[:, good_trials_bool]
