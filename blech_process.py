@@ -186,6 +186,14 @@ if classifier_params['use_neuRecommend']:
     from feature_engineering_pipeline import *
     classifier_handler.load_pipelines()
 
+# Check parameters before using classifier
+if classifier_params['use_classifier']:
+    if (params_dict['spike_snapshot_before'] != 1 or
+        params_dict['spike_snapshot_after'] != 1.5):
+        raise ValueError("Classifier cannot be used unless 'spike_snapshot_before' is 1 and 'spike_snapshot_after' is 1.5.")
+    if params_dict['sampling_rate'] != 30000:
+        warnings.warn("Sampling rate is not 30000. Classifier may not function as expected.")
+
 if classifier_params['use_classifier'] and \
         classifier_params['use_neuRecommend']:
     print(' == Using neuRecommend classifier ==')

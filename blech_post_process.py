@@ -89,6 +89,7 @@ import pylab as plt  # noqa
 import numpy as np  # noqa
 import tables  # noqa
 import os  # noqa
+import warnings  # noqa
 
 ############################################################
 # Imports and Settings
@@ -114,6 +115,10 @@ else:
 # Extract parameters for automatic processing
 params_dict = metadata_handler.params_dict
 sampling_rate = params_dict['sampling_rate']
+
+# Check sampling rate
+if sampling_rate != 30000:
+    warnings.warn("Sampling rate is not 30000. This may affect processing accuracy.")
 
 auto_params = params_dict['clustering_params']['auto_params']
 auto_cluster = auto_params['auto_cluster']
