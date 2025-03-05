@@ -68,7 +68,7 @@ jobs:
         working-directory: /home/exouser/Desktop/blech_clust
         run: |
           make patch
-  Spike-Only Install:
+  Spike-Only-Install:
     runs-on: self-hosted
     needs: Install
     concurrency:
@@ -84,9 +84,9 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only Install:
+  EMG-Only-Install:
     runs-on: self-hosted
-    needs: Spike-Only Install
+    needs: Spike-Only-Install
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
@@ -99,9 +99,9 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  Spike-EMG Install:
+  Spike-EMG-Install:
     runs-on: self-hosted
-    needs: EMG-Only Install
+    needs: EMG-Only-Install
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
