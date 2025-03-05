@@ -985,7 +985,7 @@ class ephys_data():
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
 
         # Get digital input information from info_dict to ensure correct mapping
-        taste_dig_ins = self.info_dict['taste_params']['dig_ins']
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
 
         # Create a mapping from dig_in numbers to indices in the taste arrays
         dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
