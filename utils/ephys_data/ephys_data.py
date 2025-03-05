@@ -548,7 +548,8 @@ class ephys_data():
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
                 # Sort dig_in_list by the digital input number to ensure consistent ordering
-                dig_in_list = sorted(dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
+                dig_in_list = sorted(
+                    dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
                 self.dig_in_name_list = [x._v_name for x in dig_in_list]
                 self.dig_in_num_list = [int(x.split('_')[-1])
                                         for x in self.dig_in_name_list]
@@ -978,21 +979,21 @@ class ephys_data():
         if 'firing_list' not in dir(self):
             print('Firing list not found...Loading')
             self.get_firing_rates()
-        
+
         # Get taste information from info_dict
         self.taste_names = self.info_dict['taste_params']['tastes']
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
-        
+
         # Get digital input information from info_dict to ensure correct mapping
         taste_dig_ins = self.info_dict['taste_params']['dig_ins']
-        
+
         # Create a mapping from dig_in numbers to indices in the taste arrays
         dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
-        
+
         # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
         ordered_taste_names = []
         ordered_pal_ranks = []
-        
+
         for dig_in_num in self.dig_in_num_list:
             if dig_in_num in dig_in_to_index:
                 idx = dig_in_to_index[dig_in_num]
@@ -1000,14 +1001,16 @@ class ephys_data():
                     ordered_taste_names.append(self.taste_names[idx])
                     ordered_pal_ranks.append(self.palatability_ranks[idx])
                 else:
-                    warnings.warn(f"Index {idx} out of range for taste_names and palatability_ranks")
+                    warnings.warn(
+                        f"Index {idx} out of range for taste_names and palatability_ranks")
                     ordered_taste_names.append(f"Unknown-{dig_in_num}")
                     ordered_pal_ranks.append(0)  # Default palatability rank
             else:
-                warnings.warn(f"Digital input {dig_in_num} not found in taste_params.dig_ins")
+                warnings.warn(
+                    f"Digital input {dig_in_num} not found in taste_params.dig_ins")
                 ordered_taste_names.append(f"Unknown-{dig_in_num}")
                 ordered_pal_ranks.append(0)  # Default palatability rank
-        
+
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
