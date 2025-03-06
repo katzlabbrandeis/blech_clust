@@ -370,7 +370,7 @@ def run_gapes_Li(data_dir):
 
 
 @task(log_prints=True)
-def run_rnn(data_dir, separate_regions=False):
+def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
     """Run RNN firing rate inference"""
     script_name = 'utils/infer_rnn_rates.py'
     # Use 100 training steps for testing
@@ -378,6 +378,8 @@ def run_rnn(data_dir, separate_regions=False):
             "--train_steps", "100", "--retrain"]
     if separate_regions:
         args.append("--separate_regions")
+    if separate_tastes:
+        args.append("--separate_tastes")
     process = Popen(args,
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -472,10 +474,11 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
-    run_rnn(data_dir, separate_regions=False)
-    run_rnn(data_dir, separate_regions=True)
-    test_ephys_data(data_dir)
 
+    run_rnn(data_dir, separate_regions=False,   separate_tastes=False)
+    run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
+    run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
+    run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
 
 @flow(log_prints=True)
 def run_emg_main_test(data_dir):

@@ -209,6 +209,7 @@ class DigInHandler:
                                          > 0].trial_counts.values
 
         if len(bad_dig_ins) > 0:
+            bad_dig_ins = [str(element) for element in bad_dig_ins]
             bad_dig_in_str = '\n'.join(bad_dig_ins)
             print(f"== No deliveries detected for following dig-ins ==" + '\n')
             print('\n'+f"== {bad_dig_in_str} ==" + '\n')

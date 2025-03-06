@@ -261,9 +261,9 @@ class pipeline_graph_check():
             print(
                 f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
             print('============================================================')
-        # Close tee when completing
-        if hasattr(self, 'tee'):
-            self.tee.close()
+            # Close tee when completing
+            if hasattr(self, 'tee'):
+                self.tee.close()
         # log_dict[script_path] = current_datetime
         with open(self.log_path, 'w') as log_file_connect:
             json.dump(log_dict, log_file_connect, indent=4)

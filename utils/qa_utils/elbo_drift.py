@@ -332,7 +332,7 @@ for i, n_change in enumerate(changes_vec):
     for row_ind, this_row in this_frame.iterrows():
         for c_i, this_mode in enumerate(this_row['mode']):
             ax[i+1, 2].scatter(bins[this_mode], this_row['repeat'],
-                               c=change_colors[c_i], cmap='tab10')
+                               color=change_colors[c_i], cmap='tab10')
     for this_change in range(tau_hists.shape[1]):
         ax[i+1, 2] = ridge_plot(
             bins[:-1],
