@@ -577,7 +577,6 @@ def run_spike_test(data_dir):
     test_ephys_data(data_dir)
 
 
-
 @flow(log_prints=True)
 def run_emg_main_test(data_dir):
     os.chdir(blech_clust_dir)
@@ -991,6 +990,25 @@ def emg_only_test():
         except:
             print('Failed to run QDA test')
 
+
+@flow(log_prints=True)
+def ephys_data_test():
+    """Run tests specifically for the ephys_data class"""
+    if break_bool:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running ephys_data tests with file type: {file_type}")
+            prep_data_flow(file_type, data_type='emg_spike')
+            test_ephys_data(data_dir)
+    else:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running ephys_data tests with file type: {file_type}")
+            try:
+                prep_data_flow(file_type, data_type='emg_spike')
+                test_ephys_data(data_dir)
+            except Exception as e:
+                print(f'Failed to run ephys_data test: {e}')
 
 @flow(log_prints=True)
 def full_test():
