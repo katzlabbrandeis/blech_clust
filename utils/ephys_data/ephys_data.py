@@ -329,6 +329,10 @@ class ephys_data():
                                 calculation
         sampling_rate :: params :: In ms, To calculate total number of bins
         spike_array :: params :: N-D array with time as last dimension
+        
+        Returns:
+            firing_rate: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in ms)
         """
 
         if np.sum([step_size % dt, window_size % dt]) > 1e-14:
@@ -352,13 +356,21 @@ class ephys_data():
             firing_rate[..., bin_inds[0]//fin_step_size] = \
                 np.sum(spike_array[..., bin_inds[0]:bin_inds[1]], axis=-1)
 
-        return firing_rate
+        # Calculate time vector relative to stimulus delivery
+        # Center of each bin in milliseconds
+        time_vector = np.arange(0, total_bins) * step_size + window_size/2
+
+        return firing_rate, time_vector
 
     @staticmethod
     def _calc_baks_rate(resolution, dt, spike_array):
         """
         resolution : resolution of output firing rate (sec)
         dt : resolution of input spike trains (sec)
+        
+        Returns:
+            firing_rate_array: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in sec)
         """
         t = np.arange(0, spike_array.shape[-1]*dt, resolution)
         array_inds = list(np.ndindex((spike_array.shape[:-1])))
@@ -372,7 +384,11 @@ class ephys_data():
         firing_rate_array = np.zeros((*spike_array.shape[:-1], len(t)))
         for this_inds, this_firing in zip(array_inds, firing_rates):
             firing_rate_array[this_inds] = this_firing
-        return firing_rate_array
+        
+        # Time vector is already calculated as t (in seconds)
+        time_vector = t
+        
+        return firing_rate_array, time_vector
 
     @staticmethod
     def get_hdf5_path(data_dir):
@@ -703,25 +719,25 @@ class ephys_data():
 
             # If all good, define the function to be used
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_conv_rates(
                         step_size=self.firing_rate_params['step_size'],
                         window_size=self.firing_rate_params['window_size'],
                         dt=self.firing_rate_params['dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         if params['type'] == 'baks':
             param_name_list = ['baks_resolution', 'baks_dt']
             check_firing_rate_params(params, param_name_list)
 
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_baks_rate(
                         resolution=self.firing_rate_params['baks_resolution'],
                         dt=self.firing_rate_params['baks_dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         return calc_firing_func
 
@@ -740,6 +756,7 @@ class ephys_data():
             - normalized_firing : 4D array of normalized firing rates
             - all_firing_array : 3D array of all firing rates
             - all_normalized_firing : 3D array of all normalized firing rates
+            - time_vector : 1D array of time points relative to stimulus delivery
         """
 
         if 'spikes' not in dir(self):
@@ -754,7 +771,10 @@ class ephys_data():
             self.firing_rate_params = self.default_firing_params
 
         calc_firing_func = self.firing_rate_method_selector()
-        self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
+        results = [calc_firing_func(spikes) for spikes in self.spikes]
+        self.firing_list = [result[0] for result in results]
+        # Store the time vector from the first result (they should all be the same)
+        self.time_vector = results[0][1]
         # self.firing_list = [self._calc_conv_rates(
         #    step_size = self.firing_rate_params['step_size'],
         #    window_size = self.firing_rate_params['window_size'],
