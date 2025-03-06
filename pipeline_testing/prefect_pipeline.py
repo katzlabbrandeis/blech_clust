@@ -461,7 +461,7 @@ def test_ephys_data(data_dir):
     dat.get_spikes()
     dat.get_firing_rates()
     dat.get_lfps()
-    
+
     # Test laser-related methods if laser exists
     print("Testing laser functionality...")
     dat.check_laser()
@@ -472,7 +472,7 @@ def test_ephys_data(data_dir):
         dat.separate_laser_lfp()
     else:
         print("No laser detected, skipping laser-specific methods")
-    
+
     # Test region/electrode handling
     print("Testing region/electrode handling...")
     dat.get_info_dict()
@@ -483,12 +483,12 @@ def test_ephys_data(data_dir):
     dat.get_region_firing()
     dat.return_region_lfps()
     dat.return_representative_lfp_channels()
-    
+
     # Test STFT functionality
     print("Testing STFT functionality...")
     dat.get_stft()
     dat.get_mean_stft_amplitude()
-    
+
     # Test trial sequestering
     print("Testing trial sequestering...")
     try:
@@ -499,14 +499,14 @@ def test_ephys_data(data_dir):
         dat.get_sequestered_data()
     except Exception as e:
         print(f"Trial sequestering failed with error: {e}")
-    
+
     # Test palatability calculation
     print("Testing palatability calculation...")
     try:
         dat.calc_palatability()
     except Exception as e:
         print(f"Palatability calculation failed with error: {e}")
-    
+
     print("Ephys data testing complete!")
 
 ############################################################
@@ -997,6 +997,7 @@ def ephys_data_test():
                 test_ephys_data(data_dir)
             except Exception as e:
                 print(f'Failed to run ephys_data test: {e}')
+
 
 @flow(log_prints=True)
 def full_test():
