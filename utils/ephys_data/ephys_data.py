@@ -329,7 +329,6 @@ class ephys_data():
                                 calculation
         sampling_rate :: params :: In ms, To calculate total number of bins
         spike_array :: params :: N-D array with time as last dimension
-
         Returns:
             firing_rate: Calculated firing rates
             time_vector: Time vector relative to stimulus delivery (in ms)
@@ -368,7 +367,6 @@ class ephys_data():
         """
         resolution : resolution of output firing rate (sec)
         dt : resolution of input spike trains (sec)
-
         Returns:
             firing_rate_array: Calculated firing rates
             time_vector: Time vector relative to stimulus delivery (in sec)
