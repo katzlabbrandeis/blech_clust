@@ -513,7 +513,6 @@ def test_ephys_data(data_dir):
     print("Ephys data tests complete!")
     print("Test results:")
     print(ephys_test_df)
-
     print("Ephys data testing complete!")
 
     # If any tests fail, raise an error
@@ -1010,6 +1009,7 @@ def ephys_data_test():
                 test_ephys_data(data_dir)
             except Exception as e:
                 print(f'Failed to run ephys_data test: {e}')
+
 
 @flow(log_prints=True)
 def full_test():
