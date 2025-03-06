@@ -44,122 +44,70 @@ jobs:
         run: |
           echo "Running installation for tag ${{ github.ref }}"
           make clean
-      - name: Install dependencies
+      - name: Install all dependencies
         working-directory: /home/exouser/Desktop/blech_clust
         run: |
           make base
-      - name: Install EMG
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
           make emg
-      - name: Install neuRecommend
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
           make neurec
-      - name: Install BlechRNN
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
           make blechrnn
-      - name: Install Prefect
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
           make prefect
-      - name: Patch dependencies
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
           make patch
-  Spike-Only-Install:
+  Test-Suite-Install:
     runs-on: self-hosted
     needs: Install
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test spike sorting pipeline in isolation
     if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
-    steps:
-      - name: Prefect SPIKE only test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -s 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only-Install:
-    runs-on: self-hosted
-    needs: Spike-Only-Install
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type: [spike, emg, spike-emg]
+        include:
+          - test-type: spike
+            command: -s
+            display-name: "SPIKE only"
+          - test-type: emg
+            command: -e
+            display-name: "EMG only"
+          - test-type: spike-emg
+            command: --spike-emg
+            display-name: "SPIKE then EMG"
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} emg
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.test-type }}
       cancel-in-progress: true
-    # Test EMG analysis pipeline in isolation
     steps:
-      - name: Prefect EMG only test
+      - name: Prefect ${{ matrix.display-name }} test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py ${{ matrix.command }} 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  Spike-EMG-Install:
-    runs-on: self-hosted
-    needs: EMG-Only-Install
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
-      cancel-in-progress: true
-    # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
-    steps:
-      - name: Prefect SPIKE then EMG test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
-  Spike-Only:
+  Test-Suite:
     runs-on: self-hosted
     needs: Preamble
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test spike sorting pipeline in isolation
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type: [spike, emg, spike-emg]
+        include:
+          - test-type: spike
+            command: -s
+            display-name: "SPIKE only"
+          - test-type: emg
+            command: -e
+            display-name: "EMG only"
+          - test-type: spike-emg
+            command: --spike-emg
+            display-name: "SPIKE then EMG"
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.test-type }}
+      cancel-in-progress: true
     steps:
-      - name: Prefect SPIKE only test
+      - name: Prefect ${{ matrix.display-name }} test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -s 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only:
-    runs-on: self-hosted
-    needs: Spike-Only
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test EMG analysis pipeline in isolation
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
-    steps:
-      - name: Prefect EMG only test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
-  Spike-EMG:
-    runs-on: self-hosted
-    needs: EMG-Only
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
-    steps:
-      - name: Prefect SPIKE then EMG test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py ${{ matrix.command }} 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
