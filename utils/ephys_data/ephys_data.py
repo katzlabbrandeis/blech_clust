@@ -367,10 +367,6 @@ class ephys_data():
         """
         resolution : resolution of output firing rate (sec)
         dt : resolution of input spike trains (sec)
-<<<<<<< HEAD
-=======
-
->>>>>>> 0956f49 ([pre-commit.ci] auto fixes from pre-commit.com hooks)
         Returns:
             firing_rate_array: Calculated firing rates
             time_vector: Time vector relative to stimulus delivery (in sec)
