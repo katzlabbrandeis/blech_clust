@@ -431,7 +431,7 @@ class ephys_data():
         json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_ins']
+            taste_dig_ins = json_dict['taste_params']['dig_in_nums']
         else:
             raise Exception("Cannot find json file. Make sure it's present")
         # Add final argument to argument list
