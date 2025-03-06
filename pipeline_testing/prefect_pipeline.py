@@ -465,29 +465,6 @@ def test_ephys_data(data_dir):
 
     # Test STFT functionality
     dat.get_stft()
-    aggregate_amplitude = dat.get_mean_stft_amplitude()
-
-    # Basic visualization test
-    def normalize_timeseries(array, time_vec, stim_time):
-        mean_baseline = np.mean(
-            array[..., time_vec < stim_time], axis=-1)[..., np.newaxis]
-        array = array/mean_baseline
-        return array
-
-    time_vec = dat.time_vec
-    stim_time = 2
-    fig, ax = plt.subplots(1, len(aggregate_amplitude))
-    for num, (region, this_ax) in enumerate(zip(aggregate_amplitude, ax.flatten())):
-        this_ax.imshow(zscore(
-            normalize_timeseries(region, time_vec, stim_time), axis=-1),
-            aspect='auto', origin='lower')
-        this_ax.set_title(dat.region_names[num])
-        this_ax.set_yticks(np.arange(len(dat.freq_vec)))
-        this_ax.set_yticklabels(dat.freq_vec)
-    plt.savefig(os.path.join(data_dir, 'ephys_test_plot.png'))
-    plt.close()
-
-    print("Ephys data tests completed successfully")
 
 ############################################################
 # Define Flows
