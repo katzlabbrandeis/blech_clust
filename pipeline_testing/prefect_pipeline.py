@@ -26,6 +26,8 @@ parser.add_argument('--all', action='store_true',
                     help='Run all tests')
 parser.add_argument('--spike-emg', action='store_true',
                     help='Run spike + emg in single test')
+parser.add_argument('--ephys-data', action='store_true',
+                    help='Run ephys_data class tests only')
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
 args = parser.parse_args()
@@ -399,17 +401,58 @@ def test_ephys_data(data_dir):
     dat.firing_rate_params = dat.default_firing_params
 
     # Test core functionality
+    print("Testing core functionality...")
     dat.get_unit_descriptors()
     dat.get_spikes()
     dat.get_firing_rates()
     dat.get_lfps()
-
+    
+    # Test laser-related methods if laser exists
+    print("Testing laser functionality...")
+    dat.check_laser()
+    if dat.laser_exists:
+        print("Laser detected, testing laser-specific methods...")
+        dat.separate_laser_spikes()
+        dat.separate_laser_firing()
+        dat.separate_laser_lfp()
+    else:
+        print("No laser detected, skipping laser-specific methods")
+    
     # Test region/electrode handling
+    print("Testing region/electrode handling...")
+    dat.get_info_dict()
+    dat.get_region_electrodes()
     dat.get_region_units()
     dat.get_lfp_electrodes()
-
+    dat.return_region_spikes()
+    dat.get_region_firing()
+    dat.return_region_lfps()
+    dat.return_representative_lfp_channels()
+    
     # Test STFT functionality
+    print("Testing STFT functionality...")
     dat.get_stft()
+    dat.get_mean_stft_amplitude()
+    
+    # Test trial sequestering
+    print("Testing trial sequestering...")
+    try:
+        dat.get_trial_info_frame()
+        dat.sequester_trial_inds()
+        dat.get_sequestered_spikes()
+        dat.get_sequestered_firing()
+        dat.get_sequestered_data()
+    except Exception as e:
+        print(f"Trial sequestering failed with error: {e}")
+    
+    # Test palatability calculation
+    print("Testing palatability calculation...")
+    try:
+        dat.calc_palatability()
+    except Exception as e:
+        print(f"Palatability calculation failed with error: {e}")
+    
+    print("Ephys data testing complete!")
 
 ############################################################
 # Define Flows
@@ -696,11 +739,31 @@ def emg_only_test():
 
 
 @flow(log_prints=True)
+def ephys_data_test():
+    """Run tests specifically for the ephys_data class"""
+    if break_bool:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running ephys_data tests with file type: {file_type}")
+            prep_data_flow(file_type, data_type='emg_spike')
+            test_ephys_data(data_dir)
+    else:
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            print(f"Running ephys_data tests with file type: {file_type}")
+            try:
+                prep_data_flow(file_type, data_type='emg_spike')
+                test_ephys_data(data_dir)
+            except Exception as e:
+                print(f'Failed to run ephys_data test: {e}')
+
+@flow(log_prints=True)
 def full_test():
     if break_bool:
         spike_only_test()
         emg_only_test()
         spike_emg_test()
+        ephys_data_test()
     else:
         try:
             spike_only_test()
@@ -714,6 +777,10 @@ def full_test():
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
+        try:
+            ephys_data_test()
+        except:
+            print('Failed to run ephys_data test')
 
 
 ############################################################
@@ -744,3 +811,6 @@ elif args.stft:
 elif args.spike_emg:
     print('Running spike then emg test')
     spike_emg_test(return_state=True)
+elif args.ephys_data:
+    print('Running ephys_data class tests only')
+    ephys_data_test(return_state=True)
