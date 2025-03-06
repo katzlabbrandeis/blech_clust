@@ -480,6 +480,7 @@ def run_spike_test(data_dir):
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
 
+
 @flow(log_prints=True)
 def run_emg_main_test(data_dir):
     os.chdir(blech_clust_dir)
