@@ -491,21 +491,15 @@ def test_ephys_data(data_dir):
 
     # Test trial sequestering
     print("Testing trial sequestering...")
-    try:
-        dat.get_trial_info_frame()
-        dat.sequester_trial_inds()
-        dat.get_sequestered_spikes()
-        dat.get_sequestered_firing()
-        dat.get_sequestered_data()
-    except Exception as e:
-        print(f"Trial sequestering failed with error: {e}")
+    dat.get_trial_info_frame()
+    dat.sequester_trial_inds()
+    dat.get_sequestered_spikes()
+    dat.get_sequestered_firing()
+    dat.get_sequestered_data()
 
     # Test palatability calculation
     print("Testing palatability calculation...")
-    try:
-        dat.calc_palatability()
-    except Exception as e:
-        print(f"Palatability calculation failed with error: {e}")
+    dat.calc_palatability()
 
     print("Ephys data testing complete!")
 
@@ -978,33 +972,11 @@ def emg_only_test():
         except:
             print('Failed to run QDA test')
 
-
-@flow(log_prints=True)
-def ephys_data_test():
-    """Run tests specifically for the ephys_data class"""
-    if break_bool:
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            print(f"Running ephys_data tests with file type: {file_type}")
-            prep_data_flow(file_type, data_type='emg_spike')
-            test_ephys_data(data_dir)
-    else:
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            print(f"Running ephys_data tests with file type: {file_type}")
-            try:
-                prep_data_flow(file_type, data_type='emg_spike')
-                test_ephys_data(data_dir)
-            except Exception as e:
-                print(f'Failed to run ephys_data test: {e}')
-
-
 @flow(log_prints=True)
 def full_test():
     if break_bool:
         spike_emg_test()
         emg_only_test()
-
     else:
         try:
             spike_emg_test()
