@@ -49,6 +49,10 @@ def main():
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write('"""\nAutomatically generated file containing all unique imports found in the codebase.\n')
         f.write('This file is for testing dependency resolution and import availability.\n"""\n\n')
+        f.write('import os\n')
+        f.write('import sys\n\n')
+        f.write('# Add parent directory (blech_clust) to path\n')
+        f.write('sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))\n\n')
         f.write('# Standard library imports\n')
         
         # Process each import
