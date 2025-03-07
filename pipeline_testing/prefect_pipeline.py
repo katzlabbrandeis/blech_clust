@@ -990,6 +990,7 @@ def emg_only_test():
         except:
             print('Failed to run QDA test')
 
+
 @flow(log_prints=True)
 def full_test():
     if break_bool:
