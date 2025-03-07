@@ -33,7 +33,7 @@ from prefect import flow, task  # noqa
 from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
-from create_exp_info_commands import command_dict  # noqa
+from utils.create_exp_info_commands import command_dict  # noqa
 
 print(args.raise_exception)
 break_bool = args.raise_exception
@@ -151,7 +151,7 @@ def prep_data_info(
 ############################################################
 @task(log_prints=True)
 def reset_blech_clust(data_dir):
-    script_name = './pipeline_testing/reset_blech_clust.py'
+    script_name = './utils/reset_blech_clust.py'
     process = Popen(["python", script_name],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -169,7 +169,7 @@ def run_clean_slate(data_dir):
 
 @task(log_prints=True)
 def mark_exp_info_success(data_dir):
-    script_name = './pipeline_testing/mark_exp_info_success.py'
+    script_name = './utils/mark_exp_info_success.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -209,7 +209,7 @@ def run_CAR(data_dir):
 
 @task(log_prints=True)
 def change_waveform_classifier(data_dir, use_classifier=1):
-    script_name = 'pipeline_testing/change_waveform_classifier.py'
+    script_name = 'utils/change_waveform_classifier.py'
     process = Popen(["python", script_name, str(use_classifier)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -218,7 +218,7 @@ def change_waveform_classifier(data_dir, use_classifier=1):
 
 @task(log_prints=True)
 def change_auto_params(data_dir, use_auto=1):
-    script_name = 'pipeline_testing/change_auto_params.py'
+    script_name = 'utils/change_auto_params.py'
     process = Popen(["python", script_name, data_dir, str(use_auto), str(use_auto)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -236,7 +236,7 @@ def run_jetstream_bash(data_dir):
 
 @task(log_prints=True)
 def select_clusters(data_dir):
-    script_name = 'pipeline_testing/select_some_waveforms.py'
+    script_name = 'utils/select_some_waveforms.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -294,7 +294,7 @@ def units_characteristics(data_dir):
 
 @task(log_prints=True)
 def change_emg_freq_method(data_dir, use_BSA=1):
-    script_name = 'pipeline_testing/change_emg_freq_method.py'
+    script_name = 'utils/change_emg_freq_method.py'
     process = Popen(["python", script_name, str(use_BSA)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -303,7 +303,7 @@ def change_emg_freq_method(data_dir, use_BSA=1):
 
 @task(log_prints=True)
 def cut_emg_trials(data_dir):
-    script_name = 'pipeline_testing/cut_emg_trials.py'
+    script_name = 'utils/cut_emg_trials.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
