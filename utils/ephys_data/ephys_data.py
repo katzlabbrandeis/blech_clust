@@ -229,7 +229,8 @@ class ephys_data():
         hdf5_path = glob.glob(
             os.path.join(data_dir, '**.h5'))
         if not len(hdf5_path) > 0:
-            raise Exception('No HDF5 file detected')
+            raise Exception('No HDF5 file detected' +
+                            f'Looking in {data_dir}')
         elif len(hdf5_path) > 1:
             selection_list = ['{}) {} \n'.format(num, os.path.basename(file))
                               for num, file in enumerate(hdf5_path)]
@@ -1134,3 +1135,56 @@ class ephys_data():
         """
         self.get_sequestered_spikes()
         self.get_sequestered_firing()
+
+    def get_stable_units(self, p_val_threshold=0.05):
+        """
+        Load drift check results from a CSV file and mark units as stable or unstable
+        based on a p-value threshold.
+
+        Parameters:
+        -----------
+        p_val_threshold : float, default=0.05
+            Threshold for p-value to determine stability.
+            Units with p-values >= p_val_threshold are considered stable.
+
+        Returns:
+        --------
+        None
+            Results are stored as class attributes:
+            - drift_results: DataFrame containing the loaded CSV data
+            - stable_units: Boolean array indicating which units are stable
+            - unstable_units: Boolean array indicating which units are unstable
+
+        Example:
+        --------
+        >>> data = ephys_data(data_dir='/path/to/data')
+        >>> data.get_stable_units('/path/to/drift_results.csv')
+        >>> # Access stable units
+        >>> stable_unit_indices = np.where(data.stable_units)[0]
+        """
+
+        csv_path = os.path.join(
+            self.data_dir, 'QA_output', 'post_drift_p_vals.csv')
+
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(
+                f"Drift check results file not found: {csv_path}")
+
+        # Load the CSV file
+        self.drift_results = pd.read_csv(csv_path, index_col=0)
+
+        # Rename "trial_bin" column to "p_val"
+        self.drift_results.rename(columns={'trial_bin': 'p_val'}, inplace=True)
+
+        # Mark stable
+        self.drift_results['stable'] = self.drift_results['p_val'] >= p_val_threshold
+
+        # Get the indices of stable and unstable units
+        self.stable_units = self.drift_results[self.drift_results['stable']]['unit'].values
+        self.unstable_units = self.drift_results[~self.drift_results['stable']]['unit'].values
+
+        print(
+            f"Loaded drift check results for {len(self.drift_results)} units")
+        print(
+            f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
+        print(f"Using p-value threshold of {p_val_threshold}")
