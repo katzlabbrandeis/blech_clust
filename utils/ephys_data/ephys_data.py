@@ -1173,8 +1173,11 @@ class ephys_data():
         # Load the CSV file
         self.drift_results = pd.read_csv(csv_path, index_col=0)
 
+        # Rename "trial_bin" column to "p_val"
+        self.drift_results.rename(columns={'trial_bin': 'p_val'}, inplace=True)
+
         # Mark stable
-        self.drift_results['stable'] = self.drift_results['trial_bin'] >= p_val_threshold
+        self.drift_results['stable'] = self.drift_results['p_val'] >= p_val_threshold
 
         # Get the indices of stable and unstable units
         self.stable_units = self.drift_results[self.drift_results['stable']]['unit'].values
