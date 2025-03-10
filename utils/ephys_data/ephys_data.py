@@ -229,7 +229,8 @@ class ephys_data():
         hdf5_path = glob.glob(
             os.path.join(data_dir, '**.h5'))
         if not len(hdf5_path) > 0:
-            raise Exception('No HDF5 file detected')
+            raise Exception('No HDF5 file detected' +
+                            f'Looking in {data_dir}')
         elif len(hdf5_path) > 1:
             selection_list = ['{}) {} \n'.format(num, os.path.basename(file))
                               for num, file in enumerate(hdf5_path)]
@@ -1173,7 +1174,7 @@ class ephys_data():
         self.drift_results = pd.read_csv(csv_path, index_col=0)
 
         # Mark stable
-        self.drift_results['stable'] = self.drift_results['p_value'] >= p_val_threshold
+        self.drift_results['stable'] = self.drift_results['trial_bin'] >= p_val_threshold
 
         # Get the indices of stable and unstable units
         self.stable_units = self.drift_results[self.drift_results['stable']]['unit'].values
@@ -1182,5 +1183,5 @@ class ephys_data():
         print(
             f"Loaded drift check results for {len(self.drift_results)} units")
         print(
-            f"Found {len(self.stable_units)} stable units and {sum(self.unstable_units)} unstable units")
+            f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
