@@ -1134,12 +1134,12 @@ class ephys_data():
         """
         self.get_sequestered_spikes()
         self.get_sequestered_firing()
-        
+
     def load_drift_check_results(self, csv_path=None, p_val_threshold=0.05):
         """
         Load drift check results from a CSV file and mark units as stable or unstable
         based on a p-value threshold.
-        
+
         Parameters:
         -----------
         csv_path : str, optional
@@ -1148,7 +1148,7 @@ class ephys_data():
         p_val_threshold : float, default=0.05
             Threshold for p-value to determine stability.
             Units with p-values >= p_val_threshold are considered stable.
-        
+
         Returns:
         --------
         None
@@ -1156,13 +1156,13 @@ class ephys_data():
             - drift_results: DataFrame containing the loaded CSV data
             - stable_units: Boolean array indicating which units are stable
             - unstable_units: Boolean array indicating which units are unstable
-        
+
         Notes:
         ------
         The CSV file should contain at minimum:
         - A column 'unit_num' or 'unit' with unit indices
         - A column 'p_value' with the drift test p-values
-        
+
         Example:
         --------
         >>> data = ephys_data(data_dir='/path/to/data')
@@ -1174,37 +1174,42 @@ class ephys_data():
             csv_path = easygui.fileopenbox(
                 'Please select drift check results CSV file',
                 filetypes=['*.csv'])
-            
+
         if not os.path.exists(csv_path):
-            raise FileNotFoundError(f"Drift check results file not found: {csv_path}")
-            
+            raise FileNotFoundError(
+                f"Drift check results file not found: {csv_path}")
+
         # Load the CSV file
         self.drift_results = pd.read_csv(csv_path)
-        
+
         # Check for required columns
         unit_col = None
         if 'unit_num' in self.drift_results.columns:
             unit_col = 'unit_num'
         elif 'unit' in self.drift_results.columns:
             unit_col = 'unit'
-        
+
         if unit_col is None:
-            raise ValueError("CSV file must contain a 'unit_num' or 'unit' column")
-            
+            raise ValueError(
+                "CSV file must contain a 'unit_num' or 'unit' column")
+
         if 'p_value' not in self.drift_results.columns:
             raise ValueError("CSV file must contain a 'p_value' column")
-        
+
         # Sort by unit number to ensure correct order
-        self.drift_results = self.drift_results.sort_values(by=unit_col).reset_index(drop=True)
-        
+        self.drift_results = self.drift_results.sort_values(
+            by=unit_col).reset_index(drop=True)
+
         # Create boolean arrays for stable and unstable units
         self.stable_units = self.drift_results['p_value'] >= p_val_threshold
         self.unstable_units = ~self.stable_units
-        
+
         # Get the indices of stable and unstable units
         self.stable_unit_indices = np.where(self.stable_units)[0]
         self.unstable_unit_indices = np.where(self.unstable_units)[0]
-        
-        print(f"Loaded drift check results for {len(self.drift_results)} units")
-        print(f"Found {sum(self.stable_units)} stable units and {sum(self.unstable_units)} unstable units")
+
+        print(
+            f"Loaded drift check results for {len(self.drift_results)} units")
+        print(
+            f"Found {sum(self.stable_units)} stable units and {sum(self.unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
