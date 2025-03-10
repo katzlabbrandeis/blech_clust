@@ -294,7 +294,8 @@ def get_clustering_params(this_sort_file_handler):
         else:
             n_clusters = int(input('Number of clusters (default=5): ') or "5")
     else:    
-        n_clusters = int(input('Number of clusters (default=5): ') or "5")    fields = [
+        n_clusters = int(input('Number of clusters (default=5): ') or "5")    
+    fields = [
         'Max iterations',
         'Convergence criterion',
         'Number of random restarts']
