@@ -157,7 +157,13 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if not '/sorted_units' in hf5:
+if '/sorted_units' in hf5:
+    overwrite_hf5 = input('Saved units detected; remove them? (y/[n]): ') or 'n'
+    if overwrite_hf5.lower() == 'y':
+        hf5.remove_node('/sorted_units', recursive=True)
+        hf5.create_group('/', 'sorted_units')
+        print('==== Cleared saved units. ====\n')
+else:
     hf5.create_group('/', 'sorted_units')
 
 ############################################################
@@ -234,7 +240,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         ##############################
         # Get clustering parameters from user
         continue_bool, n_clusters, n_iter, thresh, n_restarts = \
-            post_utils.get_clustering_params()
+            post_utils.get_clustering_params(this_sort_file_handler)
         if not continue_bool:
             continue
 
@@ -406,8 +412,8 @@ while (not auto_post_process) or (args.sort_file is not None):
 
     hf5.flush()
 
-    print('==== {} Complete ===\n'.format(unit_name))
-    print('==== Iteration Ended ===\n')
+    print('==== {} Complete ====\n'.format(unit_name))
+    print('==== Iteration Ended ====\n')
 
 # Run auto-processing only if clustering was ALSO automatic
 # As currently, this does not have functionality to determine
@@ -544,7 +550,7 @@ current_unit_table.to_csv(
 
 
 print()
-print('== Post-processing exiting ==')
+print('==== Post-processing exiting ====\n')
 # Close the hdf5 file
 hf5.close()
 
