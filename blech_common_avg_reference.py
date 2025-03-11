@@ -104,13 +104,14 @@ def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=1000
 
     # Calculate correlation matrix between electrodes
     corr_matrix = np.corrcoef(electrode_data)
-    
+
     # Apply PCA to the correlation matrix to retain 95% of variance
     pca = PCA(n_components=0.95)
     features = pca.fit_transform(corr_matrix)
-    
-    print(f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
-    
+
+    print(
+        f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
+
     return features
 
 
@@ -216,34 +217,35 @@ def plot_electrode_clusters(features, predictions, electrode_indices, output_dir
 
     # Plot correlation matrix with cluster assignments
     plt.figure(figsize=(14, 12))
-    
+
     # Sort electrodes by cluster
     sorted_indices = np.argsort(predictions)
     sorted_electrodes = [electrode_indices[i] for i in sorted_indices]
-    
+
     # Create a correlation matrix for visualization (we'll recalculate it here)
     # This is just for visualization purposes
     n_electrodes = len(electrode_indices)
     corr_matrix = np.zeros((n_electrodes, n_electrodes))
-    
+
     # Fill the upper triangle with cluster information
     for i in range(n_electrodes):
         for j in range(i, n_electrodes):
             # 1 if same cluster, 0 if different
             corr_matrix[i, j] = 1 if predictions[i] == predictions[j] else 0
             corr_matrix[j, i] = corr_matrix[i, j]  # Make symmetric
-    
+
     # Plot the correlation matrix
     plt.imshow(corr_matrix, cmap='viridis', interpolation='nearest')
     plt.colorbar(label='Cluster Similarity')
-    
+
     # Add electrode labels
     plt.xticks(range(n_electrodes), electrode_indices, rotation=90, fontsize=8)
     plt.yticks(range(n_electrodes), electrode_indices, fontsize=8)
-    
+
     plt.title('Electrode Correlation Matrix (Clustered)')
     plt.tight_layout()
-    corr_plot_path = os.path.join(output_dir, 'electrode_correlation_matrix.png')
+    corr_plot_path = os.path.join(
+        output_dir, 'electrode_correlation_matrix.png')
     plt.savefig(corr_plot_path)
     plt.close()
 
@@ -256,7 +258,7 @@ def plot_electrode_clusters(features, predictions, electrode_indices, output_dir
 
     print(f"Cluster plots saved to: {cluster_plot_path} and {corr_plot_path}")
     print(f"Cluster assignments saved to: {cluster_file_path}")
-    
+
     return cluster_plot_path
 
 ############################################################
