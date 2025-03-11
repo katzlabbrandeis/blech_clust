@@ -1,0 +1,8 @@
+{
+    "auto_car_inference": true,
+    "clustering": {
+        "max_components": 10,
+        "iterations": 100,
+        "threshold": 1e-3
+    }
+}
