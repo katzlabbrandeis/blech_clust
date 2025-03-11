@@ -33,9 +33,11 @@ parser.add_argument('--concentrations',
 parser.add_argument(
     '--palatability', help='Comma-separated palatability rankings')
 parser.add_argument('--laser-digin', help='Laser digital input index')
-parser.add_argument('--laser-params', help='Multiple laser parameters as (onset,duration) pairs in ms, comma-separated: (100,500),(200,300)')
+parser.add_argument(
+    '--laser-params', help='Multiple laser parameters as (onset,duration) pairs in ms, comma-separated: (100,500),(200,300)')
 parser.add_argument('--virus-region', help='Virus region')
-parser.add_argument('--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
+parser.add_argument(
+    '--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
 parser.add_argument('--notes', help='Experiment notes')
 args = parser.parse_args()
 
@@ -64,6 +66,7 @@ def parse_csv(s, convert=str):
         return []
     return [convert(x.strip()) for x in s.split(',')]
 
+
 def parse_laser_params(s):
     """Parse laser parameters in format (onset,duration),(onset,duration)"""
     if not s:
@@ -72,7 +75,8 @@ def parse_laser_params(s):
     pattern = re.compile(r'\((\d+),(\d+)\)')
     matches = pattern.findall(s)
     if not matches:
-        raise ValueError("Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
+        raise ValueError(
+            "Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
     # Convert to integers and return as list of tuples
     return [(int(onset), int(duration)) for onset, duration in matches]
 
@@ -333,22 +337,22 @@ else:
             # Ask for laser parameters - allow multiple entries
             laser_params_list = []
             opto_loc_list = []
-            
+
             while True:
                 # Ask for laser parameters
                 laser_select_str, continue_bool = entry_checker(
                     msg='Laser onset_time, duration (ms, IN ORDER, anything separated) or "done" to finish :: ',
                     check_func=lambda x: laser_check(x) or x.lower() == 'done',
                     fail_response='Please enter two valid integers or "done"')
-                
+
                 if laser_select_str.lower() == 'done':
                     break
-                    
+
                 if continue_bool:
                     nums = re.findall('[0-9]+', laser_select_str)
                     onset_time, duration = [int(x) for x in nums]
                     laser_params_list.append((onset_time, duration))
-                    
+
                     # Ask for opto-fiber location for this condition
                     opto_loc_entry, continue_bool = entry_checker(
                         msg='Enter opto-fiber location for this condition :: ',
@@ -360,12 +364,12 @@ else:
                         exit()
                 else:
                     exit()
-            
+
             # If no entries were made, exit
             if not laser_params_list:
                 print("No laser parameters entered.")
                 exit()
-                
+
             # Ask for virus region (common for all conditions)
             virus_region_str, continue_bool = entry_checker(
                 msg='Enter virus region :: ',
@@ -373,30 +377,36 @@ else:
                 fail_response='Please enter a valid region')
             if not continue_bool:
                 exit()
-                
+
         else:
             # Programmatic mode
             if args.laser_params:
                 laser_params_list = parse_laser_params(args.laser_params)
                 if not laser_params_list:
-                    raise ValueError('Invalid laser parameters format. Use format: (onset1,duration1),(onset2,duration2)')
+                    raise ValueError(
+                        'Invalid laser parameters format. Use format: (onset1,duration1),(onset2,duration2)')
             else:
-                raise ValueError('Laser parameters not provided, use --laser-params')
-                
+                raise ValueError(
+                    'Laser parameters not provided, use --laser-params')
+
             if args.virus_region:
                 virus_region_str = args.virus_region
             else:
-                raise ValueError('Virus region not provided, use --virus-region')
-                
+                raise ValueError(
+                    'Virus region not provided, use --virus-region')
+
             if args.opto_loc:
                 opto_loc_list = parse_csv(args.opto_loc)
                 if len(opto_loc_list) != len(laser_params_list):
-                    raise ValueError('Number of opto locations must match number of laser parameter pairs')
+                    raise ValueError(
+                        'Number of opto locations must match number of laser parameter pairs')
             else:
-                raise ValueError('Opto-fiber locations not provided, use --opto-loc')
+                raise ValueError(
+                    'Opto-fiber locations not provided, use --opto-loc')
 
         # Fill in laser parameters - store as list of parameter pairs
-        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str(laser_params_list)
+        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str(
+            laser_params_list)
     else:
         laser_params_list = []
         virus_region_str = ''
@@ -582,8 +592,8 @@ else:
                 'laser_params': {
                     'dig_in_nums': laser_digin_nums,
                     'trial_count': laser_digin_trials,
-                    'conditions': [{'onset': params[0], 'duration': params[1], 'opto_loc': loc} 
-                                  for params, loc in zip(laser_params_list, opto_loc_list)] if laser_params_list else [],
+                    'conditions': [{'onset': params[0], 'duration': params[1], 'opto_loc': loc}
+                                   for params, loc in zip(laser_params_list, opto_loc_list)] if laser_params_list else [],
                     'virus_region': virus_region_str},
                 'notes': notes}
 
