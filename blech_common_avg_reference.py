@@ -66,7 +66,7 @@ def get_electrode_by_name(raw_electrodes, name):
 
 def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=10000):
     """
-    Extract features from electrode data for clustering
+    Extract features from electrode data for clustering using correlation matrix and PCA
 
     Parameters:
     -----------
@@ -80,33 +80,37 @@ def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=1000
     Returns:
     --------
     features : numpy.ndarray
-        Array of features for each electrode
+        Array of features for each electrode after PCA
     """
-    print("Extracting features from electrodes for clustering...")
+    print("Extracting features from electrodes using correlation matrix and PCA...")
 
-    # Initialize features array
+    # Initialize data array to store electrode signals
     n_electrodes = len(electrode_indices)
-    features = np.zeros((n_electrodes, 4))
+    electrode_data = np.zeros((n_electrodes, n_samples))
 
     for i, electrode_idx in enumerate(tqdm(electrode_indices)):
         # Get electrode data
-        electrode_data = get_electrode_by_name(
+        full_data = get_electrode_by_name(
             raw_electrodes, electrode_idx)[:]
 
         # Subsample if needed
-        if len(electrode_data) > n_samples:
+        if len(full_data) > n_samples:
             indices = np.random.choice(
-                len(electrode_data), n_samples, replace=False)
-            electrode_data = electrode_data[indices]
+                len(full_data), n_samples, replace=False)
+            electrode_data[i, :] = full_data[indices]
+        else:
+            # If data is shorter than n_samples, pad with zeros
+            electrode_data[i, :len(full_data)] = full_data[:n_samples]
 
-        # Extract features
-        features[i, 0] = np.mean(electrode_data)  # Mean
-        features[i, 1] = np.std(electrode_data)   # Standard deviation
-        features[i, 2] = np.median(
-            np.abs(electrode_data - np.median(electrode_data)))  # MAD
-        features[i, 3] = np.percentile(
-            np.abs(electrode_data), 95)  # 95th percentile
-
+    # Calculate correlation matrix between electrodes
+    corr_matrix = np.corrcoef(electrode_data)
+    
+    # Apply PCA to the correlation matrix to retain 95% of variance
+    pca = PCA(n_components=0.95)
+    features = pca.fit_transform(corr_matrix)
+    
+    print(f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
+    
     return features
 
 
@@ -117,7 +121,7 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
     Parameters:
     -----------
     features : numpy.ndarray
-        Array of features for each electrode
+        Array of features for each electrode (from PCA on correlation matrix)
     n_components : int
         Maximum number of components for the Bayesian Gaussian Mixture model
     n_iter : int
@@ -131,18 +135,20 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
         Array of cluster assignments for each electrode
     model : BayesianGaussianMixture
         Fitted model
+    reduced_features : numpy.ndarray
+        Features reduced to 2D for visualization
     """
     print("Clustering electrodes...")
 
-    # Standardize features
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(features)
+    # No need to standardize features as they're already from PCA
+    # But we'll reduce to 2D for visualization if dimensions are higher
+    if features.shape[1] > 2:
+        pca_viz = PCA(n_components=2)
+        reduced_features = pca_viz.fit_transform(features)
+    else:
+        reduced_features = features.copy()
 
-    # Apply PCA for dimensionality reduction
-    pca = PCA(n_components=2)
-    reduced_features = pca.fit_transform(scaled_features)
-
-    # Fit Bayesian Gaussian Mixture model
+    # Fit Bayesian Gaussian Mixture model on the full feature set
     model = BayesianGaussianMixture(
         n_components=n_components,
         covariance_type='full',
@@ -152,17 +158,17 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
         weight_concentration_prior_type='dirichlet_process',
         weight_concentration_prior=1e-2
     )
-    model.fit(scaled_features)
+    model.fit(features)
 
     # Get cluster assignments
-    predictions = model.predict(scaled_features)
+    predictions = model.predict(features)
 
     return predictions, model, reduced_features
 
 
 def plot_electrode_clusters(features, predictions, electrode_indices, output_dir):
     """
-    Plot electrode clusters
+    Plot electrode clusters and correlation matrix
 
     Parameters:
     -----------
@@ -175,9 +181,13 @@ def plot_electrode_clusters(features, predictions, electrode_indices, output_dir
     output_dir : str
         Directory to save the plot
     """
-    print("Plotting electrode clusters...")
+    print("Plotting electrode clusters and correlation matrix...")
 
-    # Create figure
+    # Create output directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Create figure for cluster plot
     plt.figure(figsize=(12, 10))
 
     # Plot clusters
@@ -200,12 +210,54 @@ def plot_electrode_clusters(features, predictions, electrode_indices, output_dir
 
     # Save figure
     plt.tight_layout()
-    plot_path = os.path.join(output_dir, 'electrode_clusters.png')
-    plt.savefig(plot_path)
+    cluster_plot_path = os.path.join(output_dir, 'electrode_clusters.png')
+    plt.savefig(cluster_plot_path)
     plt.close()
 
-    print(f"Cluster plot saved to: {plot_path}")
-    return plot_path
+    # Plot correlation matrix with cluster assignments
+    plt.figure(figsize=(14, 12))
+    
+    # Sort electrodes by cluster
+    sorted_indices = np.argsort(predictions)
+    sorted_electrodes = [electrode_indices[i] for i in sorted_indices]
+    
+    # Create a correlation matrix for visualization (we'll recalculate it here)
+    # This is just for visualization purposes
+    n_electrodes = len(electrode_indices)
+    corr_matrix = np.zeros((n_electrodes, n_electrodes))
+    
+    # Fill the upper triangle with cluster information
+    for i in range(n_electrodes):
+        for j in range(i, n_electrodes):
+            # 1 if same cluster, 0 if different
+            corr_matrix[i, j] = 1 if predictions[i] == predictions[j] else 0
+            corr_matrix[j, i] = corr_matrix[i, j]  # Make symmetric
+    
+    # Plot the correlation matrix
+    plt.imshow(corr_matrix, cmap='viridis', interpolation='nearest')
+    plt.colorbar(label='Cluster Similarity')
+    
+    # Add electrode labels
+    plt.xticks(range(n_electrodes), electrode_indices, rotation=90, fontsize=8)
+    plt.yticks(range(n_electrodes), electrode_indices, fontsize=8)
+    
+    plt.title('Electrode Correlation Matrix (Clustered)')
+    plt.tight_layout()
+    corr_plot_path = os.path.join(output_dir, 'electrode_correlation_matrix.png')
+    plt.savefig(corr_plot_path)
+    plt.close()
+
+    # Save cluster assignments to a text file
+    cluster_file_path = os.path.join(output_dir, 'electrode_clusters.txt')
+    with open(cluster_file_path, 'w') as f:
+        f.write("Electrode,Cluster\n")
+        for i, electrode_idx in enumerate(electrode_indices):
+            f.write(f"{electrode_idx},{predictions[i]}\n")
+
+    print(f"Cluster plots saved to: {cluster_plot_path} and {corr_plot_path}")
+    print(f"Cluster assignments saved to: {cluster_file_path}")
+    
+    return cluster_plot_path
 
 ############################################################
 ############################################################
