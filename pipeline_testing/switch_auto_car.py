@@ -4,25 +4,6 @@ import json
 import os
 
 
-def switch_auto_car(enable: bool):
-    """
-    Function to switch auto_car on or off.
-
-    Parameters:
-    enable (bool): If True, turn auto_car on. If False, turn it off.
-
-    Returns:
-    None
-    """
-    if enable:
-        print("auto_car is now ON")
-        # Add logic to enable auto_car
-    else:
-        print("auto_car is now OFF")
-
-        # Add logic to disable auto_car
-
-
 def set_auto_car(data_dir, auto_car):
     """Set auto_car parameter in sorting params file"""
     # Get paths
@@ -33,14 +14,14 @@ def set_auto_car(data_dir, auto_car):
         params = json.load(f)
 
     # Set the value
-    params['preprocessing_params']['auto_car'] = bool(auto_car)
+    params['auto_CAR']['use_auto_CAR'] = bool(auto_car)
 
     # Write back the updated params
     with open(params_file, 'w') as f:
         json.dump(params, f, indent=4)
 
     # Print the new state
-    print(f"auto_car is now: {params['preprocessing_params']['auto_car']}")
+    print(f"auto_car is now: {params['auto_CAR']['use_auto_CAR']}")
 
 
 if __name__ == '__main__':
