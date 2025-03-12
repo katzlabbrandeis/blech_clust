@@ -1,3 +1,9 @@
+from glob import glob
+import argparse
+import json
+import os
+
+
 def switch_auto_car(enable: bool):
     """
     Function to switch auto_car on or off.
@@ -13,11 +19,8 @@ def switch_auto_car(enable: bool):
         # Add logic to enable auto_car
     else:
         print("auto_car is now OFF")
+
         # Add logic to disable auto_car
-import os
-import json
-import argparse
-from glob import glob
 
 
 def set_auto_car(data_dir, auto_car):
