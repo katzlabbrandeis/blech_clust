@@ -186,16 +186,21 @@ testing_bool = True
 if not testing_bool:
     # Get name of directory with the data files
     metadata_handler = imp_metadata(sys.argv)
+    # Define script path first
+    script_path = os.path.realpath(__file__)
+    # Get directory name from metadata handler
+    dir_name = metadata_handler.dir_name
+    # Now create pipeline check with the correct dir_name
     this_pipeline_check = pipeline_graph_check(dir_name)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
-    # Perform pipeline graph check
-    script_path = os.path.realpath(__file__)
 else:
     data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
     metadata_handler = imp_metadata([[], data_dir])
 
-dir_name = metadata_handler.dir_name
+# dir_name already defined above for non-testing case
+if testing_bool:
+    dir_name = metadata_handler.dir_name
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
