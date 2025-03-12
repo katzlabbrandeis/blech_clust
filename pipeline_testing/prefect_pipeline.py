@@ -34,6 +34,7 @@ from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
 from create_exp_info_commands import command_dict  # noqa
+from switch_auto_car import set_auto_car  # noqa
 
 print(args.raise_exception)
 break_bool = args.raise_exception
@@ -400,6 +401,12 @@ def run_spike_test(data_dir):
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
+
+    # Test with auto_car enabled
+    set_auto_car(data_dir, 1)
+    run_CAR(data_dir)
+    # Test with auto_car disabled
+    set_auto_car(data_dir, 0)
     run_CAR(data_dir)
 
     # Run with classifier enabled + autosorting
