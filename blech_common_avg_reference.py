@@ -248,7 +248,8 @@ raw_electrodes = hf5.list_nodes('/raw')
 if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
     auto_car_inference = auto_car_section.get('use_auto_CAR', False)
-    max_clusters = auto_car_section.get('max_clusters', 10)  # Default to 10 if not specified
+    max_clusters = auto_car_section.get(
+        'max_clusters', 10)  # Default to 10 if not specified
 else:
     auto_car_inference = False
     max_clusters = 10
@@ -260,13 +261,14 @@ if auto_car_inference:
     # Create a directory for cluster plots if it doesn't exist
     plots_dir = os.path.join(dir_name, 'QA_output')
     os.makedirs(plots_dir, exist_ok=True)
-    
+
     # Get correlation matrix using the utility function
     corr_mat = get_channel_corr_mat(dir_name)
     # Convert nan to 0
     corr_mat[np.isnan(corr_mat)] = 0
     # Make symmetric
-    corr_mat = (corr_mat + corr_mat.T) / 2  # Average to ensure perfect symmetry
+    # Average to ensure perfect symmetry
+    corr_mat = (corr_mat + corr_mat.T) / 2
 
     # Perform PCA - use min of 5 or the number of channels to avoid errors
     n_components = min(5, len(corr_mat) - 1)
