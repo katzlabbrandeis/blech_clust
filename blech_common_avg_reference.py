@@ -65,62 +65,6 @@ def get_electrode_by_name(raw_electrodes, name):
     return wanted_electrode_ind
 
 
-# def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=10000):
-#     """
-#     Extract features from electrode data for clustering using correlation matrix and PCA
-#
-#     Parameters:
-#     -----------
-#     raw_electrodes : list
-#         List of electrode nodes from HDF5 file
-#     electrode_indices : list
-#         List of electrode indices to extract features from
-#     n_samples : int
-#         Number of samples to use for feature extraction
-#
-#     Returns:
-#     --------
-#     features : numpy.ndarray
-#         Array of features for each electrode after PCA
-#     """
-#     print("Extracting features from electrodes using correlation matrix and PCA...")
-#
-#     # Initialize data array to store electrode signals
-#     n_electrodes = len(electrode_indices)
-#     electrode_data = np.zeros((n_electrodes, n_samples))
-#     data_len = len(get_electrode_by_name(
-#         raw_electrodes, electrode_indices[0])[:])
-#     step_size = data_len // n_samples
-#     sample_indices = np.arange(0, data_len, step_size)[:n_samples]
-#
-#     for i, electrode_idx in enumerate(tqdm(electrode_indices)):
-#         # Get electrode data
-#         full_data = get_electrode_by_name(
-#             raw_electrodes, electrode_idx)[:]
-#
-#         # Subsample if needed
-#         if len(full_data) > n_samples:
-#             electrode_data[i, :] = full_data[sample_indices]
-#         else:
-#             # If data is shorter than n_samples, pad with zeros
-#             electrode_data[i, :len(full_data)] = full_data[:n_samples]
-#
-#     # Calculate correlation matrix between electrodes
-#     corr_matrix = channel_corr.intra_corr(electrode_data)
-#     # Make nan values 0
-#     corr_matrix[np.isnan(corr_matrix)] = 0
-#     # Make sure the correlation matrix is symmetric
-#     corr_matrix = corr_matrix + corr_matrix.T
-#
-#     # Apply PCA to the correlation matrix to retain 95% of variance
-#     pca = PCA(n_components=0.95)
-#     features = pca.fit_transform(corr_matrix)
-#
-#     print(
-#         f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
-#
-#     return features
-
 def get_channel_corr_mat(data_dir):
     qa_out_path = os.path.join(data_dir, 'QA_output')
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
@@ -192,7 +136,7 @@ def plot_clustered_corr_mat(
     sorted_names = [electrode_names[i] for i in sorted_indices]
 
     # Plot clustered correlation matrix
-    fig, ax = plt.subplots(1, 3, figsize=(20, 10),
+    fig, ax = plt.subplots(1, 3, figsize=(24, 8),
                            # gridspec_kw={'width_ratios': [1, 1, 0.1]}
                            )
     ax[0].imshow(corr_matrix, cmap=cmap)
@@ -230,7 +174,7 @@ def plot_clustered_corr_mat(
             this_ax.axhline(y=i+0.5, color='black', linewidth=0.5)
 
     plt.tight_layout()
-    plt.savefig(plot_path)
+    plt.savefig(plot_path, bbox_inches='tight')
     plt.close()
 
 ############################################################
