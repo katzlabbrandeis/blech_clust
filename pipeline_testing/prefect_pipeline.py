@@ -34,6 +34,7 @@ from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
 from create_exp_info_commands import command_dict  # noqa
+from switch_auto_car import set_auto_car  # noqa
 
 print(args.raise_exception)
 break_bool = args.raise_exception
@@ -402,6 +403,9 @@ def run_spike_test(data_dir):
     run_blech_clust(data_dir)
     run_CAR(data_dir)
 
+    # Test with auto_car enabled
+    set_auto_car(data_dir, 1)
+    
     # Run with classifier enabled + autosorting
     change_waveform_classifier(data_dir, use_classifier=1)
     change_auto_params(data_dir, use_auto=1)
@@ -409,6 +413,9 @@ def run_spike_test(data_dir):
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file=False, keep_raw=True)
 
+    # Test with auto_car disabled
+    set_auto_car(data_dir, 0)
+    
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
