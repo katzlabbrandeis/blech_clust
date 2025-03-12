@@ -88,6 +88,10 @@ def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=1000
     # Initialize data array to store electrode signals
     n_electrodes = len(electrode_indices)
     electrode_data = np.zeros((n_electrodes, n_samples))
+    data_len = len(get_electrode_by_name(
+        raw_electrodes, electrode_indices[0])[:])
+    step_size = data_len // n_samples
+    sample_indices = np.arange(0, data_len, step_size)[:n_samples]
 
     for i, electrode_idx in enumerate(tqdm(electrode_indices)):
         # Get electrode data
@@ -96,15 +100,17 @@ def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=1000
 
         # Subsample if needed
         if len(full_data) > n_samples:
-            indices = np.random.choice(
-                len(full_data), n_samples, replace=False)
-            electrode_data[i, :] = full_data[indices]
+            electrode_data[i, :] = full_data[sample_indices]
         else:
             # If data is shorter than n_samples, pad with zeros
             electrode_data[i, :len(full_data)] = full_data[:n_samples]
 
     # Calculate correlation matrix between electrodes
     corr_matrix = channel_corr.intra_corr(electrode_data)
+    # Make nan values 0
+    corr_matrix[np.isnan(corr_matrix)] = 0
+    # Make sure the correlation matrix is symmetric
+    corr_matrix = corr_matrix + corr_matrix.T
 
     # Apply PCA to the correlation matrix to retain 95% of variance
     pca = PCA(n_components=0.95)
@@ -168,118 +174,61 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
     return predictions, model, reduced_features
 
 
-def plot_electrode_clusters(features, predictions, electrode_indices, output_dir):
+def plot_clustered_corr_mat(
+    corr_matrix, predictions, electrode_indices, cluster_indices, plot_path
+):
     """
-    Plot electrode clusters and correlation matrix
+    Plot clustered correlation matrix for electrodes
 
     Parameters:
     -----------
-    features : numpy.ndarray
-        Array of features for each electrode (reduced to 2D)
+    corr_matrix : numpy.ndarray
     predictions : numpy.ndarray
-        Array of cluster assignments for each electrode
     electrode_indices : list
-        List of electrode indices
-    output_dir : str
-        Directory to save the plot
+    cluster_indices : list
+    plot_path : str
     """
-    print("Plotting electrode clusters and correlation matrix...")
-
-    # Create output directory if it doesn't exist
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    # Create figure for cluster plot
-    plt.figure(figsize=(12, 10))
-
-    # Plot clusters
-    scatter = plt.scatter(features[:, 0], features[:, 1], c=predictions,
-                          cmap='viridis', s=100, alpha=0.8)
-
-    # Add electrode labels
-    for i, electrode_idx in enumerate(electrode_indices):
-        plt.annotate(str(electrode_idx), (features[i, 0], features[i, 1]),
-                     fontsize=8, ha='center', va='center')
-
-    # Add colorbar
-    cbar = plt.colorbar(scatter)
-    cbar.set_label('Cluster')
-
-    # Set labels and title
-    plt.xlabel('Principal Component 1')
-    plt.ylabel('Principal Component 2')
-    plt.title('Electrode Clusters using Bayesian Gaussian Mixture Model')
-
-    # Save figure
-    plt.tight_layout()
-    cluster_plot_path = os.path.join(output_dir, 'electrode_clusters.png')
-    plt.savefig(cluster_plot_path)
-    plt.close()
-
-    # Plot correlation matrix with cluster assignments
-    plt.figure(figsize=(14, 12))
-
-    # Sort electrodes by cluster
+    # Sort electrodes by cluster assignment
     sorted_indices = np.argsort(predictions)
-    sorted_electrodes = [electrode_indices[i] for i in sorted_indices]
+    sorted_corr_matrix = corr_matrix[sorted_indices, :][:, sorted_indices]
 
-    # Create a correlation matrix for visualization (we'll recalculate it here)
-    # This is just for visualization purposes
-    n_electrodes = len(electrode_indices)
-    corr_matrix = np.zeros((n_electrodes, n_electrodes))
+    # Plot clustered correlation matrix
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    ax[0].imshow(corr_matrix, cmap='viridis')
+    ax[0].set_title('Original Correlation Matrix')
+    ax[0].set_xticklabels(electrode_indices)
+    ax[0].set_yticklabels(electrode_indices)
+    ax[1].imshow(sorted_corr_matrix, cmap='viridis')
+    ax[1].set_title('Clustered Correlation Matrix')
+    ax[1].set_xticklabels(sorted_indices)
+    ax[1].set_yticklabels(sorted_indices)
 
-    # Fill the upper triangle with cluster information
-    for i in range(n_electrodes):
-        for j in range(i, n_electrodes):
-            # 1 if same cluster, 0 if different
-            corr_matrix[i, j] = 1 if predictions[i] == predictions[j] else 0
-            corr_matrix[j, i] = corr_matrix[i, j]  # Make symmetric
-
-    # Plot the correlation matrix
-    plt.imshow(corr_matrix, cmap='viridis', interpolation='nearest')
-    plt.colorbar(label='Cluster Similarity')
-
-    # Add electrode labels
-    plt.xticks(range(n_electrodes), electrode_indices, rotation=90, fontsize=8)
-    plt.yticks(range(n_electrodes), electrode_indices, fontsize=8)
-
-    plt.title('Electrode Correlation Matrix (Clustered)')
     plt.tight_layout()
-    corr_plot_path = os.path.join(
-        output_dir, 'electrode_correlation_matrix.png')
-    plt.savefig(corr_plot_path)
+    plt.savefig(plot_path)
     plt.close()
 
-    # Save cluster assignments to a text file
-    cluster_file_path = os.path.join(output_dir, 'electrode_clusters.txt')
-    with open(cluster_file_path, 'w') as f:
-        f.write("Electrode,Cluster\n")
-        for i, electrode_idx in enumerate(electrode_indices):
-            f.write(f"{electrode_idx},{predictions[i]}\n")
-
-    print(f"Cluster plots saved to: {cluster_plot_path} and {corr_plot_path}")
-    print(f"Cluster assignments saved to: {cluster_file_path}")
-
-    return cluster_plot_path
-
 ############################################################
 ############################################################
 
 
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
+testing_bool = True
+
+if not testing_bool:
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata(sys.argv)
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+else:
+    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+
 dir_name = metadata_handler.dir_name
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
-
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
-
 
 # Open the hdf5 file
 hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
@@ -311,6 +260,79 @@ for region, vals in zip(all_car_group_names, all_car_group_vals):
 
 # Pull out the raw electrode nodes of the HDF5 file
 raw_electrodes = hf5.list_nodes('/raw')
+
+# Check if auto_CAR parameters are enabled in the parameters
+if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
+    auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
+    auto_car_inference = auto_car_section.get('use_auto_CAR')
+    max_clusters = auto_car_section.get('max_clusters')
+
+# If auto_car_inference is enabled, perform clustering on each CAR group
+if auto_car_inference:
+    print("\nPerforming automatic CAR group inference...")
+
+    # Create a directory for cluster plots if it doesn't exist
+    plots_dir = os.path.join(dir_name, 'car_cluster_plots')
+    if not os.path.exists(plots_dir):
+        os.makedirs(plots_dir)
+
+    # Process each CAR group
+    for group_num, group_name in enumerate(all_car_group_names):
+        print(f"\nProcessing group {group_name} for auto-CAR inference")
+
+        # Get electrode indices for this group
+        electrode_indices = CAR_electrodes[group_num]
+
+        # Skip if there are too few electrodes
+        if len(electrode_indices) < 2:
+            print(
+                f"Group {group_name} has fewer than 3 electrodes. Skipping clustering.")
+            continue
+
+        # Extract features from electrodes
+        features = extract_electrode_features(
+            raw_electrodes, electrode_indices)
+
+        # Cluster electrodes
+        predictions, model, reduced_features = cluster_electrodes(
+            features,
+            n_components=min(max_clusters, len(electrode_indices)),
+            n_iter=100,
+            threshold=1e-3
+        )
+
+        # Plot clusters
+        plot_path = os.path.join(plots_dir, f'{group_name}_cluster_plot.png')
+        plot_clustered_corr_mat(
+            channel_corr.intra_corr(features), predictions, electrode_indices, reduced_features, plot_path)
+
+        # Count number of electrodes in each cluster
+        unique_clusters = np.unique(predictions)
+        print(f"Found {len(unique_clusters)} clusters in group {group_name}")
+
+        for cluster in unique_clusters:
+            cluster_electrodes = [electrode_indices[i] for i in range(len(electrode_indices))
+                                  if predictions[i] == cluster]
+            print(
+                f"  Cluster {cluster}: {len(cluster_electrodes)} electrodes - {cluster_electrodes}")
+
+        # Save cluster assignments to a JSON file
+        cluster_info = {
+            'group_name': group_name,
+            'clusters': {}
+        }
+
+        for cluster in unique_clusters:
+            cluster_electrodes = [int(electrode_indices[i]) for i in range(len(electrode_indices))
+                                  if predictions[i] == cluster]
+            cluster_info['clusters'][f'cluster_{cluster}'] = cluster_electrodes
+
+        cluster_file = os.path.join(plots_dir, f'{group_name}_clusters.json')
+        with open(cluster_file, 'w') as f:
+            json.dump(cluster_info, f, indent=4)
+
+        print(f"Cluster information saved to: {cluster_file}")
+
 
 # First get the common average references by averaging across
 # the electrodes picked for each group
@@ -349,82 +371,6 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
         hf5.flush()
         del referenced_data
 
-# Check if auto_CAR parameters are enabled in the parameters
-auto_car_inference = False
-max_clusters = 10  # Default value
-if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
-    auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
-    auto_car_inference = auto_car_section.get('use_auto_CAR', False)
-    max_clusters = auto_car_section.get('max_clusters', 10)
-
-# If auto_car_inference is enabled, perform clustering on each CAR group
-if auto_car_inference:
-    print("\nPerforming automatic CAR group inference...")
-
-    # Create a directory for cluster plots if it doesn't exist
-    plots_dir = os.path.join(dir_name, 'car_cluster_plots')
-    if not os.path.exists(plots_dir):
-        os.makedirs(plots_dir)
-
-    # Process each CAR group
-    for group_num, group_name in enumerate(all_car_group_names):
-        print(f"\nProcessing group {group_name} for auto-CAR inference")
-
-        # Get electrode indices for this group
-        electrode_indices = CAR_electrodes[group_num]
-
-        # Skip if there are too few electrodes
-        if len(electrode_indices) < 3:
-            print(
-                f"Group {group_name} has fewer than 3 electrodes. Skipping clustering.")
-            continue
-
-        # Extract features from electrodes
-        features = extract_electrode_features(
-            raw_electrodes, electrode_indices)
-
-        # Cluster electrodes
-        predictions, model, reduced_features = cluster_electrodes(
-            features,
-            n_components=min(max_clusters, len(electrode_indices)),
-            n_iter=100,
-            threshold=1e-3
-        )
-
-        # Plot clusters
-        plot_path = plot_electrode_clusters(
-            reduced_features,
-            predictions,
-            electrode_indices,
-            plots_dir
-        )
-
-        # Count number of electrodes in each cluster
-        unique_clusters = np.unique(predictions)
-        print(f"Found {len(unique_clusters)} clusters in group {group_name}")
-
-        for cluster in unique_clusters:
-            cluster_electrodes = [electrode_indices[i] for i in range(len(electrode_indices))
-                                  if predictions[i] == cluster]
-            print(
-                f"  Cluster {cluster}: {len(cluster_electrodes)} electrodes - {cluster_electrodes}")
-
-        # Save cluster assignments to a JSON file
-        cluster_info = {
-            'group_name': group_name,
-            'clusters': {}
-        }
-
-        for cluster in unique_clusters:
-            cluster_electrodes = [int(electrode_indices[i]) for i in range(len(electrode_indices))
-                                  if predictions[i] == cluster]
-            cluster_info['clusters'][f'cluster_{cluster}'] = cluster_electrodes
-
-        cluster_file = os.path.join(plots_dir, f'{group_name}_clusters.json')
-        with open(cluster_file, 'w') as f:
-            json.dump(cluster_info, f, indent=4)
-
-        print(f"Cluster information saved to: {cluster_file}")
 
 hf5.close()
 print("Modified electrode arrays written to HDF5 file after "
