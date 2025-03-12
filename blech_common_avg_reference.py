@@ -153,13 +153,6 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
     print("Clustering electrodes...")
 
     # No need to standardize features as they're already from PCA
-    # But we'll reduce to 2D for visualization if dimensions are higher
-    if features.shape[1] > 2:
-        pca_viz = PCA(n_components=2)
-        reduced_features = pca_viz.fit_transform(features)
-    else:
-        reduced_features = features.copy()
-
     # Fit Bayesian Gaussian Mixture model on the full feature set
     model = BayesianGaussianMixture(
         n_components=n_components,
@@ -175,7 +168,7 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
     # Get cluster assignments
     predictions = model.predict(features)
 
-    return predictions, model, reduced_features
+    return predictions, model
 
 
 def plot_clustered_corr_mat(
@@ -229,11 +222,12 @@ def plot_clustered_corr_mat(
     ax[2].set_yticks(np.arange(len(sorted_names)))
     ax[2].set_xticklabels(sorted_names, rotation=90)
     ax[2].set_yticklabels(sorted_names)
-    # ax[2].imshow(np.expand_dims(predictions[sorted_indices], axis=1), cmap='tab10',
-    #              aspect='auto', interpolation='nearest')
-    # ax[2].sharey(ax[1])
-    # # ax[2] height doesn't match ax[1] height, so adjust it
-    # ax[2].set_ylim(ax[1].get_ylim())
+    # Plot axlines
+    line_locs = np.where(np.abs(np.diff(sorted_predictions)))[0]
+    for this_ax in [ax[1], ax[2]]:
+        for i in line_locs:
+            this_ax.axvline(x=i+0.5, color='black', linewidth=0.5)
+            this_ax.axhline(y=i+0.5, color='black', linewidth=0.5)
 
     plt.tight_layout()
     plt.savefig(plot_path)
@@ -326,14 +320,14 @@ if auto_car_inference:
     features = pca.fit_transform(corr_mat)
 
     # Cluster electrodes
-    predictions, model, reduced_features = cluster_electrodes(
+    predictions, model = cluster_electrodes(
         features,
-        n_components=min(max_clusters, len(electrode_indices)),
+        n_components=min(max_clusters, len(corr_mat)),
         n_iter=100,
         threshold=1e-3
     )
 
-    print(f"Found {len(np.unique(predictions))} clusters')
+    print(f"Found {len(np.unique(predictions))} clusters")
 
     electrode_layout_frame['predicted_clusters'] = predictions
 
