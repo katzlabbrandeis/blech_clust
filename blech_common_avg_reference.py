@@ -65,61 +65,65 @@ def get_electrode_by_name(raw_electrodes, name):
     return wanted_electrode_ind
 
 
-def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=10000):
-    """
-    Extract features from electrode data for clustering using correlation matrix and PCA
+# def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=10000):
+#     """
+#     Extract features from electrode data for clustering using correlation matrix and PCA
+#
+#     Parameters:
+#     -----------
+#     raw_electrodes : list
+#         List of electrode nodes from HDF5 file
+#     electrode_indices : list
+#         List of electrode indices to extract features from
+#     n_samples : int
+#         Number of samples to use for feature extraction
+#
+#     Returns:
+#     --------
+#     features : numpy.ndarray
+#         Array of features for each electrode after PCA
+#     """
+#     print("Extracting features from electrodes using correlation matrix and PCA...")
+#
+#     # Initialize data array to store electrode signals
+#     n_electrodes = len(electrode_indices)
+#     electrode_data = np.zeros((n_electrodes, n_samples))
+#     data_len = len(get_electrode_by_name(
+#         raw_electrodes, electrode_indices[0])[:])
+#     step_size = data_len // n_samples
+#     sample_indices = np.arange(0, data_len, step_size)[:n_samples]
+#
+#     for i, electrode_idx in enumerate(tqdm(electrode_indices)):
+#         # Get electrode data
+#         full_data = get_electrode_by_name(
+#             raw_electrodes, electrode_idx)[:]
+#
+#         # Subsample if needed
+#         if len(full_data) > n_samples:
+#             electrode_data[i, :] = full_data[sample_indices]
+#         else:
+#             # If data is shorter than n_samples, pad with zeros
+#             electrode_data[i, :len(full_data)] = full_data[:n_samples]
+#
+#     # Calculate correlation matrix between electrodes
+#     corr_matrix = channel_corr.intra_corr(electrode_data)
+#     # Make nan values 0
+#     corr_matrix[np.isnan(corr_matrix)] = 0
+#     # Make sure the correlation matrix is symmetric
+#     corr_matrix = corr_matrix + corr_matrix.T
+#
+#     # Apply PCA to the correlation matrix to retain 95% of variance
+#     pca = PCA(n_components=0.95)
+#     features = pca.fit_transform(corr_matrix)
+#
+#     print(
+#         f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
+#
+#     return features
 
-    Parameters:
-    -----------
-    raw_electrodes : list
-        List of electrode nodes from HDF5 file
-    electrode_indices : list
-        List of electrode indices to extract features from
-    n_samples : int
-        Number of samples to use for feature extraction
-
-    Returns:
-    --------
-    features : numpy.ndarray
-        Array of features for each electrode after PCA
-    """
-    print("Extracting features from electrodes using correlation matrix and PCA...")
-
-    # Initialize data array to store electrode signals
-    n_electrodes = len(electrode_indices)
-    electrode_data = np.zeros((n_electrodes, n_samples))
-    data_len = len(get_electrode_by_name(
-        raw_electrodes, electrode_indices[0])[:])
-    step_size = data_len // n_samples
-    sample_indices = np.arange(0, data_len, step_size)[:n_samples]
-
-    for i, electrode_idx in enumerate(tqdm(electrode_indices)):
-        # Get electrode data
-        full_data = get_electrode_by_name(
-            raw_electrodes, electrode_idx)[:]
-
-        # Subsample if needed
-        if len(full_data) > n_samples:
-            electrode_data[i, :] = full_data[sample_indices]
-        else:
-            # If data is shorter than n_samples, pad with zeros
-            electrode_data[i, :len(full_data)] = full_data[:n_samples]
-
-    # Calculate correlation matrix between electrodes
-    corr_matrix = channel_corr.intra_corr(electrode_data)
-    # Make nan values 0
-    corr_matrix[np.isnan(corr_matrix)] = 0
-    # Make sure the correlation matrix is symmetric
-    corr_matrix = corr_matrix + corr_matrix.T
-
-    # Apply PCA to the correlation matrix to retain 95% of variance
-    pca = PCA(n_components=0.95)
-    features = pca.fit_transform(corr_matrix)
-
-    print(
-        f"PCA reduced features from {corr_matrix.shape[1]} to {features.shape[1]} dimensions (95% variance retained)")
-
-    return features
+def get_channel_corr_mat(data_dir):
+    qa_out_path = os.path.join(data_dir, 'QA_output')
+    return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
 def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
@@ -175,7 +179,8 @@ def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
 
 
 def plot_clustered_corr_mat(
-    corr_matrix, predictions, electrode_indices, cluster_indices, plot_path
+    corr_matrix, predictions, electrode_names, plot_path,
+    cmap='jet'
 ):
     """
     Plot clustered correlation matrix for electrodes
@@ -191,17 +196,44 @@ def plot_clustered_corr_mat(
     # Sort electrodes by cluster assignment
     sorted_indices = np.argsort(predictions)
     sorted_corr_matrix = corr_matrix[sorted_indices, :][:, sorted_indices]
+    sorted_names = [electrode_names[i] for i in sorted_indices]
 
     # Plot clustered correlation matrix
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-    ax[0].imshow(corr_matrix, cmap='viridis')
+    fig, ax = plt.subplots(1, 3, figsize=(20, 10),
+                           # gridspec_kw={'width_ratios': [1, 1, 0.1]}
+                           )
+    ax[0].imshow(corr_matrix, cmap=cmap)
     ax[0].set_title('Original Correlation Matrix')
-    ax[0].set_xticklabels(electrode_indices)
-    ax[0].set_yticklabels(electrode_indices)
-    ax[1].imshow(sorted_corr_matrix, cmap='viridis')
+    ax[0].set_xticks(np.arange(len(electrode_names)))
+    ax[0].set_yticks(np.arange(len(electrode_names)))
+    ax[0].set_xticklabels(electrode_names, rotation=90)
+    ax[0].set_yticklabels(electrode_names)
+    ax[1].imshow(sorted_corr_matrix, cmap=cmap)
     ax[1].set_title('Clustered Correlation Matrix')
-    ax[1].set_xticklabels(sorted_indices)
-    ax[1].set_yticklabels(sorted_indices)
+    ax[1].set_xticks(np.arange(len(sorted_names)))
+    ax[1].set_yticks(np.arange(len(sorted_names)))
+    ax[1].set_xticklabels(sorted_names, rotation=90)
+    ax[1].set_yticklabels(sorted_names)
+    # Sharey between ax[1] and ax[2]
+    # Make a cluster matrix from sorted predictions
+    sorted_predictions = predictions[sorted_indices]+1
+    cluster_matrix = np.expand_dims(
+        sorted_predictions, axis=1) == np.expand_dims(sorted_predictions, axis=0)
+    # Mark unique clusters
+    cluster_matrix = cluster_matrix * \
+        np.expand_dims(sorted_predictions, axis=1)
+
+    ax[2].imshow(cluster_matrix, cmap='tab10')
+    ax[2].set_title('Cluster Assignments')
+    ax[2].set_xticks(np.arange(len(sorted_names)))
+    ax[2].set_yticks(np.arange(len(sorted_names)))
+    ax[2].set_xticklabels(sorted_names, rotation=90)
+    ax[2].set_yticklabels(sorted_names)
+    # ax[2].imshow(np.expand_dims(predictions[sorted_indices], axis=1), cmap='tab10',
+    #              aspect='auto', interpolation='nearest')
+    # ax[2].sharey(ax[1])
+    # # ax[2] height doesn't match ax[1] height, so adjust it
+    # ax[2].set_ylim(ax[1].get_ylim())
 
     plt.tight_layout()
     plt.savefig(plot_path)
@@ -222,7 +254,7 @@ if not testing_bool:
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
 else:
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
     metadata_handler = imp_metadata([[], data_dir])
 
 dir_name = metadata_handler.dir_name
@@ -243,20 +275,28 @@ emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
 electrode_layout_frame = electrode_layout_frame[fin_bool]
+electrode_layout_frame['channel_name'] = \
+    electrode_layout_frame['port'].astype(str) + '_' + \
+    electrode_layout_frame['electrode_num'].astype(str)
 
-# Since electrodes are already in monotonic numbers (A : 0-31, B: 32-63)
-# we can directly pull them
-grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
-all_car_group_names = [x[0] for x in grouped_layout]
-# Note: electrodes in HDF5 are also saved according to inds
-# specified in the layout file
-all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
+# # Since electrodes are already in monotonic numbers (A : 0-31, B: 32-63)
+# # we can directly pull them
+# grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
+# all_car_group_names = [x[0] for x in grouped_layout]
+# # Note: electrodes in HDF5 are also saved according to inds
+# # specified in the layout file
+# all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
 
-CAR_electrodes = all_car_group_vals
-num_groups = len(CAR_electrodes)
+# CAR_electrodes = all_car_group_vals
+num_groups = electrode_layout_frame.CAR_group.nunique()
 print(f" Number of groups : {num_groups}")
-for region, vals in zip(all_car_group_names, all_car_group_vals):
-    print(f" {region} :: {vals}")
+# for region, vals in zip(all_car_group_names, all_car_group_vals):
+#     print(f" {region} :: {vals}")
+for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+    group_channel_names = electrode_layout_frame[electrode_layout_frame.CAR_group ==
+                                                 group_name].channel_name.values
+    print(f" {group_name} :: {len(group_channel_names)} channels :: \n{group_channel_names}")
+    print()
 
 # Pull out the raw electrode nodes of the HDF5 file
 raw_electrodes = hf5.list_nodes('/raw')
@@ -272,16 +312,46 @@ if auto_car_inference:
     print("\nPerforming automatic CAR group inference...")
 
     # Create a directory for cluster plots if it doesn't exist
-    plots_dir = os.path.join(dir_name, 'car_cluster_plots')
-    if not os.path.exists(plots_dir):
-        os.makedirs(plots_dir)
+    # Extract features from electrodes
+    # features = extract_electrode_features(
+    #     raw_electrodes, electrode_indices)
+    corr_mat = get_channel_corr_mat(dir_name)
+    # Convert nan to 0
+    corr_mat[np.isnan(corr_mat)] = 0
+    # Make symmetric
+    corr_mat = corr_mat + corr_mat.T
+
+    # Perform PCA
+    pca = PCA(n_components=5)
+    features = pca.fit_transform(corr_mat)
+
+    # Cluster electrodes
+    predictions, model, reduced_features = cluster_electrodes(
+        features,
+        n_components=min(max_clusters, len(electrode_indices)),
+        n_iter=100,
+        threshold=1e-3
+    )
+
+    print(f"Found {len(np.unique(predictions))} clusters')
+
+    electrode_layout_frame['predicted_clusters'] = predictions
+
+    # Plot clusters
+    plot_path = os.path.join(dir_name, 'QA_output', 'clustered_corr_mat.png')
+    plot_clustered_corr_mat(
+        corr_mat, predictions, electrode_layout_frame.channel_name.values, plot_path
+    )
 
     # Process each CAR group
-    for group_num, group_name in enumerate(all_car_group_names):
+    for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
         print(f"\nProcessing group {group_name} for auto-CAR inference")
 
+        this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
+
         # Get electrode indices for this group
-        electrode_indices = CAR_electrodes[group_num]
+        # electrode_indices = CAR_electrodes[group_num]
+        electrode_indices = this_car_frame.electrode_ind.values
 
         # Skip if there are too few electrodes
         if len(electrode_indices) < 2:
@@ -289,26 +359,8 @@ if auto_car_inference:
                 f"Group {group_name} has fewer than 3 electrodes. Skipping clustering.")
             continue
 
-        # Extract features from electrodes
-        features = extract_electrode_features(
-            raw_electrodes, electrode_indices)
-
-        # Cluster electrodes
-        predictions, model, reduced_features = cluster_electrodes(
-            features,
-            n_components=min(max_clusters, len(electrode_indices)),
-            n_iter=100,
-            threshold=1e-3
-        )
-
-        # Plot clusters
-        plot_path = os.path.join(plots_dir, f'{group_name}_cluster_plot.png')
-        plot_clustered_corr_mat(
-            channel_corr.intra_corr(features), predictions, electrode_indices, reduced_features, plot_path)
-
         # Count number of electrodes in each cluster
         unique_clusters = np.unique(predictions)
-        print(f"Found {len(unique_clusters)} clusters in group {group_name}")
 
         for cluster in unique_clusters:
             cluster_electrodes = [electrode_indices[i] for i in range(len(electrode_indices))
