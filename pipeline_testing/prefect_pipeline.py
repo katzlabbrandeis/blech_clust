@@ -401,10 +401,13 @@ def run_spike_test(data_dir):
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
-    run_CAR(data_dir)
 
     # Test with auto_car enabled
     set_auto_car(data_dir, 1)
+    run_CAR(data_dir)
+    # Test with auto_car disabled
+    set_auto_car(data_dir, 0)
+    run_CAR(data_dir)
 
     # Run with classifier enabled + autosorting
     change_waveform_classifier(data_dir, use_classifier=1)
@@ -412,9 +415,6 @@ def run_spike_test(data_dir):
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file=False, keep_raw=True)
-
-    # Test with auto_car disabled
-    set_auto_car(data_dir, 0)
 
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
