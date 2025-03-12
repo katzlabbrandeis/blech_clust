@@ -349,11 +349,13 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
         hf5.flush()
         del referenced_data
 
-# Check if auto_car_inference is enabled in the parameters
+# Check if auto_CAR parameters are enabled in the parameters
 auto_car_inference = False
+max_clusters = 10  # Default value
 if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
-    auto_car_inference = metadata_handler.params_dict.get(
-        'auto_car_inference', False)
+    auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
+    auto_car_inference = auto_car_section.get('use_auto_CAR', False)
+    max_clusters = auto_car_section.get('max_clusters', 10)
 
 # If auto_car_inference is enabled, perform clustering on each CAR group
 if auto_car_inference:
@@ -384,7 +386,7 @@ if auto_car_inference:
         # Cluster electrodes
         predictions, model, reduced_features = cluster_electrodes(
             features,
-            n_components=min(10, len(electrode_indices)),
+            n_components=min(max_clusters, len(electrode_indices)),
             n_iter=100,
             threshold=1e-3
         )
