@@ -51,6 +51,7 @@ from sklearn.mixture import BayesianGaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from utils.blech_utils import imp_metadata, pipeline_graph_check
+from utils.qa_utils import channel_corr
 
 
 def get_electrode_by_name(raw_electrodes, name):
@@ -103,7 +104,7 @@ def extract_electrode_features(raw_electrodes, electrode_indices, n_samples=1000
             electrode_data[i, :len(full_data)] = full_data[:n_samples]
 
     # Calculate correlation matrix between electrodes
-    corr_matrix = np.corrcoef(electrode_data)
+    corr_matrix = channel_corr.intra_corr(electrode_data)
 
     # Apply PCA to the correlation matrix to retain 95% of variance
     pca = PCA(n_components=0.95)
