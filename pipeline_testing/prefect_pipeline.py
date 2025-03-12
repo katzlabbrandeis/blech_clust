@@ -405,7 +405,7 @@ def run_spike_test(data_dir):
 
     # Test with auto_car enabled
     set_auto_car(data_dir, 1)
-    
+
     # Run with classifier enabled + autosorting
     change_waveform_classifier(data_dir, use_classifier=1)
     change_auto_params(data_dir, use_auto=1)
@@ -415,7 +415,7 @@ def run_spike_test(data_dir):
 
     # Test with auto_car disabled
     set_auto_car(data_dir, 0)
-    
+
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
