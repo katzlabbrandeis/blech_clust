@@ -181,7 +181,7 @@ def plot_clustered_corr_mat(
 ############################################################
 
 
-testing_bool = True
+testing_bool = False
 
 if not testing_bool:
     # Get name of directory with the data files
