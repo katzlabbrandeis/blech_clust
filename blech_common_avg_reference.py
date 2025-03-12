@@ -242,31 +242,36 @@ raw_electrodes = hf5.list_nodes('/raw')
 # Check if auto_CAR parameters are enabled in the parameters
 if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
-    auto_car_inference = auto_car_section.get('use_auto_CAR')
-    max_clusters = auto_car_section.get('max_clusters')
+    auto_car_inference = auto_car_section.get('use_auto_CAR', False)
+    max_clusters = auto_car_section.get('max_clusters', 10)  # Default to 10 if not specified
+else:
+    auto_car_inference = False
+    max_clusters = 10
 
 # If auto_car_inference is enabled, perform clustering on each CAR group
 if auto_car_inference:
     print("\nPerforming automatic CAR group inference...")
 
     # Create a directory for cluster plots if it doesn't exist
-    # Extract features from electrodes
-    # features = extract_electrode_features(
-    #     raw_electrodes, electrode_indices)
+    plots_dir = os.path.join(dir_name, 'QA_output')
+    os.makedirs(plots_dir, exist_ok=True)
+    
+    # Get correlation matrix using the utility function
     corr_mat = get_channel_corr_mat(dir_name)
     # Convert nan to 0
     corr_mat[np.isnan(corr_mat)] = 0
     # Make symmetric
-    corr_mat = corr_mat + corr_mat.T
+    corr_mat = (corr_mat + corr_mat.T) / 2  # Average to ensure perfect symmetry
 
-    # Perform PCA
-    pca = PCA(n_components=5)
+    # Perform PCA - use min of 5 or the number of channels to avoid errors
+    n_components = min(5, len(corr_mat) - 1)
+    pca = PCA(n_components=n_components)
     features = pca.fit_transform(corr_mat)
 
     # Cluster electrodes
     predictions, model = cluster_electrodes(
         features,
-        n_components=min(max_clusters, len(corr_mat)),
+        n_components=min(max_clusters, len(corr_mat) - 1),
         n_iter=100,
         threshold=1e-3
     )
@@ -324,6 +329,12 @@ if auto_car_inference:
         print(f"Cluster information saved to: {cluster_file}")
 
 
+# Group electrodes by CAR group
+grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
+all_car_group_names = [x[0] for x in grouped_layout]
+all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
+CAR_electrodes = all_car_group_vals
+
 # First get the common average references by averaging across
 # the electrodes picked for each group
 print(
@@ -367,4 +378,5 @@ print("Modified electrode arrays written to HDF5 file after "
       "subtracting the common average reference")
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not testing_bool:
+    this_pipeline_check.write_to_log(script_path, 'completed')
