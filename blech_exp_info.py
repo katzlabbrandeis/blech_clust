@@ -103,6 +103,11 @@ def parse_laser_params(s):
     return [(int(onset), int(duration)) for onset, duration in matches]
 
 
+if args.programmatic:
+    print('================================')
+    print('Running in programmatic mode')
+    print('================================')
+
 metadata_handler = imp_metadata([[], args.dir_name])
 dir_path = metadata_handler.dir_name
 
@@ -408,6 +413,7 @@ else:
         else:
             # Programmatic mode
             if args.laser_params:
+                print('Parsing laser parameters')
                 laser_params_list = parse_laser_params(args.laser_params)
                 if not laser_params_list:
                     raise ValueError(
@@ -417,12 +423,14 @@ else:
                     'Laser parameters not provided, use --laser-params')
 
             if args.virus_region:
+                print('Parsing virus region')
                 virus_region_str = args.virus_region
             else:
                 raise ValueError(
                     'Virus region not provided, use --virus-region')
 
             if args.opto_loc:
+                print('Parsing opto-fiber locations')
                 opto_loc_list = parse_csv(args.opto_loc)
                 if len(opto_loc_list) != len(laser_params_list):
                     raise ValueError(
@@ -596,7 +604,7 @@ else:
     else:
         laser_digin_trials = []
 
-    fin_dict = {'version': '0.0.2',
+    fin_dict = {'version': '0.0.3',
                 **this_dict,
                 'file_type': file_type,
                 'regions': list(layout_dict.keys()),
