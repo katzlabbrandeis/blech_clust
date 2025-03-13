@@ -295,8 +295,14 @@ if auto_car_inference:
 
     # Append cluster numbers to CAR group names
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']+1:02}", axis=1
+        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
     )
+
+    num_groups = electrode_layout_frame.CAR_group.nunique()
+    print(
+        "Calculating common average reference for {:d} groups".format(num_groups))
+    print('Updated CAR groups with channel counts')
+    electrode_layout_frame.groupby('CAR_group').size()
 
     # Process each CAR group
     for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
@@ -314,72 +320,61 @@ if auto_car_inference:
                 f"Group {group_name} has fewer than 3 electrodes. Skipping clustering.")
             continue
 
-        # Count number of electrodes in each cluster
-        unique_clusters = np.unique(predictions)
-
-        for cluster in unique_clusters:
-            cluster_electrodes = [electrode_indices[i] for i in range(len(electrode_indices))
-                                  if predictions[i] == cluster]
-            print(
-                f"  Cluster {cluster}: {len(cluster_electrodes)} electrodes - {cluster_electrodes}")
-
-        # Save cluster assignments to a JSON file
-        cluster_info = {
-            'group_name': group_name,
-            'clusters': {}
-        }
-
-        for cluster in unique_clusters:
-            cluster_electrodes = [int(electrode_indices[i]) for i in range(len(electrode_indices))
-                                  if predictions[i] == cluster]
-            cluster_info['clusters'][f'cluster_{cluster}'] = cluster_electrodes
-
-        cluster_file = os.path.join(plots_dir, f'{group_name}_clusters.json')
-        with open(cluster_file, 'w') as f:
-            json.dump(cluster_info, f, indent=4)
-
-        print(f"Cluster information saved to: {cluster_file}")
-
-
-# Group electrodes by CAR group
-grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
-all_car_group_names = [x[0] for x in grouped_layout]
-all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
-CAR_electrodes = all_car_group_vals
+# # Group electrodes by CAR group
+# grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
+# all_car_group_names = [x[0] for x in grouped_layout]
+# all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
+# CAR_electrodes = all_car_group_vals
 
 # First get the common average references by adjusting mean and standard deviation
 # of all channels in a CAR group before taking the average
-print(
-    "Calculating common average reference for {:d} groups".format(num_groups))
 common_average_reference = np.zeros(
     (num_groups, raw_electrodes[0][:].shape[0]))
 print('Calculating mean values')
-for group_num, group_name in tqdm(enumerate(all_car_group_names)):
-    print(f"Processing group {group_name}")
+# for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+#     print(f"Processing group {group_name}")
+for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+    print(f"\nProcessing group {group_name}")
+
+    this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
+    print(f" {len(this_car_frame)} channels :: \n{this_car_frame.channel_name.values}")
+
+    # Get electrode indices for this group
+    # electrode_indices = CAR_electrodes[group_num]
+    electrode_indices = this_car_frame.electrode_ind.values
 
     # Load and normalize all electrode data for this group
-    electrode_data = []
-    for electrode_name in tqdm(CAR_electrodes[group_num]):
+    # electrode_data = []
+    CAR_sum = np.zeros(raw_electrodes[0][:].shape[0])
+    # for electrode_name in tqdm(CAR_electrodes[group_num]):
+    for electrode_name in tqdm(electrode_indices):
         channel_data = get_electrode_by_name(raw_electrodes, electrode_name)[:]
         # Normalize each channel by subtracting mean and dividing by std
         channel_mean = np.mean(channel_data)
         channel_std = np.std(channel_data)
         normalized_channel = (channel_data - channel_mean) / channel_std
-        electrode_data.append(normalized_channel)
+        # electrode_data.append(normalized_channel)
+        CAR_sum += normalized_channel
 
     # Calculate the average of normalized channels
-    if electrode_data:
-        common_average_reference[group_num, :] = np.mean(
-            electrode_data, axis=0)
+    if len(electrode_indices) > 0:
+        common_average_reference[group_num,
+                                 :] = CAR_sum / len(electrode_indices)
+        # common_average_reference[group_num, :] = np.mean(
+        #     electrode_data, axis=0)
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 
 # Now run through the raw electrode data and
 # subtract the common average reference from each of them
 print('Performing background subtraction')
-for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+# for group_num, group_name in tqdm(enumerate(all_car_group_names)):
+for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
     print(f"Processing group {group_name}")
-    for electrode_num in tqdm(all_car_group_vals[group_num]):
+    this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
+    electrode_indices = this_car_frame.electrode_ind.values
+    # for electrode_num in tqdm(all_car_group_vals[group_num]):
+    for electrode_num in tqdm(electrode_indices):
         # Get the electrode data
         wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
         electrode_data = wanted_electrode[:]
