@@ -356,7 +356,7 @@ common_average_reference = np.zeros(
 print('Calculating mean values')
 for group_num, group_name in tqdm(enumerate(all_car_group_names)):
     print(f"Processing group {group_name}")
-    
+
     # Load and normalize all electrode data for this group
     electrode_data = []
     for electrode_name in tqdm(CAR_electrodes[group_num]):
@@ -366,10 +366,11 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
         channel_std = np.std(channel_data)
         normalized_channel = (channel_data - channel_mean) / channel_std
         electrode_data.append(normalized_channel)
-    
+
     # Calculate the average of normalized channels
     if electrode_data:
-        common_average_reference[group_num, :] = np.mean(electrode_data, axis=0)
+        common_average_reference[group_num, :] = np.mean(
+            electrode_data, axis=0)
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 
@@ -382,18 +383,18 @@ for group_num, group_name in tqdm(enumerate(all_car_group_names)):
         # Get the electrode data
         wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
         electrode_data = wanted_electrode[:]
-        
+
         # Normalize the electrode data
         electrode_mean = np.mean(electrode_data)
         electrode_std = np.std(electrode_data)
         normalized_data = (electrode_data - electrode_mean) / electrode_std
-        
+
         # Subtract the common average reference for that group
         referenced_data = normalized_data - common_average_reference[group_num]
-        
+
         # Convert back to original scale
         final_data = (referenced_data * electrode_std) + electrode_mean
-        
+
         # Overwrite the electrode data with the referenced data
         wanted_electrode[:] = final_data
         hf5.flush()
