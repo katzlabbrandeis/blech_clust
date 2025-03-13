@@ -275,6 +275,9 @@ if auto_car_inference:
     # Average to ensure perfect symmetry
     corr_mat = (corr_mat + corr_mat.T) / 2
 
+    # Index corr_mat by the electrode layout frame
+    corr_mat = corr_mat[fin_bool, :][:, fin_bool]
+
     # Perform PCA - use min of 5 or the number of channels to avoid errors
     n_components = min(10, len(corr_mat) - 1)
     pca = PCA(n_components=n_components)
