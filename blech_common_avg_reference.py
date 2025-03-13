@@ -315,7 +315,7 @@ if auto_car_inference:
     # Write out the updated electrode layout frame
     layout_frame_path = glob.glob(os.path.join(
         dir_name, '*_electrode_layout.csv'))[0]
-    electrode_layout_frame.to_csv(layout_frame_path, index=False)
+    electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
 
@@ -386,7 +386,7 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
     print(f"Processing group {group_name}")
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
     electrode_indices = this_car_frame.electrode_ind.values
-    if len(electrode_indices) < 2:
+    if len(electrode_indices) > 2:
         for electrode_num in tqdm(electrode_indices):
             # Get the electrode data
             wanted_electrode = get_electrode_by_name(
