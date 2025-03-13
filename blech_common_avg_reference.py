@@ -275,7 +275,8 @@ if auto_car_inference:
     # Average to ensure perfect symmetry
     corr_mat = (corr_mat + corr_mat.T) / 2
 
-    # Index corr_mat by the electrode layout frame
+    # Index corr_mat by the electrode layout frame to exclude 'none' and 'emg' channels
+    # fin_bool was created earlier and contains True for channels that are neither 'emg' nor 'none'
     corr_mat = corr_mat[fin_bool, :][:, fin_bool]
 
     # Perform PCA - use min of 5 or the number of channels to avoid errors
