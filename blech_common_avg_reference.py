@@ -293,6 +293,9 @@ if auto_car_inference:
         corr_mat, predictions, electrode_layout_frame.channel_name.values, plot_path
     )
 
+    # Save original CAR_groups as backup
+    electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
+
     # Append cluster numbers to CAR group names
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
         lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
