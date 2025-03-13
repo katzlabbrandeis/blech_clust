@@ -222,19 +222,8 @@ electrode_layout_frame['channel_name'] = \
     electrode_layout_frame['port'].astype(str) + '_' + \
     electrode_layout_frame['electrode_num'].astype(str)
 
-# # Since electrodes are already in monotonic numbers (A : 0-31, B: 32-63)
-# # we can directly pull them
-# grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
-# all_car_group_names = [x[0] for x in grouped_layout]
-# # Note: electrodes in HDF5 are also saved according to inds
-# # specified in the layout file
-# all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
-
-# CAR_electrodes = all_car_group_vals
 num_groups = electrode_layout_frame.CAR_group.nunique()
 print(f" Number of groups : {num_groups}")
-# for region, vals in zip(all_car_group_names, all_car_group_vals):
-#     print(f" {region} :: {vals}")
 for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
     group_channel_names = electrode_layout_frame[electrode_layout_frame.CAR_group ==
                                                  group_name].channel_name.values
@@ -314,7 +303,6 @@ if auto_car_inference:
         this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
 
         # Get electrode indices for this group
-        # electrode_indices = CAR_electrodes[group_num]
         electrode_indices = this_car_frame.electrode_ind.values
 
         # Skip if there are too few electrodes
@@ -323,19 +311,12 @@ if auto_car_inference:
                 f"Group {group_name} has fewer than 3 electrodes. Skipping clustering.")
             continue
 
-# # Group electrodes by CAR group
-# grouped_layout = list(electrode_layout_frame.groupby('CAR_group'))
-# all_car_group_names = [x[0] for x in grouped_layout]
-# all_car_group_vals = [x[1].electrode_ind.values for x in grouped_layout]
-# CAR_electrodes = all_car_group_vals
 
 # First get the common average references by adjusting mean and standard deviation
 # of all channels in a CAR group before taking the average
 common_average_reference = np.zeros(
     (num_groups, raw_electrodes[0][:].shape[0]))
 print('Calculating mean values')
-# for group_num, group_name in tqdm(enumerate(all_car_group_names)):
-#     print(f"Processing group {group_name}")
 for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
     print(f"\nProcessing group {group_name}")
 
@@ -343,40 +324,32 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
     print(f" {len(this_car_frame)} channels :: \n{this_car_frame.channel_name.values}")
 
     # Get electrode indices for this group
-    # electrode_indices = CAR_electrodes[group_num]
     electrode_indices = this_car_frame.electrode_ind.values
 
     # Load and normalize all electrode data for this group
-    # electrode_data = []
     CAR_sum = np.zeros(raw_electrodes[0][:].shape[0])
-    # for electrode_name in tqdm(CAR_electrodes[group_num]):
     for electrode_name in tqdm(electrode_indices):
         channel_data = get_electrode_by_name(raw_electrodes, electrode_name)[:]
         # Normalize each channel by subtracting mean and dividing by std
         channel_mean = np.mean(channel_data)
         channel_std = np.std(channel_data)
         normalized_channel = (channel_data - channel_mean) / channel_std
-        # electrode_data.append(normalized_channel)
         CAR_sum += normalized_channel
 
     # Calculate the average of normalized channels
     if len(electrode_indices) > 0:
         common_average_reference[group_num,
                                  :] = CAR_sum / len(electrode_indices)
-        # common_average_reference[group_num, :] = np.mean(
-        #     electrode_data, axis=0)
 
 print("Common average reference for {:d} groups calculated".format(num_groups))
 
 # Now run through the raw electrode data and
 # subtract the common average reference from each of them
 print('Performing background subtraction')
-# for group_num, group_name in tqdm(enumerate(all_car_group_names)):
 for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
     print(f"Processing group {group_name}")
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
     electrode_indices = this_car_frame.electrode_ind.values
-    # for electrode_num in tqdm(all_car_group_vals[group_num]):
     for electrode_num in tqdm(electrode_indices):
         # Get the electrode data
         wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
