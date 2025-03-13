@@ -292,6 +292,11 @@ if auto_car_inference:
     plot_clustered_corr_mat(
         corr_mat, predictions, electrode_layout_frame.channel_name.values, plot_path
     )
+    
+    # Append cluster numbers to CAR group names
+    electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']+1:02}", axis=1
+    )
 
     # Process each CAR group
     for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
