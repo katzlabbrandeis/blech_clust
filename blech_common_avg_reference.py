@@ -209,7 +209,8 @@ if not testing_bool:
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 else:
-    data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
+    # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
+    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     print(' ==== Running in test mode ====')
 
@@ -276,7 +277,8 @@ if auto_car_inference:
     corr_mat = (corr_mat + corr_mat.T) / 2
 
     # Index corr_mat by the electrode layout frame
-    corr_mat = corr_mat[fin_bool, :][:, fin_bool]
+    index_bool = emg_bool[none_bool].values
+    corr_mat = corr_mat[index_bool, :][:, index_bool]
 
     # Perform PCA - use min of 5 or the number of channels to avoid errors
     n_components = min(10, len(corr_mat) - 1)
@@ -389,7 +391,7 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
     print(f"Processing group {group_name}")
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
     electrode_indices = this_car_frame.electrode_ind.values
-    if len(electrode_indices) > 2:
+    if len(electrode_indices) > 1:
         for electrode_num in tqdm(electrode_indices):
             # Get the electrode data
             wanted_electrode = get_electrode_by_name(
