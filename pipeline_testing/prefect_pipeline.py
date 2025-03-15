@@ -4,6 +4,8 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
+import numpy as np
+import matplotlib.pyplot as plt
 import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Run tests, default = Run all tests')
@@ -67,6 +69,8 @@ def raise_error_if_error(data_dir, process, stderr, stdout):
 # TODO: Replace with call to blech_process_utils.path_handler
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_dir)
+from utils.ephys_data.ephys_data import ephys_data  # noqa
 
 # Read emg_env path
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
@@ -382,6 +386,67 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
     raise_error_if_error(data_dir, process, stderr, stdout)
 
 ############################################################
+# Ephys Data Tests
+############################################################
+
+
+@task(log_prints=True)
+def test_ephys_data(data_dir):
+    """Test ephys_data functionality"""
+    print("Testing ephys_data with directory:", data_dir)
+
+    dat = ephys_data(data_dir)
+    dat.firing_rate_params = dat.default_firing_params
+
+    # Test core functionality
+    print("Testing core functionality...")
+    dat.get_unit_descriptors()
+    dat.get_spikes()
+    dat.get_firing_rates()
+    dat.get_lfps()
+
+    # Test laser-related methods if laser exists
+    print("Testing laser functionality...")
+    dat.check_laser()
+    if dat.laser_exists:
+        print("Laser detected, testing laser-specific methods...")
+        dat.separate_laser_spikes()
+        dat.separate_laser_firing()
+        dat.separate_laser_lfp()
+    else:
+        print("No laser detected, skipping laser-specific methods")
+
+    # Test region/electrode handling
+    print("Testing region/electrode handling...")
+    dat.get_info_dict()
+    dat.get_region_electrodes()
+    dat.get_region_units()
+    dat.get_lfp_electrodes()
+    dat.return_region_spikes()
+    dat.get_region_firing()
+    dat.return_region_lfps()
+    dat.return_representative_lfp_channels()
+
+    # Test STFT functionality
+    print("Testing STFT functionality...")
+    dat.get_stft()
+    dat.get_mean_stft_amplitude()
+
+    # Test trial sequestering
+    print("Testing trial sequestering...")
+    dat.get_trial_info_frame()
+    dat.sequester_trial_inds()
+    dat.get_sequestered_spikes()
+    dat.get_sequestered_firing()
+    dat.get_sequestered_data()
+
+    # Test palatability calculation
+    print("Testing palatability calculation...")
+    dat.calc_palatability()
+
+    print("Ephys data testing complete!")
+
+############################################################
 # Define Flows
 ############################################################
 
@@ -427,10 +492,14 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
+
     run_rnn(data_dir, separate_regions=False,   separate_tastes=False)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
+
+    # Run ephys_data tests as part of spike testing
+    test_ephys_data(data_dir)
 
 
 @flow(log_prints=True)
