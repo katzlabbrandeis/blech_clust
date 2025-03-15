@@ -228,7 +228,7 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # Every region is a separate group, multiple ports under single region is a separate group,
 # emg is a separate group
 info_dict = metadata_handler.info_dict
-electrode_layout_frame = metadata_handler.layout
+electrode_layout_frame = metadata_handler.layout.copy()
 # Remove emg and none channels from the electrode layout frame
 emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
@@ -317,10 +317,14 @@ if auto_car_inference:
     print('Updated CAR groups with channel counts')
     print(electrode_layout_frame.groupby('CAR_group').size())
 
-    # Write out the updated electrode layout frame
+    # Write out an updated version of the electrode layout frame
+    # Care needs to be taken to preserve all the original information AND
+    # not mess with the additional information added to the layout frame above
     layout_frame_path = glob.glob(os.path.join(
         dir_name, '*_electrode_layout.csv'))[0]
-    electrode_layout_frame.to_csv(layout_frame_path)
+    out_electrode_layout_frame = metadata_handler.layout.copy()
+    out_electrode_layout_frame.at[fin_bool, 'predicted_clusters'] = predictions
+    out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
 
