@@ -71,8 +71,10 @@ this_dat.firing_rate_params['window_size'] = psth_params['window_size']
 this_dat.firing_rate_params['step_size'] = psth_params['step_size']
 stim_time = params_dict['spike_array_durations'][0]
 # Extract plot durations from psth_params
-pre_stim_duration = psth_params.get('pre_stim_duration', 2000)  # Default to 2000ms if not specified
-post_stim_duration = psth_params.get('post_stim_duration', 5000)  # Default to 5000ms if not specified
+# Default to 2000ms if not specified
+pre_stim_duration = psth_params.get('pre_stim_duration', 2000)
+# Default to 5000ms if not specified
+post_stim_duration = psth_params.get('post_stim_duration', 5000)
 this_dat.get_sequestered_data()
 
 
@@ -127,14 +129,14 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         this_spikes['time_num'] -= stim_time
         # Filter spikes to be within the specified time range
         this_spikes = this_spikes.loc[
-            (this_spikes['time_num'] >= -pre_stim_duration) & 
+            (this_spikes['time_num'] >= -pre_stim_duration) &
             (this_spikes['time_num'] <= post_stim_duration)
         ]
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
         # Filter firing data to be within the specified time range
         this_firing_filtered = this_firing.loc[
-            (this_firing['time_val'] >= -pre_stim_duration) & 
+            (this_firing['time_val'] >= -pre_stim_duration) &
             (this_firing['time_val'] <= post_stim_duration)
         ]
         sns.lineplot(
@@ -198,7 +200,7 @@ if n_laser_conditions > 1:
         this_firing.reset_index(inplace=True)
         # Filter firing data to be within the specified time range
         this_firing = this_firing.loc[
-            (this_firing['time_val'] >= -pre_stim_duration) & 
+            (this_firing['time_val'] >= -pre_stim_duration) &
             (this_firing['time_val'] <= post_stim_duration)
         ]
         g = sns.relplot(
