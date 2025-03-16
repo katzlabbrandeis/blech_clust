@@ -70,6 +70,9 @@ this_dat.firing_rate_params = this_dat.default_firing_params
 this_dat.firing_rate_params['window_size'] = psth_params['window_size']
 this_dat.firing_rate_params['step_size'] = psth_params['step_size']
 stim_time = params_dict['spike_array_durations'][0]
+# Extract plot durations from psth_params
+pre_stim_duration = psth_params.get('pre_stim_duration', 2000)  # Default to 2000ms if not specified
+post_stim_duration = psth_params.get('post_stim_duration', 5000)  # Default to 5000ms if not specified
 this_dat.get_sequestered_data()
 
 
@@ -122,15 +125,27 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             (this_spikes['trial_num'].max()+1) + this_spikes['trial_num']
         this_spikes['cum_trial_num'] += 0.5
         this_spikes['time_num'] -= stim_time
+        # Filter spikes to be within the specified time range
+        this_spikes = this_spikes.loc[
+            (this_spikes['time_num'] >= -pre_stim_duration) & 
+            (this_spikes['time_num'] <= post_stim_duration)
+        ]
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
+        # Filter firing data to be within the specified time range
+        this_firing_filtered = this_firing.loc[
+            (this_firing['time_val'] >= -pre_stim_duration) & 
+            (this_firing['time_val'] <= post_stim_duration)
+        ]
         sns.lineplot(
-            data=this_firing,
+            data=this_firing_filtered,
             x='time_val',
             y='firing',
             hue='taste',
             ax=ax[i, 0],
         )
+        # Set x-axis limits based on psth_params
+        ax[i, 0].set_xlim(-pre_stim_duration, post_stim_duration)
         ax[i, 0].legend()
         sns.scatterplot(
             data=this_spikes,
@@ -141,6 +156,8 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             ax=ax[i, 1],
             legend=False,
         )
+        # Set x-axis limits based on psth_params
+        ax[i, 1].set_xlim(-pre_stim_duration, post_stim_duration)
         for block_i in range(len(taste_blocks)-1):
             block_start = taste_blocks[block_i]
             block_end = taste_blocks[block_i+1]
@@ -179,6 +196,11 @@ if n_laser_conditions > 1:
         # 		this_dat.sequestered_firing_frame.neuron_num == nrn_ind
         # 		]
         this_firing.reset_index(inplace=True)
+        # Filter firing data to be within the specified time range
+        this_firing = this_firing.loc[
+            (this_firing['time_val'] >= -pre_stim_duration) & 
+            (this_firing['time_val'] <= post_stim_duration)
+        ]
         g = sns.relplot(
             data=this_firing,
             x='time_val',
@@ -188,6 +210,9 @@ if n_laser_conditions > 1:
             kind='line',
             linewidth=3,
         )
+        # Set x-axis limits for all subplots
+        for ax in g.axes.flatten():
+            ax.set_xlim(-pre_stim_duration, post_stim_duration)
         # leg = g._legend
         # leg.set_bbox_to_anchor([0.5, 0.5])
         # Remove figure legend
