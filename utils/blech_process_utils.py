@@ -321,8 +321,11 @@ class cluster_handler():
             # Use original predictions if available, otherwise load from files
             if hasattr(classifier_handler, 'original_pred'):
                 classifier_pred = classifier_handler.original_pred
-                # Original probabilities are still in clf_prob
-                classifier_prob = classifier_handler.clf_prob
+                # Use original probabilities if available
+                if hasattr(classifier_handler, 'original_prob'):
+                    classifier_prob = classifier_handler.original_prob
+                else:
+                    classifier_prob = classifier_handler.clf_prob
             else:
                 # Load original predictions from saved files
                 pred_path = os.path.join(

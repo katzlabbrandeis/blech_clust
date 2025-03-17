@@ -203,6 +203,8 @@ if classifier_params['use_classifier'] and \
         classifier_handler.original_slices = spike_set.slices_dejittered.copy()
         classifier_handler.original_times = spike_set.times_dejittered.copy()
         classifier_handler.original_pred = classifier_handler.clf_pred.copy()
+        # Store original probabilities
+        classifier_handler.original_prob = classifier_handler.clf_prob.copy()
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
