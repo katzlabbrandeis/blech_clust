@@ -317,21 +317,27 @@ class cluster_handler():
         if hasattr(classifier_handler, 'original_slices'):
             all_waveforms = classifier_handler.original_slices
             all_times = classifier_handler.original_times
-            # Load original predictions from saved files
-            pred_path = os.path.join(
-                self.data_dir,
-                'spike_waveforms',
-                f'electrode{self.electrode_num:02}',
-                'clf_pred.npy'
-            )
-            prob_path = os.path.join(
-                self.data_dir,
-                'spike_waveforms',
-                f'electrode{self.electrode_num:02}',
-                'clf_prob.npy'
-            )
-            classifier_pred = np.load(pred_path)
-            classifier_prob = np.load(prob_path)
+            
+            # Use original predictions if available, otherwise load from files
+            if hasattr(classifier_handler, 'original_pred'):
+                classifier_pred = classifier_handler.original_pred
+                classifier_prob = classifier_handler.clf_prob  # Original probabilities are still in clf_prob
+            else:
+                # Load original predictions from saved files
+                pred_path = os.path.join(
+                    self.data_dir,
+                    'spike_waveforms',
+                    f'electrode{self.electrode_num:02}',
+                    'clf_pred.npy'
+                )
+                prob_path = os.path.join(
+                    self.data_dir,
+                    'spike_waveforms',
+                    f'electrode{self.electrode_num:02}',
+                    'clf_prob.npy'
+                )
+                classifier_pred = np.load(pred_path)
+                classifier_prob = np.load(prob_path)
         else:
             classifier_pred = classifier_handler.clf_pred
             classifier_prob = classifier_handler.clf_prob
