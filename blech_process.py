@@ -201,7 +201,7 @@ if classifier_params['use_classifier'] and \
         print('== Throwing out noise waveforms ==')
         # Store original data for plotting purposes
         classifier_handler.original_pred = classifier_handler.clf_pred.copy()
-        
+
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()

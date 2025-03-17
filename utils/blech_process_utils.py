@@ -357,7 +357,7 @@ class cluster_handler():
                     plot_pred = classifier_handler.original_pred
                 else:
                     plot_pred = classifier_pred
-                
+
                 spike_bool = np.logical_and(plot_pred, cluster_bool)
                 noise_bool = np.logical_and(
                     np.logical_not(plot_pred), cluster_bool)
