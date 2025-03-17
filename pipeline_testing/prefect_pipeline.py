@@ -244,7 +244,7 @@ def select_clusters(data_dir):
 
 
 @task(log_prints=True)
-def post_process(data_dir, use_file=True, keep_raw=False):
+def post_process(data_dir, use_file=True, keep_raw=False, delete_existing=False):
     script_name = 'blech_post_process.py'
     if use_file:
         sorted_units_path = glob(os.path.join(
@@ -255,6 +255,8 @@ def post_process(data_dir, use_file=True, keep_raw=False):
         run_list = ["python", script_name, data_dir]
     if keep_raw:
         run_list.append('--keep-raw')
+    if delete_existing:
+        run_list.append('--delete-existing')
     print(f'Post-process: {run_list}')
     process = Popen(run_list, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -408,13 +410,16 @@ def run_spike_test(data_dir):
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file=False, keep_raw=True)
+    post_process(data_dir, use_file=False, keep_raw=True, delete_existing=True)
 
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
-    post_process(data_dir)
+    post_process(data_dir, use_file=True, keep_raw=True)
+    # Run again but delete existing
+    post_process(data_dir, use_file=True, keep_raw=False, delete_existing=True)
 
     make_arrays(data_dir)
     quality_assurance(data_dir)
