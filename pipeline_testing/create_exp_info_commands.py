@@ -49,6 +49,8 @@ import os
 import sys
 import argparse
 import re
+
+
 def parse_laser_params(s):
     """
     Parse laser parameters from string format like "(0,2500),(0,500),(300,500),(800,500)"
@@ -57,8 +59,10 @@ def parse_laser_params(s):
     pattern = re.compile(r'\((\d+),(\d+)\)')
     matches = pattern.findall(s)
     if not matches:
-        raise ValueError('Invalid format for laser parameters. Expected format: (onset1,duration1),(onset2,duration2),...')
+        raise ValueError(
+            'Invalid format for laser parameters. Expected format: (onset1,duration1),(onset2,duration2),...')
     return [(int(onset), int(duration)) for onset, duration in matches]
+
 
 def validate_laser_opto_match(laser_params, opto_locs):
     """
@@ -66,10 +70,12 @@ def validate_laser_opto_match(laser_params, opto_locs):
     """
     laser_count = len(parse_laser_params(laser_params))
     opto_count = len(opto_locs.split(','))
-    
+
     if laser_count != opto_count:
-        raise ValueError(f"Number of laser conditions ({laser_count}) must match number of opto locations ({opto_count})")
+        raise ValueError(
+            f"Number of laser conditions ({laser_count}) must match number of opto locations ({opto_count})")
     return True
+
 
 test_bool = False  # noqa
 if not test_bool:
@@ -248,7 +254,7 @@ laser_stem_str = \
 # Validate that laser params and opto locations match
 try:
     validate_laser_opto_match(
-        "(0,2500),(0,500),(300,500),(800,500)", 
+        "(0,2500),(0,500),(300,500),(800,500)",
         "gc,gc,gc,gc"
     )
     print("Laser command template validated successfully.")
@@ -279,13 +285,14 @@ if __name__ == '__main__':
     print(f'Running {key} command')
     this_command_dict = command_dict[file_type]
     this_command = this_command_dict[key]
-    
+
     # Validate laser params and opto locations if this is a laser command
     if key == 'laser':
         # Extract the laser params and opto-loc from the command
-        laser_params_match = re.search(r'--laser-params\s+"([^"]+)"', this_command)
+        laser_params_match = re.search(
+            r'--laser-params\s+"([^"]+)"', this_command)
         opto_loc_match = re.search(r'--opto-loc\s+([^\s\\]+)', this_command)
-        
+
         if laser_params_match and opto_loc_match:
             try:
                 validate_laser_opto_match(
@@ -295,9 +302,10 @@ if __name__ == '__main__':
                 print("Laser parameters and opto locations validated successfully.")
             except ValueError as e:
                 print(f"Error: {e}")
-                print("Please ensure the number of laser conditions matches the number of opto locations.")
+                print(
+                    "Please ensure the number of laser conditions matches the number of opto locations.")
                 sys.exit(1)
-    
+
     # Replace $DIR with the directory name
     this_command = this_command.replace('$DIR', data_dir)
     print('================================\n')
