@@ -317,15 +317,15 @@ class cluster_handler():
 
         # These are reconstructed here to avoid dealing with
         # the `throw_out_noise` logic
-        all_waveforms = np.concatenate(
+        all_waveforms = np.concatenate([
             classifier_handler.pos_spike_dict['waveforms'],
-            classifier_handler.neg_spike_dict['waveforms'])
-        all_times = np.concatenate(
+            classifier_handler.neg_spike_dict['waveforms']], axis=0)
+        all_times = np.concatenate([
             classifier_handler.pos_spike_dict['spiketimes'],
-            classifier_handler.neg_spike_dict['spiketimes'])
-        classifier_prob = np.concatenate(
+            classifier_handler.neg_spike_dict['spiketimes']], axis=0)
+        classifier_prob = np.concatenate([
             classifier_handler.pos_spike_dict['prob'],
-            classifier_handler.neg_spike_dict['prob'])
+            classifier_handler.neg_spike_dict['prob']], axis=0)
         classifier_pred = classifier_prob > clf_threshold
 
         max_plot_count = 1000
@@ -352,9 +352,15 @@ class cluster_handler():
                 noise_hist_ax.set_ylabel('Noise Times')
                 prob_ax.set_ylabel('Classifier Probs')
 
-                spike_bool = np.logical_and(classifier_pred, cluster_bool)
+                # Use original predictions if available (for when throw_out_noise is enabled)
+                if hasattr(classifier_handler, 'original_pred'):
+                    plot_pred = classifier_handler.original_pred
+                else:
+                    plot_pred = classifier_pred
+                
+                spike_bool = np.logical_and(plot_pred, cluster_bool)
                 noise_bool = np.logical_and(
-                    np.logical_not(classifier_pred), cluster_bool)
+                    np.logical_not(plot_pred), cluster_bool)
 
                 if sum(spike_bool):
                     spike_inds = np.random.choice(
