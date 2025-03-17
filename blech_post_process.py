@@ -164,8 +164,11 @@ if args.delete_existing and ('/sorted_units' in hf5):
     hf5.create_group('/', 'sorted_units')
     print('==== Cleared saved units. ====\n')
 elif '/sorted_units' in hf5:
-    overwrite_hf5 = input(
-        'Saved units detected; remove them? (y/[n]): ') or 'n'
+    overwrite_hf5, continue_bool = entry_checker(
+        msg='Saved units detected; remove them? (y/[n]): ',
+        check_func=lambda x: x.lower() in ['y', 'n'],
+        fail_response='Please enter y or n',
+    )
     if overwrite_hf5.lower() == 'y':
         hf5.remove_node('/sorted_units', recursive=True)
         hf5.create_group('/', 'sorted_units')
