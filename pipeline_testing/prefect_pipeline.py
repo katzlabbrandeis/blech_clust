@@ -417,8 +417,6 @@ def run_spike_test(data_dir):
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
-    post_process(data_dir, use_file=True, keep_raw=True)
-    # Run again but delete existing
     post_process(data_dir, use_file=True, keep_raw=False, delete_existing=True)
 
     make_arrays(data_dir)
