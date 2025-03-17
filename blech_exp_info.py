@@ -434,7 +434,7 @@ else:
                 opto_loc_list = parse_csv(args.opto_loc)
                 if len(opto_loc_list) != len(laser_params_list):
                     raise ValueError(
-                        'Number of opto locations must match number of laser parameter pairs')
+                        f'Number of opto locations ({len(opto_loc_list)}) must match number of laser parameter pairs ({len(laser_params_list)})')
             else:
                 raise ValueError(
                     'Opto-fiber locations not provided, use --opto-loc')
