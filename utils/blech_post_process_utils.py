@@ -742,10 +742,10 @@ class unit_descriptor_handler():
 
         # Calculate half-spike width and classify neuron type
         from utils.blech_process_utils import calculate_half_spike_width, classify_neuron_type
-        
+
         # Calculate mean waveform
         mean_waveform = np.mean(unit_waveforms, axis=0)
-        
+
         # Get sampling rate from params_dict
         try:
             # Try to get sampling rate from the HDF5 file
@@ -753,13 +753,15 @@ class unit_descriptor_handler():
         except:
             # Default to 30kHz if not found
             sampling_rate = 30000.0
-            
+
         # Calculate half-spike width and classify neuron
-        half_spike_width = calculate_half_spike_width(mean_waveform, sampling_rate)
+        half_spike_width = calculate_half_spike_width(
+            mean_waveform, sampling_rate)
         neuron_type = classify_neuron_type(half_spike_width)
-        
+
         print(f':: Saving unit {unit_properties} ::')
-        print(f':: Half-spike width: {half_spike_width:.2f} ms, Neuron type: {neuron_type} ::')
+        print(
+            f':: Half-spike width: {half_spike_width:.2f} ms, Neuron type: {neuron_type} ::')
 
         if '/sorted_units' not in self.hf5:
             self.hf5.create_group('/', 'sorted_units')
@@ -836,11 +838,11 @@ class unit_descriptor_handler():
             data=dict_list,
         )
         table_frame['hash'] = [x.decode() for x in table_frame['hash']]
-        
+
         # Decode neuron_type if it exists
         if 'neuron_type' in table_frame.columns:
-            table_frame['neuron_type'] = [x.decode() if isinstance(x, bytes) else x 
-                                         for x in table_frame['neuron_type']]
+            table_frame['neuron_type'] = [x.decode() if isinstance(x, bytes) else x
+                                          for x in table_frame['neuron_type']]
         return table_frame
 
     def check_table_matches_saved_units(self,):
@@ -927,7 +929,7 @@ class unit_descriptor_handler():
         saved_frame['unit_number'] = [int(unit_name.split('unit')[-1])
                                       for unit_name in saved_frame['unit_name']]
         saved_frame['hash'] = unit_hashes
-        
+
         # Add neuron_type column if it doesn't exist
         if 'neuron_type' not in saved_frame.columns:
             saved_frame['neuron_type'] = 'unknown'
@@ -973,7 +975,7 @@ class unit_descriptor_handler():
 
         # Import functions for neuron classification
         from utils.blech_process_utils import calculate_half_spike_width, classify_neuron_type
-        
+
         # Get sampling rate
         try:
             sampling_rate = self.hf5.root.info.sampling_rate[0]
@@ -985,29 +987,32 @@ class unit_descriptor_handler():
         for ind, this_row in metadata_table.iterrows():
             # Get a new unit_descriptor table row for this new unit
             unit_description = table.row
-            
+
             # Calculate neuron type for this unit
             unit_name = this_row['unit_name']
             unit_path = f'/sorted_units/{unit_name}'
-            
+
             # Default neuron type
             neuron_type = 'unknown'
-            
+
             # Try to calculate neuron type from waveforms
             try:
                 waveforms = self.hf5.get_node(unit_path, 'waveforms')[:]
                 mean_waveform = np.mean(waveforms, axis=0)
-                half_spike_width = calculate_half_spike_width(mean_waveform, sampling_rate)
+                half_spike_width = calculate_half_spike_width(
+                    mean_waveform, sampling_rate)
                 neuron_type = classify_neuron_type(half_spike_width)
-                print(f"Unit {unit_name}: Half-spike width = {half_spike_width:.2f} ms, Type = {neuron_type}")
+                print(
+                    f"Unit {unit_name}: Half-spike width = {half_spike_width:.2f} ms, Type = {neuron_type}")
             except Exception as e:
-                print(f"Could not calculate neuron type for {unit_name}: {str(e)}")
-            
+                print(
+                    f"Could not calculate neuron type for {unit_name}: {str(e)}")
+
             # Copy existing columns
             for col in table.colnames:
                 if col in this_row and col != 'neuron_type':
                     unit_description[col] = this_row[col]
-            
+
             # Add neuron type
             unit_description['neuron_type'] = neuron_type
             unit_description.append()

@@ -1221,38 +1221,40 @@ def gen_isi_hist(
 def calculate_half_spike_width(spike_waveform, sampling_rate):
     """
     Calculate the half-spike width from the valley to the post-valley peak.
-    
+
     Parameters:
     spike_waveform (np.array): The waveform of the spike.
     sampling_rate (float): Sampling rate in Hz.
-    
+
     Returns:
     float: The half-spike width in milliseconds.
     """
     # Find the valley (minimum point)
     valley_index = np.argmin(spike_waveform)
-    
+
     # Find the post-valley peak (maximum point after valley)
     if valley_index < len(spike_waveform) - 1:
         post_valley_segment = spike_waveform[valley_index:]
         post_valley_peak_index = valley_index + np.argmax(post_valley_segment)
-        
+
         # Calculate time in milliseconds
         time_per_sample = 1000.0 / sampling_rate  # convert to ms
-        half_spike_width = (post_valley_peak_index - valley_index) * time_per_sample
+        half_spike_width = (post_valley_peak_index -
+                            valley_index) * time_per_sample
         return half_spike_width
     else:
         # If valley is at the end of the waveform, return a default value
         return 0.0
 
+
 def classify_neuron_type(half_spike_width, threshold=0.45):
     """
     Classify neuron as pyramidal or interneuron based on half-spike width.
-    
+
     Parameters:
     half_spike_width (float): The half-spike width in milliseconds.
     threshold (float): The threshold in milliseconds to distinguish between types.
-    
+
     Returns:
     str: 'pyramidal' or 'interneuron'
     """
@@ -1260,6 +1262,7 @@ def classify_neuron_type(half_spike_width, threshold=0.45):
         return 'interneuron'
     else:
         return 'pyramidal'
+
 
 def remove_too_large_waveforms(
         cluster_points,
