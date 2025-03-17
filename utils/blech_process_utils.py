@@ -317,11 +317,12 @@ class cluster_handler():
         if hasattr(classifier_handler, 'original_slices'):
             all_waveforms = classifier_handler.original_slices
             all_times = classifier_handler.original_times
-            
+
             # Use original predictions if available, otherwise load from files
             if hasattr(classifier_handler, 'original_pred'):
                 classifier_pred = classifier_handler.original_pred
-                classifier_prob = classifier_handler.clf_prob  # Original probabilities are still in clf_prob
+                # Original probabilities are still in clf_prob
+                classifier_prob = classifier_handler.clf_prob
             else:
                 # Load original predictions from saved files
                 pred_path = os.path.join(
