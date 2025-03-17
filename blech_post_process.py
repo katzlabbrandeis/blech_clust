@@ -69,6 +69,8 @@ parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
                     action='store_true')
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
                     action='store_true')
+parser.add_argument('--delete-existing', help='Delete existing units',
+                    action='store_true')
 args = parser.parse_args()
 
 ############################################################
@@ -157,7 +159,11 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if '/sorted_units' in hf5:
+if args.delete_existing and ('/sorted_units' in hf5):
+    hf5.remove_node('/sorted_units', recursive=True)
+    hf5.create_group('/', 'sorted_units')
+    print('==== Cleared saved units. ====\n')
+elif '/sorted_units' in hf5:
     overwrite_hf5 = input(
         'Saved units detected; remove them? (y/[n]): ') or 'n'
     if overwrite_hf5.lower() == 'y':
