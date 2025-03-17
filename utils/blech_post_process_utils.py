@@ -223,7 +223,8 @@ def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
             ax[cluster_num, 0].axis('off')
             ax[cluster_num, 1].imshow(waveform_plot, aspect='auto')
             ax[cluster_num, 1].axis('off')
-    fig.suptitle('Are these the neurons you want to select? Press q to exit plot')
+    fig.suptitle(
+        'Are these the neurons you want to select? Press q to exit plot')
     fig.tight_layout()
     plt.show()
 
@@ -289,12 +290,13 @@ def get_clustering_params(this_sort_file_handler):
     if (this_sort_file_handler.sort_table is not None):
         dat_row = this_sort_file_handler.current_row
         split_val = re.findall('[0-9]+', str(dat_row.Split))
-        if (len(split_val) > 0): 
-            n_clusters = int(input(f'Number of clusters (default={split_val[0]}): ') or split_val[0])
+        if (len(split_val) > 0):
+            n_clusters = int(
+                input(f'Number of clusters (default={split_val[0]}): ') or split_val[0])
         else:
             n_clusters = int(input('Number of clusters (default=5): ') or "5")
-    else:    
-        n_clusters = int(input('Number of clusters (default=5): ') or "5")    
+    else:
+        n_clusters = int(input('Number of clusters (default=5): ') or "5")
     fields = [
         'Max iterations',
         'Convergence criterion',
