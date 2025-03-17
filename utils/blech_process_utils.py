@@ -313,11 +313,32 @@ class cluster_handler():
 
         self.check_classifier_data_exists(self.data_dir)
 
-        classifier_pred = classifier_handler.clf_pred
-        classifier_prob = classifier_handler.clf_prob
+        # Use original data for plotting if available (when throw_out_noise is True)
+        if hasattr(classifier_handler, 'original_slices'):
+            all_waveforms = classifier_handler.original_slices
+            all_times = classifier_handler.original_times
+            # Load original predictions from saved files
+            pred_path = os.path.join(
+                self.data_dir,
+                'spike_waveforms',
+                f'electrode{self.electrode_num:02}',
+                'clf_pred.npy'
+            )
+            prob_path = os.path.join(
+                self.data_dir,
+                'spike_waveforms',
+                f'electrode{self.electrode_num:02}',
+                'clf_prob.npy'
+            )
+            classifier_pred = np.load(pred_path)
+            classifier_prob = np.load(prob_path)
+        else:
+            classifier_pred = classifier_handler.clf_pred
+            classifier_prob = classifier_handler.clf_prob
+            all_waveforms = self.spike_set.slices_dejittered
+            all_times = self.spike_set.times_dejittered
+            
         clf_threshold = classifier_handler.clf_threshold
-        all_waveforms = self.spike_set.slices_dejittered
-        all_times = self.spike_set.times_dejittered
 
         max_plot_count = 1000
         for cluster in np.unique(self.labels):
