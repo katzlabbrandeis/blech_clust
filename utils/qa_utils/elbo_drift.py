@@ -174,7 +174,7 @@ spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Perform PCA and keep 5 components
-n_components = np.min([5, zscored_hists.shape[1]])
+n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
 pca = PCA(n_components=n_components, whiten=True)
 pca.fit(zscored_hists.T)
 tot_var_explained = pca.explained_variance_ratio_.sum()
