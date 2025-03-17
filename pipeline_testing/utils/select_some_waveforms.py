@@ -49,7 +49,7 @@ for inum, this_pred_file in enumerate(pred_files):
     electrode_str = splits[-3]
     cluster_str = splits[-2]
 
-    num_pattern = '(\d+)'
+    num_pattern = r'(\d+)'
     electrode_num = int(re.findall(num_pattern, electrode_str)[0])
     cluster_num = int(re.findall(num_pattern, cluster_str)[0])
 
