@@ -337,7 +337,7 @@ class cluster_handler():
             classifier_prob = classifier_handler.clf_prob
             all_waveforms = self.spike_set.slices_dejittered
             all_times = self.spike_set.times_dejittered
-            
+
         clf_threshold = classifier_handler.clf_threshold
 
         max_plot_count = 1000

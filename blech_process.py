@@ -208,7 +208,8 @@ if classifier_params['use_classifier'] and \
         spike_set.slices_dejittered = slices_dejittered
         spike_set.times_dejittered = times_dejittered
         classifier_handler.clf_prob = clf_prob
-        classifier_handler.clf_pred = np.ones_like(clf_prob, dtype=bool)  # All are now spikes
+        classifier_handler.clf_pred = np.ones_like(
+            clf_prob, dtype=bool)  # All are now spikes
 
 ############################################################
 
