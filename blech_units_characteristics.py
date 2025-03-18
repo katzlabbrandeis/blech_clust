@@ -29,12 +29,27 @@ from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 import pandas as pd
+from ast import literal_eval
 pd.options.mode.chained_assignment = None
 tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
+test_bool = False
+
+if test_bool:
+    data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
+    metadata_handler = imp_metadata([[], data_dir])
+
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
+else:
+
+    metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
@@ -44,12 +59,6 @@ if not os.path.exists(plot_dir):
 agg_plot_dir = os.path.join(plot_dir, 'aggregated')
 if not os.path.exists(agg_plot_dir):
     os.makedirs(agg_plot_dir)
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 
@@ -88,8 +97,25 @@ mean_seq_firing['time_val'] = [firing_t_vec[x]
                                for x in mean_seq_firing.time_num]
 mean_seq_firing['taste'] = [taste_names[x] for x in mean_seq_firing.taste_num]
 
+# Cut by psth_params['durations']
+mean_seq_firing = mean_seq_firing.loc[
+    (mean_seq_firing.time_val >= -psth_params['durations'][0]) &
+    (mean_seq_firing.time_val <= psth_params['durations'][1])
+]
+this_dat.sequestered_spikes_frame['time_num'] -= stim_time
+this_dat.sequestered_spikes_frame = this_dat.sequestered_spikes_frame.loc[
+    (this_dat.sequestered_spikes_frame.time_num >= -psth_params['durations'][0]) &
+    (this_dat.sequestered_spikes_frame.time_num <= psth_params['durations'][1])
+]
+
+# Convert laser_tuple to tuple
+mean_seq_firing['laser_tuple'] = [literal_eval(x) for x in
+                                  mean_seq_firing.laser_tuple]
+this_dat.sequestered_spikes_frame['laser_tuple'] = [
+    literal_eval(x) for x in this_dat.sequestered_spikes_frame.laser_tuple]
+
 # Plot firing rates
-laser_conditions = mean_seq_firing.laser_tuple.unique()
+laser_conditions = np.sort(mean_seq_firing.laser_tuple.unique())
 n_laser_conditions = len(laser_conditions)
 
 # List of len = n_tastes
@@ -100,7 +126,7 @@ cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     n_rows = np.max([n_laser_conditions, 2])
-    fig, ax = plt.subplots(n_rows, 3, figsize=(15, 5*n_laser_conditions),
+    fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
                            # sharex=True, sharey='col')
                            )
     # Remove axis for lower row if only one laser condition
@@ -121,7 +147,6 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             this_spikes['taste_num'] * \
             (this_spikes['trial_num'].max()+1) + this_spikes['trial_num']
         this_spikes['cum_trial_num'] += 0.5
-        this_spikes['time_num'] -= stim_time
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
         sns.lineplot(
@@ -131,6 +156,14 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             hue='taste',
             ax=ax[i, 0],
         )
+        # Plot laser condition
+        if laser_cond != (0, 0):
+            print(laser_cond)
+            ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
+                             color='y', label='Laser condition')
+        # Put legend to left of plot
+        ax[i, 0].legend(title='Taste', bbox_to_anchor=(1.05, 1),
+                        loc='upper left')
         ax[i, 0].legend()
         sns.scatterplot(
             data=this_spikes,
