@@ -129,7 +129,6 @@ if __name__ == '__main__':
         data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
         metadata_handler = imp_metadata([[], data_dir])
     else:
-
         metadata_handler = imp_metadata(sys.argv)
 
         # Perform pipeline graph check
