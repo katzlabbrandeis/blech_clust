@@ -237,8 +237,10 @@ command_dict['ofpc'] = ofpc_command_dict
 command_dict['trad'] = trad_command_dict
 
 # Test laser command
+multi_laser_params = "(0,2500),(0,500),(300,500),(800,500)"
+multi_opto_locs = "gc,gc,gc,gc"
 laser_stem_str = \
-    """python blech_exp_info.py $DIR \
+    f"""python blech_exp_info.py $DIR \
 --programmatic \
 --emg-muscle ad \
 --taste-digins 0,1,2 \
@@ -246,20 +248,21 @@ laser_stem_str = \
 --concentrations 1,1,1 \
 --palatability 1,2,3 \
 --laser-digin 3 \
---laser-params "(0,2500),(0,500),(300,500),(800,500)" \
---opto-loc gc,gc,gc,gc \
+--laser-params "{multi_laser_params}" \
+--opto-loc {multi_opto_locs} \
 --virus-region gc \
 """
 
 # Validate that laser params and opto locations match
 try:
     validate_laser_opto_match(
-        "(0,2500),(0,500),(300,500),(800,500)",
-        "gc,gc,gc,gc"
+        multi_laser_params,
+        multi_opto_locs
     )
     print("Laser command template validated successfully.")
 except ValueError as e:
     print(f"Warning in laser command template: {e}")
+
 wanted_gc_inds = [0, 1, 2, 29]
 car_groups = ['none']*32
 for ind in wanted_gc_inds:
@@ -285,26 +288,6 @@ if __name__ == '__main__':
     print(f'Running {key} command')
     this_command_dict = command_dict[file_type]
     this_command = this_command_dict[key]
-
-    # Validate laser params and opto locations if this is a laser command
-    if key == 'laser':
-        # Extract the laser params and opto-loc from the command
-        laser_params_match = re.search(
-            r'--laser-params\s+"([^"]+)"', this_command)
-        opto_loc_match = re.search(r'--opto-loc\s+([^\s\\]+)', this_command)
-
-        if laser_params_match and opto_loc_match:
-            try:
-                validate_laser_opto_match(
-                    laser_params_match.group(1),
-                    opto_loc_match.group(1)
-                )
-                print("Laser parameters and opto locations validated successfully.")
-            except ValueError as e:
-                print(f"Error: {e}")
-                print(
-                    "Please ensure the number of laser conditions matches the number of opto locations.")
-                sys.exit(1)
 
     # Replace $DIR with the directory name
     this_command = this_command.replace('$DIR', data_dir)
