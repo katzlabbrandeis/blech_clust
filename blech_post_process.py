@@ -69,6 +69,8 @@ parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
                     action='store_true')
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
                     action='store_true')
+parser.add_argument('--delete-existing', help='Delete existing units',
+                    action='store_true')
 args = parser.parse_args()
 
 ############################################################
@@ -157,7 +159,21 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if not '/sorted_units' in hf5:
+if args.delete_existing and ('/sorted_units' in hf5):
+    hf5.remove_node('/sorted_units', recursive=True)
+    hf5.create_group('/', 'sorted_units')
+    print('==== Cleared saved units. ====\n')
+elif '/sorted_units' in hf5:
+    overwrite_hf5, continue_bool = entry_checker(
+        msg='Saved units detected; remove them? (y/[n]): ',
+        check_func=lambda x: x.lower() in ['y', 'n'],
+        fail_response='Please enter y or n',
+    )
+    if overwrite_hf5.lower() == 'y':
+        hf5.remove_node('/sorted_units', recursive=True)
+        hf5.create_group('/', 'sorted_units')
+        print('==== Cleared saved units. ====\n')
+else:
     hf5.create_group('/', 'sorted_units')
 
 ############################################################
@@ -234,7 +250,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         ##############################
         # Get clustering parameters from user
         continue_bool, n_clusters, n_iter, thresh, n_restarts = \
-            post_utils.get_clustering_params()
+            post_utils.get_clustering_params(this_sort_file_handler)
         if not continue_bool:
             continue
 
@@ -406,8 +422,8 @@ while (not auto_post_process) or (args.sort_file is not None):
 
     hf5.flush()
 
-    print('==== {} Complete ===\n'.format(unit_name))
-    print('==== Iteration Ended ===\n')
+    print('==== {} Complete ====\n'.format(unit_name))
+    print('==== Iteration Ended ====\n')
 
 # Run auto-processing only if clustering was ALSO automatic
 # As currently, this does not have functionality to determine
@@ -544,7 +560,7 @@ current_unit_table.to_csv(
 
 
 print()
-print('== Post-processing exiting ==')
+print('==== Post-processing exiting ====\n')
 # Close the hdf5 file
 hf5.close()
 
