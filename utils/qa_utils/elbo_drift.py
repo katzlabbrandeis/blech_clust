@@ -170,10 +170,12 @@ max_time = int(np.ceil(max([x[-1] for x in spike_times])))
 bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
+# Shape: n_neurons x n_bins
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Perform PCA and keep 5 components
-pca = PCA(n_components=5, whiten=True)
+n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
+pca = PCA(n_components=n_components, whiten=True)
 pca.fit(zscored_hists.T)
 tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)

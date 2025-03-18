@@ -8,7 +8,7 @@ This module provides utilities for quality assurance of channel data, focusing o
 
 import numpy as np
 from tqdm import tqdm
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, zscore
 from itertools import combinations
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -68,6 +68,7 @@ def intra_corr(X):
     Output:
             corr_mat: np.array (n_chans, n_chans)
     """
+    X = zscore(X, axis=-1)
     inds = list(combinations(range(X.shape[0]), 2))
     corr_mat = np.zeros((X.shape[0], X.shape[0]))
     for i, j in tqdm(inds):
