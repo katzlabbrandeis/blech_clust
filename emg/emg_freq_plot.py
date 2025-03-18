@@ -150,13 +150,22 @@ for plot_name, plot_data in zip(['gapes', 'ltps'], [gapes, ltps]):
 
 # Plot taste overlay per laser condition and CAR
 print('Plotting Taste and Laser Overlay...')
+
+# Downsample
+bin_size = 25
+mean_emg_long['bin'] = mean_emg_long['time'] // bin_size
+
+# Average over bins
+mean_emg_long = mean_emg_long.groupby(
+    ['car', 'taste', 'laser_tuple', 'emg_type', 'bin']).mean().reset_index()
+
 for car_name, car_dat in list(mean_emg_long.groupby('car')):
     g = sns.relplot(
         data=mean_emg_long,
         x='time',
         y='emg_value',
         hue='taste',
-        row='laser',
+        row='laser_tuple',
         col='emg_type',
         # style = 'emg_type',
         kind='line',
@@ -181,7 +190,7 @@ for car_name, car_dat in list(mean_emg_long.groupby('car')):
         data=mean_emg_long,
         x='time',
         y='emg_value',
-        hue='laser',
+        hue='laser_tuple',
         row='emg_type',
         col='taste',
         # style = 'emg_type',
