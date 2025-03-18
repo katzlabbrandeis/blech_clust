@@ -35,7 +35,7 @@ tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-test_bool = False
+test_bool = True
 
 if test_bool:
     # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
@@ -127,6 +127,7 @@ waveform_dir = os.path.join(dir_name, 'unit_waveforms_plots', 'waveforms_only')
 spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
+print('=== Creating overlay PSTH plots ===')
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     n_rows = np.max([n_laser_conditions, 2])
     fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
@@ -206,6 +207,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 
 # If more than one laser condition, plot firing rates for each taste separately
 # with laser conditions as hue
+print('=== Creating overlay PSTH plots for each taste ===')
 if n_laser_conditions > 1:
     for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         this_firing = mean_seq_firing.loc[
@@ -320,6 +322,7 @@ group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
 group_frames = [x[1] for x in group_list]
+print('=== Calculating responsiveness ===')
 pval_list = []
 for this_frame in tqdm(group_frames):
     this_pval = ttest_rel(
@@ -444,6 +447,7 @@ seq_spike_counts.drop(columns=['time_num'], inplace=True)
 seq_spike_counts.fillna(0, inplace=True)
 
 # Make sure all inds are present
+print('=== Calculating discriminability ===')
 seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
 for this_ind in tqdm(firing_frame_group_inds):
     # Iterate of post_stim
@@ -462,6 +466,7 @@ seq_spike_counts.reset_index(inplace=True)
 
 # For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num
 # as factors
+print('=== Calculating taste-dynamics ANOVA ===')
 group_cols = ['neuron_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
@@ -768,5 +773,6 @@ out_frame.to_hdf(
     mode='a',
 )
 
-# Mark as completed
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not test_bool:
+    # Mark as completed
+    this_pipeline_check.write_to_log(script_path, 'completed')
