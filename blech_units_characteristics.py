@@ -38,8 +38,11 @@ tqdm.pandas()
 test_bool = False
 
 if test_bool:
-    data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
+    # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
+    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
+
+else:
 
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
@@ -47,9 +50,8 @@ if test_bool:
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
-else:
-
     metadata_handler = imp_metadata(sys.argv)
+
 dir_name = metadata_handler.dir_name
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
@@ -102,17 +104,18 @@ mean_seq_firing = mean_seq_firing.loc[
     (mean_seq_firing.time_val >= -psth_params['durations'][0]) &
     (mean_seq_firing.time_val <= psth_params['durations'][1])
 ]
-this_dat.sequestered_spikes_frame['time_num'] -= stim_time
-this_dat.sequestered_spikes_frame = this_dat.sequestered_spikes_frame.loc[
-    (this_dat.sequestered_spikes_frame.time_num >= -psth_params['durations'][0]) &
-    (this_dat.sequestered_spikes_frame.time_num <= psth_params['durations'][1])
+sequestered_spikes_frame = this_dat.sequestered_spikes_frame.copy()
+sequestered_spikes_frame['time_num'] -= stim_time
+sequestered_spikes_frame = sequestered_spikes_frame.loc[
+    (sequestered_spikes_frame.time_num >= -psth_params['durations'][0]) &
+    (sequestered_spikes_frame.time_num <= psth_params['durations'][1])
 ]
 
 # Convert laser_tuple to tuple
 mean_seq_firing['laser_tuple'] = [literal_eval(x) for x in
                                   mean_seq_firing.laser_tuple]
-this_dat.sequestered_spikes_frame['laser_tuple'] = [
-    literal_eval(x) for x in this_dat.sequestered_spikes_frame.laser_tuple]
+sequestered_spikes_frame['laser_tuple'] = [
+    literal_eval(x) for x in sequestered_spikes_frame.laser_tuple]
 
 # Plot firing rates
 laser_conditions = np.sort(mean_seq_firing.laser_tuple.unique())
@@ -138,9 +141,9 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             (mean_seq_firing.neuron_num == nrn_ind) &
             (mean_seq_firing.laser_tuple == laser_cond)
         ]
-        this_spikes = this_dat.sequestered_spikes_frame.loc[
-            (this_dat.sequestered_spikes_frame.neuron_num == nrn_ind) &
-            (this_dat.sequestered_spikes_frame.laser_tuple == laser_cond)
+        this_spikes = sequestered_spikes_frame.loc[
+            (sequestered_spikes_frame.neuron_num == nrn_ind) &
+            (sequestered_spikes_frame.laser_tuple == laser_cond)
         ]
         this_spikes.sort_values(['taste_num', 'trial_num'], inplace=True)
         this_spikes['cum_trial_num'] = \
