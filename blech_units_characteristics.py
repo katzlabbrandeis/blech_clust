@@ -158,7 +158,6 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         )
         # Plot laser condition
         if laser_cond != (0, 0):
-            print(laser_cond)
             ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
                              color='y', label='Laser condition')
         # Put legend to left of plot
@@ -170,9 +169,10 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             x='time_num',
             y='cum_trial_num',
             color='k',
-            marker='|',
+            marker='s',
             ax=ax[i, 1],
             legend=False,
+            s=10,
         )
         for block_i in range(len(taste_blocks)-1):
             block_start = taste_blocks[block_i]
