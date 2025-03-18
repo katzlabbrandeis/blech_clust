@@ -280,7 +280,7 @@ seq_spikes_frame = seq_spikes_frame.loc[
 ]
 seq_spikes_frame['spikes'] = 1
 # mark pre and post stim periods
-seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
+seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= 0
 # NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE
 # OF EQUAL LENGTH
 seq_spike_counts = seq_spikes_frame.groupby(
