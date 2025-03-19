@@ -164,7 +164,7 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
     # Format default for display
     if isinstance(default_value, list):
         default_str = ', '.join(map(str, default_value)
-                              ) if default_value else ""
+                                ) if default_value else ""
     else:
         default_str = str(default_value) if default_value else ""
 
@@ -189,8 +189,6 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
             return default_value
     else:
         exit()
-
-
 
 
 def parse_laser_params(s):
