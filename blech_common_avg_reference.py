@@ -109,22 +109,22 @@ def cluster_electrodes(features, max_clusters=10):
     best_bic = -np.inf  # For silhouette score, higher is better
     best_kmeans = None
     best_predictions = None
-    
+
     # Handle the case where we have very few samples
     max_possible_clusters = min(max_clusters, len(features) - 1)
-    
+
     # Need at least 2 clusters for silhouette score
     min_clusters = 2 if len(features) > 2 else 1
-    
+
     # Try different numbers of clusters
     for n_clusters in range(min_clusters, max_possible_clusters + 1):
         kmeans = KMeans(
-            n_clusters=n_clusters, 
+            n_clusters=n_clusters,
             random_state=42,
             n_init=10  # Multiple initializations to find best solution
         )
         predictions = kmeans.fit_predict(features)
-        
+
         # For single cluster, we can't compute silhouette score
         if n_clusters == 1:
             # Use negative inertia as a measure (lower is better)
@@ -132,15 +132,16 @@ def cluster_electrodes(features, max_clusters=10):
         else:
             # Use silhouette score (higher is better)
             score = silhouette_score(features, predictions)
-        
+
         print(f"  K={n_clusters}, score={score:.4f}")
-        
+
         if score > best_bic:
             best_bic = score
             best_kmeans = kmeans
             best_predictions = predictions
-    
-    print(f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
+
+    print(
+        f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
     return best_predictions, best_kmeans
 
 
