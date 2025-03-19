@@ -10,34 +10,58 @@ This module generates a file containing relevant experimental information for a 
 - Logs the completion status of the pipeline process.
 """
 
-# Create argument parser
+test_bool = False  # noqa
 import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Creates files with experiment info')
-parser.add_argument('dir_name',  help='Directory containing data files')
-parser.add_argument('--template', '-t',
-                    help='Template (.info) file to copy experimental details from')
-parser.add_argument('--mode', '-m', default='legacy',
-                    choices=['legacy', 'updated'])
-parser.add_argument('--programmatic', action='store_true',
-                    help='Run in programmatic mode')
-parser.add_argument('--use-layout-file', action='store_true',
-                    help='Use existing electrode layout file')
-parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
-parser.add_argument('--emg-muscle', help='Name of EMG muscle')
-parser.add_argument(
-    '--taste-digins', help='Comma-separated indices of taste digital inputs')
-parser.add_argument('--tastes', help='Comma-separated taste names')
-parser.add_argument('--concentrations',
-                    help='Comma-separated concentrations in M')
-parser.add_argument(
-    '--palatability', help='Comma-separated palatability rankings')
-parser.add_argument('--laser-digin', help='Laser digital input index')
-parser.add_argument('--laser-params', help='Laser onset,duration in ms')
-parser.add_argument('--virus-region', help='Virus region')
-parser.add_argument('--opto-loc', help='Opto-fiber location')
-parser.add_argument('--notes', help='Experiment notes')
-args = parser.parse_args()
+if test_bool:
+    args = argparse.Namespace(
+        dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
+        template=None,
+        mode='legacy',
+        programmatic=False,
+        use_layout_file=True,
+        car_groups=None,
+        emg_muscle=None,
+        taste_digins=None,
+        tastes=None,
+        concentrations=None,
+        palatability=None,
+        laser_digin=None,
+        laser_params=None,
+        virus_region=None,
+        opto_loc=None,
+        notes=None
+    )
+
+else:
+    # Create argument parser
+    parser = argparse.ArgumentParser(
+        description='Creates files with experiment info')
+    parser.add_argument('dir_name',  help='Directory containing data files')
+    parser.add_argument('--template', '-t',
+                        help='Template (.info) file to copy experimental details from')
+    parser.add_argument('--mode', '-m', default='legacy',
+                        choices=['legacy', 'updated'])
+    parser.add_argument('--programmatic', action='store_true',
+                        help='Run in programmatic mode')
+    parser.add_argument('--use-layout-file', action='store_true',
+                        help='Use existing electrode layout file')
+    parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
+    parser.add_argument('--emg-muscle', help='Name of EMG muscle')
+    parser.add_argument(
+        '--taste-digins', help='Comma-separated indices of taste digital inputs')
+    parser.add_argument('--tastes', help='Comma-separated taste names')
+    parser.add_argument('--concentrations',
+                        help='Comma-separated concentrations in M')
+    parser.add_argument(
+        '--palatability', help='Comma-separated palatability rankings')
+    parser.add_argument('--laser-digin', help='Laser digital input index')
+    parser.add_argument(
+        '--laser-params', help='Multiple laser parameters as (onset,duration) pairs in ms, comma-separated: (100,500),(200,300)')
+    parser.add_argument('--virus-region', help='Virus region')
+    parser.add_argument(
+        '--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
+    parser.add_argument('--notes', help='Experiment notes')
+    args = parser.parse_args()
 
 import json  # noqa
 import numpy as np  # noqa
@@ -65,14 +89,34 @@ def parse_csv(s, convert=str):
     return [convert(x.strip()) for x in s.split(',')]
 
 
+def parse_laser_params(s):
+    """Parse laser parameters in format (onset,duration),(onset,duration)"""
+    if not s:
+        return []
+    # Find all pairs of numbers in parentheses
+    pattern = re.compile(r'\((\d+),(\d+)\)')
+    matches = pattern.findall(s)
+    if not matches:
+        raise ValueError(
+            "Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
+    # Convert to integers and return as list of tuples
+    return [(int(onset), int(duration)) for onset, duration in matches]
+
+
+if args.programmatic:
+    print('================================')
+    print('Running in programmatic mode')
+    print('================================')
+
 metadata_handler = imp_metadata([[], args.dir_name])
 dir_path = metadata_handler.dir_name
 
 dir_name = os.path.basename(dir_path[:-1])
 
-script_path = os.path.abspath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if not test_bool:
+    script_path = os.path.abspath(__file__)
+    this_pipeline_check = pipeline_graph_check(dir_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # Extract details from name of folder
 splits = dir_name.split("_")
@@ -143,7 +187,8 @@ else:
 
     def count_check(x):
         nums = re.findall('[0-9]+', x)
-        return sum([x.isdigit() for x in nums]) == len(nums)
+        # return sum([x.isdigit() for x in nums]) == len(nums)
+        return all([int(x) in this_dig_handler.dig_in_frame.index for x in nums])
 
     # Calculate number of deliveries from recorded data
     dig_in_present_bool = any(this_dig_handler.dig_in_frame.trial_counts > 0)
@@ -154,7 +199,7 @@ else:
             taste_dig_in_str, continue_bool = entry_checker(
                 msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
                 check_func=count_check,
-                fail_response='Please enter integers only')
+                fail_response='Please enter numbers in index of dataframe above')
             if continue_bool:
                 nums = re.findall('[0-9]+', taste_dig_in_str)
                 taste_dig_inds = [int(x) for x in nums]
@@ -191,7 +236,7 @@ else:
             taste_str, continue_bool = entry_checker(
                 msg=' Tastes names used (IN ORDER, anything separated [no punctuation in name])  :: ',
                 check_func=taste_check,
-                fail_response='Please enter as many tastes as digins')
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins')
             if continue_bool:
                 tastes = re.findall('[A-Za-z]+', taste_str)
             else:
@@ -212,7 +257,7 @@ else:
             conc_str, continue_bool = entry_checker(
                 msg='Corresponding concs used (in M, IN ORDER, COMMA separated)  :: ',
                 check_func=float_check,
-                fail_response='Please enter as many concentrations as digins')
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins')
             if continue_bool:
                 concs = [float(x) for x in conc_str.split(",")]
             else:
@@ -279,12 +324,11 @@ else:
 
     ########################################
     # Ask for laser info
-    # TODO: Allow for (onset, duration) tuples to be entered
     if not args.programmatic:
         laser_select_str, continue_bool = entry_checker(
             msg='Laser dig_in index, <BLANK> for none :: ',
             check_func=count_check,
-            fail_response='Please enter a single, valid integer')
+            fail_response='Please enter numbers in index of dataframe above')
         if continue_bool:
             if len(laser_select_str) == 0:
                 laser_digin_ind = []
@@ -318,55 +362,90 @@ else:
 
     if laser_digin_ind:
         if not args.programmatic:
-            # Ask for laser parameters
-            laser_select_str, continue_bool = entry_checker(
-                msg='Laser onset_time, duration (ms, IN ORDER, anything separated) :: ',
-                check_func=laser_check,
-                fail_response='Please enter two, valid integers')
+            # Ask for laser parameters - allow multiple entries
+            laser_params_list = []
+            opto_loc_list = []
+
+            while True:
+                # Ask for laser parameters
+                laser_select_str, continue_bool = entry_checker(
+                    msg='Laser onset_time, duration (ms, IN ORDER, anything separated) or "done" to finish :: ',
+                    check_func=lambda x: laser_check(x) or x.lower() == 'done',
+                    fail_response='Please enter two valid integers or "done"')
+
+                if laser_select_str.lower() == 'done':
+                    break
+
+                if continue_bool:
+                    nums = re.findall('[0-9]+', laser_select_str)
+                    onset_time, duration = [int(x) for x in nums]
+                    laser_params_list.append((onset_time, duration))
+
+                else:
+                    exit()
+
+            # Ask for opto-fiber location for this condition
+            def opto_loc_check(x):
+                return len(re.findall('[A-Za-z]+', x)) == len(laser_params_list)
+            print(f'Parsed laser parameters: {laser_params_list}')
+            opto_loc_entry, continue_bool = entry_checker(
+                msg=f'Enter ({len(laser_params_list)}) opto-fiber locations for this condition :: ',
+                check_func=opto_loc_check,
+                fail_response='Please enter a valid location')
             if continue_bool:
-                nums = re.findall('[0-9]+', laser_select_str)
-                onset_time, duration = [int(x) for x in nums]
+                opto_loc_list.append(opto_loc_entry)
             else:
                 exit()
-            # Ask for virus region
+
+            # If no entries were made, exit
+            if not laser_params_list:
+                print("No laser parameters entered.")
+                exit()
+
+            # Ask for virus region (common for all conditions)
             virus_region_str, continue_bool = entry_checker(
                 msg='Enter virus region :: ',
                 check_func=lambda x: True,
                 fail_response='Please enter a valid region')
             if not continue_bool:
                 exit()
-            # Ask for opto-fiber location
-            opto_loc_str, continue_bool = entry_checker(
-                msg='Enter opto-fiber location :: ',
-                check_func=lambda x: True,
-                fail_response='Please enter a valid location')
-            if not continue_bool:
-                exit()
+
         else:
+            # Programmatic mode
             if args.laser_params:
-                laser_params = parse_csv(args.laser_params, int)
-                onset_time, duration = laser_params
+                print('Parsing laser parameters')
+                laser_params_list = parse_laser_params(args.laser_params)
+                if not laser_params_list:
+                    raise ValueError(
+                        'Invalid laser parameters format. Use format: (onset1,duration1),(onset2,duration2)')
             else:
                 raise ValueError(
                     'Laser parameters not provided, use --laser-params')
+
             if args.virus_region:
+                print('Parsing virus region')
                 virus_region_str = args.virus_region
             else:
                 raise ValueError(
                     'Virus region not provided, use --virus-region')
+
             if args.opto_loc:
-                opto_loc_str = args.opto_loc
+                print('Parsing opto-fiber locations')
+                opto_loc_list = parse_csv(args.opto_loc)
+                if len(opto_loc_list) != len(laser_params_list):
+                    raise ValueError(
+                        f'Number of opto locations ({len(opto_loc_list)}) must match number of laser parameter pairs ({len(laser_params_list)})')
             else:
                 raise ValueError(
-                    'Opto-fiber location not provided, use --opto-loc')
+                    'Opto-fiber locations not provided, use --opto-loc')
 
-        # Fill in laser parameters
-        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str([
-                                                                                 onset_time, duration])
+        # Fill in laser parameters - store as list of parameter pairs
+        this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'laser_params'] = str(
+            laser_params_list)
     else:
-        onset_time, duration = [None, None]
+        laser_params_list = []
         virus_region_str = ''
-        opto_loc_str = ''
+        opto_loc_list = []
 
     # Write out dig-in frame
     col_names = this_dig_handler.dig_in_frame.columns
@@ -525,7 +604,7 @@ else:
     else:
         laser_digin_trials = []
 
-    fin_dict = {'version': '0.0.2',
+    fin_dict = {'version': '0.0.3',
                 **this_dict,
                 'file_type': file_type,
                 'regions': list(layout_dict.keys()),
@@ -548,10 +627,9 @@ else:
                 'laser_params': {
                     'dig_in_nums': laser_digin_nums,
                     'trial_count': laser_digin_trials,
-                    'onset': onset_time,
-                    'duration': duration,
-                    'virus_region': virus_region_str,
-                    'opto_loc': opto_loc_str},
+                    'onset_duration': laser_params_list,
+                    'opto_locs': opto_loc_list,
+                    'virus_region': virus_region_str},
                 'notes': notes}
 
 
