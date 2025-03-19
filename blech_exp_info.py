@@ -345,8 +345,6 @@ else:
         else:
             if args.taste_digins:
                 taste_dig_inds = parse_csv(args.taste_digins, int)
-            elif 'taste_params' in existing_info and existing_info['taste_params'].get('dig_in_nums'):
-                taste_dig_inds = existing_info['taste_params']['dig_in_nums']
             else:
                 raise ValueError(
                     'Taste dig-ins not provided, use --taste-digins')
@@ -392,8 +390,6 @@ else:
         else:
             if args.tastes:
                 tastes = parse_csv(args.tastes)
-            elif 'taste_params' in existing_info and existing_info['taste_params'].get('tastes'):
-                tastes = existing_info['taste_params']['tastes']
             else:
                 raise ValueError('Tastes not provided, use --tastes')
 
@@ -428,8 +424,6 @@ else:
         else:
             if args.concentrations:
                 concs = parse_csv(args.concentrations, float)
-            elif 'taste_params' in existing_info and existing_info['taste_params'].get('concs'):
-                concs = existing_info['taste_params']['concs']
             else:
                 raise ValueError(
                     'Concentrations not provided, use --concentrations')
@@ -468,8 +462,6 @@ else:
         else:
             if args.palatability:
                 pal_ranks = parse_csv(args.palatability, int)
-            elif 'taste_params' in existing_info and existing_info['taste_params'].get('pal_rankings'):
-                pal_ranks = existing_info['taste_params']['pal_rankings']
             else:
                 raise ValueError(
                     'Palatability rankings not provided, use --palatability')
@@ -547,16 +539,6 @@ else:
     else:
         if args.laser_digin:
             laser_digin_ind = parse_csv(args.laser_digin, int)
-        elif 'laser_params' in existing_info and existing_info['laser_params'].get('dig_in_nums'):
-            # Convert to indices from dig_in_nums
-            laser_nums = existing_info['laser_params']['dig_in_nums']
-            if laser_nums:
-                laser_digin_ind = []
-                for num in laser_nums:
-                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist(
-                    )
-                    if matching_indices:
-                        laser_digin_ind.extend(matching_indices)
         else:
             laser_digin_ind = []
 
