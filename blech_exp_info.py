@@ -8,6 +8,8 @@ This module generates a file containing relevant experimental information for a 
 - Handles different file types for electrode data and generates or uses an existing electrode layout file.
 - Organizes and writes out the final experimental information into a JSON file.
 - Logs the completion status of the pipeline process.
+- Caches manual entries to reduce redundant input across sessions.
+- Auto-populates defaults from existing info files when available.
 """
 
 test_bool = False  # noqa
@@ -79,6 +81,43 @@ from utils.blech_utils import (
 from utils.importrhdutilities import load_file, read_header  # noqa
 from utils.read_file import DigInHandler  # noqa
 
+# Define the cache directory and ensure it exists
+script_path = os.path.abspath(__file__) if not test_bool else "test_path"
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+cache_dir = os.path.join(blech_clust_dir, 'cache_and_logs')
+os.makedirs(cache_dir, exist_ok=True)
+
+# Define the cache file path
+cache_file_path = os.path.join(cache_dir, 'manual_entries_cache.json')
+
+def load_cache():
+    """Load the cache of manual entries if it exists"""
+    if os.path.exists(cache_file_path):
+        try:
+            with open(cache_file_path, 'r') as cache_file:
+                return json.load(cache_file)
+        except json.JSONDecodeError:
+            print("Warning: Cache file exists but is not valid JSON. Creating new cache.")
+            return {}
+    return {}
+
+def save_to_cache(cache_dict):
+    """Save the updated cache to the cache file"""
+    with open(cache_file_path, 'w') as cache_file:
+        json.dump(cache_dict, cache_file, indent=4)
+
+def load_existing_info(dir_path, dir_name):
+    """Load existing info file if it exists"""
+    info_file_path = os.path.join(dir_path, f"{dir_name}.info")
+    if os.path.exists(info_file_path):
+        try:
+            with open(info_file_path, 'r') as info_file:
+                return json.load(info_file)
+        except json.JSONDecodeError:
+            print("Warning: Info file exists but is not valid JSON.")
+            return {}
+    return {}
+
 # Get name of directory with the data files
 # Helper function to parse comma-separated values
 
@@ -117,6 +156,31 @@ if not test_bool:
     script_path = os.path.abspath(__file__)
     this_pipeline_check = pipeline_graph_check(dir_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
+
+# Load cache and existing info
+cache = load_cache()
+existing_info = load_existing_info(dir_path, dir_name)
+
+# Display existing info if available
+if existing_info and not args.programmatic:
+    print("\n=== Current values from existing info file (will be used as defaults) ===")
+    if 'taste_params' in existing_info:
+        taste_params = existing_info['taste_params']
+        print(f"Taste dig-ins: {taste_params.get('dig_in_nums', [])}")
+        print(f"Tastes: {taste_params.get('tastes', [])}")
+        print(f"Concentrations: {taste_params.get('concs', [])}")
+        print(f"Palatability rankings: {taste_params.get('pal_rankings', [])}")
+    
+    if 'laser_params' in existing_info:
+        laser_params = existing_info['laser_params']
+        print(f"Laser dig-ins: {laser_params.get('dig_in_nums', [])}")
+        print(f"Laser parameters: {laser_params.get('onset_duration', [])}")
+        print(f"Opto locations: {laser_params.get('opto_locs', [])}")
+        print(f"Virus region: {laser_params.get('virus_region', '')}")
+    
+    if 'notes' in existing_info:
+        print(f"Notes: {existing_info['notes']}")
+    print("===================================================================\n")
 
 # Extract details from name of folder
 splits = dir_name.split("_")
@@ -196,18 +260,37 @@ else:
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
         if not args.programmatic:
+            # Get defaults from existing info or cache
+            default_taste_dig_inds = []
+            if 'taste_params' in existing_info and existing_info['taste_params'].get('dig_in_nums'):
+                default_taste_dig_inds = existing_info['taste_params']['dig_in_nums']
+            elif 'taste_dig_inds' in cache:
+                default_taste_dig_inds = cache['taste_dig_inds']
+            
+            default_str = ', '.join(map(str, default_taste_dig_inds)) if default_taste_dig_inds else ""
+            
             taste_dig_in_str, continue_bool = entry_checker(
-                msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated) :: ',
+                msg=f' INDEX of Taste dig_ins used (IN ORDER, anything separated) [{default_str}] :: ',
                 check_func=count_check,
                 fail_response='Please enter numbers in index of dataframe above')
             if continue_bool:
-                nums = re.findall('[0-9]+', taste_dig_in_str)
-                taste_dig_inds = [int(x) for x in nums]
+                if taste_dig_in_str.strip():
+                    nums = re.findall('[0-9]+', taste_dig_in_str)
+                    taste_dig_inds = [int(x) for x in nums]
+                else:
+                    # Use default if input is empty
+                    taste_dig_inds = default_taste_dig_inds
+                
+                # Save to cache
+                cache['taste_dig_inds'] = taste_dig_inds
+                save_to_cache(cache)
             else:
                 exit()
         else:
             if args.taste_digins:
                 taste_dig_inds = parse_csv(args.taste_digins, int)
+            elif 'taste_params' in existing_info and existing_info['taste_params'].get('dig_in_nums'):
+                taste_dig_inds = existing_info['taste_params']['dig_in_nums']
             else:
                 raise ValueError(
                     'Taste dig-ins not provided, use --taste-digins')
@@ -233,17 +316,36 @@ else:
             return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
 
         if not args.programmatic:
+            # Get defaults from existing info or cache
+            default_tastes = []
+            if 'taste_params' in existing_info and existing_info['taste_params'].get('tastes'):
+                default_tastes = existing_info['taste_params']['tastes']
+            elif 'tastes' in cache:
+                default_tastes = cache['tastes']
+            
+            default_str = ', '.join(default_tastes) if default_tastes else ""
+            
             taste_str, continue_bool = entry_checker(
-                msg=' Tastes names used (IN ORDER, anything separated [no punctuation in name])  :: ',
+                msg=f' Tastes names used (IN ORDER, anything separated [no punctuation in name]) [{default_str}] :: ',
                 check_func=taste_check,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins')
             if continue_bool:
-                tastes = re.findall('[A-Za-z]+', taste_str)
+                if taste_str.strip():
+                    tastes = re.findall('[A-Za-z]+', taste_str)
+                else:
+                    # Use default if input is empty
+                    tastes = default_tastes
+                
+                # Save to cache
+                cache['tastes'] = tastes
+                save_to_cache(cache)
             else:
                 exit()
         else:
             if args.tastes:
                 tastes = parse_csv(args.tastes)
+            elif 'taste_params' in existing_info and existing_info['taste_params'].get('tastes'):
+                tastes = existing_info['taste_params']['tastes']
             else:
                 raise ValueError('Tastes not provided, use --tastes')
 
@@ -254,17 +356,36 @@ else:
         print(print_df)
 
         if not args.programmatic:
+            # Get defaults from existing info or cache
+            default_concs = []
+            if 'taste_params' in existing_info and existing_info['taste_params'].get('concs'):
+                default_concs = existing_info['taste_params']['concs']
+            elif 'concs' in cache:
+                default_concs = cache['concs']
+            
+            default_str = ', '.join(map(str, default_concs)) if default_concs else ""
+            
             conc_str, continue_bool = entry_checker(
-                msg='Corresponding concs used (in M, IN ORDER, COMMA separated)  :: ',
+                msg=f'Corresponding concs used (in M, IN ORDER, COMMA separated) [{default_str}] :: ',
                 check_func=float_check,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins')
             if continue_bool:
-                concs = [float(x) for x in conc_str.split(",")]
+                if conc_str.strip():
+                    concs = [float(x) for x in conc_str.split(",")]
+                else:
+                    # Use default if input is empty
+                    concs = default_concs
+                
+                # Save to cache
+                cache['concs'] = concs
+                save_to_cache(cache)
             else:
                 exit()
         else:
             if args.concentrations:
                 concs = parse_csv(args.concentrations, float)
+            elif 'taste_params' in existing_info and existing_info['taste_params'].get('concs'):
+                concs = existing_info['taste_params']['concs']
             else:
                 raise ValueError(
                     'Concentrations not provided, use --concentrations')
@@ -278,20 +399,39 @@ else:
 
         # Ask user for palatability rankings
         if not args.programmatic:
+            # Get defaults from existing info or cache
+            default_pal_ranks = []
+            if 'taste_params' in existing_info and existing_info['taste_params'].get('pal_rankings'):
+                default_pal_ranks = existing_info['taste_params']['pal_rankings']
+            elif 'pal_ranks' in cache:
+                default_pal_ranks = cache['pal_ranks']
+            
+            default_str = ', '.join(map(str, default_pal_ranks)) if default_pal_ranks else ""
+            
             palatability_str, continue_bool = \
                 entry_checker(
                     msg=f'Enter palatability rankings (IN ORDER) used '
-                    '(anything separated), higher number = more palatable  :: ',
+                    f'(anything separated), higher number = more palatable [{default_str}] :: ',
                     check_func=pal_check,
                     fail_response=f'Please enter numbers 1<=x<={len(print_df)}')
             if continue_bool:
-                nums = re.findall('[1-9]+', palatability_str)
-                pal_ranks = [int(x) for x in nums]
+                if palatability_str.strip():
+                    nums = re.findall('[1-9]+', palatability_str)
+                    pal_ranks = [int(x) for x in nums]
+                else:
+                    # Use default if input is empty
+                    pal_ranks = default_pal_ranks
+                
+                # Save to cache
+                cache['pal_ranks'] = pal_ranks
+                save_to_cache(cache)
             else:
                 exit()
         else:
             if args.palatability:
                 pal_ranks = parse_csv(args.palatability, int)
+            elif 'taste_params' in existing_info and existing_info['taste_params'].get('pal_rankings'):
+                pal_ranks = existing_info['taste_params']['pal_rankings']
             else:
                 raise ValueError(
                     'Palatability rankings not provided, use --palatability')
@@ -325,20 +465,51 @@ else:
     ########################################
     # Ask for laser info
     if not args.programmatic:
+        # Get defaults from existing info or cache
+        default_laser_digin_ind = []
+        if 'laser_params' in existing_info and existing_info['laser_params'].get('dig_in_nums'):
+            # Convert to indices from dig_in_nums
+            laser_nums = existing_info['laser_params']['dig_in_nums']
+            if laser_nums:
+                for num in laser_nums:
+                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist()
+                    if matching_indices:
+                        default_laser_digin_ind.extend(matching_indices)
+        elif 'laser_digin_ind' in cache:
+            default_laser_digin_ind = cache['laser_digin_ind']
+        
+        default_str = ', '.join(map(str, default_laser_digin_ind)) if default_laser_digin_ind else "<BLANK>"
+        
         laser_select_str, continue_bool = entry_checker(
-            msg='Laser dig_in index, <BLANK> for none :: ',
+            msg=f'Laser dig_in index, <BLANK> for none [{default_str}] :: ',
             check_func=count_check,
             fail_response='Please enter numbers in index of dataframe above')
         if continue_bool:
             if len(laser_select_str) == 0:
-                laser_digin_ind = []
+                if default_laser_digin_ind:
+                    laser_digin_ind = default_laser_digin_ind
+                else:
+                    laser_digin_ind = []
             else:
                 laser_digin_ind = [int(laser_select_str)]
+            
+            # Save to cache
+            cache['laser_digin_ind'] = laser_digin_ind
+            save_to_cache(cache)
         else:
             exit()
     else:
         if args.laser_digin:
             laser_digin_ind = parse_csv(args.laser_digin, int)
+        elif 'laser_params' in existing_info and existing_info['laser_params'].get('dig_in_nums'):
+            # Convert to indices from dig_in_nums
+            laser_nums = existing_info['laser_params']['dig_in_nums']
+            if laser_nums:
+                laser_digin_ind = []
+                for num in laser_nums:
+                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist()
+                    if matching_indices:
+                        laser_digin_ind.extend(matching_indices)
         else:
             laser_digin_ind = []
 
@@ -362,53 +533,119 @@ else:
 
     if laser_digin_ind:
         if not args.programmatic:
-            # Ask for laser parameters - allow multiple entries
-            laser_params_list = []
-            opto_loc_list = []
-
-            while True:
-                # Ask for laser parameters
-                laser_select_str, continue_bool = entry_checker(
-                    msg='Laser onset_time, duration (ms, IN ORDER, anything separated) or "done" to finish :: ',
-                    check_func=lambda x: laser_check(x) or x.lower() == 'done',
-                    fail_response='Please enter two valid integers or "done"')
-
-                if laser_select_str.lower() == 'done':
-                    break
-
+            # Get defaults from existing info or cache
+            default_laser_params_list = []
+            default_opto_loc_list = []
+            default_virus_region = ""
+            
+            if 'laser_params' in existing_info:
+                if 'onset_duration' in existing_info['laser_params']:
+                    default_laser_params_list = existing_info['laser_params']['onset_duration']
+                if 'opto_locs' in existing_info['laser_params']:
+                    default_opto_loc_list = existing_info['laser_params']['opto_locs']
+                if 'virus_region' in existing_info['laser_params']:
+                    default_virus_region = existing_info['laser_params']['virus_region']
+            elif 'laser_params_list' in cache:
+                default_laser_params_list = cache['laser_params_list']
+                default_opto_loc_list = cache.get('opto_loc_list', [])
+                default_virus_region = cache.get('virus_region_str', '')
+            
+            # Display defaults
+            if default_laser_params_list:
+                print(f"Default laser parameters: {default_laser_params_list}")
+            if default_opto_loc_list:
+                print(f"Default opto locations: {default_opto_loc_list}")
+            if default_virus_region:
+                print(f"Default virus region: {default_virus_region}")
+            
+            # Ask if user wants to use defaults
+            use_defaults = False
+            if default_laser_params_list:
+                use_defaults_str, continue_bool = entry_checker(
+                    msg='Use default laser parameters? (y/n) :: ',
+                    check_func=lambda x: x.lower() in ['y', 'n', 'yes', 'no'],
+                    fail_response='Please enter y or n')
                 if continue_bool:
-                    nums = re.findall('[0-9]+', laser_select_str)
-                    onset_time, duration = [int(x) for x in nums]
-                    laser_params_list.append((onset_time, duration))
+                    use_defaults = use_defaults_str.lower() in ['y', 'yes']
+                else:
+                    exit()
+            
+            if use_defaults:
+                laser_params_list = default_laser_params_list
+                opto_loc_list = default_opto_loc_list
+                virus_region_str = default_virus_region
+            else:
+                # Ask for laser parameters - allow multiple entries
+                laser_params_list = []
+                opto_loc_list = []
 
+                while True:
+                    # Ask for laser parameters
+                    default_param_str = ""
+                    if default_laser_params_list and len(laser_params_list) < len(default_laser_params_list):
+                        default_param = default_laser_params_list[len(laser_params_list)]
+                        default_param_str = f" [{default_param[0]}, {default_param[1]}]"
+                    
+                    laser_select_str, continue_bool = entry_checker(
+                        msg=f'Laser onset_time, duration (ms, IN ORDER, anything separated){default_param_str} or "done" to finish :: ',
+                        check_func=lambda x: laser_check(x) or x.lower() == 'done' or x.strip() == '',
+                        fail_response='Please enter two valid integers, press Enter for default, or type "done"')
+
+                    if laser_select_str.lower() == 'done':
+                        break
+
+                    if continue_bool:
+                        if laser_select_str.strip() == '' and default_laser_params_list and len(laser_params_list) < len(default_laser_params_list):
+                            # Use default if input is empty
+                            laser_params_list.append(default_laser_params_list[len(laser_params_list)])
+                        else:
+                            nums = re.findall('[0-9]+', laser_select_str)
+                            onset_time, duration = [int(x) for x in nums]
+                            laser_params_list.append((onset_time, duration))
+                    else:
+                        exit()
+
+                # Ask for opto-fiber location for this condition
+                def opto_loc_check(x):
+                    return len(re.findall('[A-Za-z]+', x)) == len(laser_params_list) or x.strip() == ''
+                
+                print(f'Parsed laser parameters: {laser_params_list}')
+                
+                default_opto_str = ', '.join(default_opto_loc_list) if default_opto_loc_list else ""
+                
+                opto_loc_entry, continue_bool = entry_checker(
+                    msg=f'Enter ({len(laser_params_list)}) opto-fiber locations for this condition [{default_opto_str}] :: ',
+                    check_func=opto_loc_check,
+                    fail_response='Please enter a valid location or press Enter for default')
+                if continue_bool:
+                    if opto_loc_entry.strip() == '' and default_opto_loc_list:
+                        opto_loc_list = default_opto_loc_list
+                    else:
+                        opto_loc_list = re.findall('[A-Za-z]+', opto_loc_entry)
                 else:
                     exit()
 
-            # Ask for opto-fiber location for this condition
-            def opto_loc_check(x):
-                return len(re.findall('[A-Za-z]+', x)) == len(laser_params_list)
-            print(f'Parsed laser parameters: {laser_params_list}')
-            opto_loc_entry, continue_bool = entry_checker(
-                msg=f'Enter ({len(laser_params_list)}) opto-fiber locations for this condition :: ',
-                check_func=opto_loc_check,
-                fail_response='Please enter a valid location')
-            if continue_bool:
-                opto_loc_list.append(opto_loc_entry)
-            else:
-                exit()
+                # If no entries were made, exit
+                if not laser_params_list:
+                    print("No laser parameters entered.")
+                    exit()
 
-            # If no entries were made, exit
-            if not laser_params_list:
-                print("No laser parameters entered.")
-                exit()
-
-            # Ask for virus region (common for all conditions)
-            virus_region_str, continue_bool = entry_checker(
-                msg='Enter virus region :: ',
-                check_func=lambda x: True,
-                fail_response='Please enter a valid region')
-            if not continue_bool:
-                exit()
+                # Ask for virus region (common for all conditions)
+                virus_region_str, continue_bool = entry_checker(
+                    msg=f'Enter virus region [{default_virus_region}] :: ',
+                    check_func=lambda x: True,
+                    fail_response='Please enter a valid region')
+                if continue_bool:
+                    if virus_region_str.strip() == '':
+                        virus_region_str = default_virus_region
+                else:
+                    exit()
+            
+            # Save to cache
+            cache['laser_params_list'] = laser_params_list
+            cache['opto_loc_list'] = opto_loc_list
+            cache['virus_region_str'] = virus_region_str
+            save_to_cache(cache)
 
         else:
             # Programmatic mode
@@ -594,9 +831,17 @@ else:
     ########################################
 
     if not args.programmatic:
-        notes = input('Please enter any notes about the experiment. \n :: ')
+        # Get default notes
+        default_notes = existing_info.get('notes', '') or cache.get('notes', '')
+        notes = input(f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
+        if notes.strip() == '':
+            notes = default_notes
+        
+        # Save to cache
+        cache['notes'] = notes
+        save_to_cache(cache)
     else:
-        notes = args.notes or ''
+        notes = args.notes or existing_info.get('notes', '') or ''
 
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
