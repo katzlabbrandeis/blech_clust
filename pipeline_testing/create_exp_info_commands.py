@@ -77,6 +77,19 @@ def validate_laser_opto_match(laser_params, opto_locs):
     return True
 
 
+def validate_laser_opto_match(laser_params, opto_locs):
+    """
+    Validate that the number of laser parameters matches the number of opto locations
+    """
+    laser_count = len(parse_laser_params(laser_params))
+    opto_count = len(opto_locs.split(','))
+
+    if laser_count != opto_count:
+        raise ValueError(
+            f"Number of laser conditions ({laser_count}) must match number of opto locations ({opto_count})")
+    return True
+
+
 test_bool = False  # noqa
 if not test_bool:
     parser = argparse.ArgumentParser(

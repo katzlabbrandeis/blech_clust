@@ -103,6 +103,20 @@ def parse_laser_params(s):
     return [(int(onset), int(duration)) for onset, duration in matches]
 
 
+def parse_laser_params(s):
+    """Parse laser parameters in format (onset,duration),(onset,duration)"""
+    if not s:
+        return []
+    # Find all pairs of numbers in parentheses
+    pattern = re.compile(r'\((\d+),(\d+)\)')
+    matches = pattern.findall(s)
+    if not matches:
+        raise ValueError(
+            "Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
+    # Convert to integers and return as list of tuples
+    return [(int(onset), int(duration)) for onset, duration in matches]
+
+
 if args.programmatic:
     print('================================')
     print('Running in programmatic mode')
