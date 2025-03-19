@@ -25,6 +25,10 @@ parser.add_argument('--spike-emg', action='store_true',
                     help='Run spike + emg in single test')
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
+parser.add_argument('--file_type', 
+                    help='File types to run tests on',
+                    choices=['ofpc', 'trad', 'all'],
+                    default= 'all', type=str)
 args = parser.parse_args()
 
 import os  # noqa
@@ -38,6 +42,12 @@ from switch_auto_car import set_auto_car  # noqa
 
 print(args.raise_exception)
 break_bool = args.raise_exception
+
+# Set file_types to run
+if args.file_type == 'all':
+    file_types = ['ofpc', 'trad']
+else:
+    file_types = [args.file_type]
 
 if break_bool:
     print('====================')
@@ -505,7 +515,7 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 @flow(log_prints=True)
 def spike_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             # for data_type in ['spike', 'emg_spike']:
             # spike+emg test is covered in spike_emg_test
@@ -517,7 +527,7 @@ def spike_only_test():
                 prep_data_flow(file_type, data_type=data_type)
                 run_spike_test(data_dir)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             # for data_type in ['spike', 'emg_spike']:
             # spike+emg test is covered in spike_emg_test
@@ -539,11 +549,11 @@ def spike_only_test():
 @flow(log_prints=True)
 def spike_emg_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             spike_emg_flow(data_dir, file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             try:
                 spike_emg_flow(data_dir, file_type)
@@ -554,7 +564,7 @@ def spike_emg_test():
 @flow(log_prints=True)
 def bsa_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running BSA test with
@@ -563,7 +573,7 @@ def bsa_only_test():
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=1)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running BSA test with
@@ -582,7 +592,7 @@ def bsa_only_test():
 @flow(log_prints=True)
 def stft_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running STFT test with
@@ -591,7 +601,7 @@ def stft_only_test():
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=0)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running STFT test with
@@ -610,7 +620,7 @@ def stft_only_test():
 @flow(log_prints=True)
 def run_EMG_QDA_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running EMG QDA test with
@@ -622,7 +632,7 @@ def run_EMG_QDA_test():
                          'emg', 'gape_QDA_classifier'))
                 run_gapes_Li(data_dir)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running EMG QDA test with
