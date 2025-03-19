@@ -47,7 +47,8 @@ from tqdm import tqdm
 import glob
 import json
 import matplotlib.pyplot as plt
-from sklearn.mixture import BayesianGaussianMixture
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from utils.blech_utils import imp_metadata, pipeline_graph_check
@@ -84,49 +85,63 @@ def get_channel_corr_mat(data_dir):
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
-def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
+def cluster_electrodes(features, max_clusters=10):
     """
-    Cluster electrodes using Bayesian Gaussian Mixture model
+    Cluster electrodes using K-Means and BIC
 
     Parameters:
     -----------
     features : numpy.ndarray
         Array of features for each electrode (from PCA on correlation matrix)
-    n_components : int
-        Maximum number of components for the Bayesian Gaussian Mixture model
-    n_iter : int
-        Number of iterations for the model
-    threshold : float
-        Convergence threshold for the model
+    max_clusters : int
+        Maximum number of clusters to consider
 
     Returns:
     --------
     predictions : numpy.ndarray
         Array of cluster assignments for each electrode
-    model : BayesianGaussianMixture
-        Fitted model
-    reduced_features : numpy.ndarray
-        Features reduced to 2D for visualization
+    best_kmeans : KMeans
+        Fitted KMeans model with optimal number of clusters
     """
-    print("Clustering electrodes...")
+    print("Clustering electrodes with K-Means...")
 
-    # No need to standardize features as they're already from PCA
-    # Fit Bayesian Gaussian Mixture model on the full feature set
-    model = BayesianGaussianMixture(
-        n_components=n_components,
-        covariance_type='full',
-        max_iter=n_iter,
-        tol=threshold,
-        random_state=42,
-        weight_concentration_prior_type='dirichlet_process',
-        weight_concentration_prior=1e-2
-    )
-    model.fit(features)
-
-    # Get cluster assignments
-    predictions = model.predict(features)
-
-    return predictions, model
+    # Initialize variables to track the best model
+    best_bic = -np.inf  # For silhouette score, higher is better
+    best_kmeans = None
+    best_predictions = None
+    
+    # Handle the case where we have very few samples
+    max_possible_clusters = min(max_clusters, len(features) - 1)
+    
+    # Need at least 2 clusters for silhouette score
+    min_clusters = 2 if len(features) > 2 else 1
+    
+    # Try different numbers of clusters
+    for n_clusters in range(min_clusters, max_possible_clusters + 1):
+        kmeans = KMeans(
+            n_clusters=n_clusters, 
+            random_state=42,
+            n_init=10  # Multiple initializations to find best solution
+        )
+        predictions = kmeans.fit_predict(features)
+        
+        # For single cluster, we can't compute silhouette score
+        if n_clusters == 1:
+            # Use negative inertia as a measure (lower is better)
+            score = -kmeans.inertia_
+        else:
+            # Use silhouette score (higher is better)
+            score = silhouette_score(features, predictions)
+        
+        print(f"  K={n_clusters}, score={score:.4f}")
+        
+        if score > best_bic:
+            best_bic = score
+            best_kmeans = kmeans
+            best_predictions = predictions
+    
+    print(f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
+    return best_predictions, best_kmeans
 
 
 def plot_clustered_corr_mat(
@@ -288,9 +303,7 @@ if auto_car_inference:
     # Cluster electrodes
     predictions, model = cluster_electrodes(
         features,
-        n_components=min(max_clusters, len(corr_mat) - 1),
-        n_iter=100,
-        threshold=1e-3
+        max_clusters=min(max_clusters, len(corr_mat) - 1)
     )
 
     print(f"Found {len(np.unique(predictions))} clusters")
