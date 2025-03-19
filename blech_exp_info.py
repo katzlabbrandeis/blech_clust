@@ -191,64 +191,6 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
         exit()
 
 
-def populate_field_with_defaults(field_name, entry_checker_msg, check_func, existing_info, cache,
-                                 convert_func=None, fail_response=None, nested_field=None):
-    """
-    Handle the logic for checking existing info, cache, and prompting the user.
-
-    Args:
-        field_name: Name of the field in cache
-        entry_checker_msg: Message to display to user
-        check_func: Function to validate user input
-        existing_info: Dictionary containing existing information
-        cache: Dictionary containing cached values
-        convert_func: Function to convert user input to desired format
-        fail_response: Message to display on validation failure
-        nested_field: If field is nested in existing_info, provide the parent key
-
-    Returns:
-        The value to use for the field
-    """
-    default_value = []
-
-    # Check existing info first
-    if nested_field and nested_field in existing_info:
-        if field_name in existing_info[nested_field]:
-            default_value = existing_info[nested_field][field_name]
-    elif field_name in existing_info:
-        default_value = existing_info[field_name]
-    # Then check cache
-    elif field_name in cache:
-        default_value = cache[field_name]
-
-    # Format default for display
-    if isinstance(default_value, list):
-        default_str = ', '.join(map(str, default_value)
-                                ) if default_value else ""
-    else:
-        default_str = str(default_value) if default_value else ""
-
-    if fail_response is None:
-        fail_response = f'Please enter valid input for {field_name}'
-
-    # Prompt user
-    user_input, continue_bool = entry_checker(
-        msg=f'{entry_checker_msg} [{default_str}] :: ',
-        check_func=check_func,
-        fail_response=fail_response
-    )
-
-    if continue_bool:
-        if user_input.strip():
-            # Convert input if conversion function provided
-            if convert_func:
-                return convert_func(user_input)
-            return user_input
-        else:
-            # Use default if input is empty
-            return default_value
-    else:
-        exit()
 
 
 def parse_laser_params(s):
