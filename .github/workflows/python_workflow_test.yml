@@ -68,24 +68,9 @@ jobs:
         working-directory: /home/exouser/Desktop/blech_clust
         run: |
           make patch
-  EMG-Only-Install:
-    runs-on: self-hosted
-    needs: Install
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} emg
-      cancel-in-progress: true
-    # Test EMG analysis pipeline in isolation
-    steps:
-      - name: Prefect EMG only test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG-Install:
     runs-on: self-hosted
-    needs: EMG-Only-Install
+    needs: Install
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }} spike+emg
       cancel-in-progress: true
@@ -99,14 +84,13 @@ jobs:
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only:
+  EMG-Only-Install:
     runs-on: self-hosted
-    needs: Preamble
+    needs: Spike-EMG-Install
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
+      group: ${{ github.workflow }}-${{ github.ref }} emg
       cancel-in-progress: true
     # Test EMG analysis pipeline in isolation
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect EMG only test
         shell: bash
@@ -117,7 +101,7 @@ jobs:
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: EMG-Only
+    needs: Preamble
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -128,6 +112,22 @@ jobs:
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi
+  EMG-Only:
+    runs-on: self-hosted
+    needs: Spike-EMG
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    # Test EMG analysis pipeline in isolation
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect EMG only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
