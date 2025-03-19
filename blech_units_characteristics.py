@@ -41,18 +41,17 @@ if test_bool:
     # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
     data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
-
+    dir_name = metadata_handler.dir_name
 else:
-
+    metadata_handler = imp_metadata(sys.argv)
+    dir_name = metadata_handler.dir_name
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
     this_pipeline_check = pipeline_graph_check(dir_name)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
-    metadata_handler = imp_metadata(sys.argv)
 
-dir_name = metadata_handler.dir_name
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
 if not os.path.exists(plot_dir):
