@@ -131,6 +131,65 @@ def parse_csv(s, convert=str):
     return [convert(x.strip()) for x in s.split(',')]
 
 
+def populate_field_with_defaults(field_name, entry_checker_msg, check_func, existing_info, cache, 
+                                convert_func=None, fail_response=None, nested_field=None):
+    """
+    Handle the logic for checking existing info, cache, and prompting the user.
+    
+    Args:
+        field_name: Name of the field in cache
+        entry_checker_msg: Message to display to user
+        check_func: Function to validate user input
+        existing_info: Dictionary containing existing information
+        cache: Dictionary containing cached values
+        convert_func: Function to convert user input to desired format
+        fail_response: Message to display on validation failure
+        nested_field: If field is nested in existing_info, provide the parent key
+        
+    Returns:
+        The value to use for the field
+    """
+    default_value = []
+    
+    # Check existing info first
+    if nested_field and nested_field in existing_info:
+        if field_name in existing_info[nested_field]:
+            default_value = existing_info[nested_field][field_name]
+    elif field_name in existing_info:
+        default_value = existing_info[field_name]
+    # Then check cache
+    elif field_name in cache:
+        default_value = cache[field_name]
+    
+    # Format default for display
+    if isinstance(default_value, list):
+        default_str = ', '.join(map(str, default_value)) if default_value else ""
+    else:
+        default_str = str(default_value) if default_value else ""
+    
+    if fail_response is None:
+        fail_response = f'Please enter valid input for {field_name}'
+    
+    # Prompt user
+    user_input, continue_bool = entry_checker(
+        msg=f'{entry_checker_msg} [{default_str}] :: ',
+        check_func=check_func,
+        fail_response=fail_response
+    )
+    
+    if continue_bool:
+        if user_input.strip():
+            # Convert input if conversion function provided
+            if convert_func:
+                return convert_func(user_input)
+            return user_input
+        else:
+            # Use default if input is empty
+            return default_value
+    else:
+        exit()
+
+
 def parse_laser_params(s):
     """Parse laser parameters in format (onset,duration),(onset,duration)"""
     if not s:
@@ -263,33 +322,23 @@ else:
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
         if not args.programmatic:
-            # Get defaults from existing info or cache
-            default_taste_dig_inds = []
-            if 'taste_params' in existing_info and existing_info['taste_params'].get('dig_in_nums'):
-                default_taste_dig_inds = existing_info['taste_params']['dig_in_nums']
-            elif 'taste_dig_inds' in cache:
-                default_taste_dig_inds = cache['taste_dig_inds']
-
-            default_str = ', '.join(
-                map(str, default_taste_dig_inds)) if default_taste_dig_inds else ""
-
-            taste_dig_in_str, continue_bool = entry_checker(
-                msg=f' INDEX of Taste dig_ins used (IN ORDER, anything separated) [{default_str}] :: ',
+            # Use the helper function to get taste dig-ins
+            taste_dig_in_str = populate_field_with_defaults(
+                field_name='dig_in_nums',
+                entry_checker_msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated)',
                 check_func=count_check,
-                fail_response='Please enter numbers in index of dataframe above')
-            if continue_bool:
-                if taste_dig_in_str.strip():
-                    nums = re.findall('[0-9]+', taste_dig_in_str)
-                    taste_dig_inds = [int(x) for x in nums]
-                else:
-                    # Use default if input is empty
-                    taste_dig_inds = default_taste_dig_inds
-
-                # Save to cache
-                cache['taste_dig_inds'] = taste_dig_inds
-                save_to_cache(cache)
-            else:
-                exit()
+                existing_info=existing_info.get('taste_params', {}),
+                cache=cache,
+                fail_response='Please enter numbers in index of dataframe above'
+            )
+            
+            # Convert to integers
+            nums = re.findall('[0-9]+', taste_dig_in_str) if isinstance(taste_dig_in_str, str) else taste_dig_in_str
+            taste_dig_inds = [int(x) for x in nums] if isinstance(nums[0], str) else nums
+            
+            # Save to cache
+            cache['taste_dig_inds'] = taste_dig_inds
+            save_to_cache(cache)
         else:
             if args.taste_digins:
                 taste_dig_inds = parse_csv(args.taste_digins, int)
@@ -320,31 +369,22 @@ else:
             return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
 
         if not args.programmatic:
-            # Get defaults from existing info or cache
-            default_tastes = []
-            if 'taste_params' in existing_info and existing_info['taste_params'].get('tastes'):
-                default_tastes = existing_info['taste_params']['tastes']
-            elif 'tastes' in cache:
-                default_tastes = cache['tastes']
-
-            default_str = ', '.join(default_tastes) if default_tastes else ""
-
-            taste_str, continue_bool = entry_checker(
-                msg=f' Tastes names used (IN ORDER, anything separated [no punctuation in name]) [{default_str}] :: ',
+            # Use the helper function to get tastes
+            taste_str = populate_field_with_defaults(
+                field_name='tastes',
+                entry_checker_msg=' Tastes names used (IN ORDER, anything separated [no punctuation in name])',
                 check_func=taste_check,
-                fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins')
-            if continue_bool:
-                if taste_str.strip():
-                    tastes = re.findall('[A-Za-z]+', taste_str)
-                else:
-                    # Use default if input is empty
-                    tastes = default_tastes
-
-                # Save to cache
-                cache['tastes'] = tastes
-                save_to_cache(cache)
-            else:
-                exit()
+                existing_info=existing_info.get('taste_params', {}),
+                cache=cache,
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins'
+            )
+            
+            # Extract taste names
+            tastes = re.findall('[A-Za-z]+', taste_str) if isinstance(taste_str, str) else taste_str
+            
+            # Save to cache
+            cache['tastes'] = tastes
+            save_to_cache(cache)
         else:
             if args.tastes:
                 tastes = parse_csv(args.tastes)
@@ -360,32 +400,26 @@ else:
         print(print_df)
 
         if not args.programmatic:
-            # Get defaults from existing info or cache
-            default_concs = []
-            if 'taste_params' in existing_info and existing_info['taste_params'].get('concs'):
-                default_concs = existing_info['taste_params']['concs']
-            elif 'concs' in cache:
-                default_concs = cache['concs']
-
-            default_str = ', '.join(
-                map(str, default_concs)) if default_concs else ""
-
-            conc_str, continue_bool = entry_checker(
-                msg=f'Corresponding concs used (in M, IN ORDER, COMMA separated) [{default_str}] :: ',
+            # Use the helper function to get concentrations
+            def convert_concs(input_str):
+                return [float(x) for x in input_str.split(",")]
+                
+            conc_str = populate_field_with_defaults(
+                field_name='concs',
+                entry_checker_msg='Corresponding concs used (in M, IN ORDER, COMMA separated)',
                 check_func=float_check,
-                fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins')
-            if continue_bool:
-                if conc_str.strip():
-                    concs = [float(x) for x in conc_str.split(",")]
-                else:
-                    # Use default if input is empty
-                    concs = default_concs
-
-                # Save to cache
-                cache['concs'] = concs
-                save_to_cache(cache)
-            else:
-                exit()
+                existing_info=existing_info.get('taste_params', {}),
+                cache=cache,
+                convert_func=convert_concs,
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins'
+            )
+            
+            # If we got a string, convert it, otherwise use as is
+            concs = convert_concs(conc_str) if isinstance(conc_str, str) else conc_str
+            
+            # Save to cache
+            cache['concs'] = concs
+            save_to_cache(cache)
         else:
             if args.concentrations:
                 concs = parse_csv(args.concentrations, float)
@@ -404,35 +438,27 @@ else:
 
         # Ask user for palatability rankings
         if not args.programmatic:
-            # Get defaults from existing info or cache
-            default_pal_ranks = []
-            if 'taste_params' in existing_info and existing_info['taste_params'].get('pal_rankings'):
-                default_pal_ranks = existing_info['taste_params']['pal_rankings']
-            elif 'pal_ranks' in cache:
-                default_pal_ranks = cache['pal_ranks']
-
-            default_str = ', '.join(
-                map(str, default_pal_ranks)) if default_pal_ranks else ""
-
-            palatability_str, continue_bool = \
-                entry_checker(
-                    msg=f'Enter palatability rankings (IN ORDER) used '
-                    f'(anything separated), higher number = more palatable [{default_str}] :: ',
-                    check_func=pal_check,
-                    fail_response=f'Please enter numbers 1<=x<={len(print_df)}')
-            if continue_bool:
-                if palatability_str.strip():
-                    nums = re.findall('[1-9]+', palatability_str)
-                    pal_ranks = [int(x) for x in nums]
-                else:
-                    # Use default if input is empty
-                    pal_ranks = default_pal_ranks
-
-                # Save to cache
-                cache['pal_ranks'] = pal_ranks
-                save_to_cache(cache)
-            else:
-                exit()
+            # Use the helper function to get palatability rankings
+            def convert_pal_ranks(input_str):
+                nums = re.findall('[1-9]+', input_str)
+                return [int(x) for x in nums]
+                
+            palatability_str = populate_field_with_defaults(
+                field_name='pal_rankings',
+                entry_checker_msg='Enter palatability rankings (IN ORDER) used (anything separated), higher number = more palatable',
+                check_func=pal_check,
+                existing_info=existing_info.get('taste_params', {}),
+                cache=cache,
+                convert_func=convert_pal_ranks,
+                fail_response=f'Please enter numbers 1<=x<={len(print_df)}'
+            )
+            
+            # If we got a string, convert it, otherwise use as is
+            pal_ranks = convert_pal_ranks(palatability_str) if isinstance(palatability_str, str) else palatability_str
+            
+            # Save to cache
+            cache['pal_ranks'] = pal_ranks
+            save_to_cache(cache)
         else:
             if args.palatability:
                 pal_ranks = parse_csv(args.palatability, int)
@@ -471,41 +497,46 @@ else:
     ########################################
     # Ask for laser info
     if not args.programmatic:
-        # Get defaults from existing info or cache
+        # Get defaults from existing info for laser dig-ins
         default_laser_digin_ind = []
         if 'laser_params' in existing_info and existing_info['laser_params'].get('dig_in_nums'):
             # Convert to indices from dig_in_nums
             laser_nums = existing_info['laser_params']['dig_in_nums']
             if laser_nums:
                 for num in laser_nums:
-                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist(
-                    )
+                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist()
                     if matching_indices:
                         default_laser_digin_ind.extend(matching_indices)
-        elif 'laser_digin_ind' in cache:
-            default_laser_digin_ind = cache['laser_digin_ind']
-
-        default_str = ', '.join(
-            map(str, default_laser_digin_ind)) if default_laser_digin_ind else "<BLANK>"
-
-        laser_select_str, continue_bool = entry_checker(
-            msg=f'Laser dig_in index, <BLANK> for none [{default_str}] :: ',
+        
+        # Custom conversion function for laser dig-ins
+        def convert_laser_digin(input_str):
+            if len(input_str) == 0:
+                return []
+            return [int(input_str)]
+        
+        # Use helper function with special handling for blank input
+        laser_select_str = populate_field_with_defaults(
+            field_name='laser_digin_ind',
+            entry_checker_msg='Laser dig_in index, <BLANK> for none',
             check_func=count_check,
-            fail_response='Please enter numbers in index of dataframe above')
-        if continue_bool:
+            existing_info={'laser_digin_ind': default_laser_digin_ind},
+            cache=cache,
+            convert_func=convert_laser_digin,
+            fail_response='Please enter numbers in index of dataframe above'
+        )
+        
+        # Handle the special case for laser dig-ins
+        if isinstance(laser_select_str, str):
             if len(laser_select_str) == 0:
-                if default_laser_digin_ind:
-                    laser_digin_ind = default_laser_digin_ind
-                else:
-                    laser_digin_ind = []
+                laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
             else:
                 laser_digin_ind = [int(laser_select_str)]
-
-            # Save to cache
-            cache['laser_digin_ind'] = laser_digin_ind
-            save_to_cache(cache)
         else:
-            exit()
+            laser_digin_ind = laser_select_str
+        
+        # Save to cache
+        cache['laser_digin_ind'] = laser_digin_ind
+        save_to_cache(cache)
     else:
         if args.laser_digin:
             laser_digin_ind = parse_csv(args.laser_digin, int)
@@ -844,11 +875,9 @@ else:
     ########################################
 
     if not args.programmatic:
-        # Get default notes
-        default_notes = existing_info.get(
-            'notes', '') or cache.get('notes', '')
-        notes = input(
-            f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
+        # Use a simpler approach for notes since we're using input() directly
+        default_notes = existing_info.get('notes', '') or cache.get('notes', '')
+        notes = input(f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
         if notes.strip() == '':
             notes = default_notes
 
