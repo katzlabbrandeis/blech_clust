@@ -686,22 +686,17 @@ def emg_only_test():
 @flow(log_prints=True)
 def full_test():
     if break_bool:
-        spike_only_test()
-        emg_only_test()
         spike_emg_test()
+        emg_only_test()
     else:
-        try:
-            spike_only_test()
-        except:
-            print('Failed to run spike test')
-        try:
-            emg_only_test()
-        except:
-            print('Failed to run emg test')
         try:
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
+        try:
+            emg_only_test()
+        except:
+            print('Failed to run emg test')
 
 
 ############################################################
