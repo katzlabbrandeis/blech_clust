@@ -35,7 +35,7 @@ tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-test_bool = True
+test_bool = False
 
 if test_bool:
     # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
