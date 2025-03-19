@@ -52,7 +52,6 @@ else:
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
 
-
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
 if not os.path.exists(plot_dir):
     os.makedirs(plot_dir)

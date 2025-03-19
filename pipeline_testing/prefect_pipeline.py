@@ -25,10 +25,10 @@ parser.add_argument('--spike-emg', action='store_true',
                     help='Run spike + emg in single test')
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
-parser.add_argument('--file_type', 
+parser.add_argument('--file_type',
                     help='File types to run tests on',
                     choices=['ofpc', 'trad', 'all'],
-                    default= 'all', type=str)
+                    default='all', type=str)
 args = parser.parse_args()
 
 import os  # noqa
