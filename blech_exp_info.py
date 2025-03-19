@@ -131,11 +131,11 @@ def parse_csv(s, convert=str):
     return [convert(x.strip()) for x in s.split(',')]
 
 
-def populate_field_with_defaults(field_name, entry_checker_msg, check_func, existing_info, cache, 
-                                convert_func=None, fail_response=None, nested_field=None):
+def populate_field_with_defaults(field_name, entry_checker_msg, check_func, existing_info, cache,
+                                 convert_func=None, fail_response=None, nested_field=None):
     """
     Handle the logic for checking existing info, cache, and prompting the user.
-    
+
     Args:
         field_name: Name of the field in cache
         entry_checker_msg: Message to display to user
@@ -145,12 +145,12 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
         convert_func: Function to convert user input to desired format
         fail_response: Message to display on validation failure
         nested_field: If field is nested in existing_info, provide the parent key
-        
+
     Returns:
         The value to use for the field
     """
     default_value = []
-    
+
     # Check existing info first
     if nested_field and nested_field in existing_info:
         if field_name in existing_info[nested_field]:
@@ -160,23 +160,24 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
     # Then check cache
     elif field_name in cache:
         default_value = cache[field_name]
-    
+
     # Format default for display
     if isinstance(default_value, list):
-        default_str = ', '.join(map(str, default_value)) if default_value else ""
+        default_str = ', '.join(map(str, default_value)
+                                ) if default_value else ""
     else:
         default_str = str(default_value) if default_value else ""
-    
+
     if fail_response is None:
         fail_response = f'Please enter valid input for {field_name}'
-    
+
     # Prompt user
     user_input, continue_bool = entry_checker(
         msg=f'{entry_checker_msg} [{default_str}] :: ',
         check_func=check_func,
         fail_response=fail_response
     )
-    
+
     if continue_bool:
         if user_input.strip():
             # Convert input if conversion function provided
@@ -331,11 +332,13 @@ else:
                 cache=cache,
                 fail_response='Please enter numbers in index of dataframe above'
             )
-            
+
             # Convert to integers
-            nums = re.findall('[0-9]+', taste_dig_in_str) if isinstance(taste_dig_in_str, str) else taste_dig_in_str
-            taste_dig_inds = [int(x) for x in nums] if isinstance(nums[0], str) else nums
-            
+            nums = re.findall(
+                '[0-9]+', taste_dig_in_str) if isinstance(taste_dig_in_str, str) else taste_dig_in_str
+            taste_dig_inds = [int(x) for x in nums] if isinstance(
+                nums[0], str) else nums
+
             # Save to cache
             cache['taste_dig_inds'] = taste_dig_inds
             save_to_cache(cache)
@@ -378,10 +381,11 @@ else:
                 cache=cache,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins'
             )
-            
+
             # Extract taste names
-            tastes = re.findall('[A-Za-z]+', taste_str) if isinstance(taste_str, str) else taste_str
-            
+            tastes = re.findall(
+                '[A-Za-z]+', taste_str) if isinstance(taste_str, str) else taste_str
+
             # Save to cache
             cache['tastes'] = tastes
             save_to_cache(cache)
@@ -403,7 +407,7 @@ else:
             # Use the helper function to get concentrations
             def convert_concs(input_str):
                 return [float(x) for x in input_str.split(",")]
-                
+
             conc_str = populate_field_with_defaults(
                 field_name='concs',
                 entry_checker_msg='Corresponding concs used (in M, IN ORDER, COMMA separated)',
@@ -413,10 +417,11 @@ else:
                 convert_func=convert_concs,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins'
             )
-            
+
             # If we got a string, convert it, otherwise use as is
-            concs = convert_concs(conc_str) if isinstance(conc_str, str) else conc_str
-            
+            concs = convert_concs(conc_str) if isinstance(
+                conc_str, str) else conc_str
+
             # Save to cache
             cache['concs'] = concs
             save_to_cache(cache)
@@ -442,7 +447,7 @@ else:
             def convert_pal_ranks(input_str):
                 nums = re.findall('[1-9]+', input_str)
                 return [int(x) for x in nums]
-                
+
             palatability_str = populate_field_with_defaults(
                 field_name='pal_rankings',
                 entry_checker_msg='Enter palatability rankings (IN ORDER) used (anything separated), higher number = more palatable',
@@ -452,10 +457,11 @@ else:
                 convert_func=convert_pal_ranks,
                 fail_response=f'Please enter numbers 1<=x<={len(print_df)}'
             )
-            
+
             # If we got a string, convert it, otherwise use as is
-            pal_ranks = convert_pal_ranks(palatability_str) if isinstance(palatability_str, str) else palatability_str
-            
+            pal_ranks = convert_pal_ranks(palatability_str) if isinstance(
+                palatability_str, str) else palatability_str
+
             # Save to cache
             cache['pal_ranks'] = pal_ranks
             save_to_cache(cache)
@@ -504,16 +510,17 @@ else:
             laser_nums = existing_info['laser_params']['dig_in_nums']
             if laser_nums:
                 for num in laser_nums:
-                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist()
+                    matching_indices = this_dig_handler.dig_in_frame[this_dig_handler.dig_in_frame.dig_in_nums == num].index.tolist(
+                    )
                     if matching_indices:
                         default_laser_digin_ind.extend(matching_indices)
-        
+
         # Custom conversion function for laser dig-ins
         def convert_laser_digin(input_str):
             if len(input_str) == 0:
                 return []
             return [int(input_str)]
-        
+
         # Use helper function with special handling for blank input
         laser_select_str = populate_field_with_defaults(
             field_name='laser_digin_ind',
@@ -524,7 +531,7 @@ else:
             convert_func=convert_laser_digin,
             fail_response='Please enter numbers in index of dataframe above'
         )
-        
+
         # Handle the special case for laser dig-ins
         if isinstance(laser_select_str, str):
             if len(laser_select_str) == 0:
@@ -533,7 +540,7 @@ else:
                 laser_digin_ind = [int(laser_select_str)]
         else:
             laser_digin_ind = laser_select_str
-        
+
         # Save to cache
         cache['laser_digin_ind'] = laser_digin_ind
         save_to_cache(cache)
@@ -876,8 +883,10 @@ else:
 
     if not args.programmatic:
         # Use a simpler approach for notes since we're using input() directly
-        default_notes = existing_info.get('notes', '') or cache.get('notes', '')
-        notes = input(f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
+        default_notes = existing_info.get(
+            'notes', '') or cache.get('notes', '')
+        notes = input(
+            f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
         if notes.strip() == '':
             notes = default_notes
 
