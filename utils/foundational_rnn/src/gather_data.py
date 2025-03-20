@@ -3,8 +3,6 @@ Gather spike-trains from datasets
 Only keep "stable" neurons
 """
 
-from utils.ephys_data import visualize as vz
-from utils.ephys_data.ephys_data import ephys_data
 import os
 import sys
 from pathlib import Path
@@ -20,6 +18,9 @@ blech_clust_path = script_path.parents[3]
 
 sys.path.append(str(blech_clust_path))
 
+from utils.ephys_data import visualize as vz  # noqa
+from utils.ephys_data.ephys_data import ephys_data  # noqa
+
 
 ##############################
 
@@ -30,7 +31,7 @@ artifacts_dir = script_path.parents[1] / 'data' / 'artifacts'
 
 ##############################
 
-time_lims = [2000, 4000]
+time_lims = [1500, 4000]
 bin_width = 25
 
 # For each dataset, load the data and save the spike-trains
@@ -63,8 +64,12 @@ for this_dir in tqdm(data_list):
             data.trial_info_frame['end_taste_ms'] - \
             data.trial_info_frame['start_taste_ms']
 
+        data.trial_info_frame['taste_ind'] = data.trial_info_frame['dig_in_num_taste'].map(
+            dict(zip(np.sort(data.trial_info_frame['dig_in_num_taste'].unique()),
+                     np.arange(len(data.trial_info_frame['dig_in_num_taste'].unique())))))
+
         stimulus_durations = data.trial_info_frame.groupby(
-            'taste')['stimulus_duration'].mean()
+            'taste_ind')['stimulus_duration'].mean()
 
         for taste, taste_data in enumerate(binned_spikes):
             # Save the data
