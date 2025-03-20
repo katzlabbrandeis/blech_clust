@@ -202,12 +202,16 @@ if classifier_params['use_classifier'] and \
 
     if classifier_params['throw_out_noise'] or auto_cluster:
         print('== Throwing out noise waveforms ==')
+        # Store original data for plotting purposes
+        classifier_handler.original_pred = classifier_handler.clf_pred.copy()
+
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
         spike_set.slices_dejittered = slices_dejittered
         spike_set.times_dejittered = times_dejittered
         classifier_handler.clf_prob = clf_prob
+        # Reset prediction to match probability threshold for remaining spikes
         classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
 
 ############################################################
