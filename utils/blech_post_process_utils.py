@@ -50,7 +50,13 @@ This module provides utilities for handling and processing electrophysiological 
 
 - `auto_process_electrode`: Processes a single electrode's data for automatic sorting, including loading data, calculating merge sets, and generating plots.
 """
-import os
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 import tables
 import numpy as np
 import easygui
@@ -582,7 +588,7 @@ def gen_plot_auto_merged_clusters(
                             for this_text, this_count in zip(
                                 current_legend_texts,
                                 waveform_counts,
-        )]
+                            )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,

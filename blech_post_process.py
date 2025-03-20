@@ -77,6 +77,13 @@ args = parser.parse_args()
 # First handle arguments
 # This allows the -h flag to run without loading imports
 ############################################################
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 import utils.blech_post_process_utils as post_utils  # noqa
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils import blech_waveforms_datashader  # noqa
@@ -90,7 +97,6 @@ from sklearn.mixture import GaussianMixture  # noqa
 import pylab as plt  # noqa
 import numpy as np  # noqa
 import tables  # noqa
-import os  # noqa
 
 ############################################################
 # Imports and Settings
