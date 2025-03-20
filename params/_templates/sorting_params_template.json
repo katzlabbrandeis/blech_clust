@@ -1,6 +1,6 @@
 {
-    "max_parallel_cpu" : 16,
-    "waveform_threshold" : 5,
+    "max_parallel_cpu": 16,
+    "waveform_threshold": 5,
     "voltage_cutoff": 10000,
     "max_breach_rate": 1,
     "max_secs_above_cutoff": 60,
@@ -10,6 +10,10 @@
     "bandpass_upper_cutoff": 3000,
     "spike_snapshot_before": 1,
     "spike_snapshot_after": 1.5,
+    "auto_CAR": {
+        "use_auto_CAR": false,
+        "max_clusters": 10
+    },
     "clustering_params": {
         "max_clusters": 7,
         "num_iter": 1000,
@@ -29,13 +33,13 @@
         }
     },
     "qa_params": {
-        "n_corr_samples" : 10000,
-        "bridged_channel_threshold" : 0.9,
+        "n_corr_samples": 10000,
+        "bridged_channel_threshold": 0.9,
         "similarity_cutoff": 50,
         "similarity_waveform_count_cutoff": 10,
         "drift_params": {
             "alpha": 0.05,
-            "n_trial_bins": 4, 
+            "n_trial_bins": 4,
             "baseline_duration": 1000,
             "post_stim_duration": 2500,
             "plot_bin_size": 1000
@@ -57,7 +61,7 @@
     "responsiveness_pre_post_durations": [
         1000,
         2000
-    ], 
+    ],
     "pal_iden_calc_params": {
         "window_size": 250,
         "step_size": 25

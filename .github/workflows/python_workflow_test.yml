@@ -1,14 +1,19 @@
-# Description: This is a test workflow for running a Python script on a self-hosted runner
-# Don't chain jobs together as any failure in one job will stop the workflow
+# GitHub Actions workflow for automated testing
+# See: https://docs.github.com/en/actions
+#
+# This workflow runs Python tests on a self-hosted runner
+# Jobs are independent to allow partial success/failure reporting
 
-name: Python test 
-run-name: python_test 
-on: [pull_request]
+name: Python test
+run-name: python_test
+on:
+  pull_request:
+  workflow_dispatch:
 jobs:
   Preamble:
     runs-on: self-hosted
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} preamble
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - run: pwd
@@ -18,54 +23,111 @@ jobs:
         uses: actions/checkout@v4
       - run: git status
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+      - name: check labels
+        run: echo "${{ github.event.pull_request.labels.*.name }}"
       - name: Copy files to working-directory
-        run: cp -r ./* /home/exouser/Desktop/blech_clust 
+        run: cp -r ./* /home/exouser/Desktop/blech_clust
       - name: Check files in working-directory
         run: ls -R /home/exouser/Desktop/blech_clust
       - name: Setup params
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
-  Spike-Only:
+  Install:
     runs-on: self-hosted
     needs: Preamble
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike
-      cancel-in-progress: true
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
+    # Only run installation when PR has 'install' label
     steps:
-      - name: Prefect SPIKE only test
+      - name: Clean install
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          echo "Running installation for tag ${{ github.ref }}"
+          make clean
+      - name: Install dependencies
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make base
+      - name: Install EMG
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make emg
+      - name: Install neuRecommend
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make neurec
+      - name: Install BlechRNN
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make blechrnn
+      - name: Install Prefect
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make prefect
+      - name: Patch dependencies
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          make patch
+  Spike-EMG-Install:
+    runs-on: self-hosted
+    needs: Install
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    # Test full pipeline with both spike sorting and EMG analysis
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -s 2>&1 |
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-  EMG-Only:
+  EMG-Only-Install:
     runs-on: self-hosted
-    needs: Preamble 
+    needs: Spike-EMG-Install
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
+    # Test EMG analysis pipeline in isolation
     steps:
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
   Spike-EMG:
     runs-on: self-hosted
-    needs: Preamble 
+    needs: Preamble
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }} spike+emg
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
+    # Test full pipeline with both spike sorting and EMG analysis
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
           tee ~/Desktop/blech_clust/github.log;
           if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
                             then echo "ERROR detected by bash"; exit 1; fi
-
+  EMG-Only:
+    runs-on: self-hosted
+    needs: Spike-EMG
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    # Test EMG analysis pipeline in isolation
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
+    steps:
+      - name: Prefect EMG only test
+        shell: bash
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+          tee ~/Desktop/blech_clust/github.log;
+          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
+                            then echo "ERROR detected by bash"; exit 1; fi

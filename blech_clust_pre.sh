@@ -13,18 +13,18 @@ if [ ! -d $DIR ]; then
     exit 1
 fi
 
-echo Running Blech Clust 
+echo Running Blech Clust
 if [ $FORCE -eq 1 ]; then
     echo "Forcing blech_clust.py to run"
-    python blech_clust.py $DIR --force_run 
+    python blech_clust.py $DIR --force_run
 else
     python blech_clust.py $DIR
 fi
 
-echo Running Common Average Reference 
+echo Running Common Average Reference
 python blech_common_avg_reference.py $DIR &&
 
-echo Running Jetstream Bash 
+echo Running Jetstream Bash
 if [ $FORCE -eq 1 ]; then
     echo "Forcing blech_run_process.sh to run"
     bash blech_run_process.sh $DIR --delete-log
