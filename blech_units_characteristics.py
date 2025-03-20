@@ -130,7 +130,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     # Calculate max y-value for this neuron across all laser conditions
     this_neuron_data = mean_seq_firing.loc[mean_seq_firing.neuron_num == nrn_ind]
     max_y_value = this_neuron_data['firing'].max() * 1.1  # Add 10% margin
-    
+
     n_rows = np.max([n_laser_conditions, 2])
     fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions))
     # Remove axis for lower row if only one laser condition
@@ -219,10 +219,10 @@ if n_laser_conditions > 1:
         # 		this_dat.sequestered_firing_frame.neuron_num == nrn_ind
         # 		]
         this_firing.reset_index(inplace=True)
-        
+
         # Calculate max y-value for this neuron
         max_y_value = this_firing['firing'].max() * 1.1  # Add 10% margin
-        
+
         g = sns.relplot(
             data=this_firing,
             x='time_val',
