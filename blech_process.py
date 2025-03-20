@@ -177,7 +177,6 @@ classifier_params_path = \
 classifier_params = json.load(open(classifier_params_path, 'r'))
 
 
-
 if classifier_params['use_neuRecommend']:
     # If full classification pipeline was not loaded, still load
     # feature transformation pipeline so it may be used later
