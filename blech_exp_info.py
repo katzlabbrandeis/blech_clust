@@ -63,6 +63,8 @@ else:
     parser.add_argument(
         '--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
     parser.add_argument('--notes', help='Experiment notes')
+    parser.add_argument('--auto-defaults', action='store_true',
+                        help='Use auto defaults for all fields if available')
     args = parser.parse_args()
 
 import json  # noqa
@@ -141,7 +143,8 @@ def populate_field_with_defaults(
         convert_func=None,
         fail_response=None,
         nested_field=None,
-        default_value_override=None
+        default_value_override=None,
+        force_default=False
 ):
     """
     Handle the logic for checking existing info, cache, and prompting the user.
@@ -188,13 +191,17 @@ def populate_field_with_defaults(
     if fail_response is None:
         fail_response = f'Please enter valid input for {field_name}'
 
-    # Prompt user
-    user_input, continue_bool = entry_checker(
-        msg=f'{entry_checker_msg}\nDefault values: [{default_str}] :: ',
-        check_func=check_func,
-        fail_response=fail_response,
-        default_input=default_str,
-    )
+    if force_default:
+        user_input = default_str
+        continue_bool = True
+    else:
+        # Prompt user
+        user_input, continue_bool = entry_checker(
+            msg=f'{entry_checker_msg}\nDefault values: [{default_str}] :: ',
+            check_func=check_func,
+            fail_response=fail_response,
+            default_input=default_str,
+        )
 
     if continue_bool:
         if user_input.strip():
@@ -361,7 +368,8 @@ else:
                 existing_info=existing_info,
                 cache=cache,
                 fail_response='Please enter numbers in index of dataframe above',
-                default_value_override=existing_dig_in_nums
+                default_value_override=existing_dig_in_nums,
+                force_default=args.auto_defaults
             )
 
             # Convert to integers
@@ -411,7 +419,8 @@ else:
                 check_func=taste_check,
                 existing_info=existing_info,
                 cache=cache,
-                fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins'
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins',
+                force_default=args.auto_defaults
             )
 
             # Extract taste names
@@ -446,7 +455,8 @@ else:
                 existing_info=existing_info,
                 cache=cache,
                 convert_func=convert_concs,
-                fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins'
+                fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins',
+                force_default=args.auto_defaults
             )
 
             # If we got a string, convert it, otherwise use as is
@@ -485,7 +495,8 @@ else:
                 existing_info=existing_info,
                 cache=cache,
                 convert_func=convert_pal_ranks,
-                fail_response=f'Please enter numbers 1<=x<={len(print_df)}'
+                fail_response=f'Please enter numbers 1<=x<={len(print_df)}',
+                force_default=args.auto_defaults
             )
 
             # If we got a string, convert it, otherwise use as is
@@ -553,7 +564,7 @@ else:
 
         # Use helper function with special handling for blank input
         laser_select_str = populate_field_with_defaults(
-            field_name='laser_digin_ind',
+            field_name='dig_in_nums',
             nested_field='laser_params',
             entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
             check_func=count_check,
@@ -561,7 +572,8 @@ else:
             cache=cache,
             convert_func=convert_laser_digin,
             fail_response='Please enter numbers in index of dataframe above',
-            default_value_override=default_laser_digin_ind
+            default_value_override=default_laser_digin_ind,
+            force_default=args.auto_defaults
         )
 
         # Handle the special case for laser dig-ins
@@ -616,10 +628,13 @@ else:
                     default_opto_loc_list = existing_info['laser_params']['opto_locs']
                 if 'virus_region' in existing_info['laser_params']:
                     default_virus_region = existing_info['laser_params']['virus_region']
-            elif 'laser_params_list' in cache:
-                default_laser_params_list = cache['laser_params_list']
-                default_opto_loc_list = cache.get('opto_loc_list', [])
-                default_virus_region = cache.get('virus_region_str', '')
+            elif 'laser_params' in cache:
+                default_laser_params_list = cache['laser_params'].get(
+                    'onset_duration', [])
+                default_opto_loc_list = cache['laser_params'].get(
+                    'opto_locs', [])
+                default_virus_region = cache['laser_params'].get(
+                    'virus_region', "")
 
             # Display defaults
             if default_laser_params_list:
@@ -632,12 +647,17 @@ else:
             # Ask if user wants to use defaults
             use_defaults = False
             if default_laser_params_list:
-                use_defaults_str, continue_bool = entry_checker(
-                    msg='Use default laser parameters? (y/n) :: ',
-                    check_func=lambda x: x.lower() in ['y', 'n', 'yes', 'no'],
-                    fail_response='Please enter y or n')
+                if args.auto_defaults:
+                    use_defaults_str = 'y'
+                    continue_bool = True
+                else:
+                    use_defaults_str, continue_bool = entry_checker(
+                        msg='Use default laser parameters? (y/n) [ENTER for y] :: ',
+                        check_func=lambda x: x.lower() in [
+                            'y', 'n', 'yes', 'no', ''],
+                        fail_response='Please enter y or n')
                 if continue_bool:
-                    use_defaults = use_defaults_str.lower() in ['y', 'yes']
+                    use_defaults = use_defaults_str.lower() in ['y', 'yes', '']
                 else:
                     exit()
 
@@ -803,10 +823,14 @@ else:
     if os.path.exists(layout_file_path):
         # If neither programmatic nor use_layout_file, ask user
         if not args.programmatic and not args.use_layout_file and not args.car_groups:
-            use_csv_str, continue_bool = entry_checker(
-                msg="Layout file detected...use what's there? (y/yes/no/n) [ENTER for y] :: ",
-                check_func=yn_check,
-                fail_response='Please [y, yes, n, no]')
+            if args.auto_defaults:
+                use_csv_str = 'y'
+                continue_bool = True
+            else:
+                use_csv_str, continue_bool = entry_checker(
+                    msg="Layout file detected...use what's there? (y/yes/no/n) [ENTER for y] :: ",
+                    check_func=yn_check,
+                    fail_response='Please [y, yes, n, no]')
             if use_csv_str == '':
                 use_csv_str = 'y'
         elif args.car_groups:
@@ -892,6 +916,7 @@ else:
                 existing_info=existing_info,
                 cache=cache,
                 fail_response='Please enter a valid muscle name',
+                force_default=args.auto_defaults
             )
             if not continue_bool:
                 exit()
@@ -920,10 +945,13 @@ else:
         # Use a simpler approach for notes since we're using input() directly
         default_notes = existing_info.get(
             'notes', '') or cache.get('notes', '')
-        notes = input(
-            f'Please enter any notes about the experiment [Default: {default_notes}]. \n :: ')
-        if notes.strip() == '':
+        if args.auto_defaults:
             notes = default_notes
+        else:
+            notes = input(
+                f'Please enter any notes about the experiment [Default: {default_notes}]. \n :: ')
+            if notes.strip() == '':
+                notes = default_notes
 
         # Save to cache
         cache['notes'] = notes
