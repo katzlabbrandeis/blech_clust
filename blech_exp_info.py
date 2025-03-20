@@ -83,12 +83,13 @@ from utils.read_file import DigInHandler  # noqa
 
 # Define the cache directory and ensure it exists
 script_path = os.path.abspath(__file__) if not test_bool else "test_path"
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+blech_clust_dir = os.path.dirname(script_path)
 cache_dir = os.path.join(blech_clust_dir, 'cache_and_logs')
 os.makedirs(cache_dir, exist_ok=True)
 
 # Define the cache file path
 cache_file_path = os.path.join(cache_dir, 'manual_entries_cache.json')
+print(f"Cache file path: {cache_file_path}")
 
 
 def load_cache():
@@ -171,6 +172,9 @@ def populate_field_with_defaults(
         elif field_name in existing_info:
             default_value = existing_info[field_name]
         # Then check cache
+        elif nested_field and nested_field in cache:
+            if field_name in cache[nested_field]:
+                default_value = cache[nested_field][field_name]
         elif field_name in cache:
             default_value = cache[field_name]
 
@@ -347,11 +351,14 @@ else:
                         existing_dig_in_nums)
                 ].index.tolist(
                 )
+            else:
+                existing_dig_in_nums = None
             taste_dig_in_str = populate_field_with_defaults(
                 field_name='dig_in_nums',
+                nested_field='taste_params',
                 entry_checker_msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated)',
                 check_func=count_check,
-                existing_info=existing_info.get('taste_params', {}),
+                existing_info=existing_info,
                 cache=cache,
                 fail_response='Please enter numbers in index of dataframe above',
                 default_value_override=existing_dig_in_nums
@@ -364,7 +371,9 @@ else:
                 nums[0], str) else nums
 
             # Save to cache
-            cache['taste_dig_inds'] = taste_dig_inds
+            if 'taste_params' not in cache:
+                cache['taste_params'] = {}
+            cache['taste_params']['dig_in_nums'] = taste_dig_inds
             save_to_cache(cache)
         else:
             if args.taste_digins:
@@ -397,9 +406,10 @@ else:
             # Use the helper function to get tastes
             taste_str = populate_field_with_defaults(
                 field_name='tastes',
+                nested_field='taste_params',
                 entry_checker_msg=' Tastes names used (IN ORDER, anything separated [no punctuation in name])',
                 check_func=taste_check,
-                existing_info=existing_info.get('taste_params', {}),
+                existing_info=existing_info,
                 cache=cache,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) tastes as digins'
             )
@@ -409,7 +419,7 @@ else:
                 '[A-Za-z]+', taste_str) if isinstance(taste_str, str) else taste_str
 
             # Save to cache
-            cache['tastes'] = tastes
+            cache['taste_params']['tastes'] = tastes
             save_to_cache(cache)
         else:
             if args.tastes:
@@ -430,9 +440,10 @@ else:
 
             conc_str = populate_field_with_defaults(
                 field_name='concs',
+                nested_field='taste_params',
                 entry_checker_msg='Corresponding concs used (in M, IN ORDER, COMMA separated)',
                 check_func=float_check,
-                existing_info=existing_info.get('taste_params', {}),
+                existing_info=existing_info,
                 cache=cache,
                 convert_func=convert_concs,
                 fail_response=f'Please enter as many ({len(taste_dig_inds)}) concentrations as digins'
@@ -443,7 +454,7 @@ else:
                 conc_str, str) else conc_str
 
             # Save to cache
-            cache['concs'] = concs
+            cache['taste_params']['concs'] = concs
             save_to_cache(cache)
         else:
             if args.concentrations:
@@ -468,9 +479,10 @@ else:
 
             palatability_str = populate_field_with_defaults(
                 field_name='pal_rankings',
+                nested_field='taste_params',
                 entry_checker_msg='Enter palatability rankings (IN ORDER) used (anything separated), higher number = more palatable',
                 check_func=pal_check,
-                existing_info=existing_info.get('taste_params', {}),
+                existing_info=existing_info,
                 cache=cache,
                 convert_func=convert_pal_ranks,
                 fail_response=f'Please enter numbers 1<=x<={len(print_df)}'
@@ -481,7 +493,7 @@ else:
                 palatability_str, str) else palatability_str
 
             # Save to cache
-            cache['pal_ranks'] = pal_ranks
+            cache['taste_params']['pal_rankings'] = pal_ranks
             save_to_cache(cache)
         else:
             if args.palatability:
@@ -530,6 +542,8 @@ else:
                     )
                     if matching_indices:
                         default_laser_digin_ind.extend(matching_indices)
+        else:
+            default_laser_digin_ind = None
 
         # Custom conversion function for laser dig-ins
         def convert_laser_digin(input_str):
@@ -540,12 +554,14 @@ else:
         # Use helper function with special handling for blank input
         laser_select_str = populate_field_with_defaults(
             field_name='laser_digin_ind',
+            nested_field='laser_params',
             entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
             check_func=count_check,
-            existing_info={'laser_digin_ind': default_laser_digin_ind},
+            existing_info=existing_info,
             cache=cache,
             convert_func=convert_laser_digin,
-            fail_response='Please enter numbers in index of dataframe above'
+            fail_response='Please enter numbers in index of dataframe above',
+            default_value_override=default_laser_digin_ind
         )
 
         # Handle the special case for laser dig-ins
@@ -558,7 +574,9 @@ else:
             laser_digin_ind = laser_select_str
 
         # Save to cache
-        cache['laser_digin_ind'] = laser_digin_ind
+        if 'laser_params' not in cache:
+            cache['laser_params'] = {}
+        cache['laser_params']['dig_in_nums'] = laser_digin_ind
         save_to_cache(cache)
     else:
         if args.laser_digin:
@@ -699,9 +717,9 @@ else:
                     exit()
 
             # Save to cache
-            cache['laser_params_list'] = laser_params_list
-            cache['opto_loc_list'] = opto_loc_list
-            cache['virus_region_str'] = virus_region_str
+            cache['laser_params']['onset_duration'] = laser_params_list
+            cache['laser_params']['opto_locs'] = opto_loc_list
+            cache['laser_params']['virus_region'] = virus_region_str
             save_to_cache(cache)
 
         else:
@@ -780,20 +798,22 @@ else:
         dir_path, dir_name + "_electrode_layout.csv")
 
     def yn_check(x):
-        return x in ['y', 'yes', 'n', 'no']
+        return x in ['y', 'yes', 'n', 'no', '']
 
     if os.path.exists(layout_file_path):
         # If neither programmatic nor use_layout_file, ask user
         if not args.programmatic and not args.use_layout_file and not args.car_groups:
             use_csv_str, continue_bool = entry_checker(
-                msg="Layout file detected...use what's there? (y/yes/no/n) :: ",
+                msg="Layout file detected...use what's there? (y/yes/no/n) [ENTER for y] :: ",
                 check_func=yn_check,
                 fail_response='Please [y, yes, n, no]')
+            if use_csv_str == '':
+                use_csv_str = 'y'
         elif args.car_groups:
             use_csv_str = 'n'
         # If use_layout_file, use it
         elif args.use_layout_file:
-            use_csv_str = 'y'
+            use_csv_str in 'y'
         # If programmatic, don't use
         else:
             use_csv_str = 'y'
@@ -866,18 +886,19 @@ else:
         if not args.programmatic:
             emg_muscle_str = populate_field_with_defaults(
                 field_name='muscle',
+                nested_field='emg',
                 entry_checker_msg='Enter EMG muscle name :: ',
                 check_func=lambda x: True,
-                existing_info=existing_info.get('emg', {}),
+                existing_info=existing_info,
                 cache=cache,
                 fail_response='Please enter a valid muscle name',
             )
-            # emg_muscle_str, continue_bool = entry_checker(
-            #     msg='Enter EMG muscle name :: ',
-            #     check_func=lambda x: True,
-            #     fail_response='Please enter a valid muscle name')
             if not continue_bool:
                 exit()
+            if 'emg' not in cache:
+                cache['emg'] = {}
+            cache['emg']['muscle'] = emg_muscle_str
+            save_to_cache(cache)
         else:
             if args.emg_muscle:
                 emg_muscle_str = args.emg_muscle
@@ -900,7 +921,7 @@ else:
         default_notes = existing_info.get(
             'notes', '') or cache.get('notes', '')
         notes = input(
-            f'Please enter any notes about the experiment [{default_notes}]. \n :: ')
+            f'Please enter any notes about the experiment [Default: {default_notes}]. \n :: ')
         if notes.strip() == '':
             notes = default_notes
 
