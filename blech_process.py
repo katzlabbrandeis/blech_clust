@@ -35,6 +35,13 @@ parser.add_argument('electrode_num', type=int,
                     help='Electrode number to process')
 args = parser.parse_args()
 
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 import pathlib  # noqa
 import datetime  # noqa
 import warnings  # noqa
@@ -44,14 +51,10 @@ import json  # noqa
 import pylab as plt  # noqa
 import utils.blech_process_utils as bpu  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
-import os  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):
     raise ValueError(f'Provided path {args.data_dir} does not exist')
-
-os.environ['OMP_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
 
 
 # Ignore specific warning
