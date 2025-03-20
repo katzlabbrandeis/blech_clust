@@ -1,3 +1,5 @@
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.decomposition import PCA
 import torch.nn as nn
 import os
 import sys
@@ -9,8 +11,8 @@ from tqdm import tqdm
 import pandas as pd
 import torch  # noqa
 
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+plt.ion()
+
 
 blechRNN_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'blechRNN')
 if os.path.exists(blechRNN_path):
@@ -44,9 +46,10 @@ class RNN_Wrapper(nn.Module):
 
     def __init__(
             self,
-            io_layer_size=8,
             n_io_layers=3,
             shared_rnn=None,
+            input_size=None,
+            output_size=None,
             **kwargs):
         """
         Parameters
@@ -58,11 +61,13 @@ class RNN_Wrapper(nn.Module):
         """
         super(RNN_Wrapper, self).__init__()
         self.input_transform = nn.Sequential(
-            *[nn.Linear(io_layer_size, io_layer_size) for _ in range(n_io_layers)]
+            *[nn.Linear(input_size, input_size) for _ in range(n_io_layers-1)],
+            nn.Linear(input_size, input_size)
         )
         self.shared_rnn = shared_rnn
         self.output_transform = nn.Sequential(
-            *[nn.Linear(io_layer_size, io_layer_size) for _ in range(n_io_layers)]
+            nn.Linear(output_size, output_size),
+            *[nn.Linear(output_size, output_size) for _ in range(n_io_layers-1)]
         )
 
     def forward(self, x):
@@ -211,20 +216,45 @@ shared_rnn = autoencoderRNN(
 )
 
 net = RNN_Wrapper(
-    io_layer_size=8,
     n_io_layers=3,
+    input_size=input_size,
+    output_size=output_size,
     shared_rnn=shared_rnn,
 )
 
 net.to(device)
-net, loss, cross_val_loss = train_model(
-    net,
-    train_inputs,
-    train_labels,
-    output_size=output_size,
-    lr=0.001,
-    train_steps=50_000,
-    criterion=MSELoss(),
-    test_inputs=test_inputs,
-    test_labels=test_labels,
-)
+
+train_steps = 50_000
+update_steps = 1000
+
+fig = plt.figure()
+full_loss = []
+full_cross_val_loss = {}
+for epochs in range(train_steps // update_steps):
+    net, loss, cross_val_loss = train_model(
+        net,
+        train_inputs,
+        train_labels,
+        output_size=output_size,
+        lr=0.001,
+        train_steps=update_steps,
+        criterion=MSELoss(),
+        test_inputs=test_inputs,
+        test_labels=test_labels,
+    )
+    full_loss.extend(loss)
+    # Update keys in cross_val_loss
+    cross_val_loss = {k + epochs * update_steps: v for k,
+                      v in cross_val_loss.items()}
+    full_cross_val_loss.update(cross_val_loss)
+
+    # Update plot
+    plt.clf()
+    plt.plot(full_loss)
+    plt.plot(list(full_cross_val_loss.keys()),
+             list(full_cross_val_loss.values()))
+    plt.legend(['train', 'test'])
+    plt.xlabel('steps')
+    plt.ylabel('loss')
+    plt.title('Loss')
+    plt.pause(0.01)
