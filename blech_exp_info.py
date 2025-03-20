@@ -131,8 +131,17 @@ def parse_csv(s, convert=str):
     return [convert(x.strip()) for x in s.split(',')]
 
 
-def populate_field_with_defaults(field_name, entry_checker_msg, check_func, existing_info, cache,
-                                 convert_func=None, fail_response=None, nested_field=None):
+def populate_field_with_defaults(
+        field_name,
+        entry_checker_msg,
+        check_func,
+        existing_info,
+        cache,
+        convert_func=None,
+        fail_response=None,
+        nested_field=None,
+        default_value_override=None
+):
     """
     Handle the logic for checking existing info, cache, and prompting the user.
 
@@ -149,17 +158,21 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
     Returns:
         The value to use for the field
     """
-    default_value = []
 
-    # Check existing info first
-    if nested_field and nested_field in existing_info:
-        if field_name in existing_info[nested_field]:
-            default_value = existing_info[nested_field][field_name]
-    elif field_name in existing_info:
-        default_value = existing_info[field_name]
-    # Then check cache
-    elif field_name in cache:
-        default_value = cache[field_name]
+    default_value = []
+    if default_value_override is not None:
+        default_value = default_value_override
+    else:
+
+        # Check existing info first
+        if nested_field and nested_field in existing_info:
+            if field_name in existing_info[nested_field]:
+                default_value = existing_info[nested_field][field_name]
+        elif field_name in existing_info:
+            default_value = existing_info[field_name]
+        # Then check cache
+        elif field_name in cache:
+            default_value = cache[field_name]
 
     # Format default for display
     if isinstance(default_value, list):
@@ -173,9 +186,10 @@ def populate_field_with_defaults(field_name, entry_checker_msg, check_func, exis
 
     # Prompt user
     user_input, continue_bool = entry_checker(
-        msg=f'{entry_checker_msg} [{default_str}] :: ',
+        msg=f'{entry_checker_msg}\nDefault values: [{default_str}] :: ',
         check_func=check_func,
-        fail_response=fail_response
+        fail_response=fail_response,
+        default_input=default_str,
     )
 
     if continue_bool:
@@ -323,14 +337,24 @@ else:
     # Ask for user input of which line index the dig in came from
     if dig_in_present_bool:
         if not args.programmatic:
-            # Use the helper function to get taste dig-ins
+            if existing_info:
+                # Use the helper function to get taste dig-ins
+                existing_dig_in_nums = existing_info.get(
+                    'taste_params', {}).get('dig_in_nums', [])
+                # Get dataframe inds for existing dig-ins
+                existing_dig_in_nums = this_dig_handler.dig_in_frame[
+                    this_dig_handler.dig_in_frame.dig_in_nums.isin(
+                        existing_dig_in_nums)
+                ].index.tolist(
+                )
             taste_dig_in_str = populate_field_with_defaults(
                 field_name='dig_in_nums',
                 entry_checker_msg=' INDEX of Taste dig_ins used (IN ORDER, anything separated)',
                 check_func=count_check,
                 existing_info=existing_info.get('taste_params', {}),
                 cache=cache,
-                fail_response='Please enter numbers in index of dataframe above'
+                fail_response='Please enter numbers in index of dataframe above',
+                default_value_override=existing_dig_in_nums
             )
 
             # Convert to integers
@@ -516,7 +540,7 @@ else:
         # Use helper function with special handling for blank input
         laser_select_str = populate_field_with_defaults(
             field_name='laser_digin_ind',
-            entry_checker_msg='Laser dig_in index, <BLANK> for none',
+            entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
             check_func=count_check,
             existing_info={'laser_digin_ind': default_laser_digin_ind},
             cache=cache,
@@ -840,10 +864,18 @@ else:
         fin_emg_port = list(fin_emg_port)
         # Get EMG muscle name
         if not args.programmatic:
-            emg_muscle_str, continue_bool = entry_checker(
-                msg='Enter EMG muscle name :: ',
+            emg_muscle_str = populate_field_with_defaults(
+                field_name='muscle',
+                entry_checker_msg='Enter EMG muscle name :: ',
                 check_func=lambda x: True,
-                fail_response='Please enter a valid muscle name')
+                existing_info=existing_info.get('emg', {}),
+                cache=cache,
+                fail_response='Please enter a valid muscle name',
+            )
+            # emg_muscle_str, continue_bool = entry_checker(
+            #     msg='Enter EMG muscle name :: ',
+            #     check_func=lambda x: True,
+            #     fail_response='Please enter a valid muscle name')
             if not continue_bool:
                 exit()
         else:
