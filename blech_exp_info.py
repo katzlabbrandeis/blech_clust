@@ -11,7 +11,7 @@ It processes data files to extract and organize details such as:
 Key functionality:
 - Parses command-line arguments to specify the directory containing data files
 - Extracts metadata from the directory name and checks the pipeline status
-- Processes digital input (dig-in) data to determine taste dig-ins, concentrations, 
+- Processes digital input (dig-in) data to determine taste dig-ins, concentrations,
   palatability rankings, and laser parameters
 - Handles different file types for electrode data and generates or uses an existing electrode layout file
 - Organizes and writes out the final experimental information into a JSON file
@@ -42,6 +42,8 @@ from utils.read_file import DigInHandler
 
 # Constants
 test_bool = False  # noqa
+
+
 def parse_arguments():
     """Parse command line arguments for the experiment info generator."""
     if test_bool:
@@ -68,7 +70,8 @@ def parse_arguments():
         # Create argument parser
         parser = argparse.ArgumentParser(
             description='Creates files with experiment info')
-        parser.add_argument('dir_name',  help='Directory containing data files')
+        parser.add_argument(
+            'dir_name',  help='Directory containing data files')
         parser.add_argument('--template', '-t',
                             help='Template (.info) file to copy experimental details from')
         parser.add_argument('--mode', '-m', default='legacy',
@@ -77,7 +80,8 @@ def parse_arguments():
                             help='Run in programmatic mode')
         parser.add_argument('--use-layout-file', action='store_true',
                             help='Use existing electrode layout file')
-        parser.add_argument('--car-groups', help='Comma-separated CAR groupings')
+        parser.add_argument(
+            '--car-groups', help='Comma-separated CAR groupings')
         parser.add_argument('--emg-muscle', help='Name of EMG muscle')
         parser.add_argument(
             '--taste-digins', help='Comma-separated indices of taste digital inputs')
@@ -97,8 +101,10 @@ def parse_arguments():
                             help='Use auto defaults for all fields if available')
         return parser.parse_args()
 
+
 # Parse command line arguments
 args = parse_arguments()
+
 
 def setup_cache_directory():
     """Set up the cache directory and return the cache file path."""
@@ -106,7 +112,7 @@ def setup_cache_directory():
     blech_clust_dir = os.path.dirname(script_path)
     cache_dir = os.path.join(blech_clust_dir, 'cache_and_logs')
     os.makedirs(cache_dir, exist_ok=True)
-    
+
     # Define the cache file path
     cache_file_path = os.path.join(cache_dir, 'manual_entries_cache.json')
     print(f"Cache file path: {cache_file_path}")
@@ -143,14 +149,15 @@ def load_existing_info(dir_path, dir_name):
             return {}
     return {}
 
+
 def parse_csv(s, convert=str):
     """
     Parse comma-separated values from a string and convert them to a specified type.
-    
+
     Args:
         s: String containing comma-separated values
         convert: Function to convert each value (default: str)
-        
+
     Returns:
         List of converted values
     """
@@ -162,34 +169,34 @@ def parse_csv(s, convert=str):
 def get_default_value(field_name, existing_info, cache, nested_field=None, default_value_override=None):
     """
     Get the default value for a field from existing info or cache.
-    
+
     Args:
         field_name: Name of the field
         existing_info: Dictionary containing existing information
         cache: Dictionary containing cached values
         nested_field: If field is nested, provide the parent key
         default_value_override: Override the default value
-        
+
     Returns:
         The default value for the field
     """
     if default_value_override is not None:
         return default_value_override
-    
+
     # Check existing info first
     if nested_field and nested_field in existing_info:
         if field_name in existing_info[nested_field]:
             return existing_info[nested_field][field_name]
     elif field_name in existing_info:
         return existing_info[field_name]
-    
+
     # Then check cache
     if nested_field and nested_field in cache:
         if field_name in cache[nested_field]:
             return cache[nested_field][field_name]
     elif field_name in cache:
         return cache[field_name]
-    
+
     # Return empty list as default
     return []
 
@@ -236,7 +243,7 @@ def populate_field_with_defaults(
     default_value = get_default_value(
         field_name, existing_info, cache, nested_field, default_value_override
     )
-    
+
     # Format default for display
     default_str = format_default_for_display(default_value)
 
@@ -271,10 +278,10 @@ def populate_field_with_defaults(
 def parse_laser_params(s):
     """
     Parse laser parameters in format (onset,duration),(onset,duration).
-    
+
     Args:
         s: String containing laser parameters
-        
+
     Returns:
         List of tuples (onset, duration)
     """
@@ -293,10 +300,10 @@ def parse_laser_params(s):
 def extract_metadata_from_dir_name(dir_name):
     """
     Extract metadata such as name, experiment type, date, and timestamp from directory name.
-    
+
     Args:
         dir_name: Name of the directory
-        
+
     Returns:
         Dictionary containing extracted metadata
     """
@@ -358,7 +365,7 @@ def setup_experiment_info():
 
     # Set up cache
     cache_file_path = setup_cache_directory()
-    
+
     # Load cache and existing info
     cache = load_cache(cache_file_path)
     existing_info = load_existing_info(dir_path, dir_name)
@@ -369,7 +376,7 @@ def setup_experiment_info():
 
     # Extract metadata from directory name
     metadata_dict = extract_metadata_from_dir_name(dir_name)
-    
+
     return dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, this_pipeline_check if not test_bool else None
 
 ##################################################
@@ -381,10 +388,10 @@ def main():
     """Main function to run the experiment info generation process."""
     # Setup experiment info
     dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
-    
+
     # Initialize the final dictionary with metadata
     fin_dict = {}
-    
+
     # If template is provided, use it
     if args.template:
         with open(args.template, 'r') as file:
@@ -1086,7 +1093,7 @@ def main():
                     'opto_locs': opto_loc_list,
                     'virus_region': virus_region_str},
                 'notes': notes}
-    
+
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
     with open(json_file_name, 'w') as file:
@@ -1095,7 +1102,7 @@ def main():
     # Write success to log
     if pipeline_check:
         pipeline_check.write_to_log(os.path.abspath(__file__), 'completed')
-    
+
     print(f"Successfully created experiment info file: {json_file_name}")
     return fin_dict
 
