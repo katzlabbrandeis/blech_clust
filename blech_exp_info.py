@@ -396,6 +396,8 @@ def main():
             }
             fin_dict = {**metadata_dict, **from_template}
     else:
+        # Initialize with just metadata if no template
+        fin_dict = {**metadata_dict}
 
     # Find all ports used
     file_list = os.listdir(dir_path)
