@@ -51,7 +51,7 @@ test_bool = False  # noqa
 def parse_arguments():
     """
     Parse command line arguments for the experiment info generator.
-    
+
     Returns:
         argparse.Namespace: Parsed command-line arguments
     """
@@ -79,7 +79,7 @@ def parse_arguments():
         # Create argument parser
         parser = argparse.ArgumentParser(
             description='Creates files with experiment info')
-        
+
         # Basic arguments
         parser.add_argument(
             'dir_name',  help='Directory containing data files')
@@ -87,7 +87,7 @@ def parse_arguments():
                             help='Template (.info) file to copy experimental details from')
         parser.add_argument('--mode', '-m', default='legacy',
                             choices=['legacy', 'updated'])
-        
+
         # Mode selection
         parser.add_argument('--programmatic', action='store_true',
                             help='Run in programmatic mode (all parameters must be provided via command line)')
@@ -95,12 +95,12 @@ def parse_arguments():
                             help='Use auto defaults for all fields if available (in manual mode)')
         parser.add_argument('--use-layout-file', action='store_true',
                             help='Use existing electrode layout file')
-        
+
         # Programmatic mode parameters - Electrode layout
         parser.add_argument(
             '--car-groups', help='Comma-separated CAR groupings')
         parser.add_argument('--emg-muscle', help='Name of EMG muscle')
-        
+
         # Programmatic mode parameters - Taste information
         parser.add_argument(
             '--taste-digins', help='Comma-separated indices of taste digital inputs')
@@ -109,7 +109,7 @@ def parse_arguments():
                             help='Comma-separated concentrations in M')
         parser.add_argument(
             '--palatability', help='Comma-separated palatability rankings')
-        
+
         # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
         parser.add_argument(
@@ -117,10 +117,10 @@ def parse_arguments():
         parser.add_argument('--virus-region', help='Virus region')
         parser.add_argument(
             '--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
-        
+
         # Additional information
         parser.add_argument('--notes', help='Experiment notes')
-        
+
         return parser.parse_args()
 
 
@@ -371,7 +371,7 @@ def display_existing_info(existing_info):
 def process_dig_ins_programmatic(this_dig_handler, args):
     """
     Process dig-ins in programmatic mode where all parameters are provided via command-line arguments.
-    
+
     This function handles the automated processing of digital inputs for taste information
     without requiring user interaction.
 
@@ -453,7 +453,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
 def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
     """
     Process dig-ins in manual mode with user interaction.
-    
+
     This function guides the user through the process of selecting and configuring
     taste digital inputs, with intelligent defaults from existing info or cache.
     It handles user prompts, validation, and saving preferences to cache.
@@ -625,7 +625,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
 def setup_experiment_info():
     """
     Set up the experiment info generation process.
-    
+
     This function initializes the environment for generating experiment info:
     - Determines the operating mode (programmatic or manual)
     - Sets up metadata and paths
@@ -633,7 +633,7 @@ def setup_experiment_info():
     - Sets up caching for user preferences
     - Loads existing information if available
     - Extracts metadata from directory name
-    
+
     Returns:
         Tuple containing setup information needed for the rest of the process
     """
@@ -679,7 +679,7 @@ def setup_experiment_info():
 def process_laser_params_programmatic(this_dig_handler, args):
     """
     Process laser parameters in programmatic mode where all parameters are provided via command-line arguments.
-    
+
     This function handles the automated processing of digital inputs for laser stimulation
     without requiring user interaction.
 
@@ -746,7 +746,7 @@ def process_laser_params_programmatic(this_dig_handler, args):
 def process_laser_params_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
     """
     Process laser parameters in manual mode with user interaction.
-    
+
     This function guides the user through the process of selecting and configuring
     laser stimulation parameters, with intelligent defaults from existing info or cache.
     It handles user prompts, validation, and saving preferences to cache.
@@ -970,7 +970,7 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 def main():
     """
     Main function to run the experiment info generation process.
-    
+
     This function orchestrates the entire process of generating experiment info:
     1. Sets up the environment and loads existing data
     2. Determines file types and electrode configurations
@@ -1065,14 +1065,14 @@ def main():
     def process_electrode_files(file_type, electrodes_list, dir_path):
         """
         Process electrode files based on file type.
-        
+
         This function handles different file formats and extracts electrode information.
-        
+
         Args:
             file_type: Type of file ('one file per channel', 'one file per signal type', or 'traditional')
             electrodes_list: List of electrode files
             dir_path: Path to the directory containing data files
-            
+
         Returns:
             Tuple containing electrode_files, ports, electrode_num_list
         """
@@ -1117,10 +1117,10 @@ def main():
                                  args, existing_info, cache, cache_file_path):
         """
         Process electrode layout file.
-        
+
         This function handles the creation or use of an existing electrode layout file,
         processes CAR groups, and extracts EMG information.
-        
+
         Args:
             dir_path: Path to the directory containing data files
             dir_name: Name of the directory
@@ -1131,7 +1131,7 @@ def main():
             existing_info: Dictionary containing existing information
             cache: Dictionary containing cached values
             cache_file_path: Path to cache file
-            
+
         Returns:
             Tuple containing layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
         """
@@ -1273,16 +1273,16 @@ def main():
     def process_notes(args, existing_info, cache, cache_file_path):
         """
         Process experiment notes.
-        
+
         This function handles the collection of experiment notes, either from
         command-line arguments in programmatic mode or via user input in manual mode.
-        
+
         Args:
             args: Command line arguments
             existing_info: Dictionary containing existing information
             cache: Dictionary containing cached values
             cache_file_path: Path to cache file
-            
+
         Returns:
             String containing experiment notes
         """
