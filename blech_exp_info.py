@@ -1127,7 +1127,7 @@ def main():
         return layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
     
     # Process electrode layout
-    fin_perm, fin_emg_port, orig_emg_electrodes, emg_muscle_str = process_electrode_layout(
+    layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str = process_electrode_layout(
         dir_path, dir_name, electrode_files, ports, electrode_num_list, 
         args, existing_info, cache, cache_file_path)
 
@@ -1181,7 +1181,7 @@ def main():
             'electrodes': orig_emg_electrodes,
             'muscle': emg_muscle_str
         },
-        'electrode_layout': fin_perm,
+        'electrode_layout': layout_dict,
         'taste_params': {
             'dig_in_nums': taste_digin_nums,
             'trial_count': taste_digin_trials,
