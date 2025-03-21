@@ -1063,7 +1063,19 @@ def main():
     print("\n=== Processing Electrode Layout ===")
 
     def process_electrode_files(file_type, electrodes_list, dir_path):
-        """Process electrode files based on file type."""
+        """
+        Process electrode files based on file type.
+        
+        This function handles different file formats and extracts electrode information.
+        
+        Args:
+            file_type: Type of file ('one file per channel', 'one file per signal type', or 'traditional')
+            electrodes_list: List of electrode files
+            dir_path: Path to the directory containing data files
+            
+        Returns:
+            Tuple containing electrode_files, ports, electrode_num_list
+        """
         if file_type == 'one file per channel':
             electrode_files = sorted(electrodes_list)
             ports = [x.split('-')[1] for x in electrode_files]
@@ -1103,7 +1115,26 @@ def main():
     # Handle electrode layout file
     def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
                                  args, existing_info, cache, cache_file_path):
-        """Process electrode layout file."""
+        """
+        Process electrode layout file.
+        
+        This function handles the creation or use of an existing electrode layout file,
+        processes CAR groups, and extracts EMG information.
+        
+        Args:
+            dir_path: Path to the directory containing data files
+            dir_name: Name of the directory
+            electrode_files: List of electrode files
+            ports: List of ports
+            electrode_num_list: List of electrode numbers
+            args: Command line arguments
+            existing_info: Dictionary containing existing information
+            cache: Dictionary containing cached values
+            cache_file_path: Path to cache file
+            
+        Returns:
+            Tuple containing layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
+        """
         layout_file_path = os.path.join(
             dir_path, dir_name + "_electrode_layout.csv")
 
@@ -1240,7 +1271,21 @@ def main():
     print("\n=== Processing Notes and Finalizing ===")
 
     def process_notes(args, existing_info, cache, cache_file_path):
-        """Process experiment notes."""
+        """
+        Process experiment notes.
+        
+        This function handles the collection of experiment notes, either from
+        command-line arguments in programmatic mode or via user input in manual mode.
+        
+        Args:
+            args: Command line arguments
+            existing_info: Dictionary containing existing information
+            cache: Dictionary containing cached values
+            cache_file_path: Path to cache file
+            
+        Returns:
+            String containing experiment notes
+        """
         if not args.programmatic:
             # Use a simpler approach for notes since we're using input() directly
             default_notes = existing_info.get(
