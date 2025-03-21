@@ -1343,26 +1343,6 @@ def main():
     # Process electrode files
     electrode_files, ports, electrode_num_list = process_electrode_files(
         file_type, electrodes_list, dir_path)
-        """
-        Process electrode layout file.
-
-        This function handles the creation or use of an existing electrode layout file,
-        processes CAR groups, and extracts EMG information.
-
-        Args:
-            dir_path: Path to the directory containing data files
-            dir_name: Name of the directory
-            electrode_files: List of electrode files
-            ports: List of ports
-            electrode_num_list: List of electrode numbers
-            args: Command line arguments
-            existing_info: Dictionary containing existing information
-            cache: Dictionary containing cached values
-            cache_file_path: Path to cache file
-
-        Returns:
-            Tuple containing layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
-        """
         layout_file_path = os.path.join(
             dir_path, dir_name + "_electrode_layout.csv")
 
