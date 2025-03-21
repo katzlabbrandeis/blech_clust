@@ -1060,7 +1060,7 @@ def main():
         laser_digin_trials = []
 
     fin_dict = {'version': '0.0.3',
-                **this_dict,
+                **metadata_dict,
                 'file_type': file_type,
                 'regions': list(layout_dict.keys()),
                 'ports': list(np.unique(ports)),
