@@ -18,6 +18,10 @@ Key functionality:
 - Logs the completion status of the pipeline process
 - Caches manual entries to reduce redundant input across sessions
 - Auto-populates defaults from existing info files when available
+
+The module supports two modes of operation:
+1. Programmatic mode: All parameters are provided via command-line arguments
+2. Manual mode: User is prompted for input with sensible defaults
 """
 
 # Standard library imports
@@ -45,7 +49,12 @@ test_bool = False  # noqa
 
 
 def parse_arguments():
-    """Parse command line arguments for the experiment info generator."""
+    """
+    Parse command line arguments for the experiment info generator.
+    
+    Returns:
+        argparse.Namespace: Parsed command-line arguments
+    """
     if test_bool:
         return argparse.Namespace(
             dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
@@ -70,19 +79,29 @@ def parse_arguments():
         # Create argument parser
         parser = argparse.ArgumentParser(
             description='Creates files with experiment info')
+        
+        # Basic arguments
         parser.add_argument(
             'dir_name',  help='Directory containing data files')
         parser.add_argument('--template', '-t',
                             help='Template (.info) file to copy experimental details from')
         parser.add_argument('--mode', '-m', default='legacy',
                             choices=['legacy', 'updated'])
+        
+        # Mode selection
         parser.add_argument('--programmatic', action='store_true',
-                            help='Run in programmatic mode')
+                            help='Run in programmatic mode (all parameters must be provided via command line)')
+        parser.add_argument('--auto-defaults', action='store_true',
+                            help='Use auto defaults for all fields if available (in manual mode)')
         parser.add_argument('--use-layout-file', action='store_true',
                             help='Use existing electrode layout file')
+        
+        # Programmatic mode parameters - Electrode layout
         parser.add_argument(
             '--car-groups', help='Comma-separated CAR groupings')
         parser.add_argument('--emg-muscle', help='Name of EMG muscle')
+        
+        # Programmatic mode parameters - Taste information
         parser.add_argument(
             '--taste-digins', help='Comma-separated indices of taste digital inputs')
         parser.add_argument('--tastes', help='Comma-separated taste names')
@@ -90,15 +109,18 @@ def parse_arguments():
                             help='Comma-separated concentrations in M')
         parser.add_argument(
             '--palatability', help='Comma-separated palatability rankings')
+        
+        # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
         parser.add_argument(
             '--laser-params', help='Multiple laser parameters as (onset,duration) pairs in ms, comma-separated: (100,500),(200,300)')
         parser.add_argument('--virus-region', help='Virus region')
         parser.add_argument(
             '--opto-loc', help='Multiple opto-fiber locations, comma-separated (must match number of laser parameter pairs)')
+        
+        # Additional information
         parser.add_argument('--notes', help='Experiment notes')
-        parser.add_argument('--auto-defaults', action='store_true',
-                            help='Use auto defaults for all fields if available')
+        
         return parser.parse_args()
 
 
@@ -348,11 +370,14 @@ def display_existing_info(existing_info):
 
 def process_dig_ins_programmatic(this_dig_handler, args):
     """
-    Process dig-ins in programmatic mode.
+    Process dig-ins in programmatic mode where all parameters are provided via command-line arguments.
+    
+    This function handles the automated processing of digital inputs for taste information
+    without requiring user interaction.
 
     Args:
         this_dig_handler: DigInHandler instance
-        args: Command line arguments
+        args: Command line arguments containing taste-related parameters
 
     Returns:
         Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
@@ -427,14 +452,18 @@ def process_dig_ins_programmatic(this_dig_handler, args):
 
 def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
     """
-    Process dig-ins in manual mode.
+    Process dig-ins in manual mode with user interaction.
+    
+    This function guides the user through the process of selecting and configuring
+    taste digital inputs, with intelligent defaults from existing info or cache.
+    It handles user prompts, validation, and saving preferences to cache.
 
     Args:
         this_dig_handler: DigInHandler instance
         args: Command line arguments
-        existing_info: Dictionary containing existing information
-        cache: Dictionary containing cached values
-        cache_file_path: Path to cache file
+        existing_info: Dictionary containing existing information from previous runs
+        cache: Dictionary containing cached values from previous sessions
+        cache_file_path: Path to cache file for saving user preferences
 
     Returns:
         Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
@@ -594,10 +623,30 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
 
 
 def setup_experiment_info():
-    """Set up the experiment info generation process."""
+    """
+    Set up the experiment info generation process.
+    
+    This function initializes the environment for generating experiment info:
+    - Determines the operating mode (programmatic or manual)
+    - Sets up metadata and paths
+    - Initializes pipeline checking
+    - Sets up caching for user preferences
+    - Loads existing information if available
+    - Extracts metadata from directory name
+    
+    Returns:
+        Tuple containing setup information needed for the rest of the process
+    """
+    # Determine operating mode
     if args.programmatic:
         print('================================')
         print('Running in programmatic mode')
+        print('All parameters will be taken from command line arguments')
+        print('================================')
+    else:
+        print('================================')
+        print('Running in manual mode')
+        print('You will be prompted for input with sensible defaults')
         print('================================')
 
     # Set up metadata and paths
@@ -629,11 +678,14 @@ def setup_experiment_info():
 
 def process_laser_params_programmatic(this_dig_handler, args):
     """
-    Process laser parameters in programmatic mode.
+    Process laser parameters in programmatic mode where all parameters are provided via command-line arguments.
+    
+    This function handles the automated processing of digital inputs for laser stimulation
+    without requiring user interaction.
 
     Args:
         this_dig_handler: DigInHandler instance
-        args: Command line arguments
+        args: Command line arguments containing laser-related parameters
 
     Returns:
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
@@ -693,14 +745,18 @@ def process_laser_params_programmatic(this_dig_handler, args):
 
 def process_laser_params_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
     """
-    Process laser parameters in manual mode.
+    Process laser parameters in manual mode with user interaction.
+    
+    This function guides the user through the process of selecting and configuring
+    laser stimulation parameters, with intelligent defaults from existing info or cache.
+    It handles user prompts, validation, and saving preferences to cache.
 
     Args:
         this_dig_handler: DigInHandler instance
         args: Command line arguments
-        existing_info: Dictionary containing existing information
-        cache: Dictionary containing cached values
-        cache_file_path: Path to cache file
+        existing_info: Dictionary containing existing information from previous runs
+        cache: Dictionary containing cached values from previous sessions
+        cache_file_path: Path to cache file for saving user preferences
 
     Returns:
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
@@ -912,7 +968,17 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
 
 def main():
-    """Main function to run the experiment info generation process."""
+    """
+    Main function to run the experiment info generation process.
+    
+    This function orchestrates the entire process of generating experiment info:
+    1. Sets up the environment and loads existing data
+    2. Determines file types and electrode configurations
+    3. Processes digital inputs for taste and laser parameters
+    4. Handles electrode layout and EMG information
+    5. Collects experiment notes
+    6. Assembles and saves the final experiment info file
+    """
     # Setup experiment info
     dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
 
@@ -956,11 +1022,15 @@ def main():
                            for x in header['amplifier_channels']]
 
     ##################################################
-    # Dig-Ins
+    # Process Digital Inputs
     ##################################################
-    # Process dig-ins
+    print("\n=== Processing Digital Inputs ===")
     this_dig_handler = DigInHandler(dir_path, file_type)
 
+    ##################################################
+    # Process Taste Parameters
+    ##################################################
+    print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
         taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
@@ -969,8 +1039,10 @@ def main():
         taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
-    ########################################
-    # Process laser parameters
+    ##################################################
+    # Process Laser Parameters
+    ##################################################
+    print("\n=== Processing Laser Parameters ===")
     if args.programmatic:
         laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_programmatic(
             this_dig_handler, args)
@@ -985,9 +1057,10 @@ def main():
         [x for x in col_names if x != 'pulse_times'] + ['pulse_times']]
     this_dig_handler.write_out_frame()
 
-    ##############################
-    # Process electrode layout
-    ##############################
+    ##################################################
+    # Process Electrode Layout
+    ##################################################
+    print("\n=== Processing Electrode Layout ===")
 
     def process_electrode_files(file_type, electrodes_list, dir_path):
         """Process electrode files based on file type."""
@@ -1161,9 +1234,10 @@ def main():
         dir_path, dir_name, electrode_files, ports, electrode_num_list,
         args, existing_info, cache, cache_file_path)
 
-    ########################################
-    # Process notes and finalize dictionary
-    ########################################
+    ##################################################
+    # Process Notes and Finalize Dictionary
+    ##################################################
+    print("\n=== Processing Notes and Finalizing ===")
 
     def process_notes(args, existing_info, cache, cache_file_path):
         """Process experiment notes."""
