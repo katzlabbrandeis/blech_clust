@@ -743,6 +743,238 @@ def process_laser_params_programmatic(this_dig_handler, args):
     return laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
 
 
+def process_notes(args, existing_info, cache, cache_file_path):
+    """
+    Process experiment notes.
+
+    This function handles the collection of experiment notes, either from
+    command-line arguments in programmatic mode or via user input in manual mode.
+
+    Args:
+        args: Command line arguments
+        existing_info: Dictionary containing existing information
+        cache: Dictionary containing cached values
+        cache_file_path: Path to cache file
+
+    Returns:
+        String containing experiment notes
+    """
+    if not args.programmatic:
+        # Use a simpler approach for notes since we're using input() directly
+        default_notes = existing_info.get(
+            'notes', '') or cache.get('notes', '')
+        if args.auto_defaults:
+            notes = default_notes
+        else:
+            notes = input(
+                f'Please enter any notes about the experiment [Default: {default_notes}]. \n :: ')
+            if notes.strip() == '':
+                notes = default_notes
+
+        # Save to cache
+        cache['notes'] = notes
+        save_to_cache(cache, cache_file_path)
+    else:
+        notes = args.notes or existing_info.get('notes', '') or ''
+
+    return notes
+
+
+def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
+                             args, existing_info, cache, cache_file_path):
+    """
+    Process electrode layout file.
+
+    This function handles the creation or use of an existing electrode layout file,
+    processes CAR groups, and extracts EMG information.
+
+    Args:
+        dir_path: Path to the directory containing data files
+        dir_name: Name of the directory
+        electrode_files: List of electrode files
+        ports: List of ports
+        electrode_num_list: List of electrode numbers
+        args: Command line arguments
+        existing_info: Dictionary containing existing information
+        cache: Dictionary containing cached values
+        cache_file_path: Path to cache file
+
+    Returns:
+        Tuple containing layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
+    """
+    layout_file_path = os.path.join(
+        dir_path, dir_name + "_electrode_layout.csv")
+
+    def yn_check(x):
+        return x in ['y', 'yes', 'n', 'no', '']
+
+    # Determine whether to use existing layout file
+    use_csv_str = 'n'
+    if os.path.exists(layout_file_path):
+        # If neither programmatic nor use_layout_file, ask user
+        if not args.programmatic and not args.use_layout_file and not args.car_groups:
+            if args.auto_defaults:
+                use_csv_str = 'y'
+            else:
+                use_csv_str, continue_bool = entry_checker(
+                    msg="Layout file detected...use what's there? (y/yes/no/n) [ENTER for y] :: ",
+                    check_func=yn_check,
+                    fail_response='Please [y, yes, n, no]')
+            if use_csv_str == '':
+                use_csv_str = 'y'
+        elif args.car_groups:
+            use_csv_str = 'n'
+        # If use_layout_file, use it
+        elif args.use_layout_file:
+            use_csv_str = 'y'
+        # If programmatic, use existing file
+        else:
+            use_csv_str = 'y'
+
+    # Create new layout file if needed
+    if use_csv_str in ['n', 'no']:
+        layout_frame = pd.DataFrame()
+        layout_frame['filename'] = electrode_files
+        layout_frame['port'] = ports
+        layout_frame['electrode_num'] = electrode_num_list
+        layout_frame['electrode_ind'] = layout_frame.index
+        layout_frame['CAR_group'] = pd.Series()
+
+        layout_frame = layout_frame[['filename', 'electrode_ind',
+                                    'electrode_num', 'port', 'CAR_group']]
+
+        layout_frame.to_csv(layout_file_path, index=False)
+
+        if not args.programmatic:
+            prompt_str = 'Please fill in car groups / regions' + "\n" + \
+                "emg and none are case-specific" + "\n" +\
+                "Indicate different CARS from same region as GC1,GC2...etc"
+            print(prompt_str)
+
+            def confirm_check(x):
+                return x in ['y', 'yes']
+
+            perm_str, continue_bool = entry_checker(
+                msg='Lemme know when its done (y/yes) :: ',
+                check_func=confirm_check,
+                fail_response='Please say y or yes')
+
+            if not continue_bool:
+                print('Welp...')
+                exit()
+
+    # Read and process the layout file
+    layout_frame_filled = pd.read_csv(layout_file_path)
+
+    if not args.programmatic:
+        layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
+        )
+        layout_frame_filled['CAR_group'] = [x.strip()
+                                            for x in layout_frame_filled['CAR_group']]
+    else:
+        if args.car_groups:
+            car_groups = parse_csv(args.car_groups)
+            layout_frame_filled['CAR_group'] = [
+                x.strip().lower() for x in car_groups]
+        else:
+            raise ValueError('CAR groups not provided, use --car-groups')
+
+    # Create layout dictionary
+    layout_dict = dict(
+        list(layout_frame_filled.groupby('CAR_group').electrode_ind))
+    for key, vals in layout_dict.items():
+        layout_dict[key] = [layout_dict[key].to_list()]
+
+    # Write out layout_frame_filled if programmatically filled
+    layout_frame_filled.to_csv(layout_file_path, index=False)
+
+    # Process EMG information
+    fin_emg_port = []
+    orig_emg_electrodes = []
+    emg_muscle_str = ''
+
+    if any(['emg' in x for x in layout_dict.keys()]):
+        orig_emg_electrodes = [layout_dict[x][0]
+                               for x in layout_dict.keys() if 'emg' in x]
+        orig_emg_electrodes = [x for y in orig_emg_electrodes for x in y]
+        fin_emg_port = layout_frame_filled.port.loc[
+            layout_frame_filled.electrode_ind.isin(orig_emg_electrodes)].unique()
+        fin_emg_port = list(fin_emg_port)
+
+        # Get EMG muscle name
+        if not args.programmatic:
+            emg_muscle_str = populate_field_with_defaults(
+                field_name='muscle',
+                nested_field='emg',
+                entry_checker_msg='Enter EMG muscle name :: ',
+                check_func=lambda x: True,
+                existing_info=existing_info,
+                cache=cache,
+                fail_response='Please enter a valid muscle name',
+                force_default=args.auto_defaults
+            )
+
+            if 'emg' not in cache:
+                cache['emg'] = {}
+            cache['emg']['muscle'] = emg_muscle_str
+            save_to_cache(cache, cache_file_path)
+        else:
+            if args.emg_muscle:
+                emg_muscle_str = args.emg_muscle
+            else:
+                raise ValueError(
+                    'EMG muscle name not provided, use --emg-muscle')
+
+    return layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
+
+
+def process_electrode_files(file_type, electrodes_list, dir_path):
+    """
+    Process electrode files based on file type.
+
+    This function handles different file formats and extracts electrode information.
+
+    Args:
+        file_type: Type of file ('one file per channel', 'one file per signal type', or 'traditional')
+        electrodes_list: List of electrode files
+        dir_path: Path to the directory containing data files
+
+    Returns:
+        Tuple containing electrode_files, ports, electrode_num_list
+    """
+    if file_type == 'one file per channel':
+        electrode_files = sorted(electrodes_list)
+        ports = [x.split('-')[1] for x in electrode_files]
+        electrode_num_list = [x.split('-')[2].split('.')[0]
+                              for x in electrode_files]
+        # Sort the ports in alphabetical order
+        ports.sort()
+    elif file_type == 'one file per signal type':
+        print("\tSingle Amplifier File Detected")
+        # Import amplifier data and calculate the number of electrodes
+        print("\t\tCalculating Number of Ports")
+        num_recorded_samples = len(np.fromfile(
+            dir_path + 'time.dat', dtype=np.dtype('float32')))
+        amplifier_data = np.fromfile(
+            dir_path + 'amplifier.dat', dtype=np.dtype('uint16'))
+        num_electrodes = int(len(amplifier_data)/num_recorded_samples)
+        electrode_files = ['amplifier.dat' for i in range(num_electrodes)]
+        ports = ['A']*num_electrodes
+        electrode_num_list = list(np.arange(num_electrodes))
+        del amplifier_data, num_electrodes
+    elif file_type == 'traditional':
+        print("\tTraditional Intan Data Detected")
+        rhd_file_list = [x for x in os.listdir(dir_path) if 'rhd' in x]
+        with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
+            header = read_header(f)
+        ports = [x['port_prefix'] for x in header['amplifier_channels']]
+        electrode_files = [x['native_channel_name']
+                           for x in header['amplifier_channels']]
+        electrode_num_list = [x.split('-')[1] for x in electrode_files]
+
+    return electrode_files, ports, electrode_num_list
+
+
 def process_laser_params_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
     """
     Process laser parameters in manual mode with user interaction.
@@ -1111,10 +1343,6 @@ def main():
     # Process electrode files
     electrode_files, ports, electrode_num_list = process_electrode_files(
         file_type, electrodes_list, dir_path)
-
-    # Handle electrode layout file
-    def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
-                                 args, existing_info, cache, cache_file_path):
         """
         Process electrode layout file.
 
@@ -1269,42 +1497,6 @@ def main():
     # Process Notes and Finalize Dictionary
     ##################################################
     print("\n=== Processing Notes and Finalizing ===")
-
-    def process_notes(args, existing_info, cache, cache_file_path):
-        """
-        Process experiment notes.
-
-        This function handles the collection of experiment notes, either from
-        command-line arguments in programmatic mode or via user input in manual mode.
-
-        Args:
-            args: Command line arguments
-            existing_info: Dictionary containing existing information
-            cache: Dictionary containing cached values
-            cache_file_path: Path to cache file
-
-        Returns:
-            String containing experiment notes
-        """
-        if not args.programmatic:
-            # Use a simpler approach for notes since we're using input() directly
-            default_notes = existing_info.get(
-                'notes', '') or cache.get('notes', '')
-            if args.auto_defaults:
-                notes = default_notes
-            else:
-                notes = input(
-                    f'Please enter any notes about the experiment [Default: {default_notes}]. \n :: ')
-                if notes.strip() == '':
-                    notes = default_notes
-
-            # Save to cache
-            cache['notes'] = notes
-            save_to_cache(cache, cache_file_path)
-        else:
-            notes = args.notes or existing_info.get('notes', '') or ''
-
-        return notes
 
     # Process notes
     notes = process_notes(args, existing_info, cache, cache_file_path)
