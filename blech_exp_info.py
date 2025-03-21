@@ -1086,28 +1086,6 @@ def main():
                     'opto_locs': opto_loc_list,
                     'virus_region': virus_region_str},
                 'notes': notes}
-
-
-        # Process the experiment info
-        # (The rest of the code will remain unchanged for now)
-        
-        # Find all ports used
-        file_list = os.listdir(dir_path)
-        if 'auxiliary.dat' in file_list:
-            file_type = 'one file per signal type'
-        elif sum(['rhd' in x for x in file_list]) > 1:
-            file_type = 'traditional'
-        else:
-            file_type = 'one file per channel'
-
-        # ... (rest of the processing code)
-        
-        # Finalize the dictionary with all collected information
-        fin_dict = {'version': '0.0.3',
-                    **metadata_dict,
-                    'file_type': file_type,
-                    # ... (rest of the dictionary construction)
-                   }
     
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
