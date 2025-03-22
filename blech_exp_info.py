@@ -780,51 +780,6 @@ def process_notes(args, existing_info, cache, cache_file_path):
     return notes
 
 
-def process_electrode_files(file_type, electrodes_list, dir_path):
-    """
-    Process electrode files based on file type.
-
-    This function handles different file formats and extracts electrode information.
-
-    Args:
-        file_type: Type of file ('one file per channel', 'one file per signal type', or 'traditional')
-        electrodes_list: List of electrode files
-        dir_path: Path to the directory containing data files
-
-    Returns:
-        Tuple containing electrode_files, ports, electrode_num_list
-    """
-    if file_type == 'one file per channel':
-        electrode_files = sorted(electrodes_list)
-        ports = [x.split('-')[1] for x in electrode_files]
-        electrode_num_list = [x.split('-')[2].split('.')[0]
-                              for x in electrode_files]
-        # Sort the ports in alphabetical order
-        ports.sort()
-    elif file_type == 'one file per signal type':
-        print("\tSingle Amplifier File Detected")
-        # Import amplifier data and calculate the number of electrodes
-        print("\t\tCalculating Number of Ports")
-        num_recorded_samples = len(np.fromfile(
-            dir_path + 'time.dat', dtype=np.dtype('float32')))
-        amplifier_data = np.fromfile(
-            dir_path + 'amplifier.dat', dtype=np.dtype('uint16'))
-        num_electrodes = int(len(amplifier_data)/num_recorded_samples)
-        electrode_files = ['amplifier.dat' for i in range(num_electrodes)]
-        ports = ['A']*num_electrodes
-        electrode_num_list = list(np.arange(num_electrodes))
-        del amplifier_data, num_electrodes
-    elif file_type == 'traditional':
-        print("\tTraditional Intan Data Detected")
-        rhd_file_list = [x for x in os.listdir(dir_path) if 'rhd' in x]
-        with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
-            header = read_header(f)
-        ports = [x['port_prefix'] for x in header['amplifier_channels']]
-        electrode_files = [x['native_channel_name']
-                           for x in header['amplifier_channels']]
-        electrode_num_list = [x.split('-')[1] for x in electrode_files]
-
-    return electrode_files, ports, electrode_num_list
 
 
 def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
@@ -1287,12 +1242,16 @@ def main():
     else:
         file_type = 'one file per channel'
 
+    # Initialize electrodes_list based on file type
     if file_type == 'one file per signal type':
         electrodes_list = ['amplifier.dat']
     elif file_type == 'one file per channel':
         electrodes_list = [
             name for name in file_list if name.startswith('amp-')]
     else:
+        # For traditional file type, we'll initialize electrodes_list as empty
+        # since we'll get electrode info directly from the header
+        electrodes_list = []
         rhd_file_list = [x for x in file_list if 'rhd' in x]
         with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
             header = read_header(f)
