@@ -780,8 +780,6 @@ def process_notes(args, existing_info, cache, cache_file_path):
     return notes
 
 
-
-
 def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
                              args, existing_info, cache, cache_file_path):
     """
