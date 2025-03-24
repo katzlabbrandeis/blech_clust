@@ -328,6 +328,13 @@ class cluster_handler():
             classifier_handler.neg_spike_dict['prob']], axis=0)
         classifier_pred = classifier_prob > clf_threshold
 
+        # If original predictions are available, ensure they match the current data length
+        if hasattr(classifier_handler, 'original_pred') and hasattr(classifier_handler, 'original_indices'):
+            # Use the original predictions but only for indices that remain after filtering
+            plot_pred = classifier_handler.original_pred[classifier_handler.original_indices]
+        else:
+            plot_pred = classifier_pred
+
         max_plot_count = 1000
         for cluster in np.unique(self.labels):
             cluster_bool = self.labels == cluster
@@ -352,15 +359,15 @@ class cluster_handler():
                 noise_hist_ax.set_ylabel('Noise Times')
                 prob_ax.set_ylabel('Classifier Probs')
 
-                # Use original predictions if available (for when throw_out_noise is enabled)
-                if hasattr(classifier_handler, 'original_pred'):
-                    plot_pred = classifier_handler.original_pred
+                # Ensure arrays have compatible shapes for logical operations
+                if len(plot_pred) == len(cluster_bool):
+                    spike_bool = np.logical_and(plot_pred, cluster_bool)
+                    noise_bool = np.logical_and(np.logical_not(plot_pred), cluster_bool)
                 else:
-                    plot_pred = classifier_pred
-
-                spike_bool = np.logical_and(plot_pred, cluster_bool)
-                noise_bool = np.logical_and(
-                    np.logical_not(plot_pred), cluster_bool)
+                    # If shapes don't match, we need to handle this case
+                    print(f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
+                    spike_bool = plot_pred
+                    noise_bool = ~plot_pred
 
                 if sum(spike_bool):
                     spike_inds = np.random.choice(
