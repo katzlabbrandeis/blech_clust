@@ -362,10 +362,12 @@ class cluster_handler():
                 # Ensure arrays have compatible shapes for logical operations
                 if len(plot_pred) == len(cluster_bool):
                     spike_bool = np.logical_and(plot_pred, cluster_bool)
-                    noise_bool = np.logical_and(np.logical_not(plot_pred), cluster_bool)
+                    noise_bool = np.logical_and(
+                        np.logical_not(plot_pred), cluster_bool)
                 else:
                     # If shapes don't match, we need to handle this case
-                    print(f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
+                    print(
+                        f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
                     spike_bool = plot_pred
                     noise_bool = ~plot_pred
 
