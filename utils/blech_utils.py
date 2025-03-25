@@ -387,12 +387,13 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         return {'s3_directory': None, 'uploaded_files': []}
 
 
-def generate_github_summary(upload_results: dict, output_file: str = None) -> str:
+def generate_github_summary(upload_results: dict, output_file: str = None, bucket_name: str = None) -> str:
     """Generate a summary table of uploaded files for GitHub Actions.
     
     Args:
         upload_results (dict): Results from upload_to_s3 function
         output_file (str, optional): Path to write the summary to
+        bucket_name (str, optional): Name of the S3 bucket
         
     Returns:
         str: The summary table as a string
@@ -410,7 +411,7 @@ def generate_github_summary(upload_results: dict, output_file: str = None) -> st
     
     # Create summary table
     summary = f"# S3 Upload Summary\n\n"
-    summary += f"S3 Directory: `s3://{S3_BUCKET}/{upload_results['s3_directory']}`\n\n"
+    summary += f"S3 Directory: `s3://{bucket_name}/{upload_results['s3_directory']}`\n\n"
     
     # Add tables by file type
     for ext, files in files_by_ext.items():

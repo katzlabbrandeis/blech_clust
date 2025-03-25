@@ -4,7 +4,7 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
-from utils.blech_utils import upload_to_s3
+from utils.blech_utils import upload_to_s3, generate_github_summary
 import argparse  # noqa
 parser = argparse.ArgumentParser(
     description='Run tests, default = Run all tests')
@@ -539,7 +539,7 @@ def upload_test_results(data_dir, test_type, file_type):
         
         # Generate summary
         summary_file = os.path.join(data_dir, f"{test_type}_{file_type}_s3_summary.md")
-        summary = generate_github_summary(upload_results, summary_file)
+        summary = generate_github_summary(upload_results, summary_file, bucket_name=S3_BUCKET)
         
         # If running in GitHub Actions, append to step summary
         if os.environ.get('GITHUB_STEP_SUMMARY'):
