@@ -117,7 +117,7 @@ def waveforms_datashader(waveforms, x_values,
 def waveform_envelope_plot(waveforms, x_values, threshold=None, ax=None):
     """
     Creates an envelope plot showing mean and standard deviation of waveforms.
-    
+
     Parameters:
     -----------
     waveforms : numpy.ndarray
@@ -128,7 +128,7 @@ def waveform_envelope_plot(waveforms, x_values, threshold=None, ax=None):
         Threshold value to mark on the plot
     ax : matplotlib.axes.Axes, optional
         Axes to plot on, if None, a new figure and axes will be created
-        
+
     Returns:
     --------
     fig : matplotlib.figure.Figure
@@ -140,29 +140,31 @@ def waveform_envelope_plot(waveforms, x_values, threshold=None, ax=None):
         fig, ax = plt.subplots(figsize=(8, 6))
     else:
         fig = ax.get_figure()
-    
+
     # Calculate mean and standard deviation
     mean_waveform = np.mean(waveforms, axis=0)
     std_waveform = np.std(waveforms, axis=0)
-    
+
     # Plot mean waveform
     ax.plot(x_values, mean_waveform, color='blue', linewidth=2, label='Mean')
-    
+
     # Plot envelope (mean ± std)
     ax.fill_between(
-        x_values, 
-        mean_waveform - std_waveform, 
-        mean_waveform + std_waveform, 
+        x_values,
+        mean_waveform - std_waveform,
+        mean_waveform + std_waveform,
         color='blue', alpha=0.3, label='±1 Std Dev'
     )
-    
+
     # Mark threshold if provided
     if threshold is not None:
-        ax.axhline(threshold, color='red', linewidth=1, linestyle='--', alpha=0.5)
-        ax.axhline(-threshold, color='red', linewidth=1, linestyle='--', alpha=0.5)
-    
+        ax.axhline(threshold, color='red', linewidth=1,
+                   linestyle='--', alpha=0.5)
+        ax.axhline(-threshold, color='red', linewidth=1,
+                   linestyle='--', alpha=0.5)
+
     ax.set_xlabel('Sample')
     ax.set_ylabel('Voltage (microvolts)')
     ax.legend(loc='upper right')
-    
+
     return fig, ax
