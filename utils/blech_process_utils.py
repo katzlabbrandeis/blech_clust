@@ -348,11 +348,6 @@ class cluster_handler():
 
         clf_threshold = classifier_handler.clf_threshold
 
-        # classifier_pred = classifier_handler.clf_pred
-        # classifier_prob = classifier_handler.clf_prob
-        # all_waveforms = self.spike_set.slices_dejittered
-        # all_times = self.spike_set.times_dejittered
-
         classifier_pred = classifier_handler.clf_pred_original
         classifier_prob = classifier_handler.clf_prob_original
         all_waveforms = self.spike_set.slices_original
@@ -386,18 +381,6 @@ class cluster_handler():
                 noise_bool = np.logical_and(
                     np.logical_not(classifier_pred), cluster_bool)
 
-                # # Ensure arrays have compatible shapes for logical operations
-                # if len(plot_pred) == len(cluster_bool):
-                #     spike_bool = np.logical_and(plot_pred, cluster_bool)
-                #     noise_bool = np.logical_and(
-                #         np.logical_not(plot_pred), cluster_bool)
-                # else:
-                #     # If shapes don't match, we need to handle this case
-                #     print(
-                #         f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
-                #     spike_bool = plot_pred
-                #     noise_bool = ~plot_pred
-                #
                 if sum(spike_bool):
                     spike_inds = np.random.choice(
                         np.where(spike_bool)[0], max_plot_count)
@@ -556,26 +539,6 @@ class cluster_handler():
                 with open(file_path, 'w') as file_connect:
                     file_connect.write('')
 
-    # def create_auto_output_plots(self,
-    #                         params_dict):
-
-    #     slices_dejittered = self.spike_set.slices_dejittered
-    #     times_dejittered = self.spike_set.times_dejittered
-    #     standard_data = self.spike_set.spike_features
-    #     feature_names = self.spike_set.feature_names
-    #     threshold = self.spike_set.threshold
-
-    #     subcluster_inds = [np.where(self.labels == this_split)[0] \
-    #             for this_split in np.unique(self.labels)]
-    #     subcluster_waveforms = [slices_dejittered[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_times = [spike_times[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_prob = [clf_prob[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     mean_waveforms = [np.mean(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-    #     std_waveforms = [np.std(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-
 
 class classifier_handler():
     """
@@ -731,12 +694,6 @@ class classifier_handler():
             os.makedirs(out_dir)
         np.save(os.path.join(out_dir, 'clf_prob.npy'), clf_prob)
         np.save(os.path.join(out_dir, 'clf_pred.npy'), clf_pred)
-
-    # def throw_out_noise(self):
-    #     if self.hasattr('pos_spike_dict'):
-    #         self.slices_dejittered = self.pos_spike_dict['waveforms']
-    #         self.times_dejittered = self.pos_spike_dict['spiketimes']
-    #         self.clf_prob = self.pos_spike_dict['prob']
 
     def write_out_recommendations(self):
         """
