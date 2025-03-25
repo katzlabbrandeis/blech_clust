@@ -100,7 +100,29 @@ class cluster_handler():
 
     def __init__(self, params_dict,
                  data_dir, electrode_num, cluster_num,
-                 spike_set, fit_type='manual'):
+                 spike_set, fit_type='manual',
+                 waveform_pred=None):
+        """
+        Initialize cluster handler
+        
+        Parameters
+        ----------
+        params_dict : dict, required
+            Dictionary of parameters for clustering
+        data_dir : str, required
+            Directory path for data
+        electrode_num : int, required
+            Electrode number
+        cluster_num : int, required
+            Number of clusters to find
+        spike_set : object, required
+            SpikeSet object containing spike data
+        fit_type : str, optional
+            Type of fitting to use for clustering, by default 'manual'
+        waveform_pred : array, optional
+            Predicted waveforms for clustering, by default None
+        """
+
         assert fit_type in [
             'manual', 'auto'], 'fit_type must be manual or auto'
 
@@ -111,6 +133,7 @@ class cluster_handler():
         self.cluster_num = cluster_num
         self.spike_set = spike_set
         self.fit_type = fit_type
+        self.waveform_pred = waveform_pred
         self.create_output_dir()
 
     def check_classifier_data_exists(self, data_dir):
@@ -186,13 +209,19 @@ class cluster_handler():
         """
         return model.predict(data)
 
-    def perform_prediction(self):
+    def perform_prediction(self, throw_out_noise = False):
         """
         Perform clustering
         Model needs to be saved for calculation of mahalanobis distances
         """
         full_data = self.spike_set.spike_features
-        train_set = self.return_training_set(full_data)
+        if throw_out_noise and self.waveform_pred is not None:
+            assert len(self.waveform_pred) == len(self.spike_set.spike_features), \
+                    'Waveform prediction length does not match spike features'
+            train_set = self.return_training_set(full_data[self.waveform_pred])
+            print('== Only using predicted spikes for clustering ==')
+        else:
+            train_set = self.return_training_set(full_data)
         if self.fit_type == 'manual':
             self.model = self.fit_manual_model(train_set, self.cluster_num)
         elif self.fit_type == 'auto':
@@ -319,26 +348,16 @@ class cluster_handler():
 
         clf_threshold = classifier_handler.clf_threshold
 
-        # These are reconstructed here to avoid dealing with
-        # the `throw_out_noise` logic
-        all_waveforms = np.concatenate([
-            classifier_handler.pos_spike_dict['waveforms'],
-            classifier_handler.neg_spike_dict['waveforms']], axis=0)
-        all_times = np.concatenate([
-            classifier_handler.pos_spike_dict['spiketimes'],
-            classifier_handler.neg_spike_dict['spiketimes']], axis=0)
-        classifier_prob = np.concatenate([
-            classifier_handler.pos_spike_dict['prob'],
-            classifier_handler.neg_spike_dict['prob']], axis=0)
-        classifier_pred = classifier_prob > clf_threshold
+        # classifier_pred = classifier_handler.clf_pred
+        # classifier_prob = classifier_handler.clf_prob
+        # all_waveforms = self.spike_set.slices_dejittered
+        # all_times = self.spike_set.times_dejittered
 
-        # If original predictions are available, ensure they match the current data length
-        if hasattr(classifier_handler, 'original_pred') and hasattr(classifier_handler, 'original_indices'):
-            # Use the original predictions but only for indices that remain after filtering
-            plot_pred = classifier_handler.original_pred[classifier_handler.original_indices]
-        else:
-            plot_pred = classifier_pred
-
+        classifier_pred = classifier_handler.clf_pred_original
+        classifier_prob = classifier_handler.clf_prob_original
+        all_waveforms = self.spike_set.slices_original
+        all_times = self.spike_set.times_original
+        
         max_plot_count = 1000
         for cluster in np.unique(self.labels):
             cluster_bool = self.labels == cluster
@@ -363,18 +382,22 @@ class cluster_handler():
                 noise_hist_ax.set_ylabel('Noise Times')
                 prob_ax.set_ylabel('Classifier Probs')
 
-                # Ensure arrays have compatible shapes for logical operations
-                if len(plot_pred) == len(cluster_bool):
-                    spike_bool = np.logical_and(plot_pred, cluster_bool)
-                    noise_bool = np.logical_and(
-                        np.logical_not(plot_pred), cluster_bool)
-                else:
-                    # If shapes don't match, we need to handle this case
-                    print(
-                        f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
-                    spike_bool = plot_pred
-                    noise_bool = ~plot_pred
+                spike_bool = np.logical_and(classifier_pred, cluster_bool)
+                noise_bool = np.logical_and(
+                    np.logical_not(classifier_pred), cluster_bool)
 
+                # # Ensure arrays have compatible shapes for logical operations
+                # if len(plot_pred) == len(cluster_bool):
+                #     spike_bool = np.logical_and(plot_pred, cluster_bool)
+                #     noise_bool = np.logical_and(
+                #         np.logical_not(plot_pred), cluster_bool)
+                # else:
+                #     # If shapes don't match, we need to handle this case
+                #     print(
+                #         f"Warning: Shape mismatch in cluster {cluster}. Using only classifier predictions.")
+                #     spike_bool = plot_pred
+                #     noise_bool = ~plot_pred
+                #
                 if sum(spike_bool):
                     spike_inds = np.random.choice(
                         np.where(spike_bool)[0], max_plot_count)
@@ -467,11 +490,12 @@ class cluster_handler():
                     bbox_inches='tight')
         plt.close(fig)
 
-        slices_dejittered = self.spike_set.slices_dejittered
-        times_dejittered = self.spike_set.times_dejittered
+        slices_dejittered = self.spike_set.slices_original
+        times_dejittered = self.spike_set.times_original
         standard_data = self.spike_set.spike_features
         feature_names = self.spike_set.feature_names
         threshold = self.spike_set.threshold
+
         # Create file, and plot spike waveforms for the different clusters.
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
@@ -707,6 +731,12 @@ class classifier_handler():
             os.makedirs(out_dir)
         np.save(os.path.join(out_dir, 'clf_prob.npy'), clf_prob)
         np.save(os.path.join(out_dir, 'clf_pred.npy'), clf_pred)
+
+    # def throw_out_noise(self):
+    #     if self.hasattr('pos_spike_dict'):
+    #         self.slices_dejittered = self.pos_spike_dict['waveforms']
+    #         self.times_dejittered = self.pos_spike_dict['spiketimes']
+    #         self.clf_prob = self.pos_spike_dict['prob']
 
     def write_out_recommendations(self):
         """

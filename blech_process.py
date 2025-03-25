@@ -27,17 +27,36 @@ This module processes single electrode waveforms for spike detection and cluster
 ############################################################
 # Imports
 ############################################################
+import os  # noqa
 import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Process single electrode waveforms')
-parser.add_argument('data_dir', type=str, help='Path to data directory')
-parser.add_argument('electrode_num', type=int,
-                    help='Electrode number to process')
-args = parser.parse_args()
+
+test_bool = False
+
+if test_bool:
+    args = argparse.Namespace(
+        data_dir='/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new',
+        electrode_num=0
+    )
+    data_dir_name = args.data_dir
+else:
+    parser = argparse.ArgumentParser(
+        description='Process single electrode waveforms')
+    parser.add_argument('data_dir', type=str, help='Path to data directory')
+    parser.add_argument('electrode_num', type=int,
+                        help='Electrode number to process')
+    args = parser.parse_args()
+    data_dir_name = args.data_dir
+
+    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(data_dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
@@ -50,7 +69,6 @@ import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
 import utils.blech_process_utils as bpu  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):
@@ -69,16 +87,8 @@ np.random.seed(0)
 # Load Data
 ############################################################
 
-
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
-data_dir_name = args.data_dir
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(data_dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
@@ -200,24 +210,6 @@ if classifier_params['use_classifier'] and \
     classifier_handler.gen_plots()
     classifier_handler.write_out_recommendations()
 
-    if classifier_params['throw_out_noise'] or auto_cluster:
-        print('== Throwing out noise waveforms ==')
-        # Store original data for plotting purposes
-        classifier_handler.original_pred = classifier_handler.clf_pred.copy()
-
-        # Get indices of positive spikes (those we're keeping)
-        positive_indices = np.where(classifier_handler.clf_pred)[0]
-        classifier_handler.original_indices = positive_indices
-
-        # Remaining data is now only spikes
-        slices_dejittered, times_dejittered, clf_prob = \
-            classifier_handler.pos_spike_dict.values()
-        spike_set.slices_dejittered = slices_dejittered
-        spike_set.times_dejittered = times_dejittered
-        classifier_handler.clf_prob = clf_prob
-        # Reset prediction to match probability threshold for remaining spikes
-        classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
-
 ############################################################
 
 if classifier_params['use_neuRecommend']:
@@ -257,6 +249,10 @@ if auto_cluster == False:
             fit_type='manual',
         )
         cluster_handler.perform_prediction()
+        if classifier_params['use_classifier'] and \
+                classifier_params['use_neuRecommend'] and \
+                classifier_params['throw_out_noise']:
+                    print('== Clustering using only positive labelled waveforms ==')
         cluster_handler.remove_outliers(params_dict)
         cluster_handler.calc_mahalanobis_distance_matrix()
         cluster_handler.save_cluster_labels()
@@ -274,12 +270,40 @@ else:
         max_clusters,
         spike_set,
         fit_type='auto',
+        waveform_pred=classifier_handler.clf_pred,
     )
-    cluster_handler.perform_prediction()
+    throw_out_noise_bool = classifier_params['throw_out_noise'] and \
+        classifier_params['use_classifier'] and \
+        classifier_params['use_neuRecommend']
+    cluster_handler.perform_prediction(throw_out_noise=throw_out_noise_bool)
+
+    # Backup original data for plotting (aligned with cluster labels)
+    cluster_handler.spike_set.slices_original = spike_set.slices_dejittered
+    cluster_handler.spike_set.times_original = spike_set.times_dejittered
+    classifier_handler.clf_prob_original = classifier_handler.clf_prob
+    classifier_handler.clf_pred_original = classifier_handler.clf_prob > classifier_handler.clf_threshold
+
+    # Remove noise at this step if wanted
+    # This way, downstream processing is only on spikes
+    if classifier_params['throw_out_noise']:
+        print('== Throwing out noise waveforms ==')
+    
+        # Remaining data is now only spikes
+        slices_dejittered, times_dejittered, clf_prob = \
+            classifier_handler.pos_spike_dict.values()
+
+        cluster_handler.spike_set.slices_dejittered = slices_dejittered
+        cluster_handler.spike_set.times_dejittered = times_dejittered
+        classifier_handler.clf_prob = clf_prob
+        # Reset prediction to match probability threshold for remaining spikes
+        classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
+
     cluster_handler.remove_outliers(params_dict)
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
     cluster_handler.create_output_plots(params_dict)
+
+    # Plotting internally will use all original data
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(classifier_handler)
