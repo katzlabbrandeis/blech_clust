@@ -271,7 +271,7 @@ if auto_cluster == False:
 
             # Store original labels before modifying for downstream processing
             cluster_handler.labels_original = cluster_handler.labels.copy()
-    
+
             cluster_handler.spike_set.slices_dejittered = slices_dejittered
             cluster_handler.spike_set.times_dejittered = times_dejittered
             classifier_handler.clf_prob = clf_prob
@@ -316,7 +316,7 @@ else:
 
         # Store original labels before modifying for downstream processing
         cluster_handler.labels_original = cluster_handler.labels.copy()
-    
+
         cluster_handler.spike_set.slices_dejittered = slices_dejittered
         cluster_handler.spike_set.times_dejittered = times_dejittered
         classifier_handler.clf_prob = clf_prob
@@ -341,7 +341,7 @@ if throw_out_noise_bool:
     cluster_handler.spike_set.spike_features = \
         cluster_handler.spike_set.spike_features[
             classifier_handler.clf_prob_original > classifier_handler.clf_threshold]
-    
+
     # Make sure we're using the filtered data for writing
     cluster_handler.spike_set.slices_dejittered = cluster_handler.spike_set.slices_dejittered
     cluster_handler.spike_set.times_dejittered = cluster_handler.spike_set.times_dejittered

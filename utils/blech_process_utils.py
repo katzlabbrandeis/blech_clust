@@ -483,13 +483,13 @@ class cluster_handler():
                     bbox=dict(boxstyle='round',
                               facecolor='white', edgecolor='0.3'),
                     fontweight='bold', color='red')
-        
+
         # Use original labels for plotting if they exist (when throw_out_noise is True)
         if hasattr(self, 'labels_original'):
             plot_labels = self.labels_original
         else:
             plot_labels = self.labels
-            
+
         cluster_labels = np.unique(plot_labels)
         ax.set_xticks(np.arange(len(cluster_labels)))
         ax.set_yticks(np.arange(len(cluster_labels)))
@@ -513,13 +513,13 @@ class cluster_handler():
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
         x = np.arange(len(slices_dejittered[0])) + 1
-        
+
         # Use original labels for plotting if they exist (when throw_out_noise is True)
         if hasattr(self, 'labels_original'):
             plot_labels = self.labels_original
         else:
             plot_labels = self.labels
-            
+
         for cluster in np.unique(plot_labels):
             cluster_points = np.where(plot_labels == cluster)[0]
 
