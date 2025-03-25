@@ -496,6 +496,21 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 ##############################
 
 
+def upload_test_results(data_dir, test_type, file_type):
+    """Upload test results to S3 bucket
+    
+    Args:
+        data_dir (str): Directory containing results to upload
+        test_type (str): Type of test (spike, emg, etc.)
+        file_type (str): Type of file (ofpc, trad)
+    """
+    test_name = f"{test_type}_test_{file_type}"
+    s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
+    try:
+        upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+    except Exception as e:
+        print(f'Failed to upload results to S3: {str(e)}')
+
 @flow(log_prints=True)
 def spike_only_test():
     if break_bool:
@@ -512,9 +527,7 @@ def spike_only_test():
                 run_spike_test(data_dir)
                 
                 # Upload results to S3
-                test_name = f"spike_test_{file_type}"
-                s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-                upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+                upload_test_results(data_dir, "spike", file_type)
     else:
         for file_type in ['ofpc', 'trad']:
             data_dir = data_dirs_dict[file_type]
@@ -535,12 +548,7 @@ def spike_only_test():
                     print('Failed to run spike test')
                 
                 # Upload results to S3 even if test failed
-                try:
-                    test_name = f"spike_test_{file_type}"
-                    s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-                    upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
-                except Exception as e:
-                    print(f'Failed to upload results to S3: {str(e)}')
+                upload_test_results(data_dir, "spike", file_type)
 
 
 @flow(log_prints=True)
@@ -551,9 +559,7 @@ def spike_emg_test():
             spike_emg_flow(data_dir, file_type)
             
             # Upload results to S3
-            test_name = f"spike_emg_test_{file_type}"
-            s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-            upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+            upload_test_results(data_dir, "spike_emg", file_type)
     else:
         for file_type in ['ofpc', 'trad']:
             data_dir = data_dirs_dict[file_type]
@@ -563,12 +569,7 @@ def spike_emg_test():
                 print('Failed to run spike+emg test')
             
             # Upload results to S3 even if test failed
-            try:
-                test_name = f"spike_emg_test_{file_type}"
-                s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-                upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
-            except Exception as e:
-                print(f'Failed to upload results to S3: {str(e)}')
+            upload_test_results(data_dir, "spike_emg", file_type)
 
 
 @flow(log_prints=True)
@@ -686,9 +687,7 @@ def emg_only_test():
         # Upload results to S3 for each file type
         for file_type in ['ofpc', 'trad']:
             data_dir = data_dirs_dict[file_type]
-            test_name = f"emg_test_{file_type}"
-            s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-            upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+            upload_test_results(data_dir, "emg", file_type)
     else:
         try:
             run_emg_freq_only()
@@ -700,14 +699,9 @@ def emg_only_test():
             print('Failed to run QDA test')
         
         # Upload results to S3 even if tests failed
-        try:
-            for file_type in ['ofpc', 'trad']:
-                data_dir = data_dirs_dict[file_type]
-                test_name = f"emg_test_{file_type}"
-                s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-                upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
-        except Exception as e:
-            print(f'Failed to upload results to S3: {str(e)}')
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            upload_test_results(data_dir, "emg", file_type)
 
 
 @flow(log_prints=True)
@@ -720,9 +714,7 @@ def full_test():
         # Upload results to S3 after all tests complete
         for file_type in ['ofpc', 'trad']:
             data_dir = data_dirs_dict[file_type]
-            test_name = f"full_test_{file_type}"
-            s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-            upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+            upload_test_results(data_dir, "full", file_type)
     else:
         try:
             spike_only_test()
@@ -738,14 +730,9 @@ def full_test():
             print('Failed to run spike+emg test')
 
         # Upload results to S3 even if some tests failed
-        try:
-            for file_type in ['ofpc', 'trad']:
-                data_dir = data_dirs_dict[file_type]
-                test_name = f"full_test_{file_type}"
-                s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-                upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
-        except Exception as e:
-            print(f'Failed to upload results to S3: {str(e)}')
+        for file_type in ['ofpc', 'trad']:
+            data_dir = data_dirs_dict[file_type]
+            upload_test_results(data_dir, "full", file_type)
 
 
 ############################################################
