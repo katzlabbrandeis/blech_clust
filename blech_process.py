@@ -126,39 +126,30 @@ electrode = bpu.electrode_handler(
     electrode_num,
     params_dict)
 
-electrode.filter_electrode()
-
-# Calculate the 3 voltage parameters
-electrode.cut_to_int_seconds()
-electrode.calc_recording_cutoff()
-
-# Dump a plot showing where the recording was cut off at
-electrode.make_cutoff_plot()
-
-# Then cut the recording accordingly
-electrode.cutoff_electrode()
+# Run complete preprocessing pipeline
+filtered_data = electrode.preprocess_electrode()
 
 #############################################################
 # Process Spikes
 #############################################################
 
-# Extract spike times and waveforms from filtered data
-spike_set = bpu.spike_handler(electrode.filt_el,
+# Extract and process spikes from filtered data
+spike_set = bpu.spike_handler(filtered_data,
                               params_dict, data_dir_name, electrode_num)
-spike_set.extract_waveforms()
+slices_dejittered, times_dejittered, threshold, mean_val = spike_set.process_spikes()
 
 ############################################################
 # Extract windows from filt_el and plot with threshold overlayed
 window_len = 0.2  # sec
 window_count = 10
 fig = bpu.gen_window_plots(
-    electrode.filt_el,
+    filtered_data,
     window_len,
     window_count,
     params_dict['sampling_rate'],
     spike_set.spike_times,
-    spike_set.mean_val,
-    spike_set.threshold,
+    mean_val,
+    threshold,
 )
 fig.savefig(f'./Plots/{electrode_num:02}/bandapass_trace_snippets.png',
             bbox_inches='tight', dpi=300)
@@ -167,10 +158,6 @@ plt.close(fig)
 
 # Delete filtered electrode from memory
 del electrode
-
-# Dejitter these spike waveforms, and get their maximum amplitudes
-# Slices are returned sorted by amplitude polaity
-spike_set.dejitter_spikes()
 
 ############################################################
 # Load classifier if specificed
@@ -240,15 +227,21 @@ if auto_cluster == False:
     # Run GMM, from 2 to max_clusters
     max_clusters = params_dict['clustering_params']['max_clusters']
     for cluster_num in range(2, max_clusters+1):
+        # Pass specific data instead of the whole spike_set
         cluster_handler = bpu.cluster_handler(
             params_dict,
             data_dir_name,
             electrode_num,
             cluster_num,
-            spike_set,
+            spike_features=spike_set.spike_features,
+            slices_dejittered=spike_set.slices_dejittered,
+            times_dejittered=spike_set.times_dejittered,
+            threshold=spike_set.threshold,
+            feature_names=spike_set.feature_names,
             fit_type='manual',
         )
-        cluster_handler.perform_prediction()
+        # Use the new simplified clustering method
+        cluster_handler.perform_clustering()
         cluster_handler.remove_outliers(params_dict)
         cluster_handler.calc_mahalanobis_distance_matrix()
         cluster_handler.save_cluster_labels()
@@ -259,15 +252,21 @@ if auto_cluster == False:
 else:
     print('=== Performing auto_clustering ===')
     max_clusters = auto_params['max_autosort_clusters']
+    # Pass specific data instead of the whole spike_set
     cluster_handler = bpu.cluster_handler(
         params_dict,
         data_dir_name,
         electrode_num,
         max_clusters,
-        spike_set,
+        spike_features=spike_set.spike_features,
+        slices_dejittered=spike_set.slices_dejittered,
+        times_dejittered=spike_set.times_dejittered,
+        threshold=spike_set.threshold,
+        feature_names=spike_set.feature_names,
         fit_type='auto',
     )
-    cluster_handler.perform_prediction()
+    # Use the new simplified clustering method
+    cluster_handler.perform_clustering()
     cluster_handler.remove_outliers(params_dict)
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
