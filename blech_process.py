@@ -255,9 +255,9 @@ if auto_cluster == False:
             throw_out_noise=throw_out_noise_bool)
 
         # Backup original data for plotting (aligned with cluster labels)
-        cluster_handler.spike_set.slices_original = spike_set.slices_dejittered
-        cluster_handler.spike_set.times_original = spike_set.times_dejittered
-        classifier_handler.clf_prob_original = classifier_handler.clf_prob
+        cluster_handler.spike_set.slices_original = spike_set.slices_dejittered.copy()
+        cluster_handler.spike_set.times_original = spike_set.times_dejittered.copy()
+        classifier_handler.clf_prob_original = classifier_handler.clf_prob.copy()
         classifier_handler.clf_pred_original = classifier_handler.clf_prob > classifier_handler.clf_threshold
 
         # Remove noise at this step if wanted
@@ -269,6 +269,9 @@ if auto_cluster == False:
             slices_dejittered, times_dejittered, clf_prob = \
                 classifier_handler.pos_spike_dict.values()
 
+            # Store original labels before modifying for downstream processing
+            cluster_handler.labels_original = cluster_handler.labels.copy()
+    
             cluster_handler.spike_set.slices_dejittered = slices_dejittered
             cluster_handler.spike_set.times_dejittered = times_dejittered
             classifier_handler.clf_prob = clf_prob
@@ -297,9 +300,9 @@ else:
     cluster_handler.perform_prediction(throw_out_noise=throw_out_noise_bool)
 
     # Backup original data for plotting (aligned with cluster labels)
-    cluster_handler.spike_set.slices_original = spike_set.slices_dejittered
-    cluster_handler.spike_set.times_original = spike_set.times_dejittered
-    classifier_handler.clf_prob_original = classifier_handler.clf_prob
+    cluster_handler.spike_set.slices_original = spike_set.slices_dejittered.copy()
+    cluster_handler.spike_set.times_original = spike_set.times_dejittered.copy()
+    classifier_handler.clf_prob_original = classifier_handler.clf_prob.copy()
     classifier_handler.clf_pred_original = classifier_handler.clf_prob > classifier_handler.clf_threshold
 
     # Remove noise at this step if wanted
@@ -311,6 +314,9 @@ else:
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
 
+        # Store original labels before modifying for downstream processing
+        cluster_handler.labels_original = cluster_handler.labels.copy()
+    
         cluster_handler.spike_set.slices_dejittered = slices_dejittered
         cluster_handler.spike_set.times_dejittered = times_dejittered
         classifier_handler.clf_prob = clf_prob
@@ -331,9 +337,14 @@ else:
 
 if throw_out_noise_bool:
     # Updating features matrix as it will be written out
+    # We only want to save the spike features for actual spikes
     cluster_handler.spike_set.spike_features = \
         cluster_handler.spike_set.spike_features[
             classifier_handler.clf_prob_original > classifier_handler.clf_threshold]
+    
+    # Make sure we're using the filtered data for writing
+    cluster_handler.spike_set.slices_dejittered = cluster_handler.spike_set.slices_dejittered
+    cluster_handler.spike_set.times_dejittered = cluster_handler.spike_set.times_dejittered
 # Write out data after throw_out_noise step
 cluster_handler.spike_set.write_out_spike_data()
 

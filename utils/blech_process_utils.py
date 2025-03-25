@@ -370,9 +370,15 @@ class cluster_handler():
         all_waveforms = self.spike_set.slices_original
         all_times = self.spike_set.times_original
 
+        # Use original labels if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
+
         max_plot_count = 1000
-        for cluster in np.unique(self.labels):
-            cluster_bool = self.labels == cluster
+        for cluster in np.unique(plot_labels):
+            cluster_bool = plot_labels == cluster
             if sum(cluster_bool):
 
                 fig = plt.figure(figsize=(5, 10))
@@ -477,7 +483,14 @@ class cluster_handler():
                     bbox=dict(boxstyle='round',
                               facecolor='white', edgecolor='0.3'),
                     fontweight='bold', color='red')
-        cluster_labels = np.unique(self.labels)
+        
+        # Use original labels for plotting if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
+            
+        cluster_labels = np.unique(plot_labels)
         ax.set_xticks(np.arange(len(cluster_labels)))
         ax.set_yticks(np.arange(len(cluster_labels)))
         ax.set_xticklabels(cluster_labels)
@@ -500,8 +513,15 @@ class cluster_handler():
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
         x = np.arange(len(slices_dejittered[0])) + 1
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels == cluster)[0]
+        
+        # Use original labels for plotting if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
+            
+        for cluster in np.unique(plot_labels):
+            cluster_points = np.where(plot_labels == cluster)[0]
 
             if len(cluster_points) > 0:
                 # downsample = False, Prevents waveforms_datashader
