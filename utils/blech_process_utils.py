@@ -509,7 +509,7 @@ class cluster_handler():
                 # from FURTHER downsampling the given waveforms for plotting
                 # Because in the previous version they were upsampled for clustering
 
-                # Create waveform datashader plot
+                # Create waveform datashader plot with envelope
                 #############################
                 fig, ax = gen_datashader_plot(
                     slices_dejittered,
@@ -1215,18 +1215,39 @@ def gen_datashader_plot(
         sampling_rate,
         cluster,
 ):
-    fig, ax = blech_waveforms_datashader.waveforms_datashader(
+    # Create a figure with two subplots - one for datashader and one for envelope
+    fig = plt.figure(figsize=(10, 10))
+    gs = fig.add_gridspec(2, 1, height_ratios=[2, 1])
+    
+    # Datashader plot in the top subplot
+    ax1 = fig.add_subplot(gs[0])
+    _, ax1 = blech_waveforms_datashader.waveforms_datashader(
         slices_dejittered[cluster_points, :],
         x,
         downsample=False,
         threshold=threshold,
-        dir_name="Plots/temp_plots/" + "datashader_temp_el" + str(electrode_num))
+        dir_name="Plots/temp_plots/" + "datashader_temp_el" + str(electrode_num),
+        ax=ax1)
 
-    ax.set_xlabel('Sample ({:d} samples per ms)'.
+    ax1.set_xlabel('Sample ({:d} samples per ms)'.
                   format(int(sampling_rate/1000)))
-    ax.set_ylabel('Voltage (microvolts)')
-    ax.set_title('Cluster%i' % cluster)
-    return fig, ax
+    ax1.set_ylabel('Voltage (microvolts)')
+    ax1.set_title('Cluster%i Waveforms' % cluster)
+    
+    # Envelope plot in the bottom subplot
+    ax2 = fig.add_subplot(gs[1])
+    _, ax2 = blech_waveforms_datashader.waveform_envelope_plot(
+        slices_dejittered[cluster_points, :],
+        x,
+        threshold=threshold,
+        ax=ax2)
+    
+    ax2.set_xlabel('Sample ({:d} samples per ms)'.
+                  format(int(sampling_rate/1000)))
+    ax2.set_title('Cluster%i Mean ± Std Dev' % cluster)
+    
+    plt.tight_layout()
+    return fig, ax1
 
 
 def gen_isi_hist(
