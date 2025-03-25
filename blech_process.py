@@ -252,7 +252,7 @@ if auto_cluster == False:
         if classifier_params['use_classifier'] and \
                 classifier_params['use_neuRecommend'] and \
                 classifier_params['throw_out_noise']:
-                    print('== Clustering using only positive labelled waveforms ==')
+            print('== Clustering using only positive labelled waveforms ==')
         cluster_handler.remove_outliers(params_dict)
         cluster_handler.calc_mahalanobis_distance_matrix()
         cluster_handler.save_cluster_labels()
@@ -287,7 +287,7 @@ else:
     # This way, downstream processing is only on spikes
     if classifier_params['throw_out_noise']:
         print('== Throwing out noise waveforms ==')
-    
+
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
