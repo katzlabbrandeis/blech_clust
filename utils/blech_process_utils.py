@@ -104,7 +104,7 @@ class cluster_handler():
                  waveform_pred=None):
         """
         Initialize cluster handler
-        
+
         Parameters
         ----------
         params_dict : dict, required
@@ -209,7 +209,7 @@ class cluster_handler():
         """
         return model.predict(data)
 
-    def perform_prediction(self, throw_out_noise = False):
+    def perform_prediction(self, throw_out_noise=False):
         """
         Perform clustering
         Model needs to be saved for calculation of mahalanobis distances
@@ -217,7 +217,7 @@ class cluster_handler():
         full_data = self.spike_set.spike_features
         if throw_out_noise and self.waveform_pred is not None:
             assert len(self.waveform_pred) == len(self.spike_set.spike_features), \
-                    'Waveform prediction length does not match spike features'
+                'Waveform prediction length does not match spike features'
             train_set = self.return_training_set(full_data[self.waveform_pred])
             print('== Only using predicted spikes for clustering ==')
         else:
@@ -352,7 +352,7 @@ class cluster_handler():
         classifier_prob = classifier_handler.clf_prob_original
         all_waveforms = self.spike_set.slices_original
         all_times = self.spike_set.times_original
-        
+
         max_plot_count = 1000
         for cluster in np.unique(self.labels):
             cluster_bool = self.labels == cluster
