@@ -55,6 +55,7 @@ Author: Abuzar Mahmood
 # Get directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
 # Create argument parser
+from utils.blech_utils import entry_checker, imp_metadata
 import argparse  # noqa
 import os  # noqa
 test_bool = False
@@ -104,7 +105,6 @@ os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
 
 import utils.blech_post_process_utils as post_utils  # noqa
-from utils.blech_utils import entry_checker, imp_metadata
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa

@@ -243,7 +243,8 @@ class cluster_handler():
         wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
         if throw_out_noise:
             labels = self.labels[self.waveform_pred]
-            amplitude = self.spike_set.return_feature('amplitude')[self.waveform_pred]
+            amplitude = self.spike_set.return_feature(
+                'amplitude')[self.waveform_pred]
         else:
             labels = self.labels
             amplitude = self.spike_set.return_feature('amplitude')

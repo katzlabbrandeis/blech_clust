@@ -233,7 +233,6 @@ else:
     )
 
 
-
 throw_out_noise_bool = classifier_params['throw_out_noise'] and \
     classifier_params['use_classifier'] and \
     classifier_params['use_neuRecommend']
@@ -252,7 +251,8 @@ if auto_cluster == False:
             fit_type='manual',
             waveform_pred=classifier_handler.clf_pred,
         )
-        cluster_handler.perform_prediction(throw_out_noise=throw_out_noise_bool)
+        cluster_handler.perform_prediction(
+            throw_out_noise=throw_out_noise_bool)
 
         # Backup original data for plotting (aligned with cluster labels)
         cluster_handler.spike_set.slices_original = spike_set.slices_dejittered
@@ -317,8 +317,10 @@ else:
         # Reset prediction to match probability threshold for remaining spikes
         classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
 
-    cluster_handler.remove_outliers(params_dict, throw_out_noise=throw_out_noise_bool)
-    cluster_handler.calc_mahalanobis_distance_matrix(throw_out_noise=throw_out_noise_bool)
+    cluster_handler.remove_outliers(
+        params_dict, throw_out_noise=throw_out_noise_bool)
+    cluster_handler.calc_mahalanobis_distance_matrix(
+        throw_out_noise=throw_out_noise_bool)
     cluster_handler.save_cluster_labels(throw_out_noise=throw_out_noise_bool)
     cluster_handler.create_output_plots(params_dict)
 
@@ -331,7 +333,7 @@ if throw_out_noise_bool:
     # Updating features matrix as it will be written out
     cluster_handler.spike_set.spike_features = \
         cluster_handler.spike_set.spike_features[
-                classifier_handler.clf_prob_original > classifier_handler.clf_threshold]
+            classifier_handler.clf_prob_original > classifier_handler.clf_threshold]
 # Write out data after throw_out_noise step
 cluster_handler.spike_set.write_out_spike_data()
 
