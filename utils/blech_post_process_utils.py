@@ -67,11 +67,12 @@ import matplotlib.image as mpimg
 import pandas as pd
 import hashlib
 from utils.blech_utils import entry_checker, imp_metadata
-from utils.blech_process_utils import gen_isi_hist
+import utils.blech_process_utils as bpu 
 from utils import blech_waveforms_datashader
 from datetime import datetime
 from scipy.stats import chisquare
 from tqdm import tqdm
+import json
 
 
 class sort_file_handler():
@@ -1193,7 +1194,7 @@ def gen_autosort_plot(
         this_ax.hist(this_times, bins=30, alpha=0.5, density=True)
         this_ax.set_title('Spike counts over time')
     for this_ax, this_times in zip(ax[4], subcluster_times):
-        fig, this_ax = gen_isi_hist(
+        fig, this_ax = bpu.gen_isi_hist(
             this_times,
             np.arange(len(this_times)),
             sampling_rate,
@@ -1459,6 +1460,17 @@ def auto_process_electrode(
             - sampling_rate
             - data_dir
     """
+
+    path_handler = bpu.path_handler()
+    blech_clust_dir = path_handler.blech_clust_dir
+    classifier_params_path = \
+        bpu.classifier_handler.return_waveform_classifier_params_path(
+            blech_clust_dir)
+    classifier_params = json.load(open(classifier_params_path, 'r'))
+    throw_out_noise_bool = classifier_params['throw_out_noise'] and \
+        classifier_params['use_classifier'] and \
+        classifier_params['use_neuRecommend']
+
     (
         max_autosort_clusters,
         auto_params,
@@ -1498,9 +1510,10 @@ def auto_process_electrode(
     clf_data_paths = [os.path.join(data_dir, x) for x in clf_data_paths]
     clf_prob, clf_pred = [np.load(this_path) for this_path in clf_data_paths]
 
-    # If auto-clustering was done, data has already been trimmed
-    clf_prob = clf_prob[clf_pred]
-    clf_pred = clf_pred[clf_pred]
+    if throw_out_noise_bool:
+        print('=== Throwing out noise ===')
+        clf_prob = clf_prob[clf_pred]
+        clf_pred = clf_pred[clf_pred]
 
     # Get merge parameters
     mahal_thresh = auto_params['mahalanobis_merge_thresh']

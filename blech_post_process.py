@@ -56,22 +56,42 @@ Author: Abuzar Mahmood
 # Get name of directory with the data files
 # Create argument parser
 import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Spike extraction and sorting script')
-parser.add_argument('dir_name',
-                    help='Directory containing data files')
-parser.add_argument('--sort-file', '-f', help='CSV with sorted units',
-                    default=None)
-parser.add_argument('--show-plot',
-                    help='Show waveforms while iterating',
-                    action='store_true')
-parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
-                    action='store_true')
-parser.add_argument('--skip-processed', help='Skip already processed electrodes',
-                    action='store_true')
-parser.add_argument('--delete-existing', help='Delete existing units',
-                    action='store_true')
-args = parser.parse_args()
+import os  # noqa
+test_bool = False
+
+if test_bool:
+    args = argparse.Namespace(
+        dir_name='/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new',
+        sort_file=None,
+        show_plot=False,
+        keep_raw=False,
+        skip_processed=False,
+        delete_existing=False
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Spike extraction and sorting script')
+    parser.add_argument('dir_name',
+                        help='Directory containing data files')
+    parser.add_argument('--sort-file', '-f', help='CSV with sorted units',
+                        default=None)
+    parser.add_argument('--show-plot',
+                        help='Show waveforms while iterating',
+                        action='store_true')
+    parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
+                        action='store_true')
+    parser.add_argument('--skip-processed', help='Skip already processed electrodes',
+                        action='store_true')
+    parser.add_argument('--delete-existing', help='Delete existing units',
+                        action='store_true')
+    args = parser.parse_args()
+
+    from utils.blech_utils import pipeline_graph_check  # noqa
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(args.dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 ############################################################
 # First handle arguments
@@ -79,13 +99,12 @@ args = parser.parse_args()
 ############################################################
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
 
 import utils.blech_post_process_utils as post_utils  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from utils.blech_utils import entry_checker, imp_metadata
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa
@@ -118,6 +137,8 @@ if args.dir_name is not None:
     metadata_handler = imp_metadata([[], args.dir_name])
 else:
     metadata_handler = imp_metadata([])
+dir_name = metadata_handler.dir_name
+
 
 # Extract parameters for automatic processing
 params_dict = metadata_handler.params_dict
@@ -131,13 +152,6 @@ auto_post_process = auto_params['auto_post_process']
 count_threshold = auto_params['cluster_count_threshold']
 chi_square_alpha = auto_params['chi_square_alpha']
 
-dir_name = metadata_handler.dir_name
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 file_list = metadata_handler.file_list
@@ -463,10 +477,6 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
     electrode_num_list.sort()
 
     if args.skip_processed:
-        autosort_output_dir = os.path.join(
-            metadata_handler.dir_name,
-            'autosort_outputs'
-        )
         # Get list of electrodes that have already been processed
         file_list = glob(os.path.join(
             autosort_output_dir, '*_subclusters.png'))

@@ -229,7 +229,7 @@ class cluster_handler():
         labels = self.get_cluster_labels(full_data, self.model)
         self.labels = labels
 
-    def remove_outliers(self, params_dict):
+    def remove_outliers(self, params_dict, throw_out_noise=False):
         """
         Clear large waveforms
         """
@@ -241,13 +241,20 @@ class cluster_handler():
         # Set predictions = -1 at these points so that they aren't
         # picked up by blech_post_process
         wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels[:] == cluster)[0]
+        if throw_out_noise:
+            labels = self.labels[self.waveform_pred]
+            amplitude = self.spike_set.return_feature('amplitude')[self.waveform_pred]
+        else:
+            labels = self.labels
+            amplitude = self.spike_set.return_feature('amplitude')
+
+        for cluster in np.unique(labels):
+            cluster_points = np.where(labels[:] == cluster)[0]
             this_cluster = remove_too_large_waveforms(
                 cluster_points,
                 # self.spike_set.amplitudes,
-                self.spike_set.return_feature('amplitude'),
-                self.labels,
+                amplitude,
+                labels,
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
         # Make sure cluster labels are continuous numbers
@@ -267,21 +274,30 @@ class cluster_handler():
             print(f'Cluster map: {cluster_map}')
             self.labels = np.array([cluster_map[x] for x in self.labels])
 
-    def save_cluster_labels(self):
+    def save_cluster_labels(self, throw_out_noise=False):
+        if throw_out_noise:
+            save_array = self.labels[self.waveform_pred]
+        else:
+            save_array = self.labels
         np.save(
             os.path.join(
                 self.clust_results_dir, 'predictions.npy'),
-            self.labels)
+            save_array)
 
-    def calc_mahalanobis_distance_matrix(self):
+    def calc_mahalanobis_distance_matrix(self,
+                                         throw_out_noise=False):
         """
         Calculates matrix of mahalanobis distances between all pairs of clusters
         Saves matrix to file
         """
         # assert model in dir(self), 'Model not found'
-        cluster_labels = np.unique(self.labels)
+        if not throw_out_noise:
+            cluster_labels = np.unique(self.labels)
+            full_data = self.spike_set.spike_features
+        else:
+            cluster_labels = np.unique(self.labels[self.waveform_pred])
+            full_data = self.spike_set.spike_features[self.waveform_pred]
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
-        full_data = self.spike_set.spike_features
         for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels

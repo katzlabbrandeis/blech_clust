@@ -232,8 +232,11 @@ else:
         fitted_transformer=False,
     )
 
-spike_set.write_out_spike_data()
 
+
+throw_out_noise_bool = classifier_params['throw_out_noise'] and \
+    classifier_params['use_classifier'] and \
+    classifier_params['use_neuRecommend']
 
 if auto_cluster == False:
     print('=== Performing manual clustering ===')
@@ -247,12 +250,31 @@ if auto_cluster == False:
             cluster_num,
             spike_set,
             fit_type='manual',
+            waveform_pred=classifier_handler.clf_pred,
         )
-        cluster_handler.perform_prediction()
-        if classifier_params['use_classifier'] and \
-                classifier_params['use_neuRecommend'] and \
-                classifier_params['throw_out_noise']:
-            print('== Clustering using only positive labelled waveforms ==')
+        cluster_handler.perform_prediction(throw_out_noise=throw_out_noise_bool)
+
+        # Backup original data for plotting (aligned with cluster labels)
+        cluster_handler.spike_set.slices_original = spike_set.slices_dejittered
+        cluster_handler.spike_set.times_original = spike_set.times_dejittered
+        classifier_handler.clf_prob_original = classifier_handler.clf_prob
+        classifier_handler.clf_pred_original = classifier_handler.clf_prob > classifier_handler.clf_threshold
+
+        # Remove noise at this step if wanted
+        # This way, downstream processing is only on spikes
+        if classifier_params['throw_out_noise']:
+            print('== Throwing out noise waveforms ==')
+
+            # Remaining data is now only spikes
+            slices_dejittered, times_dejittered, clf_prob = \
+                classifier_handler.pos_spike_dict.values()
+
+            cluster_handler.spike_set.slices_dejittered = slices_dejittered
+            cluster_handler.spike_set.times_dejittered = times_dejittered
+            classifier_handler.clf_prob = clf_prob
+            # Reset prediction to match probability threshold for remaining spikes
+            classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
+
         cluster_handler.remove_outliers(params_dict)
         cluster_handler.calc_mahalanobis_distance_matrix()
         cluster_handler.save_cluster_labels()
@@ -272,9 +294,6 @@ else:
         fit_type='auto',
         waveform_pred=classifier_handler.clf_pred,
     )
-    throw_out_noise_bool = classifier_params['throw_out_noise'] and \
-        classifier_params['use_classifier'] and \
-        classifier_params['use_neuRecommend']
     cluster_handler.perform_prediction(throw_out_noise=throw_out_noise_bool)
 
     # Backup original data for plotting (aligned with cluster labels)
@@ -298,9 +317,9 @@ else:
         # Reset prediction to match probability threshold for remaining spikes
         classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
 
-    cluster_handler.remove_outliers(params_dict)
-    cluster_handler.calc_mahalanobis_distance_matrix()
-    cluster_handler.save_cluster_labels()
+    cluster_handler.remove_outliers(params_dict, throw_out_noise=throw_out_noise_bool)
+    cluster_handler.calc_mahalanobis_distance_matrix(throw_out_noise=throw_out_noise_bool)
+    cluster_handler.save_cluster_labels(throw_out_noise=throw_out_noise_bool)
     cluster_handler.create_output_plots(params_dict)
 
     # Plotting internally will use all original data
@@ -308,6 +327,13 @@ else:
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(classifier_handler)
 
+if throw_out_noise_bool:
+    # Updating features matrix as it will be written out
+    cluster_handler.spike_set.spike_features = \
+        cluster_handler.spike_set.spike_features[
+                classifier_handler.clf_prob_original > classifier_handler.clf_threshold]
+# Write out data after throw_out_noise step
+cluster_handler.spike_set.write_out_spike_data()
 
 print(f'Electrode {electrode_num} complete.')
 
