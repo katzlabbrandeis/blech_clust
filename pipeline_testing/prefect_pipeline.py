@@ -518,7 +518,7 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 
 def upload_test_results(data_dir, test_type, file_type):
     """Upload test results to S3 bucket
-    
+
     Args:
         data_dir (str): Directory containing results to upload
         test_type (str): Type of test (spike, emg, etc.)
@@ -527,9 +527,11 @@ def upload_test_results(data_dir, test_type, file_type):
     test_name = f"{test_type}_test_{file_type}"
     s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
     try:
-        upload_to_s3(data_dir, S3_BUCKET, s3_dir, add_timestamp=True, test_name=test_name)
+        upload_to_s3(data_dir, S3_BUCKET, s3_dir,
+                     add_timestamp=True, test_name=test_name)
     except Exception as e:
         print(f'Failed to upload results to S3: {str(e)}')
+
 
 @flow(log_prints=True)
 def spike_only_test():
@@ -545,7 +547,7 @@ def spike_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_spike_test(data_dir)
-                
+
                 # Upload results to S3
                 upload_test_results(data_dir, "spike", file_type)
     else:
@@ -566,7 +568,7 @@ def spike_only_test():
                     run_spike_test(data_dir)
                 except:
                     print('Failed to run spike test')
-                
+
                 # Upload results to S3 even if test failed
                 upload_test_results(data_dir, "spike", file_type)
 
@@ -577,7 +579,7 @@ def spike_emg_test():
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             spike_emg_flow(data_dir, file_type)
-            
+
             # Upload results to S3
             upload_test_results(data_dir, "spike_emg", file_type)
     else:
@@ -587,7 +589,7 @@ def spike_emg_test():
                 spike_emg_flow(data_dir, file_type)
             except:
                 print('Failed to run spike+emg test')
-            
+
             # Upload results to S3 even if test failed
             upload_test_results(data_dir, "spike_emg", file_type)
 
@@ -718,7 +720,7 @@ def emg_only_test():
             run_EMG_QDA_test()
         except:
             print('Failed to run QDA test')
-        
+
 
 @flow(log_prints=True)
 def full_test():
