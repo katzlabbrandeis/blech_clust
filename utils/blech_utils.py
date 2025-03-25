@@ -271,7 +271,12 @@ class pipeline_graph_check():
             json.dump(log_dict, log_file_connect, indent=4)
 
 
-def entry_checker(msg, check_func, fail_response):
+def entry_checker(
+        msg,
+        check_func,
+        fail_response,
+        default_input='',
+):
     check_bool = False
     continue_bool = True
     exit_str = '"x" to exit :: '
@@ -280,6 +285,8 @@ def entry_checker(msg, check_func, fail_response):
         if msg_input == 'x':
             continue_bool = False
             break
+        elif msg_input == '' and default_input != '':
+            msg_input = default_input
         check_bool = check_func(msg_input)
         if not check_bool:
             print(fail_response)

@@ -396,6 +396,8 @@ else:
 channel_corr.gen_corr_output(corr_mat,
                              qa_out_path,
                              qa_threshold,)
+# Also write out the correlation matrix to qa_out_path
+np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
 
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one file per channel', 'one file per signal type']:

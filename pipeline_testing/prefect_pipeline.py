@@ -26,6 +26,10 @@ parser.add_argument('--spike-emg', action='store_true',
                     help='Run spike + emg in single test')
 parser.add_argument('--raise-exception', action='store_true',
                     help='Raise error if subprocess fails')
+parser.add_argument('--file_type',
+                    help='File types to run tests on',
+                    choices=['ofpc', 'trad', 'all'],
+                    default='all', type=str)
 args = parser.parse_args()
 
 import os  # noqa
@@ -35,12 +39,19 @@ from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
 from create_exp_info_commands import command_dict  # noqa
+from switch_auto_car import set_auto_car  # noqa
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 
 print(args.raise_exception)
 break_bool = args.raise_exception
+
+# Set file_types to run
+if args.file_type == 'all':
+    file_types = ['ofpc', 'trad']
+else:
+    file_types = [args.file_type]
 
 if break_bool:
     print('====================')
@@ -248,7 +259,7 @@ def select_clusters(data_dir):
 
 
 @task(log_prints=True)
-def post_process(data_dir, use_file=True, keep_raw=False):
+def post_process(data_dir, use_file=True, keep_raw=False, delete_existing=False):
     script_name = 'blech_post_process.py'
     if use_file:
         sorted_units_path = glob(os.path.join(
@@ -259,6 +270,8 @@ def post_process(data_dir, use_file=True, keep_raw=False):
         run_list = ["python", script_name, data_dir]
     if keep_raw:
         run_list.append('--keep-raw')
+    if delete_existing:
+        run_list.append('--delete-existing')
     print(f'Post-process: {run_list}')
     process = Popen(run_list, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -404,6 +417,12 @@ def run_spike_test(data_dir):
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
     run_blech_clust(data_dir)
+
+    # Test with auto_car enabled
+    set_auto_car(data_dir, 1)
+    run_CAR(data_dir)
+    # Test with auto_car disabled
+    set_auto_car(data_dir, 0)
     run_CAR(data_dir)
 
     # Run with classifier enabled + autosorting
@@ -412,13 +431,14 @@ def run_spike_test(data_dir):
     run_jetstream_bash(data_dir)
     # Keep raw in the first pass so jetstream step can be rerun
     post_process(data_dir, use_file=False, keep_raw=True)
+    post_process(data_dir, use_file=False, keep_raw=True, delete_existing=True)
 
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
-    post_process(data_dir)
+    post_process(data_dir, use_file=True, keep_raw=False, delete_existing=True)
 
     make_arrays(data_dir)
     quality_assurance(data_dir)
@@ -514,7 +534,7 @@ def upload_test_results(data_dir, test_type, file_type):
 @flow(log_prints=True)
 def spike_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             # for data_type in ['spike', 'emg_spike']:
             # spike+emg test is covered in spike_emg_test
@@ -529,7 +549,7 @@ def spike_only_test():
                 # Upload results to S3
                 upload_test_results(data_dir, "spike", file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             # for data_type in ['spike', 'emg_spike']:
             # spike+emg test is covered in spike_emg_test
@@ -554,14 +574,14 @@ def spike_only_test():
 @flow(log_prints=True)
 def spike_emg_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             spike_emg_flow(data_dir, file_type)
             
             # Upload results to S3
             upload_test_results(data_dir, "spike_emg", file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             try:
                 spike_emg_flow(data_dir, file_type)
@@ -575,7 +595,7 @@ def spike_emg_test():
 @flow(log_prints=True)
 def bsa_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running BSA test with
@@ -583,8 +603,9 @@ def bsa_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=1)
+                upload_test_results(data_dir, "BSA", file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running BSA test with
@@ -598,12 +619,13 @@ def bsa_only_test():
                     run_emg_freq_test(data_dir, use_BSA=1)
                 except:
                     print('Failed to run emg BSA test')
+                upload_test_results(data_dir, "BSA", file_type)
 
 
 @flow(log_prints=True)
 def stft_only_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running STFT test with
@@ -611,8 +633,9 @@ def stft_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=0)
+                upload_test_results(data_dir, "STFT", file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running STFT test with
@@ -626,12 +649,13 @@ def stft_only_test():
                     run_emg_freq_test(data_dir, use_BSA=0)
                 except:
                     print('Failed to run emg STFT test')
+                upload_test_results(data_dir, "STFT", file_type)
 
 
 @flow(log_prints=True)
 def run_EMG_QDA_test():
     if break_bool:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running EMG QDA test with
@@ -642,8 +666,9 @@ def run_EMG_QDA_test():
                 os.chdir(os.path.join(blech_clust_dir,
                          'emg', 'gape_QDA_classifier'))
                 run_gapes_Li(data_dir)
+                upload_test_results(data_dir, "QDA", file_type)
     else:
-        for file_type in ['ofpc', 'trad']:
+        for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             for data_type in ['emg', 'emg_spike']:
                 print(f"""Running EMG QDA test with
@@ -660,6 +685,7 @@ def run_EMG_QDA_test():
                     run_gapes_Li(data_dir)
                 except:
                     print('Failed to run QDA test')
+                upload_test_results(data_dir, "QDA", file_type)
 
 
 @flow(log_prints=True)
@@ -683,11 +709,6 @@ def emg_only_test():
     if break_bool:
         run_emg_freq_only()
         run_EMG_QDA_test()
-        
-        # Upload results to S3 for each file type
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            upload_test_results(data_dir, "emg", file_type)
     else:
         try:
             run_emg_freq_only()
@@ -698,41 +719,22 @@ def emg_only_test():
         except:
             print('Failed to run QDA test')
         
-        # Upload results to S3 even if tests failed
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            upload_test_results(data_dir, "emg", file_type)
-
 
 @flow(log_prints=True)
 def full_test():
     if break_bool:
-        spike_only_test()
-        emg_only_test()
         spike_emg_test()
+        emg_only_test()
 
-        # Upload results to S3 after all tests complete
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            upload_test_results(data_dir, "full", file_type)
     else:
-        try:
-            spike_only_test()
-        except:
-            print('Failed to run spike test')
-        try:
-            emg_only_test()
-        except:
-            print('Failed to run emg test')
         try:
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
-
-        # Upload results to S3 even if some tests failed
-        for file_type in ['ofpc', 'trad']:
-            data_dir = data_dirs_dict[file_type]
-            upload_test_results(data_dir, "full", file_type)
+        try:
+            emg_only_test()
+        except:
+            print('Failed to run emg test')
 
 
 ############################################################

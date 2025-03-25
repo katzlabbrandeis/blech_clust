@@ -170,10 +170,12 @@ max_time = int(np.ceil(max([x[-1] for x in spike_times])))
 bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
+# Shape: n_neurons x n_bins
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Perform PCA and keep 5 components
-pca = PCA(n_components=5, whiten=True)
+n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
+pca = PCA(n_components=n_components, whiten=True)
 pca.fit(zscored_hists.T)
 tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)
@@ -332,7 +334,7 @@ for i, n_change in enumerate(changes_vec):
     for row_ind, this_row in this_frame.iterrows():
         for c_i, this_mode in enumerate(this_row['mode']):
             ax[i+1, 2].scatter(bins[this_mode], this_row['repeat'],
-                               c=change_colors[c_i], cmap='tab10')
+                               color=change_colors[c_i], cmap='tab10')
     for this_change in range(tau_hists.shape[1]):
         ax[i+1, 2] = ridge_plot(
             bins[:-1],
