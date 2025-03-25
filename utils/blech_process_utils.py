@@ -50,6 +50,13 @@ This module is designed for handling and processing electrophysiological data, s
   - `register_labels`, `calc_linkage`, `sort_label_array`, `perform_agg_clustering`, `plot_waveform_dendogram`, `trim_data`: Helper functions for agglomerative clustering.
 """
 
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 from matplotlib.patches import ConnectionPatch
 from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram
 from sklearn.cluster import AgglomerativeClustering, KMeans
@@ -69,9 +76,6 @@ from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
 import utils.clustering as clust
-import os
-os.environ['OMP_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
 # import subprocess
 # import sys
 
