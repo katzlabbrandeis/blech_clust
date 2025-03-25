@@ -28,7 +28,7 @@ import os
 
 def waveforms_datashader(waveforms, x_values,
                          downsample=True, threshold=None, dir_name="datashader_temp",
-                         ax=None):
+                         ax=None, include_envelope=False):
 
     # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
