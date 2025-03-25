@@ -44,6 +44,9 @@ from switch_auto_car import set_auto_car  # noqa
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 
+# GitHub Actions configuration
+GITHUB_ACTIONS = os.environ.get('GITHUB_ACTIONS') == 'true'
+
 print(args.raise_exception)
 break_bool = args.raise_exception
 
@@ -517,20 +520,36 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 
 
 def upload_test_results(data_dir, test_type, file_type):
-    """Upload test results to S3 bucket
+    """Upload test results to S3 bucket and generate summary
 
     Args:
         data_dir (str): Directory containing results to upload
         test_type (str): Type of test (spike, emg, etc.)
         file_type (str): Type of file (ofpc, trad)
+        
+    Returns:
+        dict: Results from upload_to_s3 function
     """
     test_name = f"{test_type}_test_{file_type}"
     s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
     try:
-        upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                     add_timestamp=True, test_name=test_name)
+        # Upload files to S3
+        upload_results = upload_to_s3(data_dir, S3_BUCKET, s3_dir,
+                                     add_timestamp=True, test_name=test_name)
+        
+        # Generate summary
+        summary_file = os.path.join(data_dir, f"{test_type}_{file_type}_s3_summary.md")
+        summary = generate_github_summary(upload_results, summary_file)
+        
+        # If running in GitHub Actions, append to step summary
+        if os.environ.get('GITHUB_STEP_SUMMARY'):
+            with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                f.write(summary)
+                
+        return upload_results
     except Exception as e:
         print(f'Failed to upload results to S3: {str(e)}')
+        return None
 
 
 @flow(log_prints=True)

@@ -314,7 +314,7 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
 
 
 def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
-                 add_timestamp: bool = True, test_name: str = None) -> str:
+                 add_timestamp: bool = True, test_name: str = None) -> dict:
     """Upload files to S3 bucket preserving directory structure.
 
     Args:
@@ -325,10 +325,13 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         test_name (str): Name of the test to include in the S3 directory
 
     Returns:
-        str: The S3 directory path where files were uploaded
+        dict: Dictionary containing:
+            - 's3_directory': The S3 directory path where files were uploaded
+            - 'uploaded_files': List of dictionaries with file info (local_path, s3_path, s3_url)
     """
     try:
         s3_client = boto3.client('s3')
+        uploaded_files = []
 
         # Add timestamp and test name to S3 directory if requested
         if add_timestamp:
@@ -360,14 +363,74 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
                 print(
                     f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
                 s3_client.upload_file(local_path, bucket_name, s3_path)
+                
+                # Generate S3 URL
+                s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"
+                
+                # Add file info to uploaded_files list
+                uploaded_files.append({
+                    'local_path': local_path,
+                    's3_path': s3_path,
+                    's3_url': s3_url
+                })
 
         print(
             f"Successfully uploaded {uploaded_count} files to s3://{bucket_name}/{s3_directory}")
-        return s3_directory
+        
+        return {
+            's3_directory': s3_directory,
+            'uploaded_files': uploaded_files
+        }
 
     except Exception as e:
         print(f"Error uploading to S3: {str(e)}")
-        return None
+        return {'s3_directory': None, 'uploaded_files': []}
+
+
+def generate_github_summary(upload_results: dict, output_file: str = None) -> str:
+    """Generate a summary table of uploaded files for GitHub Actions.
+    
+    Args:
+        upload_results (dict): Results from upload_to_s3 function
+        output_file (str, optional): Path to write the summary to
+        
+    Returns:
+        str: The summary table as a string
+    """
+    if not upload_results or not upload_results.get('uploaded_files'):
+        return "No files were uploaded to S3."
+    
+    # Group files by extension for better organization
+    files_by_ext = {}
+    for file_info in upload_results['uploaded_files']:
+        ext = os.path.splitext(file_info['local_path'])[1]
+        if ext not in files_by_ext:
+            files_by_ext[ext] = []
+        files_by_ext[ext].append(file_info)
+    
+    # Create summary table
+    summary = f"# S3 Upload Summary\n\n"
+    summary += f"S3 Directory: `s3://{S3_BUCKET}/{upload_results['s3_directory']}`\n\n"
+    
+    # Add tables by file type
+    for ext, files in files_by_ext.items():
+        summary += f"## {ext.upper()} Files\n\n"
+        summary += "| File | S3 URL |\n|------|--------|\n"
+        for file_info in files:
+            filename = os.path.basename(file_info['local_path'])
+            summary += f"| {filename} | [Link]({file_info['s3_url']}) |\n"
+        summary += "\n"
+    
+    # Write to file if specified
+    if output_file:
+        try:
+            with open(output_file, 'w') as f:
+                f.write(summary)
+            print(f"Summary written to {output_file}")
+        except Exception as e:
+            print(f"Error writing summary to file: {str(e)}")
+    
+    return summary
 
 
 class imp_metadata():
