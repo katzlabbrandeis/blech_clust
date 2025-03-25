@@ -526,7 +526,7 @@ def upload_test_results(data_dir, test_type, file_type):
         data_dir (str): Directory containing results to upload
         test_type (str): Type of test (spike, emg, etc.)
         file_type (str): Type of file (ofpc, trad)
-        
+
     Returns:
         dict: Results from upload_to_s3 function
     """
@@ -535,17 +535,19 @@ def upload_test_results(data_dir, test_type, file_type):
     try:
         # Upload files to S3
         upload_results = upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                     add_timestamp=True, test_name=test_name)
-        
+                                      add_timestamp=True, test_name=test_name)
+
         # Generate summary
-        summary_file = os.path.join(data_dir, f"{test_type}_{file_type}_s3_summary.md")
-        summary = generate_github_summary(upload_results, summary_file, bucket_name=S3_BUCKET)
-        
+        summary_file = os.path.join(
+            data_dir, f"{test_type}_{file_type}_s3_summary.md")
+        summary = generate_github_summary(
+            upload_results, summary_file, bucket_name=S3_BUCKET)
+
         # If running in GitHub Actions, append to step summary
         if os.environ.get('GITHUB_STEP_SUMMARY'):
             with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
                 f.write(summary)
-                
+
         return upload_results
     except Exception as e:
         print(f'Failed to upload results to S3: {str(e)}')
