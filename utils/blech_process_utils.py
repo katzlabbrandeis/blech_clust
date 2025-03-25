@@ -52,6 +52,7 @@ This module is designed for handling and processing electrophysiological data, s
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
+from utils.blech_general_utils import ifisdir_rmdir, return_cutoff_values
 import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
@@ -99,11 +100,11 @@ class cluster_handler():
     """
 
     def __init__(self, params_dict, data_dir, electrode_num, cluster_num,
-                 spike_features=None, slices_dejittered=None, times_dejittered=None, 
+                 spike_features=None, slices_dejittered=None, times_dejittered=None,
                  threshold=None, feature_names=None, fit_type='manual'):
         """
         Initialize cluster handler with specific data rather than a spike_set object
-        
+
         Args:
             params_dict: Dictionary of parameters
             data_dir: Directory containing data
@@ -125,14 +126,14 @@ class cluster_handler():
         self.electrode_num = electrode_num
         self.cluster_num = cluster_num
         self.fit_type = fit_type
-        
+
         # Store specific data instead of the whole spike_set
         self.spike_features = spike_features
         self.slices_dejittered = slices_dejittered
         self.times_dejittered = times_dejittered
         self.threshold = threshold
         self.feature_names = feature_names
-        
+
         self.create_output_dir()
 
     def check_classifier_data_exists(self, data_dir):
@@ -223,7 +224,7 @@ class cluster_handler():
         1. Get training set
         2. Fit model
         3. Get cluster labels
-        
+
         Returns:
             numpy.ndarray: Cluster labels
         """
@@ -894,19 +895,19 @@ class electrode_handler():
         """
         # Filter electrode
         self.filter_electrode()
-        
+
         # Cut to integer seconds
         self.cut_to_int_seconds()
-        
+
         # Calculate recording cutoff
         self.calc_recording_cutoff()
-        
+
         # Make cutoff plot
         self.make_cutoff_plot()
-        
+
         # Apply cutoff to electrode data
         self.cutoff_electrode()
-        
+
         return self.filt_el
 
     def filter_electrode(self):
@@ -1024,17 +1025,17 @@ class spike_handler():
         Complete spike processing pipeline:
         1. Extract waveforms from filtered electrode
         2. Dejitter spikes and sort by time
-        
+
         Returns:
             tuple: (slices_dejittered, times_dejittered, threshold, mean_val)
         """
         # Extract waveforms
         self.extract_waveforms()
-        
+
         # Dejitter spikes
         self.dejitter_spikes()
-        
-        return (self.slices_dejittered, self.times_dejittered, 
+
+        return (self.slices_dejittered, self.times_dejittered,
                 self.threshold, self.mean_val)
 
     def extract_waveforms(self):
@@ -1142,7 +1143,6 @@ class spike_handler():
 
 
 # Import utility functions from the new module
-from utils.blech_general_utils import ifisdir_rmdir, return_cutoff_values
 
 
 def gen_window_plots(
