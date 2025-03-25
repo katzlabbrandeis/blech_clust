@@ -1218,7 +1218,7 @@ def gen_datashader_plot(
     # Create a figure with two subplots - one for datashader and one for envelope
     fig = plt.figure(figsize=(10, 10))
     gs = fig.add_gridspec(2, 1, height_ratios=[2, 1])
-    
+
     # Datashader plot in the top subplot
     ax1 = fig.add_subplot(gs[0])
     _, ax1 = blech_waveforms_datashader.waveforms_datashader(
@@ -1226,14 +1226,15 @@ def gen_datashader_plot(
         x,
         downsample=False,
         threshold=threshold,
-        dir_name="Plots/temp_plots/" + "datashader_temp_el" + str(electrode_num),
+        dir_name="Plots/temp_plots/" +
+        "datashader_temp_el" + str(electrode_num),
         ax=ax1)
 
     ax1.set_xlabel('Sample ({:d} samples per ms)'.
-                  format(int(sampling_rate/1000)))
+                   format(int(sampling_rate/1000)))
     ax1.set_ylabel('Voltage (microvolts)')
     ax1.set_title('Cluster%i Waveforms' % cluster)
-    
+
     # Envelope plot in the bottom subplot
     ax2 = fig.add_subplot(gs[1])
     _, ax2 = blech_waveforms_datashader.waveform_envelope_plot(
@@ -1241,11 +1242,11 @@ def gen_datashader_plot(
         x,
         threshold=threshold,
         ax=ax2)
-    
+
     ax2.set_xlabel('Sample ({:d} samples per ms)'.
-                  format(int(sampling_rate/1000)))
+                   format(int(sampling_rate/1000)))
     ax2.set_title('Cluster%i Mean ± Std Dev' % cluster)
-    
+
     plt.tight_layout()
     return fig, ax1
 
