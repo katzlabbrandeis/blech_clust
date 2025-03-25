@@ -295,7 +295,7 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
     Returns:
         dict: Dictionary mapping extensions to lists of file paths
     """
-    file_types = ['*.png', '*.txt', '*.csv', '*.params', '*.info', '*.log']
+    file_types = ['*.png', '*.txt', '*.csv', '*.params', '*.info', '*.log', '*.json', '*.html']
     found_files = {ext: [] for ext in file_types}
 
     for ext in file_types:
@@ -305,19 +305,37 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
     return found_files
 
 
-def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str) -> None:
+def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str, 
+                 add_timestamp: bool = True, test_name: str = None) -> str:
     """Upload files to S3 bucket preserving directory structure.
 
     Args:
         local_directory (str): Local directory containing files to upload
         bucket_name (str): Name of S3 bucket
         s3_directory (str): Directory prefix in S3 bucket
+        add_timestamp (bool): Whether to add a timestamp to the S3 directory
+        test_name (str): Name of the test to include in the S3 directory
+
+    Returns:
+        str: The S3 directory path where files were uploaded
     """
     try:
         s3_client = boto3.client('s3')
-
+        
+        # Add timestamp and test name to S3 directory if requested
+        if add_timestamp:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            if test_name:
+                s3_directory = f"{s3_directory}/{timestamp}_{test_name}"
+            else:
+                s3_directory = f"{s3_directory}/{timestamp}"
+        
         # Find all output files
         files_dict = find_output_files(local_directory)
+        
+        # Count total files to upload
+        total_files = sum(len(files) for files in files_dict.values())
+        uploaded_count = 0
 
         # Upload each file
         for ext, file_list in files_dict.items():
@@ -328,12 +346,19 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str) -> N
                 s3_path = os.path.join(s3_directory, relative_path)
                 # Replace backslashes with forward slashes for S3
                 s3_path = s3_path.replace('\\', '/')
+                
+                # Upload the file
+                uploaded_count += 1
                 print(
-                    f"Uploading {local_path} to s3://{bucket_name}/{s3_path}")
+                    f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
                 s3_client.upload_file(local_path, bucket_name, s3_path)
+        
+        print(f"Successfully uploaded {uploaded_count} files to s3://{bucket_name}/{s3_directory}")
+        return s3_directory
 
     except Exception as e:
         print(f"Error uploading to S3: {str(e)}")
+        return None
 
 
 class imp_metadata():
