@@ -91,16 +91,16 @@ def waveforms_datashader(waveforms, x_values,
     # This shit too confusing...just do it the hard way
 
     if threshold is not None:
-        def y_transform(val):
+        def y_transform(val, df_max, df_min):
             fin_line = np.linspace(0, 1200, 1000)
             orig_line = np.linspace(
-                df['y'].max() + 10, df['y'].min() - 10, 1000)
+                df_max + 10, df_min - 10, 1000)
             ind = np.argmin(np.abs(orig_line - val))
             return fin_line[ind]
 
-        ax.axhline(y_transform(threshold), color='red',
+        ax.axhline(y_transform(threshold, df['y'].max(), df['y'].min()), color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
-        ax.axhline(y_transform(-threshold), color='red',
+        ax.axhline(y_transform(-threshold, df['y'].max(), df['y'].min()), color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
 
     # Delete the dataframe
