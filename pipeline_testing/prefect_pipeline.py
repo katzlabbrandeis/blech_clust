@@ -702,14 +702,16 @@ def spike_only_test():
 
                 # Upload results to S3
                 # Get current data type from file
-                current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
+                current_data_type_path = os.path.join(
+                    data_dir, 'current_data_type.txt')
                 if os.path.exists(current_data_type_path):
                     with open(current_data_type_path, 'r') as f:
                         current_data_type = f.read().strip().split(' -- ')[-1]
                 else:
                     current_data_type = "spike"  # Default if file doesn't exist
-                
-                upload_test_results(data_dir, "spike", file_type, data_type=current_data_type)
+
+                upload_test_results(data_dir, "spike",
+                                    file_type, data_type=current_data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -741,7 +743,8 @@ def spike_emg_test():
             spike_emg_flow(data_dir, file_type)
 
             # Upload results to S3 with data_type
-            upload_test_results(data_dir, "spike_emg", file_type, data_type="emg_spike")
+            upload_test_results(data_dir, "spike_emg",
+                                file_type, data_type="emg_spike")
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -765,7 +768,8 @@ def bsa_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=1)
-                upload_test_results(data_dir, "BSA", file_type, data_type=data_type)
+                upload_test_results(
+                    data_dir, "BSA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -795,7 +799,8 @@ def stft_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=0)
-                upload_test_results(data_dir, "STFT", file_type, data_type=data_type)
+                upload_test_results(
+                    data_dir, "STFT", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -828,7 +833,8 @@ def run_EMG_QDA_test():
                 os.chdir(os.path.join(blech_clust_dir,
                          'emg', 'gape_QDA_classifier'))
                 run_gapes_Li(data_dir)
-                upload_test_results(data_dir, "QDA", file_type, data_type=data_type)
+                upload_test_results(
+                    data_dir, "QDA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
