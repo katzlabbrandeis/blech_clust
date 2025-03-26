@@ -388,7 +388,8 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
             # Upload index.html to S3
             s3_path = f"{s3_directory}/index.html"
             print(f"Uploading index.html to s3://{bucket_name}/{s3_path}")
-            s3_client.upload_file(index_html_path, bucket_name, s3_path)
+            s3_client.upload_file(index_html_path, bucket_name, s3_path, ExtraArgs={
+                                  'ContentType': 'text/html'})
 
             # Add index.html to uploaded_files list
             s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"

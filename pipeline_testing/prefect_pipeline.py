@@ -4,35 +4,58 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
-from utils.blech_utils import upload_to_s3, generate_github_summary
-import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Run tests, default = Run all tests')
-parser.add_argument('-e', action='store_true',
-                    help='Run EMG test only')
-parser.add_argument('-s', action='store_true',
-                    help='Run spike sorting test only')
-parser.add_argument('--freq', action='store_true',
-                    help='Run freq test only')
-parser.add_argument('--bsa', action='store_true',
-                    help='Run BSA test only')
-parser.add_argument('--stft', action='store_true',
-                    help='Run STFT test only')
-parser.add_argument('--qda', action='store_true',
-                    help='Run QDA test only')
-parser.add_argument('--all', action='store_true',
-                    help='Run all tests')
-parser.add_argument('--spike-emg', action='store_true',
-                    help='Run spike + emg in single test')
-parser.add_argument('--raise-exception', action='store_true',
-                    help='Raise error if subprocess fails')
-parser.add_argument('--file_type',
-                    help='File types to run tests on',
-                    choices=['ofpc', 'trad', 'all'],
-                    default='all', type=str)
-args = parser.parse_args()
 
+import utils.blech_utils as bu
+test_bool = True
+
+import argparse  # noqa
 import os  # noqa
+if test_bool:
+    # Run this script as a test
+    # Set up test data directory
+    script_path = os.path.expanduser(
+        '~/Desktop/blech_clust/pipeline_testing/prefect_pipeline.py')
+
+    args = argparse.Namespace(
+        e=False,
+        s=True,
+        freq=False,
+        bsa=False,
+        stft=False,
+        qda=False,
+        all=False,
+        spike_emg=False,
+        raise_exception=False,
+        file_type='ofpc',
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Run tests, default = Run all tests')
+    parser.add_argument('-e', action='store_true',
+                        help='Run EMG test only')
+    parser.add_argument('-s', action='store_true',
+                        help='Run spike sorting test only')
+    parser.add_argument('--freq', action='store_true',
+                        help='Run freq test only')
+    parser.add_argument('--bsa', action='store_true',
+                        help='Run BSA test only')
+    parser.add_argument('--stft', action='store_true',
+                        help='Run STFT test only')
+    parser.add_argument('--qda', action='store_true',
+                        help='Run QDA test only')
+    parser.add_argument('--all', action='store_true',
+                        help='Run all tests')
+    parser.add_argument('--spike-emg', action='store_true',
+                        help='Run spike + emg in single test')
+    parser.add_argument('--raise-exception', action='store_true',
+                        help='Raise error if subprocess fails')
+    parser.add_argument('--file_type',
+                        help='File types to run tests on',
+                        choices=['ofpc', 'trad', 'all'],
+                        default='all', type=str)
+    args = parser.parse_args()
+    script_path = os.path.realpath(__file__)
+
 from subprocess import PIPE, Popen  # noqa
 from prefect import flow, task  # noqa
 from glob import glob  # noqa
@@ -40,6 +63,9 @@ import json  # noqa
 import sys  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
+
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_dir)
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
@@ -82,8 +108,6 @@ def raise_error_if_error(data_dir, process, stderr, stdout):
 ############################################################
 # Define paths
 # TODO: Replace with call to blech_process_utils.path_handler
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 
 # Read emg_env path
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
@@ -534,13 +558,13 @@ def upload_test_results(data_dir, test_type, file_type):
     s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
     try:
         # Upload files to S3
-        upload_results = upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                      add_timestamp=True, test_name=test_name)
+        upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
+                                         add_timestamp=True, test_name=test_name)
 
         # Generate summary
         summary_file = os.path.join(
             data_dir, f"{test_type}_{file_type}_s3_summary.md")
-        summary = generate_github_summary(
+        summary = bu.generate_github_summary(
             upload_results, summary_file, bucket_name=S3_BUCKET)
 
         # Add index.html link to summary if available
