@@ -546,11 +546,11 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 
 def compress_image(image_path, max_size_kb=50):
     """Compress image to a maximum size in KB.
-    
+
     Args:
         image_path (str): Path to the image file
         max_size_kb (int): Maximum size in KB
-        
+
     Returns:
         bool: True if compression was successful, False otherwise
     """
@@ -558,59 +558,66 @@ def compress_image(image_path, max_size_kb=50):
         # Check if file exists and is an image
         if not os.path.exists(image_path):
             return False
-            
+
         # Check current file size
         current_size = os.path.getsize(image_path)
         if current_size <= max_size_kb * 1024:
             return True  # Already small enough
-            
+
         # Open the image
         img = Image.open(image_path)
         img_format = img.format if img.format else 'PNG'
-        
+
         # Start with high quality and reduce until size is acceptable
         quality = 95
         while quality > 10:
             # Create a temporary buffer to check size without saving to disk
             from io import BytesIO
             temp_buffer = BytesIO()
-            img.save(temp_buffer, format=img_format, quality=quality, optimize=True)
+            img.save(temp_buffer, format=img_format,
+                     quality=quality, optimize=True)
             temp_size = temp_buffer.getbuffer().nbytes
-            
+
             if temp_size <= max_size_kb * 1024:
                 # Save to disk with this quality
-                img.save(image_path, format=img_format, quality=quality, optimize=True)
-                print(f"Compressed {image_path} to {quality}% quality ({temp_size/1024:.1f}KB)")
+                img.save(image_path, format=img_format,
+                         quality=quality, optimize=True)
+                print(
+                    f"Compressed {image_path} to {quality}% quality ({temp_size/1024:.1f}KB)")
                 return True
-                
+
             quality -= 5
-            
+
         # If we get here, we couldn't compress enough with quality reduction alone
         # Try resizing the image
         width, height = img.size
         scale_factor = 0.9
-        
+
         while scale_factor > 0.3:
             new_width = int(width * scale_factor)
             new_height = int(height * scale_factor)
             resized_img = img.resize((new_width, new_height), Image.LANCZOS)
-            
+
             temp_buffer = BytesIO()
-            resized_img.save(temp_buffer, format=img_format, quality=quality, optimize=True)
+            resized_img.save(temp_buffer, format=img_format,
+                             quality=quality, optimize=True)
             temp_size = temp_buffer.getbuffer().nbytes
-            
+
             if temp_size <= max_size_kb * 1024:
-                resized_img.save(image_path, format=img_format, quality=quality, optimize=True)
-                print(f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
+                resized_img.save(image_path, format=img_format,
+                                 quality=quality, optimize=True)
+                print(
+                    f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
                 return True
-                
+
             scale_factor -= 0.1
-            
+
         print(f"Warning: Could not compress {image_path} to target size")
         return False
     except Exception as e:
         print(f"Error compressing image {image_path}: {str(e)}")
         return False
+
 
 def upload_test_results(data_dir, test_type, file_type):
     """Upload test results to S3 bucket and generate summary
@@ -625,12 +632,12 @@ def upload_test_results(data_dir, test_type, file_type):
     """
     test_name = f"{test_type}_test_{file_type}"
     s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-    
+
     # Compress all images before uploading
     print(f"Compressing images in {data_dir} before upload...")
     image_count = 0
     compressed_count = 0
-    
+
     for root, _, files in os.walk(data_dir):
         for file in files:
             if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
@@ -638,10 +645,11 @@ def upload_test_results(data_dir, test_type, file_type):
                 image_count += 1
                 if compress_image(image_path):
                     compressed_count += 1
-    
+
     if image_count > 0:
-        print(f"Compressed {compressed_count}/{image_count} images to max 50KB")
-    
+        print(
+            f"Compressed {compressed_count}/{image_count} images to max 50KB")
+
     try:
         # Upload files to S3
         upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
