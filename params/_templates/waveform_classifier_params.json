@@ -4,5 +4,5 @@
     "throw_out_noise": false,
     "min_suggestion_count": 2000,
     "override_classifier_threshold": false,
-    "threshold_override": -1
+    "threshold_override": 0.8
 }
