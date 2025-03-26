@@ -5,8 +5,7 @@ Run python scripts using subprocess as prefect tasks
 
 ############################################################
 
-import utils.blech_utils as bu
-test_bool = True
+test_bool = False
 
 import argparse  # noqa
 import os  # noqa
@@ -66,6 +65,7 @@ from switch_auto_car import set_auto_car  # noqa
 
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
+import utils.blech_utils as bu  # noqa
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
