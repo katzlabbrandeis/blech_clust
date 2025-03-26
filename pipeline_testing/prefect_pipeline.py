@@ -629,13 +629,6 @@ def upload_test_results(data_dir, test_type, file_type):
     image_count = 0
     compressed_count = 0
 
-    # for root, _, files in os.walk(data_dir):
-    #     for file in files:
-    #         if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-    #             image_path = os.path.join(root, file)
-    #             image_count += 1
-    #             if compress_image(image_path):
-    #                 compressed_count += 1
     output_files = bu.find_output_files(data_dir)
     for file_list in output_files.values():
         for file in file_list:
@@ -657,25 +650,25 @@ def upload_test_results(data_dir, test_type, file_type):
         # Generate summary
         summary_file = os.path.join(
             data_dir, f"{test_type}_{file_type}_s3_summary.md")
-        summary = bu.generate_github_summary(
-            upload_results, summary_file, bucket_name=S3_BUCKET)
+        # summary = bu.generate_github_summary(
+        #     upload_results, summary_file, bucket_name=S3_BUCKET)
 
         # Add index.html link to summary if available
         if upload_results and upload_results.get('s3_directory'):
             index_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{upload_results['s3_directory']}/index.html"
-            index_summary = f"\n\n## Directory Index\n\nView all files in this upload: [Index Page]({index_url})\n\n"
+            index_summary = f"\n\n## {test_name}\n\nView all files in this upload: [Index Page]({index_url})\n\n"
 
             # Append to summary file
             with open(summary_file, 'a') as f:
                 f.write(index_summary)
 
-            # Append to summary string
-            summary += index_summary
+            # # Append to summary string
+            # summary += index_summary
 
         # If running in GitHub Actions, append to step summary
         if os.environ.get('GITHUB_STEP_SUMMARY'):
             with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                f.write(summary)
+                f.write(index_summary)
 
         return upload_results
     except Exception as e:
