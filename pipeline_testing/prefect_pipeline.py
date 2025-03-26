@@ -588,7 +588,7 @@ def compress_image(image_path, max_size_kb=50):
         temp_size = temp_buffer.getbuffer().nbytes
 
         while temp_size > max_size_kb * 1024:
-            print(f'Scale factor: {scale_factor}')
+            # print(f'Scale factor: {scale_factor}')
             new_width = int(width * scale_factor)
             new_height = int(height * scale_factor)
             resized_img = img.resize((new_width, new_height), Image.LANCZOS)
@@ -601,8 +601,8 @@ def compress_image(image_path, max_size_kb=50):
 
         resized_img.save(image_path, format=img_format,
                          quality=90, optimize=True)
-        print(
-            f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
+        # print(
+        #     f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
         return True
 
     except Exception as e:
