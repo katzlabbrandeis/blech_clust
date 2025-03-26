@@ -151,9 +151,9 @@ for i, binned_spikes in enumerate(binned_spikes_list):
 
 shared_rnn = autoencoderRNN(
     input_size=input_size,
-    hidden_size=8,
+    hidden_size=16,
     output_size=output_size,
-    rnn_layers=2,
+    rnn_layers=3,
     dropout=0.2,
 )
 
@@ -291,7 +291,7 @@ for i, input_array in enumerate(aligned_spikes_trials_list):
     test_labels_list.append(test_labels)
 
 
-train_steps = 500_000
+train_steps = 50_000
 update_steps = 1000
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
@@ -319,15 +319,22 @@ for epochs in range(train_steps // update_steps):
             test_inputs=test_inputs,
             test_labels=test_labels,
         )
-        full_loss.extend(loss)
-        # Update keys in cross_val_loss
-        cross_val_loss = {k + epochs * update_steps: v for k,
-                          v in cross_val_loss.items()}
-        full_cross_val_loss.update(cross_val_loss)
 
         # Create plot
         if i == 0:
+            full_loss.extend(loss)
+            # Update keys in cross_val_loss
+            cross_val_loss = {k + epochs * update_steps: v for k,
+                              v in cross_val_loss.items()}
+            full_cross_val_loss.update(cross_val_loss)
+
+            for this_ax in ax:
+                this_ax.clear()
             ax[0].plot(full_loss[::10])
             ax[1].plot(list(full_cross_val_loss.keys())[::10],
                        list(full_cross_val_loss.values())[::10])
             plt.pause(0.01)
+
+    # Write out shared RNN
+    torch.save(net.shared_rnn.state_dict(),
+               artifacts_dir / 'shared_rnn.pth')
