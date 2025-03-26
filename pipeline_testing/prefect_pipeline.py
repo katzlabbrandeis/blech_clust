@@ -26,6 +26,7 @@ if test_bool:
         spike_emg=False,
         raise_exception=False,
         file_type='ofpc',
+        dummy_upload=False
     )
 else:
     parser = argparse.ArgumentParser(
@@ -52,6 +53,8 @@ else:
                         help='File types to run tests on',
                         choices=['ofpc', 'trad', 'all'],
                         default='all', type=str)
+    parser.add_argument('--dummy-upload', action='store_true',
+                        help='Run dummy upload test')
     args = parser.parse_args()
     script_path = os.path.realpath(__file__)
 
@@ -61,6 +64,7 @@ from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
 from PIL import Image  # noqa
+from io import BytesIO  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
 
@@ -568,52 +572,39 @@ def compress_image(image_path, max_size_kb=50):
         img = Image.open(image_path)
         img_format = img.format if img.format else 'PNG'
 
-        # Start with high quality and reduce until size is acceptable
-        quality = 95
-        while quality > 10:
-            # Create a temporary buffer to check size without saving to disk
-            from io import BytesIO
-            temp_buffer = BytesIO()
-            img.save(temp_buffer, format=img_format,
-                     quality=quality, optimize=True)
-            temp_size = temp_buffer.getbuffer().nbytes
-
-            if temp_size <= max_size_kb * 1024:
-                # Save to disk with this quality
-                img.save(image_path, format=img_format,
-                         quality=quality, optimize=True)
-                print(
-                    f"Compressed {image_path} to {quality}% quality ({temp_size/1024:.1f}KB)")
-                return True
-
-            quality -= 5
-
         # If we get here, we couldn't compress enough with quality reduction alone
         # Try resizing the image
         width, height = img.size
-        scale_factor = 0.9
+        scale_factor = (max_size_kb * 1024) / current_size
 
-        while scale_factor > 0.3:
+        print(f'Scale factor: {scale_factor}')
+        new_width = int(width * scale_factor)
+        new_height = int(height * scale_factor)
+        resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+
+        temp_buffer = BytesIO()
+        resized_img.save(temp_buffer, format=img_format,
+                         quality=25, optimize=True)
+        temp_size = temp_buffer.getbuffer().nbytes
+
+        while temp_size > max_size_kb * 1024:
+            print(f'Scale factor: {scale_factor}')
             new_width = int(width * scale_factor)
             new_height = int(height * scale_factor)
             resized_img = img.resize((new_width, new_height), Image.LANCZOS)
 
             temp_buffer = BytesIO()
             resized_img.save(temp_buffer, format=img_format,
-                             quality=quality, optimize=True)
+                             quality=90, optimize=True)
             temp_size = temp_buffer.getbuffer().nbytes
+            scale_factor *= 0.5  # Reduce scale factor for next iteration
 
-            if temp_size <= max_size_kb * 1024:
-                resized_img.save(image_path, format=img_format,
-                                 quality=quality, optimize=True)
-                print(
-                    f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
-                return True
+        resized_img.save(image_path, format=img_format,
+                         quality=90, optimize=True)
+        print(
+            f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
+        return True
 
-            scale_factor -= 0.1
-
-        print(f"Warning: Could not compress {image_path} to target size")
-        return False
     except Exception as e:
         print(f"Error compressing image {image_path}: {str(e)}")
         return False
@@ -638,10 +629,18 @@ def upload_test_results(data_dir, test_type, file_type):
     image_count = 0
     compressed_count = 0
 
-    for root, _, files in os.walk(data_dir):
-        for file in files:
+    # for root, _, files in os.walk(data_dir):
+    #     for file in files:
+    #         if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+    #             image_path = os.path.join(root, file)
+    #             image_count += 1
+    #             if compress_image(image_path):
+    #                 compressed_count += 1
+    output_files = bu.find_output_files(data_dir)
+    for file_list in output_files.values():
+        for file in file_list:
             if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                image_path = os.path.join(root, file)
+                image_path = os.path.join(data_dir, file)
                 image_count += 1
                 if compress_image(image_path):
                     compressed_count += 1
@@ -682,6 +681,14 @@ def upload_test_results(data_dir, test_type, file_type):
     except Exception as e:
         print(f'Failed to upload results to S3: {str(e)}')
         return None
+
+
+def dummy_upload_test_results():
+    """Upload results without running tests"""
+    file_type = 'ofpc'
+    data_dir = data_dirs_dict[file_type]
+    test_type = 'dummy'
+    upload_test_results(data_dir, test_type, file_type)
 
 
 @flow(log_prints=True)
@@ -918,3 +925,6 @@ elif args.stft:
 elif args.spike_emg:
     print('Running spike then emg test')
     spike_emg_test(return_state=True)
+elif args.dummy_upload:
+    print('Running dummy upload test')
+    dummy_upload_test_results()
