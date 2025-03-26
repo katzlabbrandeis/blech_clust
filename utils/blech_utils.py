@@ -429,16 +429,18 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
         str: HTML content as a string
     """
     # Skip index.html itself
-    filtered_files = [f for f in uploaded_files if os.path.basename(f['local_path']) != 'index.html']
-    
+    filtered_files = [f for f in uploaded_files if os.path.basename(
+        f['local_path']) != 'index.html']
+
     # Group files by directory for better organization
     files_by_dir = {}
     for file_info in filtered_files:
-        relative_path = file_info.get('relative_path', os.path.relpath(file_info['local_path'], local_directory))
+        relative_path = file_info.get('relative_path', os.path.relpath(
+            file_info['local_path'], local_directory))
         dir_path = os.path.dirname(relative_path)
         if dir_path == '':
             dir_path = 'root'
-        
+
         if dir_path not in files_by_dir:
             files_by_dir[dir_path] = []
         files_by_dir[dir_path].append(file_info)
@@ -468,10 +470,11 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
 
     # Add directory structure
     html += "    <h2>Directory Structure</h2>\n"
-    
+
     # Sort directories to ensure root comes first, then alphabetical
-    sorted_dirs = sorted(files_by_dir.keys(), key=lambda x: (0 if x == 'root' else 1, x))
-    
+    sorted_dirs = sorted(files_by_dir.keys(),
+                         key=lambda x: (0 if x == 'root' else 1, x))
+
     for dir_path in sorted_dirs:
         display_path = dir_path if dir_path != 'root' else '/'
         html += f"    <h3 class='directory'>{display_path}</h3>\n"
@@ -479,14 +482,15 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
         html += "        <tr><th>File</th><th>Size</th><th>Type</th></tr>\n"
 
         # Sort files by name
-        files = sorted(files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
-        
+        files = sorted(
+            files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
+
         for file_info in files:
             filename = os.path.basename(file_info['local_path'])
             ext = os.path.splitext(filename)[1]
             if not ext:
                 ext = 'no_extension'
-                
+
             # Get file size if available
             try:
                 size = os.path.getsize(file_info['local_path'])
@@ -498,10 +502,10 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
                     size_str = f"{size/(1024*1024):.1f} MB"
             except:
                 size_str = "Unknown"
-                
+
             # Create relative URL for the file
             relative_url = file_info['relative_path']
-            
+
             html += f"        <tr><td><a href=\"{relative_url}\">{filename}</a></td><td>{size_str}</td><td>{ext}</td></tr>\n"
 
         html += "    </table>\n"
@@ -516,7 +520,7 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
         if ext not in files_by_ext:
             files_by_ext[ext] = []
         files_by_ext[ext].append(file_info)
-        
+
     # Sort extensions alphabetically
     for ext in sorted(files_by_ext.keys()):
         files = files_by_ext[ext]
@@ -526,12 +530,12 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
 
         # Sort files by path
         files = sorted(files, key=lambda x: x['relative_path'])
-        
+
         for file_info in files:
             filename = os.path.basename(file_info['local_path'])
             relative_path = file_info.get('relative_path', '')
             dir_path = os.path.dirname(relative_path)
-            
+
             # Get file size if available
             try:
                 size = os.path.getsize(file_info['local_path'])
@@ -579,7 +583,7 @@ def generate_github_summary(upload_results: dict, output_file: str = None, bucke
     # Create summary table
     summary = f"# S3 Upload Summary\n\n"
     summary += f"S3 Directory: `s3://{bucket_name}/{upload_results['s3_directory']}`\n\n"
-    
+
     if index_html_url:
         summary += f"**[View All Files in Browser]({index_html_url})**\n\n"
 
@@ -589,26 +593,28 @@ def generate_github_summary(upload_results: dict, output_file: str = None, bucke
         # Skip index.html in the file listings
         if os.path.basename(file_info['local_path']) == 'index.html':
             continue
-            
+
         relative_path = file_info.get('relative_path', '')
         dir_path = os.path.dirname(relative_path)
         if dir_path == '':
             dir_path = 'root'
-            
+
         if dir_path not in files_by_dir:
             files_by_dir[dir_path] = []
         files_by_dir[dir_path].append(file_info)
 
     # Add tables by directory
-    sorted_dirs = sorted(files_by_dir.keys(), key=lambda x: (0 if x == 'root' else 1, x))
+    sorted_dirs = sorted(files_by_dir.keys(),
+                         key=lambda x: (0 if x == 'root' else 1, x))
     for dir_path in sorted_dirs:
         display_path = dir_path if dir_path != 'root' else '/'
         summary += f"## Directory: {display_path}\n\n"
         summary += "| File | Type | S3 URL |\n|------|------|--------|\n"
-        
+
         # Sort files by name
-        files = sorted(files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
-        
+        files = sorted(
+            files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
+
         for file_info in files:
             filename = os.path.basename(file_info['local_path'])
             ext = os.path.splitext(filename)[1]
