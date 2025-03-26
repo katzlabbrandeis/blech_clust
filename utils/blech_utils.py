@@ -314,7 +314,7 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
 
 
 def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
-                 add_timestamp: bool = True, test_name: str = None) -> dict:
+                 add_timestamp: bool = True, test_name: str = None, data_type: str = None) -> dict:
     """Upload files to S3 bucket preserving directory structure.
 
     Args:
@@ -323,6 +323,7 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         s3_directory (str): Directory prefix in S3 bucket
         add_timestamp (bool): Whether to add a timestamp to the S3 directory
         test_name (str): Name of the test to include in the S3 directory
+        data_type (str): Type of data being tested (emg, spike, emg_spike)
 
     Returns:
         dict: Dictionary containing:
@@ -333,11 +334,14 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         s3_client = boto3.client('s3')
         uploaded_files = []
 
-        # Add timestamp and test name to S3 directory if requested
+        # Add timestamp, test name, and data type to S3 directory if requested
         if add_timestamp:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             if test_name:
-                s3_directory = f"{s3_directory}/{timestamp}_{test_name}"
+                if data_type:
+                    s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
+                else:
+                    s3_directory = f"{s3_directory}/{timestamp}_{test_name}"
             else:
                 s3_directory = f"{s3_directory}/{timestamp}"
 

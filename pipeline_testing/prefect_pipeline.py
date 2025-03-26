@@ -610,13 +610,14 @@ def compress_image(image_path, max_size_kb=50):
         return False
 
 
-def upload_test_results(data_dir, test_type, file_type):
+def upload_test_results(data_dir, test_type, file_type, data_type=None):
     """Upload test results to S3 bucket and generate summary
 
     Args:
         data_dir (str): Directory containing results to upload
         test_type (str): Type of test (spike, emg, etc.)
         file_type (str): Type of file (ofpc, trad)
+        data_type (str, optional): Type of data being tested (emg, spike, emg_spike)
 
     Returns:
         dict: Results from upload_to_s3 function
@@ -645,7 +646,7 @@ def upload_test_results(data_dir, test_type, file_type):
     try:
         # Upload files to S3
         upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                         add_timestamp=True, test_name=test_name)
+                                         add_timestamp=True, test_name=test_name, data_type=data_type)
 
         # Generate summary
         summary_file = os.path.join(
@@ -681,7 +682,7 @@ def dummy_upload_test_results():
     file_type = 'ofpc'
     data_dir = data_dirs_dict[file_type]
     test_type = 'dummy'
-    upload_test_results(data_dir, test_type, file_type)
+    upload_test_results(data_dir, test_type, file_type, data_type='dummy_data')
 
 
 @flow(log_prints=True)
@@ -700,7 +701,15 @@ def spike_only_test():
                 run_spike_test(data_dir)
 
                 # Upload results to S3
-                upload_test_results(data_dir, "spike", file_type)
+                # Get current data type from file
+                current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
+                if os.path.exists(current_data_type_path):
+                    with open(current_data_type_path, 'r') as f:
+                        current_data_type = f.read().strip().split(' -- ')[-1]
+                else:
+                    current_data_type = "spike"  # Default if file doesn't exist
+                
+                upload_test_results(data_dir, "spike", file_type, data_type=current_data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -731,8 +740,8 @@ def spike_emg_test():
             data_dir = data_dirs_dict[file_type]
             spike_emg_flow(data_dir, file_type)
 
-            # Upload results to S3
-            upload_test_results(data_dir, "spike_emg", file_type)
+            # Upload results to S3 with data_type
+            upload_test_results(data_dir, "spike_emg", file_type, data_type="emg_spike")
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -756,7 +765,7 @@ def bsa_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=1)
-                upload_test_results(data_dir, "BSA", file_type)
+                upload_test_results(data_dir, "BSA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -786,7 +795,7 @@ def stft_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=0)
-                upload_test_results(data_dir, "STFT", file_type)
+                upload_test_results(data_dir, "STFT", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -819,7 +828,7 @@ def run_EMG_QDA_test():
                 os.chdir(os.path.join(blech_clust_dir,
                          'emg', 'gape_QDA_classifier'))
                 run_gapes_Li(data_dir)
-                upload_test_results(data_dir, "QDA", file_type)
+                upload_test_results(data_dir, "QDA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
