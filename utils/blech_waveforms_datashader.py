@@ -28,7 +28,7 @@ import os
 
 def waveforms_datashader(waveforms, x_values,
                          downsample=True, threshold=None, dir_name="datashader_temp",
-                         ax=None):
+                         ax=None, include_envelope=False):
 
     # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
@@ -91,16 +91,16 @@ def waveforms_datashader(waveforms, x_values,
     # This shit too confusing...just do it the hard way
 
     if threshold is not None:
-        def y_transform(val):
+        def y_transform(val, df_max, df_min):
             fin_line = np.linspace(0, 1200, 1000)
             orig_line = np.linspace(
-                df['y'].max() + 10, df['y'].min() - 10, 1000)
+                df_max + 10, df_min - 10, 1000)
             ind = np.argmin(np.abs(orig_line - val))
             return fin_line[ind]
 
-        ax.axhline(y_transform(threshold), color='red',
+        ax.axhline(y_transform(threshold, df['y'].max(), df['y'].min()), color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
-        ax.axhline(y_transform(-threshold), color='red',
+        ax.axhline(y_transform(-threshold, df['y'].max(), df['y'].min()), color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
 
     # Delete the dataframe
@@ -111,4 +111,60 @@ def waveforms_datashader(waveforms, x_values,
 
     # Return and figure and axis for adding axis labels,
     # title and saving the file
+    return fig, ax
+
+
+def waveform_envelope_plot(waveforms, x_values, threshold=None, ax=None):
+    """
+    Creates an envelope plot showing mean and standard deviation of waveforms.
+
+    Parameters:
+    -----------
+    waveforms : numpy.ndarray
+        Array of waveform data with shape (n_waveforms, n_timepoints)
+    x_values : numpy.ndarray
+        Array of x-axis values for plotting
+    threshold : float, optional
+        Threshold value to mark on the plot
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on, if None, a new figure and axes will be created
+
+    Returns:
+    --------
+    fig : matplotlib.figure.Figure
+        Figure object
+    ax : matplotlib.axes.Axes
+        Axes object with the plot
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 6))
+    else:
+        fig = ax.get_figure()
+
+    # Calculate mean and standard deviation
+    mean_waveform = np.mean(waveforms, axis=0)
+    std_waveform = np.std(waveforms, axis=0)
+
+    # Plot mean waveform
+    ax.plot(x_values, mean_waveform, color='blue', linewidth=2, label='Mean')
+
+    # Plot envelope (mean ± std)
+    ax.fill_between(
+        x_values,
+        mean_waveform - std_waveform,
+        mean_waveform + std_waveform,
+        color='blue', alpha=0.3, label='±1 Std Dev'
+    )
+
+    # Mark threshold if provided
+    if threshold is not None:
+        ax.axhline(threshold, color='red', linewidth=1,
+                   linestyle='--', alpha=0.5)
+        ax.axhline(-threshold, color='red', linewidth=1,
+                   linestyle='--', alpha=0.5)
+
+    ax.set_xlabel('Sample')
+    ax.set_ylabel('Voltage (microvolts)')
+    ax.legend(loc='upper right')
+
     return fig, ax
