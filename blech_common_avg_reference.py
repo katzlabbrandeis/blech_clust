@@ -87,14 +87,14 @@ def get_channel_corr_mat(data_dir):
 def calculate_bic(kmeans, X):
     """
     Calculate the Bayesian Information Criterion (BIC) for a K-Means model.
-    
+
     Parameters:
     -----------
     kmeans : KMeans
         Fitted KMeans model
     X : numpy.ndarray
         Data used to fit the model
-        
+
     Returns:
     --------
     bic : float
@@ -103,31 +103,33 @@ def calculate_bic(kmeans, X):
     # Get model parameters
     n_samples, n_features = X.shape
     k = kmeans.n_clusters
-    
+
     # Calculate log-likelihood
     # Compute distances from each point to its assigned cluster center
     centers = kmeans.cluster_centers_
     labels = kmeans.labels_
     distances = np.zeros(n_samples)
-    
+
     for i in range(n_samples):
         distances[i] = np.sum((X[i] - centers[labels[i]])**2)
-    
+
     # Estimate variance (assuming spherical clusters)
     variance = np.sum(distances) / (n_samples - k)
     if variance <= 0:
         variance = 1e-10  # Avoid division by zero or negative variance
-    
+
     # Log-likelihood
-    log_likelihood = -0.5 * (n_samples * np.log(2 * np.pi * variance) + n_samples)
-    
+    log_likelihood = -0.5 * \
+        (n_samples * np.log(2 * np.pi * variance) + n_samples)
+
     # Number of free parameters: k cluster centers (each with n_features dimensions) + 1 variance parameter
     n_params = k * n_features + 1
-    
+
     # BIC = -2 * log-likelihood + n_params * log(n_samples)
     bic = -2 * log_likelihood + n_params * np.log(n_samples)
-    
+
     return bic
+
 
 def cluster_electrodes(features, max_clusters=10):
     """
@@ -163,7 +165,7 @@ def cluster_electrodes(features, max_clusters=10):
 
     # Try different numbers of clusters, starting from 1
     min_clusters = 1
-    
+
     # Try different numbers of clusters
     for n_clusters in range(min_clusters, max_possible_clusters + 1):
         cluster_range.append(n_clusters)
@@ -174,7 +176,7 @@ def cluster_electrodes(features, max_clusters=10):
         )
         kmeans.fit(features)
         predictions = kmeans.labels_
-        
+
         # Calculate BIC score
         bic = calculate_bic(kmeans, features)
         bic_scores.append(bic)
@@ -185,7 +187,8 @@ def cluster_electrodes(features, max_clusters=10):
             best_kmeans = kmeans
             best_predictions = predictions
 
-    print(f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
+    print(
+        f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
     return best_predictions, best_kmeans, (cluster_range, bic_scores)
 
 
