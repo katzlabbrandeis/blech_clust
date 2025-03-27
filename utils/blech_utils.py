@@ -314,7 +314,7 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
 
 
 def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
-                 add_timestamp: bool = True, test_name: str = None, data_type: str = None) -> dict:
+                 add_timestamp: bool, test_name: str, data_type: str) -> dict:
     """Upload files to S3 bucket preserving directory structure.
 
     Args:
