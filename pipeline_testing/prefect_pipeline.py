@@ -819,7 +819,7 @@ def stft_only_test():
                     run_emg_freq_test(data_dir, use_BSA=0)
                 except:
                     print('Failed to run emg STFT test')
-                upload_test_results(data_dir, "STFT", file_type, data_type=data)
+                upload_test_results(data_dir, "STFT", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
