@@ -100,7 +100,29 @@ class cluster_handler():
 
     def __init__(self, params_dict,
                  data_dir, electrode_num, cluster_num,
-                 spike_set, fit_type='manual'):
+                 spike_set, fit_type='manual',
+                 waveform_pred=None):
+        """
+        Initialize cluster handler
+
+        Parameters
+        ----------
+        params_dict : dict, required
+            Dictionary of parameters for clustering
+        data_dir : str, required
+            Directory path for data
+        electrode_num : int, required
+            Electrode number
+        cluster_num : int, required
+            Number of clusters to find
+        spike_set : object, required
+            SpikeSet object containing spike data
+        fit_type : str, optional
+            Type of fitting to use for clustering, by default 'manual'
+        waveform_pred : array, optional
+            Predicted waveforms for clustering, by default None
+        """
+
         assert fit_type in [
             'manual', 'auto'], 'fit_type must be manual or auto'
 
@@ -111,6 +133,7 @@ class cluster_handler():
         self.cluster_num = cluster_num
         self.spike_set = spike_set
         self.fit_type = fit_type
+        self.waveform_pred = waveform_pred
         self.create_output_dir()
 
     def check_classifier_data_exists(self, data_dir):
@@ -186,13 +209,19 @@ class cluster_handler():
         """
         return model.predict(data)
 
-    def perform_prediction(self):
+    def perform_prediction(self, throw_out_noise=False):
         """
         Perform clustering
         Model needs to be saved for calculation of mahalanobis distances
         """
         full_data = self.spike_set.spike_features
-        train_set = self.return_training_set(full_data)
+        if throw_out_noise and self.waveform_pred is not None:
+            assert len(self.waveform_pred) == len(self.spike_set.spike_features), \
+                'Waveform prediction length does not match spike features'
+            train_set = self.return_training_set(full_data[self.waveform_pred])
+            print('== Only using predicted spikes for clustering ==')
+        else:
+            train_set = self.return_training_set(full_data)
         if self.fit_type == 'manual':
             self.model = self.fit_manual_model(train_set, self.cluster_num)
         elif self.fit_type == 'auto':
@@ -200,7 +229,7 @@ class cluster_handler():
         labels = self.get_cluster_labels(full_data, self.model)
         self.labels = labels
 
-    def remove_outliers(self, params_dict):
+    def remove_outliers(self, params_dict, throw_out_noise=False):
         """
         Clear large waveforms
         """
@@ -212,13 +241,21 @@ class cluster_handler():
         # Set predictions = -1 at these points so that they aren't
         # picked up by blech_post_process
         wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels[:] == cluster)[0]
+        if throw_out_noise:
+            labels = self.labels[self.waveform_pred]
+            amplitude = self.spike_set.return_feature(
+                'amplitude')[self.waveform_pred]
+        else:
+            labels = self.labels
+            amplitude = self.spike_set.return_feature('amplitude')
+
+        for cluster in np.unique(labels):
+            cluster_points = np.where(labels[:] == cluster)[0]
             this_cluster = remove_too_large_waveforms(
                 cluster_points,
                 # self.spike_set.amplitudes,
-                self.spike_set.return_feature('amplitude'),
-                self.labels,
+                amplitude,
+                labels,
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
         # Make sure cluster labels are continuous numbers
@@ -238,21 +275,30 @@ class cluster_handler():
             print(f'Cluster map: {cluster_map}')
             self.labels = np.array([cluster_map[x] for x in self.labels])
 
-    def save_cluster_labels(self):
+    def save_cluster_labels(self, throw_out_noise=False):
+        if throw_out_noise:
+            save_array = self.labels[self.waveform_pred]
+        else:
+            save_array = self.labels
         np.save(
             os.path.join(
                 self.clust_results_dir, 'predictions.npy'),
-            self.labels)
+            save_array)
 
-    def calc_mahalanobis_distance_matrix(self):
+    def calc_mahalanobis_distance_matrix(self,
+                                         throw_out_noise=False):
         """
         Calculates matrix of mahalanobis distances between all pairs of clusters
         Saves matrix to file
         """
         # assert model in dir(self), 'Model not found'
-        cluster_labels = np.unique(self.labels)
+        if not throw_out_noise:
+            cluster_labels = np.unique(self.labels)
+            full_data = self.spike_set.spike_features
+        else:
+            cluster_labels = np.unique(self.labels[self.waveform_pred])
+            full_data = self.spike_set.spike_features[self.waveform_pred]
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
-        full_data = self.spike_set.spike_features
         for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels
@@ -317,15 +363,22 @@ class cluster_handler():
 
         self.check_classifier_data_exists(self.data_dir)
 
-        classifier_pred = classifier_handler.clf_pred
-        classifier_prob = classifier_handler.clf_prob
         clf_threshold = classifier_handler.clf_threshold
-        all_waveforms = self.spike_set.slices_dejittered
-        all_times = self.spike_set.times_dejittered
+
+        classifier_pred = classifier_handler.clf_pred_original
+        classifier_prob = classifier_handler.clf_prob_original
+        all_waveforms = self.spike_set.slices_original
+        all_times = self.spike_set.times_original
+
+        # Use original labels if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
 
         max_plot_count = 1000
-        for cluster in np.unique(self.labels):
-            cluster_bool = self.labels == cluster
+        for cluster in np.unique(plot_labels):
+            cluster_bool = plot_labels == cluster
             if sum(cluster_bool):
 
                 fig = plt.figure(figsize=(5, 10))
@@ -430,7 +483,14 @@ class cluster_handler():
                     bbox=dict(boxstyle='round',
                               facecolor='white', edgecolor='0.3'),
                     fontweight='bold', color='red')
-        cluster_labels = np.unique(self.labels)
+
+        # Use original labels for plotting if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
+
+        cluster_labels = np.unique(plot_labels)
         ax.set_xticks(np.arange(len(cluster_labels)))
         ax.set_yticks(np.arange(len(cluster_labels)))
         ax.set_xticklabels(cluster_labels)
@@ -443,17 +503,25 @@ class cluster_handler():
                     bbox_inches='tight')
         plt.close(fig)
 
-        slices_dejittered = self.spike_set.slices_dejittered
-        times_dejittered = self.spike_set.times_dejittered
+        slices_dejittered = self.spike_set.slices_original
+        times_dejittered = self.spike_set.times_original
         standard_data = self.spike_set.spike_features
         feature_names = self.spike_set.feature_names
         threshold = self.spike_set.threshold
+
         # Create file, and plot spike waveforms for the different clusters.
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
         x = np.arange(len(slices_dejittered[0])) + 1
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels == cluster)[0]
+
+        # Use original labels for plotting if they exist (when throw_out_noise is True)
+        if hasattr(self, 'labels_original'):
+            plot_labels = self.labels_original
+        else:
+            plot_labels = self.labels
+
+        for cluster in np.unique(plot_labels):
+            cluster_points = np.where(plot_labels == cluster)[0]
 
             if len(cluster_points) > 0:
                 # downsample = False, Prevents waveforms_datashader
@@ -507,26 +575,6 @@ class cluster_handler():
                     self.clust_plot_dir, f'no_spikes_Cluster{cluster}')
                 with open(file_path, 'w') as file_connect:
                     file_connect.write('')
-
-    # def create_auto_output_plots(self,
-    #                         params_dict):
-
-    #     slices_dejittered = self.spike_set.slices_dejittered
-    #     times_dejittered = self.spike_set.times_dejittered
-    #     standard_data = self.spike_set.spike_features
-    #     feature_names = self.spike_set.feature_names
-    #     threshold = self.spike_set.threshold
-
-    #     subcluster_inds = [np.where(self.labels == this_split)[0] \
-    #             for this_split in np.unique(self.labels)]
-    #     subcluster_waveforms = [slices_dejittered[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_times = [spike_times[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_prob = [clf_prob[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     mean_waveforms = [np.mean(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-    #     std_waveforms = [np.std(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
 
 
 class classifier_handler():
