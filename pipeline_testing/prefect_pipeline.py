@@ -646,7 +646,7 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
     try:
         # Upload files to S3
         upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                         add_timestamp=True, test_name=test_name, 
+                                         add_timestamp=True, test_name=test_name,
                                          data_type=data_type, file_type=file_type)
 
         # Generate summary
