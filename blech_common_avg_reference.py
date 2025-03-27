@@ -137,7 +137,7 @@ def cluster_electrodes(features, max_clusters=10):
         else:
             # Use silhouette score (higher is better)
             score = silhouette_score(features, predictions)
-        
+
         scores.append(score)
         print(f"  K={n_clusters}, score={score:.4f}")
 
@@ -314,7 +314,7 @@ if auto_car_inference:
     )
 
     print(f"Found {len(np.unique(predictions))} clusters")
-    
+
     # Plot K-Means scores
     plt.figure(figsize=(10, 6))
     plt.plot(cluster_range, scores, 'o-', color='blue')
