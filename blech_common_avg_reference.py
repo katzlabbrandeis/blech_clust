@@ -48,7 +48,6 @@ import glob
 import json
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from utils.blech_utils import imp_metadata, pipeline_graph_check
@@ -85,9 +84,54 @@ def get_channel_corr_mat(data_dir):
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
+def calculate_bic(kmeans, X):
+    """
+    Calculate the Bayesian Information Criterion (BIC) for a K-Means model.
+    
+    Parameters:
+    -----------
+    kmeans : KMeans
+        Fitted KMeans model
+    X : numpy.ndarray
+        Data used to fit the model
+        
+    Returns:
+    --------
+    bic : float
+        BIC score (lower is better)
+    """
+    # Get model parameters
+    n_samples, n_features = X.shape
+    k = kmeans.n_clusters
+    
+    # Calculate log-likelihood
+    # Compute distances from each point to its assigned cluster center
+    centers = kmeans.cluster_centers_
+    labels = kmeans.labels_
+    distances = np.zeros(n_samples)
+    
+    for i in range(n_samples):
+        distances[i] = np.sum((X[i] - centers[labels[i]])**2)
+    
+    # Estimate variance (assuming spherical clusters)
+    variance = np.sum(distances) / (n_samples - k)
+    if variance <= 0:
+        variance = 1e-10  # Avoid division by zero or negative variance
+    
+    # Log-likelihood
+    log_likelihood = -0.5 * (n_samples * np.log(2 * np.pi * variance) + n_samples)
+    
+    # Number of free parameters: k cluster centers (each with n_features dimensions) + 1 variance parameter
+    n_params = k * n_features + 1
+    
+    # BIC = -2 * log-likelihood + n_params * log(n_samples)
+    bic = -2 * log_likelihood + n_params * np.log(n_samples)
+    
+    return bic
+
 def cluster_electrodes(features, max_clusters=10):
     """
-    Cluster electrodes using K-Means and silhouette score
+    Cluster electrodes using K-Means and BIC
 
     Parameters:
     -----------
@@ -102,24 +146,24 @@ def cluster_electrodes(features, max_clusters=10):
         Array of cluster assignments for each electrode
     best_kmeans : KMeans
         Fitted KMeans model with optimal number of clusters
-    scores : list
-        List of silhouette scores for each number of clusters
+    scores : tuple
+        Tuple containing (cluster_range, bic_scores)
     """
-    print("Clustering electrodes with K-Means...")
+    print("Clustering electrodes with K-Means using BIC...")
 
     # Initialize variables to track the best model
-    best_score = -np.inf  # For silhouette score, higher is better
+    best_bic = np.inf  # For BIC, lower is better
     best_kmeans = None
     best_predictions = None
-    scores = []
+    bic_scores = []
     cluster_range = []
 
     # Handle the case where we have very few samples
     max_possible_clusters = min(max_clusters, len(features) - 1)
 
-    # Need at least 2 clusters for silhouette score
-    min_clusters = 2 if len(features) > 2 else 1
-
+    # Try different numbers of clusters, starting from 1
+    min_clusters = 1
+    
     # Try different numbers of clusters
     for n_clusters in range(min_clusters, max_possible_clusters + 1):
         cluster_range.append(n_clusters)
@@ -128,27 +172,21 @@ def cluster_electrodes(features, max_clusters=10):
             random_state=42,
             n_init=10  # Multiple initializations to find best solution
         )
-        predictions = kmeans.fit_predict(features)
+        kmeans.fit(features)
+        predictions = kmeans.labels_
+        
+        # Calculate BIC score
+        bic = calculate_bic(kmeans, features)
+        bic_scores.append(bic)
+        print(f"  K={n_clusters}, BIC={bic:.4f}")
 
-        # For single cluster, we can't compute silhouette score
-        if n_clusters == 1:
-            # Use negative inertia as a measure (lower is better)
-            score = -kmeans.inertia_
-        else:
-            # Use silhouette score (higher is better)
-            score = silhouette_score(features, predictions)
-
-        scores.append(score)
-        print(f"  K={n_clusters}, score={score:.4f}")
-
-        if score > best_score:
-            best_score = score
+        if bic < best_bic:
+            best_bic = bic
             best_kmeans = kmeans
             best_predictions = predictions
 
-    print(
-        f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
-    return best_predictions, best_kmeans, (cluster_range, scores)
+    print(f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
+    return best_predictions, best_kmeans, (cluster_range, bic_scores)
 
 
 def plot_clustered_corr_mat(
@@ -277,6 +315,8 @@ if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_inference = auto_car_section.get('use_auto_CAR', False)
     max_clusters = auto_car_section.get(
         'max_clusters', 10)  # Default to 10 if not specified
+    # Use BIC for clustering by default
+    use_bic = auto_car_section.get('use_bic', True)
 else:
     auto_car_inference = False
     max_clusters = 10
@@ -315,14 +355,14 @@ if auto_car_inference:
 
     print(f"Found {len(np.unique(predictions))} clusters")
 
-    # Plot K-Means scores
+    # Plot K-Means BIC scores
     plt.figure(figsize=(10, 6))
     plt.plot(cluster_range, scores, 'o-', color='blue')
-    plt.title('K-Means Clustering Scores')
+    plt.title('K-Means Clustering BIC Scores')
     plt.xlabel('Number of Clusters (k)')
-    plt.ylabel('Silhouette Score')
+    plt.ylabel('BIC Score (lower is better)')
     plt.grid(True)
-    plt.savefig(os.path.join(plots_dir, 'kmeans_scores.png'))
+    plt.savefig(os.path.join(plots_dir, 'kmeans_bic_scores.png'))
     plt.close()
 
     electrode_layout_frame['predicted_clusters'] = predictions
