@@ -347,43 +347,46 @@ if auto_car_inference:
 
     # Create a dictionary to store cluster predictions for each CAR group
     all_predictions = np.zeros(len(electrode_layout_frame), dtype=int)
-    
+
     # Process each CAR group separately
     for group_idx, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
         print(f"\nProcessing CAR group: {group_name}")
-        
+
         # Get indices for this CAR group
         group_mask = electrode_layout_frame.CAR_group == group_name
         group_indices = np.where(group_mask)[0]
-        
+
         if len(group_indices) <= 1:
-            print(f"  Skipping group {group_name} - only {len(group_indices)} channels")
+            print(
+                f"  Skipping group {group_name} - only {len(group_indices)} channels")
             continue
-            
+
         # Extract correlation submatrix for this group
         group_corr_mat = corr_mat[group_indices, :][:, group_indices]
-        
+
         # Perform PCA on this group's correlation matrix
         n_components = min(5, len(group_corr_mat) - 1)
         if n_components <= 0:
-            print(f"  Skipping group {group_name} - insufficient channels for PCA")
+            print(
+                f"  Skipping group {group_name} - insufficient channels for PCA")
             continue
-            
+
         pca = PCA(n_components=n_components)
         group_features = pca.fit_transform(group_corr_mat)
-        
+
         # Cluster electrodes within this group
         group_predictions, model, (cluster_range, scores) = cluster_electrodes(
             group_features,
             max_clusters=min(max_clusters, len(group_corr_mat) - 1)
         )
-        
-        print(f"  Found {len(np.unique(group_predictions))} clusters in group {group_name}")
-        
+
+        print(
+            f"  Found {len(np.unique(group_predictions))} clusters in group {group_name}")
+
         # Store predictions for this group
         for i, idx in enumerate(group_indices):
             all_predictions[idx] = group_predictions[i]
-        
+
         # Plot K-Means BIC scores for this group
         plt.figure(figsize=(10, 6))
         plt.plot(cluster_range, scores, 'o-', color='blue')
@@ -391,7 +394,8 @@ if auto_car_inference:
         plt.xlabel('Number of Clusters (k)')
         plt.ylabel('BIC Score (lower is better)')
         plt.grid(True)
-        plt.savefig(os.path.join(plots_dir, f'kmeans_bic_scores_{group_name}.png'))
+        plt.savefig(os.path.join(
+            plots_dir, f'kmeans_bic_scores_{group_name}.png'))
         plt.close()
 
     # Store all predictions in the electrode layout frame
@@ -423,7 +427,8 @@ if auto_car_inference:
     layout_frame_path = glob.glob(os.path.join(
         dir_name, '*_electrode_layout.csv'))[0]
     out_electrode_layout_frame = metadata_handler.layout.copy()
-    out_electrode_layout_frame.at[fin_bool, 'predicted_clusters'] = all_predictions
+    out_electrode_layout_frame.at[fin_bool,
+                                  'predicted_clusters'] = all_predictions
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
