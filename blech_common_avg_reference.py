@@ -87,7 +87,7 @@ def get_channel_corr_mat(data_dir):
 
 def cluster_electrodes(features, max_clusters=10):
     """
-    Cluster electrodes using K-Means and BIC
+    Cluster electrodes using K-Means and silhouette score
 
     Parameters:
     -----------
@@ -102,13 +102,17 @@ def cluster_electrodes(features, max_clusters=10):
         Array of cluster assignments for each electrode
     best_kmeans : KMeans
         Fitted KMeans model with optimal number of clusters
+    scores : list
+        List of silhouette scores for each number of clusters
     """
     print("Clustering electrodes with K-Means...")
 
     # Initialize variables to track the best model
-    best_bic = -np.inf  # For silhouette score, higher is better
+    best_score = -np.inf  # For silhouette score, higher is better
     best_kmeans = None
     best_predictions = None
+    scores = []
+    cluster_range = []
 
     # Handle the case where we have very few samples
     max_possible_clusters = min(max_clusters, len(features) - 1)
@@ -118,6 +122,7 @@ def cluster_electrodes(features, max_clusters=10):
 
     # Try different numbers of clusters
     for n_clusters in range(min_clusters, max_possible_clusters + 1):
+        cluster_range.append(n_clusters)
         kmeans = KMeans(
             n_clusters=n_clusters,
             random_state=42,
@@ -132,17 +137,18 @@ def cluster_electrodes(features, max_clusters=10):
         else:
             # Use silhouette score (higher is better)
             score = silhouette_score(features, predictions)
-
+        
+        scores.append(score)
         print(f"  K={n_clusters}, score={score:.4f}")
 
-        if score > best_bic:
-            best_bic = score
+        if score > best_score:
+            best_score = score
             best_kmeans = kmeans
             best_predictions = predictions
 
     print(
         f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
-    return best_predictions, best_kmeans
+    return best_predictions, best_kmeans, (cluster_range, scores)
 
 
 def plot_clustered_corr_mat(
@@ -302,12 +308,22 @@ if auto_car_inference:
     features = pca.fit_transform(corr_mat)
 
     # Cluster electrodes
-    predictions, model = cluster_electrodes(
+    predictions, model, (cluster_range, scores) = cluster_electrodes(
         features,
         max_clusters=min(max_clusters, len(corr_mat) - 1)
     )
 
     print(f"Found {len(np.unique(predictions))} clusters")
+    
+    # Plot K-Means scores
+    plt.figure(figsize=(10, 6))
+    plt.plot(cluster_range, scores, 'o-', color='blue')
+    plt.title('K-Means Clustering Scores')
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Silhouette Score')
+    plt.grid(True)
+    plt.savefig(os.path.join(plots_dir, 'kmeans_scores.png'))
+    plt.close()
 
     electrode_layout_frame['predicted_clusters'] = predictions
 
