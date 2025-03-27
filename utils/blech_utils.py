@@ -338,7 +338,6 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         if add_timestamp:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
-                
 
         # Find all output files
         files_dict = find_output_files(local_directory)
