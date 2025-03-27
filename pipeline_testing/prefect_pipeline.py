@@ -4,41 +4,79 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
-import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Run tests, default = Run all tests')
-parser.add_argument('-e', action='store_true',
-                    help='Run EMG test only')
-parser.add_argument('-s', action='store_true',
-                    help='Run spike sorting test only')
-parser.add_argument('--freq', action='store_true',
-                    help='Run freq test only')
-parser.add_argument('--bsa', action='store_true',
-                    help='Run BSA test only')
-parser.add_argument('--stft', action='store_true',
-                    help='Run STFT test only')
-parser.add_argument('--qda', action='store_true',
-                    help='Run QDA test only')
-parser.add_argument('--all', action='store_true',
-                    help='Run all tests')
-parser.add_argument('--spike-emg', action='store_true',
-                    help='Run spike + emg in single test')
-parser.add_argument('--raise-exception', action='store_true',
-                    help='Raise error if subprocess fails')
-parser.add_argument('--file_type',
-                    help='File types to run tests on',
-                    choices=['ofpc', 'trad', 'all'],
-                    default='all', type=str)
-args = parser.parse_args()
 
+test_bool = False
+
+import argparse  # noqa
 import os  # noqa
+if test_bool:
+    # Run this script as a test
+    # Set up test data directory
+    script_path = os.path.expanduser(
+        '~/Desktop/blech_clust/pipeline_testing/prefect_pipeline.py')
+
+    args = argparse.Namespace(
+        e=False,
+        s=True,
+        freq=False,
+        bsa=False,
+        stft=False,
+        qda=False,
+        all=False,
+        spike_emg=False,
+        raise_exception=False,
+        file_type='ofpc',
+        dummy_upload=False
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Run tests, default = Run all tests')
+    parser.add_argument('-e', action='store_true',
+                        help='Run EMG test only')
+    parser.add_argument('-s', action='store_true',
+                        help='Run spike sorting test only')
+    parser.add_argument('--freq', action='store_true',
+                        help='Run freq test only')
+    parser.add_argument('--bsa', action='store_true',
+                        help='Run BSA test only')
+    parser.add_argument('--stft', action='store_true',
+                        help='Run STFT test only')
+    parser.add_argument('--qda', action='store_true',
+                        help='Run QDA test only')
+    parser.add_argument('--all', action='store_true',
+                        help='Run all tests')
+    parser.add_argument('--spike-emg', action='store_true',
+                        help='Run spike + emg in single test')
+    parser.add_argument('--raise-exception', action='store_true',
+                        help='Raise error if subprocess fails')
+    parser.add_argument('--file_type',
+                        help='File types to run tests on',
+                        choices=['ofpc', 'trad', 'all'],
+                        default='all', type=str)
+    parser.add_argument('--dummy-upload', action='store_true',
+                        help='Run dummy upload test')
+    args = parser.parse_args()
+    script_path = os.path.realpath(__file__)
+
 from subprocess import PIPE, Popen  # noqa
 from prefect import flow, task  # noqa
 from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
+from PIL import Image  # noqa
+from io import BytesIO  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
+
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_dir)
+import utils.blech_utils as bu  # noqa
+
+# S3 configuration
+S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
+
+# GitHub Actions configuration
+GITHUB_ACTIONS = os.environ.get('GITHUB_ACTIONS') == 'true'
 
 print(args.raise_exception)
 break_bool = args.raise_exception
@@ -75,8 +113,6 @@ def raise_error_if_error(data_dir, process, stderr, stdout):
 ############################################################
 # Define paths
 # TODO: Replace with call to blech_process_utils.path_handler
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 
 # Read emg_env path
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
@@ -512,6 +548,146 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 ##############################
 
 
+def compress_image(image_path, max_size_kb=50):
+    """Compress image to a maximum size in KB.
+
+    Args:
+        image_path (str): Path to the image file
+        max_size_kb (int): Maximum size in KB
+
+    Returns:
+        bool: True if compression was successful, False otherwise
+    """
+    try:
+        # Check if file exists and is an image
+        if not os.path.exists(image_path):
+            return False
+
+        # Check current file size
+        current_size = os.path.getsize(image_path)
+        if current_size <= max_size_kb * 1024:
+            return True  # Already small enough
+
+        # Open the image
+        img = Image.open(image_path)
+        img_format = img.format if img.format else 'PNG'
+
+        # If we get here, we couldn't compress enough with quality reduction alone
+        # Try resizing the image
+        width, height = img.size
+        scale_factor = (max_size_kb * 1024) / current_size
+
+        print(f'Scale factor: {scale_factor}')
+        new_width = int(width * scale_factor)
+        new_height = int(height * scale_factor)
+        resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+
+        temp_buffer = BytesIO()
+        resized_img.save(temp_buffer, format=img_format,
+                         quality=25, optimize=True)
+        temp_size = temp_buffer.getbuffer().nbytes
+
+        while temp_size > max_size_kb * 1024:
+            # print(f'Scale factor: {scale_factor}')
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+
+            temp_buffer = BytesIO()
+            resized_img.save(temp_buffer, format=img_format,
+                             quality=90, optimize=True)
+            temp_size = temp_buffer.getbuffer().nbytes
+            scale_factor *= 0.5  # Reduce scale factor for next iteration
+
+        resized_img.save(image_path, format=img_format,
+                         quality=90, optimize=True)
+        # print(
+        #     f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
+        return True
+
+    except Exception as e:
+        print(f"Error compressing image {image_path}: {str(e)}")
+        return False
+
+
+def upload_test_results(data_dir, test_type, file_type, data_type=None):
+    """Upload test results to S3 bucket and generate summary
+
+    Args:
+        data_dir (str): Directory containing results to upload
+        test_type (str): Type of test (spike, emg, etc.)
+        file_type (str): Type of file (ofpc, trad)
+        data_type (str, optional): Type of data being tested (emg, spike, emg_spike)
+
+    Returns:
+        dict: Results from upload_to_s3 function
+    """
+    test_name = f"{test_type}_test"
+    s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
+
+    # Compress all images before uploading
+    print(f"Compressing images in {data_dir} before upload...")
+    image_count = 0
+    compressed_count = 0
+
+    output_files = bu.find_output_files(data_dir)
+    for file_list in output_files.values():
+        for file in file_list:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                image_path = os.path.join(data_dir, file)
+                image_count += 1
+                if compress_image(image_path):
+                    compressed_count += 1
+
+    if image_count > 0:
+        print(
+            f"Compressed {compressed_count}/{image_count} images to max 50KB")
+
+    try:
+        # Upload files to S3
+        upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
+                                         add_timestamp=True, test_name=test_name,
+                                         data_type=data_type, file_type=file_type)
+
+        # Generate summary
+        summary_file = os.path.join(
+            data_dir, f"{test_type}_{file_type}_s3_summary.md")
+        # summary = bu.generate_github_summary(
+        #     upload_results, summary_file, bucket_name=S3_BUCKET)
+
+        # Add index.html link to summary if available
+        if upload_results and upload_results.get('s3_directory'):
+            index_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{upload_results['s3_directory']}/index.html"
+            # Include file_type and data_type in the summary
+            data_type_str = f" ({data_type})" if data_type else ""
+            index_summary = f"\n\n## {test_name} - {file_type}{data_type_str}\n\nView all files in this upload: [Index Page]({index_url})\n\n"
+
+            # Append to summary file
+            with open(summary_file, 'a') as f:
+                f.write(index_summary)
+
+            # # Append to summary string
+            # summary += index_summary
+
+        # If running in GitHub Actions, append to step summary
+        if os.environ.get('GITHUB_STEP_SUMMARY'):
+            with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                f.write(index_summary)
+
+        return upload_results
+    except Exception as e:
+        print(f'Failed to upload results to S3: {str(e)}')
+        return None
+
+
+def dummy_upload_test_results():
+    """Upload results without running tests"""
+    file_type = 'ofpc'
+    data_dir = data_dirs_dict[file_type]
+    test_type = 'dummy'
+    upload_test_results(data_dir, test_type, file_type, data_type='dummy_data')
+
+
 @flow(log_prints=True)
 def spike_only_test():
     if break_bool:
@@ -526,6 +702,19 @@ def spike_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_spike_test(data_dir)
+
+                # Upload results to S3
+                # Get current data type from file
+                current_data_type_path = os.path.join(
+                    data_dir, 'current_data_type.txt')
+                if os.path.exists(current_data_type_path):
+                    with open(current_data_type_path, 'r') as f:
+                        current_data_type = f.read().strip().split(' -- ')[-1]
+                else:
+                    current_data_type = "spike"  # Default if file doesn't exist
+
+                upload_test_results(data_dir, "spike",
+                                    file_type, data_type=current_data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -545,6 +734,10 @@ def spike_only_test():
                 except:
                     print('Failed to run spike test')
 
+                # Upload results to S3 even if test failed
+                upload_test_results(data_dir, "spike",
+                                    file_type, data_type=data_type)
+
 
 @flow(log_prints=True)
 def spike_emg_test():
@@ -552,6 +745,10 @@ def spike_emg_test():
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
             spike_emg_flow(data_dir, file_type)
+
+            # Upload results to S3 with data_type
+            upload_test_results(data_dir, "spike_emg",
+                                file_type, data_type="emg_spike")
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -559,6 +756,10 @@ def spike_emg_test():
                 spike_emg_flow(data_dir, file_type)
             except:
                 print('Failed to run spike+emg test')
+
+            # Upload results to S3 even if test failed
+            upload_test_results(data_dir, "spike_emg",
+                                file_type, data_type="emg_spike")
 
 
 @flow(log_prints=True)
@@ -572,6 +773,8 @@ def bsa_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=1)
+                upload_test_results(
+                    data_dir, "BSA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -587,6 +790,8 @@ def bsa_only_test():
                     run_emg_freq_test(data_dir, use_BSA=1)
                 except:
                     print('Failed to run emg BSA test')
+                upload_test_results(
+                    data_dir, "BSA", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
@@ -600,6 +805,8 @@ def stft_only_test():
                       data type : {data_type}""")
                 prep_data_flow(file_type, data_type=data_type)
                 run_emg_freq_test(data_dir, use_BSA=0)
+                upload_test_results(
+                    data_dir, "STFT", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -615,6 +822,8 @@ def stft_only_test():
                     run_emg_freq_test(data_dir, use_BSA=0)
                 except:
                     print('Failed to run emg STFT test')
+                upload_test_results(
+                    data_dir, "STFT", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
@@ -631,6 +840,8 @@ def run_EMG_QDA_test():
                 os.chdir(os.path.join(blech_clust_dir,
                          'emg', 'gape_QDA_classifier'))
                 run_gapes_Li(data_dir)
+                upload_test_results(
+                    data_dir, "QDA", file_type, data_type=data_type)
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
@@ -649,6 +860,8 @@ def run_EMG_QDA_test():
                     run_gapes_Li(data_dir)
                 except:
                     print('Failed to run QDA test')
+                upload_test_results(
+                    data_dir, "QDA", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
@@ -686,22 +899,18 @@ def emg_only_test():
 @flow(log_prints=True)
 def full_test():
     if break_bool:
-        spike_only_test()
-        emg_only_test()
         spike_emg_test()
+        emg_only_test()
+
     else:
-        try:
-            spike_only_test()
-        except:
-            print('Failed to run spike test')
-        try:
-            emg_only_test()
-        except:
-            print('Failed to run emg test')
         try:
             spike_emg_test()
         except:
             print('Failed to run spike+emg test')
+        try:
+            emg_only_test()
+        except:
+            print('Failed to run emg test')
 
 
 ############################################################
@@ -732,3 +941,6 @@ elif args.stft:
 elif args.spike_emg:
     print('Running spike then emg test')
     spike_emg_test(return_state=True)
+elif args.dummy_upload:
+    print('Running dummy upload test')
+    dummy_upload_test_results()
