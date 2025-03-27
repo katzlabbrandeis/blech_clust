@@ -337,13 +337,8 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
         # Add timestamp, test name, and data type to S3 directory if requested
         if add_timestamp:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            if test_name:
-                if data_type:
-                    s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
-                else:
-                    s3_directory = f"{s3_directory}/{timestamp}_{test_name}"
-            else:
-                s3_directory = f"{s3_directory}/{timestamp}"
+            s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
+                
 
         # Find all output files
         files_dict = find_output_files(local_directory)
