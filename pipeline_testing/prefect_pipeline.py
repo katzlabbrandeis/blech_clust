@@ -622,7 +622,7 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
     Returns:
         dict: Results from upload_to_s3 function
     """
-    test_name = f"{test_type}_test_{file_type}"
+    test_name = f"{test_type}_test"
     s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
 
     # Compress all images before uploading
@@ -646,7 +646,8 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
     try:
         # Upload files to S3
         upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                         add_timestamp=True, test_name=test_name, data_type=data_type)
+                                         add_timestamp=True, test_name=test_name, 
+                                         data_type=data_type, file_type=file_type)
 
         # Generate summary
         summary_file = os.path.join(
@@ -657,7 +658,9 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
         # Add index.html link to summary if available
         if upload_results and upload_results.get('s3_directory'):
             index_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{upload_results['s3_directory']}/index.html"
-            index_summary = f"\n\n## {test_name}\n\nView all files in this upload: [Index Page]({index_url})\n\n"
+            # Include file_type and data_type in the summary
+            data_type_str = f" ({data_type})" if data_type else ""
+            index_summary = f"\n\n## {test_name} - {file_type}{data_type_str}\n\nView all files in this upload: [Index Page]({index_url})\n\n"
 
             # Append to summary file
             with open(summary_file, 'a') as f:
