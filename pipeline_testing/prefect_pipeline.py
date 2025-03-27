@@ -735,7 +735,7 @@ def spike_only_test():
                     print('Failed to run spike test')
 
                 # Upload results to S3 even if test failed
-                upload_test_results(data_dir, "spike", file_type)
+                upload_test_results(data_dir, "spike", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
@@ -757,7 +757,7 @@ def spike_emg_test():
                 print('Failed to run spike+emg test')
 
             # Upload results to S3 even if test failed
-            upload_test_results(data_dir, "spike_emg", file_type)
+            upload_test_results(data_dir, "spike_emg", file_type, data_type="emg_spike")
 
 
 @flow(log_prints=True)
@@ -788,7 +788,7 @@ def bsa_only_test():
                     run_emg_freq_test(data_dir, use_BSA=1)
                 except:
                     print('Failed to run emg BSA test')
-                upload_test_results(data_dir, "BSA", file_type)
+                upload_test_results(data_dir, "BSA", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
@@ -819,7 +819,7 @@ def stft_only_test():
                     run_emg_freq_test(data_dir, use_BSA=0)
                 except:
                     print('Failed to run emg STFT test')
-                upload_test_results(data_dir, "STFT", file_type)
+                upload_test_results(data_dir, "STFT", file_type, data_type=data)
 
 
 @flow(log_prints=True)
@@ -856,7 +856,7 @@ def run_EMG_QDA_test():
                     run_gapes_Li(data_dir)
                 except:
                     print('Failed to run QDA test')
-                upload_test_results(data_dir, "QDA", file_type)
+                upload_test_results(data_dir, "QDA", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
