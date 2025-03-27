@@ -43,6 +43,8 @@ import pandas as pd
 import sys
 from datetime import datetime
 import time
+import boto3
+from typing import Dict, List
 
 
 class Tee:
@@ -289,6 +291,351 @@ def entry_checker(
         if not check_bool:
             print(fail_response)
     return msg_input, continue_bool
+
+
+def find_output_files(data_dir: str) -> Dict[str, List[str]]:
+    """Find all output files that should be uploaded to S3.
+
+    Args:
+        data_dir (str): The directory to search for files
+
+    Returns:
+        dict: Dictionary mapping extensions to lists of file paths
+    """
+    file_types = ['*.png', '*.txt', '*.csv', '*.params',
+                  '*.info', '*.log', '*.json', '*.html']
+    found_files = {ext: [] for ext in file_types}
+
+    for ext in file_types:
+        found_files[ext] = glob.glob(os.path.join(
+            data_dir, '**', ext), recursive=True)
+
+    return found_files
+
+
+def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
+                 add_timestamp: bool, test_name: str, data_type: str, file_type: str = None) -> dict:
+    """Upload files to S3 bucket preserving directory structure.
+
+    Args:
+        local_directory (str): Local directory containing files to upload
+        bucket_name (str): Name of S3 bucket
+        s3_directory (str): Directory prefix in S3 bucket
+        add_timestamp (bool): Whether to add a timestamp to the S3 directory
+        test_name (str): Name of the test to include in the S3 directory
+        data_type (str): Type of data being tested (emg, spike, emg_spike)
+        file_type (str, optional): Type of file (ofpc, trad)
+
+    Returns:
+        dict: Dictionary containing:
+            - 's3_directory': The S3 directory path where files were uploaded
+            - 'uploaded_files': List of dictionaries with file info (local_path, s3_path, s3_url)
+    """
+    try:
+        s3_client = boto3.client('s3')
+        uploaded_files = []
+
+        # Add timestamp, test name, file type, and data type to S3 directory if requested
+        if add_timestamp:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            if file_type:
+                s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{file_type}_{data_type}"
+            else:
+                s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
+
+        # Find all output files
+        files_dict = find_output_files(local_directory)
+
+        # Count total files to upload
+        total_files = sum(len(files) for files in files_dict.values())
+        uploaded_count = 0
+
+        # Upload each file
+        for ext, file_list in files_dict.items():
+            for local_path in file_list:
+                # Get path relative to local_directory
+                relative_path = os.path.relpath(local_path, local_directory)
+                # Create S3 path preserving structure
+                s3_path = os.path.join(s3_directory, relative_path)
+                # Replace backslashes with forward slashes for S3
+                s3_path = s3_path.replace('\\', '/')
+
+                # Upload the file
+                uploaded_count += 1
+                print(
+                    f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
+                s3_client.upload_file(local_path, bucket_name, s3_path)
+
+                # Generate S3 URL
+                s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"
+
+                # Add file info to uploaded_files list
+                uploaded_files.append({
+                    'local_path': local_path,
+                    'relative_path': relative_path,
+                    's3_path': s3_path,
+                    's3_url': s3_url
+                })
+
+        # Generate and upload index.html
+        if uploaded_files:
+            # Create index.html content with file_type and data_type info
+            index_html_content = generate_index_html(
+                uploaded_files, s3_directory, bucket_name, local_directory)
+
+            # Create a temporary file for index.html
+            index_html_path = os.path.join(local_directory, 'index.html')
+            with open(index_html_path, 'w') as f:
+                f.write(index_html_content)
+
+            # Upload index.html to S3
+            s3_path = f"{s3_directory}/index.html"
+            print(f"Uploading index.html to s3://{bucket_name}/{s3_path}")
+            s3_client.upload_file(index_html_path, bucket_name, s3_path, ExtraArgs={
+                                  'ContentType': 'text/html'})
+
+            # Add index.html to uploaded_files list
+            s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"
+            uploaded_files.append({
+                'local_path': index_html_path,
+                'relative_path': 'index.html',
+                's3_path': s3_path,
+                's3_url': s3_url
+            })
+
+            # Print the URL to the index.html
+            print(f"Index page available at: {s3_url}")
+
+        print(
+            f"Successfully uploaded {uploaded_count + 1} files to s3://{bucket_name}/{s3_directory}")
+
+        return {
+            's3_directory': s3_directory,
+            'uploaded_files': uploaded_files
+        }
+
+    except Exception as e:
+        print(f"Error uploading to S3: {str(e)}")
+        return {'s3_directory': None, 'uploaded_files': []}
+
+
+def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: str, local_directory: str) -> str:
+    """Generate an index.html file for S3 directory listing.
+
+    Args:
+        uploaded_files (list): List of dictionaries with file info
+        s3_directory (str): The S3 directory path
+        bucket_name (str): Name of the S3 bucket
+        local_directory (str): Local directory containing files
+
+    Returns:
+        str: HTML content as a string
+    """
+    # Skip index.html itself
+    filtered_files = [f for f in uploaded_files if os.path.basename(
+        f['local_path']) != 'index.html']
+
+    # Group files by directory for better organization
+    files_by_dir = {}
+    for file_info in filtered_files:
+        relative_path = file_info.get('relative_path', os.path.relpath(
+            file_info['local_path'], local_directory))
+        dir_path = os.path.dirname(relative_path)
+        if dir_path == '':
+            dir_path = 'root'
+
+        if dir_path not in files_by_dir:
+            files_by_dir[dir_path] = []
+        files_by_dir[dir_path].append(file_info)
+
+    # Create HTML content
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Index of {s3_directory}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1 {{ color: #333; }}
+        h2 {{ color: #666; margin-top: 30px; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ text-align: left; padding: 8px; }}
+        tr:nth-child(even) {{ background-color: #f2f2f2; }}
+        th {{ background-color: #4CAF50; color: white; }}
+        a {{ text-decoration: none; color: #0066cc; }}
+        a:hover {{ text-decoration: underline; }}
+        .directory {{ font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <h1>Index of s3://{bucket_name}/{s3_directory}</h1>
+    <p>This directory contains files uploaded from a blech_clust pipeline run.</p>
+"""
+
+    # Add directory structure
+    html += "    <h2>Directory Structure</h2>\n"
+
+    # Sort directories to ensure root comes first, then alphabetical
+    sorted_dirs = sorted(files_by_dir.keys(),
+                         key=lambda x: (0 if x == 'root' else 1, x))
+
+    for dir_path in sorted_dirs:
+        display_path = dir_path if dir_path != 'root' else '/'
+        html += f"    <h3 class='directory'>{display_path}</h3>\n"
+        html += "    <table>\n"
+        html += "        <tr><th>File</th><th>Size</th><th>Type</th></tr>\n"
+
+        # Sort files by name
+        files = sorted(
+            files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
+
+        for file_info in files:
+            filename = os.path.basename(file_info['local_path'])
+            ext = os.path.splitext(filename)[1]
+            if not ext:
+                ext = 'no_extension'
+
+            # Get file size if available
+            try:
+                size = os.path.getsize(file_info['local_path'])
+                if size < 1024:
+                    size_str = f"{size} B"
+                elif size < 1024 * 1024:
+                    size_str = f"{size/1024:.1f} KB"
+                else:
+                    size_str = f"{size/(1024*1024):.1f} MB"
+            except:
+                size_str = "Unknown"
+
+            # Create relative URL for the file
+            relative_url = file_info['relative_path']
+
+            html += f"        <tr><td><a href=\"{relative_url}\">{filename}</a></td><td>{size_str}</td><td>{ext}</td></tr>\n"
+
+        html += "    </table>\n"
+
+    # Also group files by extension for alternative view
+    html += "    <h2>Files by Type</h2>\n"
+    files_by_ext = {}
+    for file_info in filtered_files:
+        ext = os.path.splitext(file_info['local_path'])[1]
+        if not ext:
+            ext = 'no_extension'
+        if ext not in files_by_ext:
+            files_by_ext[ext] = []
+        files_by_ext[ext].append(file_info)
+
+    # Sort extensions alphabetically
+    for ext in sorted(files_by_ext.keys()):
+        files = files_by_ext[ext]
+        html += f"    <h3>{ext.upper()} Files</h3>\n"
+        html += "    <table>\n"
+        html += "        <tr><th>File</th><th>Path</th><th>Size</th></tr>\n"
+
+        # Sort files by path
+        files = sorted(files, key=lambda x: x['relative_path'])
+
+        for file_info in files:
+            filename = os.path.basename(file_info['local_path'])
+            relative_path = file_info.get('relative_path', '')
+            dir_path = os.path.dirname(relative_path)
+
+            # Get file size if available
+            try:
+                size = os.path.getsize(file_info['local_path'])
+                if size < 1024:
+                    size_str = f"{size} B"
+                elif size < 1024 * 1024:
+                    size_str = f"{size/1024:.1f} KB"
+                else:
+                    size_str = f"{size/(1024*1024):.1f} MB"
+            except:
+                size_str = "Unknown"
+
+            html += f"        <tr><td><a href=\"{relative_path}\">{filename}</a></td><td>{dir_path}</td><td>{size_str}</td></tr>\n"
+
+        html += "    </table>\n"
+
+    html += """    <p><small>Generated by blech_clust pipeline</small></p>
+</body>
+</html>
+"""
+    return html
+
+
+# def generate_github_summary(upload_results: dict, output_file: str = None, bucket_name: str = None) -> str:
+#     """Generate a summary table of uploaded files for GitHub Actions.
+#
+#     Args:
+#         upload_results (dict): Results from upload_to_s3 function
+#         output_file (str, optional): Path to write the summary to
+#         bucket_name (str, optional): Name of the S3 bucket
+#
+#     Returns:
+#         str: The summary table as a string
+#     """
+#     if not upload_results or not upload_results.get('uploaded_files'):
+#         return "No files were uploaded to S3."
+#
+#     # Get index.html URL for the main link
+#     index_html_url = None
+#     for file_info in upload_results['uploaded_files']:
+#         if os.path.basename(file_info['local_path']) == 'index.html':
+#             index_html_url = file_info['s3_url']
+#             break
+#
+#     # Create summary table
+#     summary = f"# S3 Upload Summary\n\n"
+#     summary += f"S3 Directory: `s3://{bucket_name}/{upload_results['s3_directory']}`\n\n"
+#
+#     if index_html_url:
+#         summary += f"**[View All Files in Browser]({index_html_url})**\n\n"
+#
+#     # Group files by directory for better organization
+#     files_by_dir = {}
+#     for file_info in upload_results['uploaded_files']:
+#         # Skip index.html in the file listings
+#         if os.path.basename(file_info['local_path']) == 'index.html':
+#             continue
+#
+#         relative_path = file_info.get('relative_path', '')
+#         dir_path = os.path.dirname(relative_path)
+#         if dir_path == '':
+#             dir_path = 'root'
+#
+#         if dir_path not in files_by_dir:
+#             files_by_dir[dir_path] = []
+#         files_by_dir[dir_path].append(file_info)
+#
+#     # Add tables by directory
+#     sorted_dirs = sorted(files_by_dir.keys(),
+#                          key=lambda x: (0 if x == 'root' else 1, x))
+#     for dir_path in sorted_dirs:
+#         display_path = dir_path if dir_path != 'root' else '/'
+#         summary += f"## Directory: {display_path}\n\n"
+#         summary += "| File | Type | S3 URL |\n|------|------|--------|\n"
+#
+#         # Sort files by name
+#         files = sorted(
+#             files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
+#
+#         for file_info in files:
+#             filename = os.path.basename(file_info['local_path'])
+#             ext = os.path.splitext(filename)[1]
+#             if not ext:
+#                 ext = 'no_extension'
+#             summary += f"| {filename} | {ext} | [Link]({file_info['s3_url']}) |\n"
+#         summary += "\n"
+#
+#     # Write to file if specified
+#     if output_file:
+#         try:
+#             with open(output_file, 'w') as f:
+#                 f.write(summary)
+#             print(f"Summary written to {output_file}")
+#         except Exception as e:
+#             print(f"Error writing summary to file: {str(e)}")
+#
+#     return summary
 
 
 class imp_metadata():
