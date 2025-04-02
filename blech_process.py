@@ -269,7 +269,7 @@ if auto_cluster == False:
         # Remove noise at this step if wanted
         # This way, downstream processing is only on spikes
         if classifier_params['throw_out_noise']:
-            print('== Throwing out noise waveforms ==')
+            print('== Throwing out noise waveforms for clustering ==')
 
             # Remaining data is now only spikes
             slices_dejittered, times_dejittered, clf_prob = \
@@ -278,6 +278,12 @@ if auto_cluster == False:
             # Store original labels before modifying for downstream processing
             cluster_handler.labels_original = cluster_handler.labels.copy()
 
+            # Store the original data for plotting later
+            cluster_handler.spike_set.slices_for_clustering = slices_dejittered.copy()
+            cluster_handler.spike_set.times_for_clustering = times_dejittered.copy()
+            classifier_handler.clf_prob_for_clustering = clf_prob.copy()
+
+            # Update the data for clustering
             cluster_handler.spike_set.slices_dejittered = slices_dejittered
             cluster_handler.spike_set.times_dejittered = times_dejittered
             classifier_handler.clf_prob = clf_prob
@@ -314,7 +320,7 @@ else:
     # Remove noise at this step if wanted
     # This way, downstream processing is only on spikes
     if classifier_params['throw_out_noise']:
-        print('== Throwing out noise waveforms ==')
+        print('== Throwing out noise waveforms for clustering ==')
 
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
@@ -323,6 +329,12 @@ else:
         # Store original labels before modifying for downstream processing
         cluster_handler.labels_original = cluster_handler.labels.copy()
 
+        # Store the original data for plotting later
+        cluster_handler.spike_set.slices_for_clustering = slices_dejittered.copy()
+        cluster_handler.spike_set.times_for_clustering = times_dejittered.copy()
+        classifier_handler.clf_prob_for_clustering = clf_prob.copy()
+
+        # Update the data for clustering
         cluster_handler.spike_set.slices_dejittered = slices_dejittered
         cluster_handler.spike_set.times_dejittered = times_dejittered
         classifier_handler.clf_prob = clf_prob
@@ -339,7 +351,28 @@ else:
     # Plotting internally will use all original data
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
+        # For classifier plots, use all waveforms including noise
+        # Temporarily restore original data for plotting
+        original_slices = cluster_handler.spike_set.slices_dejittered
+        original_times = cluster_handler.spike_set.times_dejittered
+        original_clf_prob = classifier_handler.clf_prob
+        original_clf_pred = classifier_handler.clf_pred
+        
+        # Restore original data for plotting
+        cluster_handler.spike_set.slices_dejittered = cluster_handler.spike_set.slices_original
+        cluster_handler.spike_set.times_dejittered = cluster_handler.spike_set.times_original
+        classifier_handler.clf_prob = classifier_handler.clf_prob_original
+        classifier_handler.clf_pred = classifier_handler.clf_pred_original
+        
+        # Create plots with all waveforms
         cluster_handler.create_classifier_plots(classifier_handler)
+        
+        # Restore filtered data for further processing
+        if classifier_params['throw_out_noise']:
+            cluster_handler.spike_set.slices_dejittered = original_slices
+            cluster_handler.spike_set.times_dejittered = original_times
+            classifier_handler.clf_prob = original_clf_prob
+            classifier_handler.clf_pred = original_clf_pred
 
 if throw_out_noise_bool:
     # Updating features matrix as it will be written out
