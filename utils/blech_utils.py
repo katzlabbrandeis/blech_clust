@@ -562,82 +562,6 @@ def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: st
     return html
 
 
-# def generate_github_summary(upload_results: dict, output_file: str = None, bucket_name: str = None) -> str:
-#     """Generate a summary table of uploaded files for GitHub Actions.
-#
-#     Args:
-#         upload_results (dict): Results from upload_to_s3 function
-#         output_file (str, optional): Path to write the summary to
-#         bucket_name (str, optional): Name of the S3 bucket
-#
-#     Returns:
-#         str: The summary table as a string
-#     """
-#     if not upload_results or not upload_results.get('uploaded_files'):
-#         return "No files were uploaded to S3."
-#
-#     # Get index.html URL for the main link
-#     index_html_url = None
-#     for file_info in upload_results['uploaded_files']:
-#         if os.path.basename(file_info['local_path']) == 'index.html':
-#             index_html_url = file_info['s3_url']
-#             break
-#
-#     # Create summary table
-#     summary = f"# S3 Upload Summary\n\n"
-#     summary += f"S3 Directory: `s3://{bucket_name}/{upload_results['s3_directory']}`\n\n"
-#
-#     if index_html_url:
-#         summary += f"**[View All Files in Browser]({index_html_url})**\n\n"
-#
-#     # Group files by directory for better organization
-#     files_by_dir = {}
-#     for file_info in upload_results['uploaded_files']:
-#         # Skip index.html in the file listings
-#         if os.path.basename(file_info['local_path']) == 'index.html':
-#             continue
-#
-#         relative_path = file_info.get('relative_path', '')
-#         dir_path = os.path.dirname(relative_path)
-#         if dir_path == '':
-#             dir_path = 'root'
-#
-#         if dir_path not in files_by_dir:
-#             files_by_dir[dir_path] = []
-#         files_by_dir[dir_path].append(file_info)
-#
-#     # Add tables by directory
-#     sorted_dirs = sorted(files_by_dir.keys(),
-#                          key=lambda x: (0 if x == 'root' else 1, x))
-#     for dir_path in sorted_dirs:
-#         display_path = dir_path if dir_path != 'root' else '/'
-#         summary += f"## Directory: {display_path}\n\n"
-#         summary += "| File | Type | S3 URL |\n|------|------|--------|\n"
-#
-#         # Sort files by name
-#         files = sorted(
-#             files_by_dir[dir_path], key=lambda x: os.path.basename(x['local_path']))
-#
-#         for file_info in files:
-#             filename = os.path.basename(file_info['local_path'])
-#             ext = os.path.splitext(filename)[1]
-#             if not ext:
-#                 ext = 'no_extension'
-#             summary += f"| {filename} | {ext} | [Link]({file_info['s3_url']}) |\n"
-#         summary += "\n"
-#
-#     # Write to file if specified
-#     if output_file:
-#         try:
-#             with open(output_file, 'w') as f:
-#                 f.write(summary)
-#             print(f"Summary written to {output_file}")
-#         except Exception as e:
-#             print(f"Error writing summary to file: {str(e)}")
-#
-#     return summary
-
-
 class imp_metadata():
     def __init__(self, args):
         self.dir_name = self.get_dir_name(args)
@@ -703,3 +627,9 @@ class imp_metadata():
         self.get_layout_path()
         if 'layout_file_path' in dir(self):
             self.layout = pd.read_csv(self.layout_file_path, index_col=0)
+
+
+def ifisdir_rmdir(dir_name):
+    """Remove directory if it exists"""
+    if os.path.isdir(dir_name):
+        shutil.rmtree(dir_name)
