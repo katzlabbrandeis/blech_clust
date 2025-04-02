@@ -66,6 +66,7 @@ import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
 import utils.blech_process_utils as bpu  # noqa
+from itertools import product  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):
@@ -241,44 +242,30 @@ if auto_cluster == False:
     print('=== Performing manual clustering ===')
     # Run GMM, from 2 to max_clusters
     max_clusters = params_dict['clustering_params']['max_clusters']
-    for cluster_num in range(2, max_clusters+1):
-        # Pass specific data instead of the whole spike_set
-        cluster_handler = bpu.cluster_handler(
-            params_dict,
-            data_dir_name,
-            electrode_num,
-            cluster_num,
-            spike_features=spike_set.spike_features,
-            slices_dejittered=spike_set.slices_dejittered,
-            times_dejittered=spike_set.times_dejittered,
-            threshold=spike_set.threshold,
-            feature_names=spike_set.feature_names,
-            fit_type='manual',
-        )
-        # Use the new simplified clustering method
-        cluster_handler.perform_clustering()
-        cluster_handler.remove_outliers(params_dict)
-        cluster_handler.calc_mahalanobis_distance_matrix()
-        cluster_handler.save_cluster_labels()
-        cluster_handler.create_output_plots(params_dict)
-        if classifier_params['use_classifier'] and \
-                classifier_params['use_neuRecommend']:
-            cluster_handler.create_classifier_plots(classifier_handler)
+    iters = product(
+        np.arange(2, max_clusters+1),
+        ['manual']
+    )
 else:
     print('=== Performing auto_clustering ===')
     max_clusters = auto_params['max_autosort_clusters']
+    iters = (
+            (max_clusters, 'auto')
+    )
+
+for cluster_num, fit_type in iters:
     # Pass specific data instead of the whole spike_set
     cluster_handler = bpu.cluster_handler(
         params_dict,
         data_dir_name,
         electrode_num,
-        max_clusters,
+        cluster_num,
         spike_features=spike_set.spike_features,
         slices_dejittered=spike_set.slices_dejittered,
         times_dejittered=spike_set.times_dejittered,
         threshold=spike_set.threshold,
         feature_names=spike_set.feature_names,
-        fit_type='auto',
+        fit_type=fit_type,
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
@@ -289,7 +276,6 @@ else:
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(classifier_handler)
-
 
 print(f'Electrode {electrode_num} complete.')
 
