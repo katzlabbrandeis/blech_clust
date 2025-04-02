@@ -53,6 +53,7 @@ from sklearn.preprocessing import StandardScaler
 from utils.blech_utils import imp_metadata, pipeline_graph_check
 from utils.qa_utils import channel_corr
 from utils.ephys_data.visualize import gen_square_subplots
+import pandas as pd
 
 try:
     from scipy.stats import median_abs_deviation as MAD
@@ -207,10 +208,22 @@ def plot_clustered_corr_mat(
     cluster_indices : list
     plot_path : str
     """
+
+    data_df = pd.DataFrame(
+        dict(
+            predictions=predictions,
+            electrode_names=electrode_names
+        )
+    )
+
+    data_df.sort_values(by=['predictions', 'electrode_names'], inplace=True)
+
     # Sort electrodes by cluster assignment
-    sorted_indices = np.argsort(predictions)
+    # sorted_indices = np.argsort(predictions)
+    sorted_indices = data_df.index.values
     sorted_corr_matrix = corr_matrix[sorted_indices, :][:, sorted_indices]
-    sorted_names = [electrode_names[i] for i in sorted_indices]
+    # sorted_names = [electrode_names[i] for i in sorted_indices]
+    sorted_names = data_df.electrode_names.values
 
     # Plot clustered correlation matrix
     fig, ax = plt.subplots(1, 3, figsize=(24, 8),
@@ -273,7 +286,8 @@ if not testing_bool:
     this_pipeline_check.write_to_log(script_path, 'attempted')
 else:
     # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     print(' ==== Running in test mode ====')
 
@@ -297,9 +311,11 @@ emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
 electrode_layout_frame = electrode_layout_frame[fin_bool]
-electrode_layout_frame['channel_name'] = \
-    electrode_layout_frame['port'].astype(str) + '_' + \
-    electrode_layout_frame['electrode_num'].astype(str)
+electrode_layout_frame['channel_name'] = electrode_layout_frame.apply(
+    lambda row: f"{row['port']}_{row['electrode_num']:02}", axis=1
+)
+# electrode_layout_frame['port'].astype(str) + '_' + \
+# electrode_layout_frame['electrode_num'].astype(str)
 
 num_groups = electrode_layout_frame.CAR_group.nunique()
 print(f" Number of groups : {num_groups}")
@@ -401,12 +417,6 @@ if auto_car_inference:
     # Store all predictions in the electrode layout frame
     electrode_layout_frame['predicted_clusters'] = all_predictions
 
-    # Plot clusters for all electrodes
-    plot_path = os.path.join(dir_name, 'QA_output', 'clustered_corr_mat.png')
-    plot_clustered_corr_mat(
-        corr_mat, all_predictions, electrode_layout_frame.channel_name.values, plot_path
-    )
-
     # Save original CAR_groups as backup
     electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
@@ -414,8 +424,23 @@ if auto_car_inference:
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
         lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
     )
-
     num_groups = electrode_layout_frame.CAR_group.nunique()
+
+    pred_map = dict(zip(
+        electrode_layout_frame.CAR_group.unique(),
+        np.arange(num_groups)
+    )
+    )
+
+    # Plot clusters for all electrodes
+    plot_path = os.path.join(dir_name, 'QA_output', 'clustered_corr_mat.png')
+    plot_clustered_corr_mat(
+        corr_matrix=corr_mat,
+        predictions=electrode_layout_frame.CAR_group.map(pred_map).values,
+        electrode_names=electrode_layout_frame.channel_name.values,
+        plot_path=plot_path
+    )
+
     print(
         "Calculating common average reference for {:d} groups".format(num_groups))
     print('Updated CAR groups with channel counts')
