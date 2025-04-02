@@ -250,7 +250,9 @@ class cluster_handler():
             this_cluster = remove_too_large_waveforms(
                 cluster_points,
                 # self.spike_set.amplitudes,
-                self.spike_set.return_feature('amplitude'),
+                # self.spike_set.return_feature('amplitude'),
+                self.spike_features[:, [i for i, x in enumerate(
+                    self.feature_names) if 'amplitude' in x][0]],
                 self.labels,
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
@@ -285,7 +287,7 @@ class cluster_handler():
         # assert model in dir(self), 'Model not found'
         cluster_labels = np.unique(self.labels)
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
-        full_data = self.spike_set.spike_features
+        full_data = self.spike_features
         for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels

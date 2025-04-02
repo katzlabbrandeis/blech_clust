@@ -28,16 +28,32 @@ This module processes single electrode waveforms for spike detection and cluster
 # Imports
 ############################################################
 import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Process single electrode waveforms')
-parser.add_argument('data_dir', type=str, help='Path to data directory')
-parser.add_argument('electrode_num', type=int,
-                    help='Electrode number to process')
-args = parser.parse_args()
+import os  # noqa
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+
+test_bool = False
+if test_bool:
+    args = argparse.Namespace(
+        data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/',
+        electrode_num=0
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Process single electrode waveforms')
+    parser.add_argument('data_dir', type=str, help='Path to data directory')
+    parser.add_argument('electrode_num', type=int,
+                        help='Electrode number to process')
+    args = parser.parse_args()
+
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
@@ -50,7 +66,6 @@ import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
 import utils.blech_process_utils as bpu  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):
@@ -73,12 +88,6 @@ np.random.seed(0)
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
 data_dir_name = args.data_dir
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(data_dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
@@ -147,7 +156,7 @@ fig = bpu.gen_window_plots(
     window_len,
     window_count,
     params_dict['sampling_rate'],
-    spike_set.spike_times,
+    times_dejittered,
     mean_val,
     threshold,
 )
@@ -177,8 +186,8 @@ if classifier_params['use_neuRecommend']:
     classifier_handler.load_pipelines()
 
     # If override_classifier_threshold is set, use that
-    if classifier_params['override_classifier_threshold'] is not False:
-        clf_threshold = classifier_params['threshold_override']
+    if classifier_params['classifier_threshold_override']['override'] is not False:
+        clf_threshold = classifier_params['classifier_threshold_override']['threshold']
         print(f' == Overriding classifier threshold with {clf_threshold} ==')
         classifier_handler.clf_threshold = clf_threshold
 
