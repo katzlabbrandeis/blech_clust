@@ -47,12 +47,13 @@ from tqdm import tqdm
 import glob
 import json
 import matplotlib.pyplot as plt
-from sklearn.mixture import BayesianGaussianMixture
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from utils.blech_utils import imp_metadata, pipeline_graph_check
 from utils.qa_utils import channel_corr
 from utils.ephys_data.visualize import gen_square_subplots
+import pandas as pd
 
 try:
     from scipy.stats import median_abs_deviation as MAD
@@ -84,49 +85,112 @@ def get_channel_corr_mat(data_dir):
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
-def cluster_electrodes(features, n_components=10, n_iter=100, threshold=1e-3):
+def calculate_bic(kmeans, X):
     """
-    Cluster electrodes using Bayesian Gaussian Mixture model
+    Calculate the Bayesian Information Criterion (BIC) for a K-Means model.
+
+    Parameters:
+    -----------
+    kmeans : KMeans
+        Fitted KMeans model
+    X : numpy.ndarray
+        Data used to fit the model
+
+    Returns:
+    --------
+    bic : float
+        BIC score (lower is better)
+    """
+    # Get model parameters
+    n_samples, n_features = X.shape
+    k = kmeans.n_clusters
+
+    # Calculate log-likelihood
+    # Compute distances from each point to its assigned cluster center
+    centers = kmeans.cluster_centers_
+    labels = kmeans.labels_
+    distances = np.zeros(n_samples)
+
+    for i in range(n_samples):
+        distances[i] = np.sum((X[i] - centers[labels[i]])**2)
+
+    # Estimate variance (assuming spherical clusters)
+    variance = np.sum(distances) / (n_samples - k)
+    if variance <= 0:
+        variance = 1e-10  # Avoid division by zero or negative variance
+
+    # Log-likelihood
+    log_likelihood = -0.5 * \
+        (n_samples * np.log(2 * np.pi * variance) + n_samples)
+
+    # Number of free parameters: k cluster centers (each with n_features dimensions) + 1 variance parameter
+    n_params = k * n_features + 1
+
+    # BIC = -2 * log-likelihood + n_params * log(n_samples)
+    bic = -2 * log_likelihood + n_params * np.log(n_samples)
+
+    return bic
+
+
+def cluster_electrodes(features, max_clusters=10):
+    """
+    Cluster electrodes using K-Means and BIC
 
     Parameters:
     -----------
     features : numpy.ndarray
         Array of features for each electrode (from PCA on correlation matrix)
-    n_components : int
-        Maximum number of components for the Bayesian Gaussian Mixture model
-    n_iter : int
-        Number of iterations for the model
-    threshold : float
-        Convergence threshold for the model
+    max_clusters : int
+        Maximum number of clusters to consider
 
     Returns:
     --------
     predictions : numpy.ndarray
         Array of cluster assignments for each electrode
-    model : BayesianGaussianMixture
-        Fitted model
-    reduced_features : numpy.ndarray
-        Features reduced to 2D for visualization
+    best_kmeans : KMeans
+        Fitted KMeans model with optimal number of clusters
+    scores : tuple
+        Tuple containing (cluster_range, bic_scores)
     """
-    print("Clustering electrodes...")
+    print("Clustering electrodes with K-Means using BIC...")
 
-    # No need to standardize features as they're already from PCA
-    # Fit Bayesian Gaussian Mixture model on the full feature set
-    model = BayesianGaussianMixture(
-        n_components=n_components,
-        covariance_type='full',
-        max_iter=n_iter,
-        tol=threshold,
-        random_state=42,
-        weight_concentration_prior_type='dirichlet_process',
-        weight_concentration_prior=1e-2
-    )
-    model.fit(features)
+    # Initialize variables to track the best model
+    best_bic = np.inf  # For BIC, lower is better
+    best_kmeans = None
+    best_predictions = None
+    bic_scores = []
+    cluster_range = []
 
-    # Get cluster assignments
-    predictions = model.predict(features)
+    # Handle the case where we have very few samples
+    max_possible_clusters = min(max_clusters, len(features) - 1)
 
-    return predictions, model
+    # Try different numbers of clusters, starting from 1
+    min_clusters = 1
+
+    # Try different numbers of clusters
+    for n_clusters in range(min_clusters, max_possible_clusters + 1):
+        cluster_range.append(n_clusters)
+        kmeans = KMeans(
+            n_clusters=n_clusters,
+            random_state=42,
+            n_init=10  # Multiple initializations to find best solution
+        )
+        kmeans.fit(features)
+        predictions = kmeans.labels_
+
+        # Calculate BIC score
+        bic = calculate_bic(kmeans, features)
+        bic_scores.append(bic)
+        print(f"  K={n_clusters}, BIC={bic:.4f}")
+
+        if bic < best_bic:
+            best_bic = bic
+            best_kmeans = kmeans
+            best_predictions = predictions
+
+    print(
+        f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
+    return best_predictions, best_kmeans, (cluster_range, bic_scores)
 
 
 def plot_clustered_corr_mat(
@@ -144,10 +208,22 @@ def plot_clustered_corr_mat(
     cluster_indices : list
     plot_path : str
     """
+
+    data_df = pd.DataFrame(
+        dict(
+            predictions=predictions,
+            electrode_names=electrode_names
+        )
+    )
+
+    data_df.sort_values(by=['predictions', 'electrode_names'], inplace=True)
+
     # Sort electrodes by cluster assignment
-    sorted_indices = np.argsort(predictions)
+    # sorted_indices = np.argsort(predictions)
+    sorted_indices = data_df.index.values
     sorted_corr_matrix = corr_matrix[sorted_indices, :][:, sorted_indices]
-    sorted_names = [electrode_names[i] for i in sorted_indices]
+    # sorted_names = [electrode_names[i] for i in sorted_indices]
+    sorted_names = data_df.electrode_names.values
 
     # Plot clustered correlation matrix
     fig, ax = plt.subplots(1, 3, figsize=(24, 8),
@@ -210,7 +286,8 @@ if not testing_bool:
     this_pipeline_check.write_to_log(script_path, 'attempted')
 else:
     # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     print(' ==== Running in test mode ====')
 
@@ -234,9 +311,11 @@ emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
 none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
 electrode_layout_frame = electrode_layout_frame[fin_bool]
-electrode_layout_frame['channel_name'] = \
-    electrode_layout_frame['port'].astype(str) + '_' + \
-    electrode_layout_frame['electrode_num'].astype(str)
+electrode_layout_frame['channel_name'] = electrode_layout_frame.apply(
+    lambda row: f"{row['port']}_{row['electrode_num']:02}", axis=1
+)
+# electrode_layout_frame['port'].astype(str) + '_' + \
+# electrode_layout_frame['electrode_num'].astype(str)
 
 num_groups = electrode_layout_frame.CAR_group.nunique()
 print(f" Number of groups : {num_groups}")
@@ -255,6 +334,8 @@ if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_inference = auto_car_section.get('use_auto_CAR', False)
     max_clusters = auto_car_section.get(
         'max_clusters', 10)  # Default to 10 if not specified
+    # Use BIC for clustering by default
+    use_bic = auto_car_section.get('use_bic', True)
 else:
     auto_car_inference = False
     max_clusters = 10
@@ -280,28 +361,61 @@ if auto_car_inference:
     index_bool = emg_bool[none_bool].values
     corr_mat = corr_mat[index_bool, :][:, index_bool]
 
-    # Perform PCA - use min of 5 or the number of channels to avoid errors
-    n_components = min(10, len(corr_mat) - 1)
-    pca = PCA(n_components=n_components)
-    features = pca.fit_transform(corr_mat)
+    # Create a dictionary to store cluster predictions for each CAR group
+    all_predictions = np.zeros(len(electrode_layout_frame), dtype=int)
 
-    # Cluster electrodes
-    predictions, model = cluster_electrodes(
-        features,
-        n_components=min(max_clusters, len(corr_mat) - 1),
-        n_iter=100,
-        threshold=1e-3
-    )
+    # Process each CAR group separately
+    for group_idx, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+        print(f"\nProcessing CAR group: {group_name}")
 
-    print(f"Found {len(np.unique(predictions))} clusters")
+        # Get indices for this CAR group
+        group_mask = electrode_layout_frame.CAR_group == group_name
+        group_indices = np.where(group_mask)[0]
 
-    electrode_layout_frame['predicted_clusters'] = predictions
+        if len(group_indices) <= 1:
+            print(
+                f"  Skipping group {group_name} - only {len(group_indices)} channels")
+            continue
 
-    # Plot clusters
-    plot_path = os.path.join(dir_name, 'QA_output', 'clustered_corr_mat.png')
-    plot_clustered_corr_mat(
-        corr_mat, predictions, electrode_layout_frame.channel_name.values, plot_path
-    )
+        # Extract correlation submatrix for this group
+        group_corr_mat = corr_mat[group_indices, :][:, group_indices]
+
+        # Perform PCA on this group's correlation matrix
+        n_components = min(5, len(group_corr_mat) - 1)
+        if n_components <= 0:
+            print(
+                f"  Skipping group {group_name} - insufficient channels for PCA")
+            continue
+
+        pca = PCA(n_components=n_components)
+        group_features = pca.fit_transform(group_corr_mat)
+
+        # Cluster electrodes within this group
+        group_predictions, model, (cluster_range, scores) = cluster_electrodes(
+            group_features,
+            max_clusters=min(max_clusters, len(group_corr_mat) - 1)
+        )
+
+        print(
+            f"  Found {len(np.unique(group_predictions))} clusters in group {group_name}")
+
+        # Store predictions for this group
+        for i, idx in enumerate(group_indices):
+            all_predictions[idx] = group_predictions[i]
+
+        # Plot K-Means BIC scores for this group
+        plt.figure(figsize=(10, 6))
+        plt.plot(cluster_range, scores, 'o-', color='blue')
+        plt.title(f'K-Means Clustering BIC Scores - Group {group_name}')
+        plt.xlabel('Number of Clusters (k)')
+        plt.ylabel('BIC Score (lower is better)')
+        plt.grid(True)
+        plt.savefig(os.path.join(
+            plots_dir, f'kmeans_bic_scores_{group_name}.png'))
+        plt.close()
+
+    # Store all predictions in the electrode layout frame
+    electrode_layout_frame['predicted_clusters'] = all_predictions
 
     # Save original CAR_groups as backup
     electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
@@ -310,8 +424,23 @@ if auto_car_inference:
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
         lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
     )
-
     num_groups = electrode_layout_frame.CAR_group.nunique()
+
+    pred_map = dict(zip(
+        electrode_layout_frame.CAR_group.unique(),
+        np.arange(num_groups)
+    )
+    )
+
+    # Plot clusters for all electrodes
+    plot_path = os.path.join(dir_name, 'QA_output', 'clustered_corr_mat.png')
+    plot_clustered_corr_mat(
+        corr_matrix=corr_mat,
+        predictions=electrode_layout_frame.CAR_group.map(pred_map).values,
+        electrode_names=electrode_layout_frame.channel_name.values,
+        plot_path=plot_path
+    )
+
     print(
         "Calculating common average reference for {:d} groups".format(num_groups))
     print('Updated CAR groups with channel counts')
@@ -323,7 +452,8 @@ if auto_car_inference:
     layout_frame_path = glob.glob(os.path.join(
         dir_name, '*_electrode_layout.csv'))[0]
     out_electrode_layout_frame = metadata_handler.layout.copy()
-    out_electrode_layout_frame.at[fin_bool, 'predicted_clusters'] = predictions
+    out_electrode_layout_frame.at[fin_bool,
+                                  'predicted_clusters'] = all_predictions
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
