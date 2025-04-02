@@ -357,16 +357,16 @@ else:
         original_times = cluster_handler.spike_set.times_dejittered
         original_clf_prob = classifier_handler.clf_prob
         original_clf_pred = classifier_handler.clf_pred
-        
+
         # Restore original data for plotting
         cluster_handler.spike_set.slices_dejittered = cluster_handler.spike_set.slices_original
         cluster_handler.spike_set.times_dejittered = cluster_handler.spike_set.times_original
         classifier_handler.clf_prob = classifier_handler.clf_prob_original
         classifier_handler.clf_pred = classifier_handler.clf_pred_original
-        
+
         # Create plots with all waveforms
         cluster_handler.create_classifier_plots(classifier_handler)
-        
+
         # Restore filtered data for further processing
         if classifier_params['throw_out_noise']:
             cluster_handler.spike_set.slices_dejittered = original_slices
