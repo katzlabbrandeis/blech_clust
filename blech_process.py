@@ -249,9 +249,9 @@ if auto_cluster == False:
 else:
     print('=== Performing auto_clustering ===')
     max_clusters = auto_params['max_autosort_clusters']
-    iters = (
-            (max_clusters, 'auto')
-    )
+    iters = [
+        (max_clusters, 'auto')
+    ]
 
 for cluster_num, fit_type in iters:
     # Pass specific data instead of the whole spike_set
