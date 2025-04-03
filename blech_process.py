@@ -28,16 +28,32 @@ This module processes single electrode waveforms for spike detection and cluster
 # Imports
 ############################################################
 import argparse  # noqa
-parser = argparse.ArgumentParser(
-    description='Process single electrode waveforms')
-parser.add_argument('data_dir', type=str, help='Path to data directory')
-parser.add_argument('electrode_num', type=int,
-                    help='Electrode number to process')
-args = parser.parse_args()
+import os  # noqa
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+
+test_bool = False
+if test_bool:
+    args = argparse.Namespace(
+        data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/',
+        electrode_num=0
+    )
+else:
+    parser = argparse.ArgumentParser(
+        description='Process single electrode waveforms')
+    parser.add_argument('data_dir', type=str, help='Path to data directory')
+    parser.add_argument('electrode_num', type=int,
+                        help='Electrode number to process')
+    args = parser.parse_args()
+
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
@@ -50,7 +66,7 @@ import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
 import utils.blech_process_utils as bpu  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from itertools import product  # noqa
 
 # Confirm sys.argv[1] is a path that exists
 if not os.path.exists(args.data_dir):
@@ -73,12 +89,6 @@ np.random.seed(0)
 path_handler = bpu.path_handler()
 blech_clust_dir = path_handler.blech_clust_dir
 data_dir_name = args.data_dir
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(data_dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 metadata_handler = imp_metadata([[], data_dir_name])
 os.chdir(metadata_handler.dir_name)
@@ -126,39 +136,30 @@ electrode = bpu.electrode_handler(
     electrode_num,
     params_dict)
 
-electrode.filter_electrode()
-
-# Calculate the 3 voltage parameters
-electrode.cut_to_int_seconds()
-electrode.calc_recording_cutoff()
-
-# Dump a plot showing where the recording was cut off at
-electrode.make_cutoff_plot()
-
-# Then cut the recording accordingly
-electrode.cutoff_electrode()
+# Run complete preprocessing pipeline
+filtered_data = electrode.preprocess_electrode()
 
 #############################################################
 # Process Spikes
 #############################################################
 
-# Extract spike times and waveforms from filtered data
-spike_set = bpu.spike_handler(electrode.filt_el,
+# Extract and process spikes from filtered data
+spike_set = bpu.spike_handler(filtered_data,
                               params_dict, data_dir_name, electrode_num)
-spike_set.extract_waveforms()
+slices_dejittered, times_dejittered, threshold, mean_val = spike_set.process_spikes()
 
 ############################################################
 # Extract windows from filt_el and plot with threshold overlayed
 window_len = 0.2  # sec
 window_count = 10
 fig = bpu.gen_window_plots(
-    electrode.filt_el,
+    filtered_data,
     window_len,
     window_count,
     params_dict['sampling_rate'],
-    spike_set.spike_times,
-    spike_set.mean_val,
-    spike_set.threshold,
+    times_dejittered,
+    mean_val,
+    threshold,
 )
 fig.savefig(f'./Plots/{electrode_num:02}/bandapass_trace_snippets.png',
             bbox_inches='tight', dpi=300)
@@ -167,10 +168,6 @@ plt.close(fig)
 
 # Delete filtered electrode from memory
 del electrode
-
-# Dejitter these spike waveforms, and get their maximum amplitudes
-# Slices are returned sorted by amplitude polaity
-spike_set.dejitter_spikes()
 
 ############################################################
 # Load classifier if specificed
@@ -190,8 +187,8 @@ if classifier_params['use_neuRecommend']:
     classifier_handler.load_pipelines()
 
     # If override_classifier_threshold is set, use that
-    if classifier_params['override_classifier_threshold'] is not False:
-        clf_threshold = classifier_params['threshold_override']
+    if classifier_params['classifier_threshold_override']['override'] is not False:
+        clf_threshold = classifier_params['classifier_threshold_override']['threshold']
         print(f' == Overriding classifier threshold with {clf_threshold} ==')
         classifier_handler.clf_threshold = clf_threshold
 
@@ -245,35 +242,33 @@ if auto_cluster == False:
     print('=== Performing manual clustering ===')
     # Run GMM, from 2 to max_clusters
     max_clusters = params_dict['clustering_params']['max_clusters']
-    for cluster_num in range(2, max_clusters+1):
-        cluster_handler = bpu.cluster_handler(
-            params_dict,
-            data_dir_name,
-            electrode_num,
-            cluster_num,
-            spike_set,
-            fit_type='manual',
-        )
-        cluster_handler.perform_prediction()
-        cluster_handler.remove_outliers(params_dict)
-        cluster_handler.calc_mahalanobis_distance_matrix()
-        cluster_handler.save_cluster_labels()
-        cluster_handler.create_output_plots(params_dict)
-        if classifier_params['use_classifier'] and \
-                classifier_params['use_neuRecommend']:
-            cluster_handler.create_classifier_plots(classifier_handler)
+    iters = product(
+        np.arange(2, max_clusters+1),
+        ['manual']
+    )
 else:
     print('=== Performing auto_clustering ===')
     max_clusters = auto_params['max_autosort_clusters']
+    iters = [
+        (max_clusters, 'auto')
+    ]
+
+for cluster_num, fit_type in iters:
+    # Pass specific data instead of the whole spike_set
     cluster_handler = bpu.cluster_handler(
         params_dict,
         data_dir_name,
         electrode_num,
-        max_clusters,
-        spike_set,
-        fit_type='auto',
+        cluster_num,
+        spike_features=spike_set.spike_features,
+        slices_dejittered=spike_set.slices_dejittered,
+        times_dejittered=spike_set.times_dejittered,
+        threshold=spike_set.threshold,
+        feature_names=spike_set.feature_names,
+        fit_type=fit_type,
     )
-    cluster_handler.perform_prediction()
+    # Use the new simplified clustering method
+    cluster_handler.perform_clustering()
     cluster_handler.remove_outliers(params_dict)
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
@@ -281,7 +276,6 @@ else:
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(classifier_handler)
-
 
 print(f'Electrode {electrode_num} complete.')
 
