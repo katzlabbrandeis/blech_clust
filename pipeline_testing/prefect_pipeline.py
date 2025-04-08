@@ -686,47 +686,49 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
 def extract_traceback_context(log_file, context_lines=50):
     """
     Extract and print context around the first traceback in a log file.
-    
+
     Args:
         log_file (str): Path to the log file
         context_lines (int): Number of lines to print before and after the traceback
-        
+
     Returns:
         bool: True if a traceback was found, False otherwise
     """
     if not os.path.exists(log_file):
         print(f"Log file not found: {log_file}")
         return False
-        
+
     try:
         with open(log_file, 'r') as f:
             lines = f.readlines()
-            
+
         traceback_found = False
         for i, line in enumerate(lines):
             if "Traceback (most recent call last):" in line:
                 traceback_found = True
                 print("\n" + "="*80)
-                print(f"TRACEBACK FOUND - Showing {context_lines} lines before and after:")
+                print(
+                    f"TRACEBACK FOUND - Showing {context_lines} lines before and after:")
                 print("="*80 + "\n")
-                
+
                 start = max(0, i - context_lines)
                 end = min(len(lines), i + context_lines)
-                
+
                 for j in range(start, end):
                     print(f"{j+1:5d}: {lines[j].rstrip()}")
-                
+
                 print("\n" + "="*80)
                 break
-                
+
         if not traceback_found:
             print("No traceback found in log file.")
             return False
-            
+
         return True
     except Exception as e:
         print(f"Error extracting traceback context: {str(e)}")
         return False
+
 
 def dummy_upload_test_results():
     """Upload results without running tests"""
@@ -739,7 +741,7 @@ def dummy_upload_test_results():
 @flow(log_prints=True)
 def spike_only_test():
     log_file = os.path.join(blech_clust_dir, "prefect_spike_test.log")
-    
+
     # Create a file handler for logging
     log_handler = None
     if not test_bool:  # Only set up logging in non-test mode
@@ -752,7 +754,7 @@ def spike_only_test():
             sys.stderr = bu.Tee(sys.stderr, log_handler)
         except Exception as e:
             print(f"Failed to set up logging: {str(e)}")
-    
+
     try:
         if break_bool:
             for file_type in file_types:
@@ -773,7 +775,8 @@ def spike_only_test():
                         data_dir, 'current_data_type.txt')
                     if os.path.exists(current_data_type_path):
                         with open(current_data_type_path, 'r') as f:
-                            current_data_type = f.read().strip().split(' -- ')[-1]
+                            current_data_type = f.read(
+                            ).strip().split(' -- ')[-1]
                     else:
                         current_data_type = "spike"  # Default if file doesn't exist
 
@@ -809,7 +812,7 @@ def spike_only_test():
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             log_handler.close()
-            
+
             # Extract traceback context if there was an error
             extract_traceback_context(log_file)
 
@@ -817,7 +820,7 @@ def spike_only_test():
 @flow(log_prints=True)
 def spike_emg_test():
     log_file = os.path.join(blech_clust_dir, "prefect_spike_emg_test.log")
-    
+
     # Create a file handler for logging
     log_handler = None
     if not test_bool:  # Only set up logging in non-test mode
@@ -830,7 +833,7 @@ def spike_emg_test():
             sys.stderr = bu.Tee(sys.stderr, log_handler)
         except Exception as e:
             print(f"Failed to set up logging: {str(e)}")
-    
+
     try:
         if break_bool:
             for file_type in file_types:
@@ -859,7 +862,7 @@ def spike_emg_test():
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             log_handler.close()
-            
+
             # Extract traceback context if there was an error
             extract_traceback_context(log_file)
 
@@ -985,7 +988,7 @@ def run_emg_freq_only():
 @flow(log_prints=True)
 def emg_only_test():
     log_file = os.path.join(blech_clust_dir, "prefect_emg_test.log")
-    
+
     # Create a file handler for logging
     log_handler = None
     if not test_bool:  # Only set up logging in non-test mode
@@ -998,7 +1001,7 @@ def emg_only_test():
             sys.stderr = bu.Tee(sys.stderr, log_handler)
         except Exception as e:
             print(f"Failed to set up logging: {str(e)}")
-    
+
     try:
         if break_bool:
             run_emg_freq_only()
@@ -1020,7 +1023,7 @@ def emg_only_test():
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             log_handler.close()
-            
+
             # Extract traceback context if there was an error
             extract_traceback_context(log_file)
 
