@@ -224,6 +224,9 @@ if classifier_params['use_classifier'] and \
         slices_og = spike_set.slices_dejittered
         times_og = spike_set.times_dejittered
         clf_prob_og = classifier_handler.clf_prob
+else:
+    # Make sure throw_out_noise bool exists
+    throw_out_noise_bool = False
 
 ############################################################
 
