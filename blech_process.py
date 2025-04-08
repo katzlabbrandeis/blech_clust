@@ -204,14 +204,24 @@ if classifier_params['use_classifier'] and \
     classifier_handler.write_out_recommendations()
 
     if classifier_params['throw_out_noise'] or auto_cluster:
+        throw_out_noise_bool = True
         print('== Throwing out noise waveforms ==')
+        # Make copy of the original data
+        slices_og = spike_set.slices_dejittered.copy()
+        times_og = spike_set.times_dejittered.copy()
+        clf_prob_og = classifier_handler.clf_prob.copy()
+
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
-        spike_set.slices_dejittered = slices_dejittered
-        spike_set.times_dejittered = times_dejittered
-        classifier_handler.clf_prob = clf_prob
-        classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
+        # spike_set.slices_dejittered = slices_dejittered
+        # spike_set.times_dejittered = times_dejittered
+        # classifier_handler.clf_prob = clf_prob
+        # classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
+    else:
+        slices_og = spike_set.slices_dejittered
+        times_og = spike_set.times_dejittered
+        clf_prob_og = classifier_handler.clf_prob
 
 ############################################################
 
@@ -219,21 +229,47 @@ if classifier_params['use_neuRecommend']:
     # If full classification pipeline was not loaded, still use
     # feature transformation pipeline
     print('Using neuRecommend features')
-    spike_set.extract_features(
-        classifier_handler.feature_pipeline,
-        classifier_handler.feature_names,
-        fitted_transformer=True,
-    )
+    feature_pipeline = classifier_handler.feature_pipeline
+    feature_names = classifier_handler.feature_names
+    use_fitted_transformer = True
+    # _, spike_set.extract_features(
+    #     slices_dejittered,
+    #     classifier_handler.feature_pipeline,
+    #     classifier_handler.feature_names,
+    #     fitted_transformer=True,
+    #     retain_features=True,
+    # )
 else:
     print('Using blech_spike_features')
     import utils.blech_spike_features as bsf
     bsf_feature_pipeline = bsf.return_feature_pipeline(data_dir_name)
+    # Use the feature pipeline from blech_spike_features
+    feature_pipeline = bsf_feature_pipeline
+    feature_names = bsf.feature_names
     # Set fitted_transformer to False so transformer is fit to new data
-    spike_set.extract_features(
-        bsf_feature_pipeline,
-        bsf.feature_names,
-        fitted_transformer=False,
+    use_fitted_transformer = False
+
+_ = spike_set.extract_features(
+    slices_dejittered,
+    feature_pipeline,
+    feature_names,
+    fitted_transformer=use_fitted_transformer,
+    retain_features=True,
+)
+
+# If throw_out_noise is set, also get features for all waveforms
+if throw_out_noise_bool:
+    all_features = spike_set.extract_features(
+        slices_og,
+        feature_pipeline,
+        feature_names,
+        # If throw out noise is true, fitted transformer WILL be used
+        fitted_transformer=use_fitted_transformer,
+        # We don't want spike_set to be updated with all features
+        retain_features=False,
     )
+else:
+    all_features = spike_set.spike_features
 
 spike_set.write_out_spike_data()
 
@@ -269,13 +305,29 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
+    # At this point, cluster_handler has a trained GMM
+    # If 'throw_out_noise', then get labels for all waveforms
+    if throw_out_noise_bool:
+        all_labels = cluster_handler.get_cluster_labels(
+            all_features,
+        )
+    else:
+        all_labels = cluster_handler.labels
     cluster_handler.remove_outliers(params_dict)
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
     cluster_handler.create_output_plots(params_dict)
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
-        cluster_handler.create_classifier_plots(classifier_handler)
+        cluster_handler.create_classifier_plots(
+            # classifier_handler
+            clf_prob_og > classifier_handler.clf_threshold,
+            clf_prob,
+            classifier_handler.clf_prob,
+            slices_og,
+            times_og,
+            all_labels,
+        )
 
 print(f'Electrode {electrode_num} complete.')
 
