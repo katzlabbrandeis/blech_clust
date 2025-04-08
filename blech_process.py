@@ -214,8 +214,9 @@ if classifier_params['use_classifier'] and \
         # Remaining data is now only spikes
         slices_dejittered, times_dejittered, clf_prob = \
             classifier_handler.pos_spike_dict.values()
-        # spike_set.slices_dejittered = slices_dejittered
-        # spike_set.times_dejittered = times_dejittered
+        # Update internal attributes of spike_set for later feature_extraction
+        spike_set.slices_dejittered = slices_dejittered
+        spike_set.times_dejittered = times_dejittered
         # classifier_handler.clf_prob = clf_prob
         # classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
     else:
@@ -264,6 +265,9 @@ if throw_out_noise_bool:
         feature_pipeline,
         feature_names,
         # If throw out noise is true, fitted transformer WILL be used
+        # If not, this will not be run
+        # Therefore, we don't need to worry about different transformations
+        # for `all_features` and `spike_set.spike_features`
         fitted_transformer=use_fitted_transformer,
         # We don't want spike_set to be updated with all features
         retain_features=False,
@@ -297,8 +301,8 @@ for cluster_num, fit_type in iters:
         electrode_num,
         cluster_num,
         spike_features=spike_set.spike_features,
-        slices_dejittered=spike_set.slices_dejittered,
-        times_dejittered=spike_set.times_dejittered,
+        slices_dejittered=slices_dejittered,
+        times_dejittered=times_dejittered,
         threshold=spike_set.threshold,
         feature_names=spike_set.feature_names,
         fit_type=fit_type,
@@ -308,6 +312,7 @@ for cluster_num, fit_type in iters:
     # At this point, cluster_handler has a trained GMM
     # If 'throw_out_noise', then get labels for all waveforms
     if throw_out_noise_bool:
+        print('=== GMM trained using only classified spikes ===')
         all_labels = cluster_handler.get_cluster_labels(
             all_features,
         )
@@ -317,16 +322,17 @@ for cluster_num, fit_type in iters:
     cluster_handler.calc_mahalanobis_distance_matrix()
     cluster_handler.save_cluster_labels()
     cluster_handler.create_output_plots(params_dict)
+    # NOTE: Classifier plots will not have outliers removed
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(
             # classifier_handler
-            clf_prob_og > classifier_handler.clf_threshold,
-            clf_prob,
-            classifier_handler.clf_prob,
-            slices_og,
-            times_og,
-            all_labels,
+            classifier_pred=clf_prob_og > classifier_handler.clf_threshold,
+            classifier_prob=clf_prob_og,
+            clf_threshold=classifier_handler.clf_threshold,
+            all_waveforms=slices_og,
+            all_times=times_og,
+            labels=all_labels,
         )
 
 print(f'Electrode {electrode_num} complete.')
