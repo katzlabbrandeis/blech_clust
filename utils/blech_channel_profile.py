@@ -11,12 +11,13 @@ import pylab as plt
 from tqdm import tqdm
 
 
-def plot_channels(dir_path, file_type):
+def plot_channels(dir_path, qa_out_path, file_type):
     """
     Generate plots for all channels and digital inputs
 
     Args:
         dir_path: Directory containing the data files
+        qa_out_path: Directory to save the plots
         file_type: Either 'one file per channel' or 'one file per signal type'
     """
     if file_type not in ['one file per channel', 'one file per signal type']:
@@ -24,7 +25,7 @@ def plot_channels(dir_path, file_type):
             "file_type must be either 'one file per channel' or 'one file per signal type'")
 
     # Create plot dir
-    plot_dir = os.path.join(dir_path, "channel_profile_plots")
+    plot_dir = os.path.join(qa_out_path, "channel_profile_plots")
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
