@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/119422765.svg)](https://doi.org/10.5281/zenodo.15175272)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/katzlabbrandeis/blech_clust/master.svg)](https://results.pre-commit.ci/latest/github/katzlabbrandeis/blech_clust/master)
 
 # blech_clust
@@ -248,3 +249,33 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 
 - **QDA (Jenn Li)**
 - - [emg_freq_setup] -> [get_gapes_Li]
+
+### Citation
+If you use this code in your research, please cite the following paper:
+
+```bibtex
+@software{blech_clust_katz,
+  author       = {Mahmood, Abuzar and
+                  Mukherjee, Narendra and
+                  Stone, Bradly and
+                  Raymond, Martin and
+                  Germaine, Hannah and
+                  Lin, Jian-You and
+                  Mazzio, Christina and
+                  Katz, Donald},
+  title        = {katzlabbrandeis/blech\_clust: v1.1.0},
+  month        = apr,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {1.1.0},
+  doi          = {10.5281/zenodo.15175273},
+  url          = {https://doi.org/10.5281/zenodo.15175273},
+  swhid        = {swh:1:dir:3970ccd774c6854819d510a288871435b6df3102
+                   ;origin=https://doi.org/10.5281/zenodo.15175272;vi
+                   sit=swh:1:snp:8c3e68b1e08e872f071a89982e99270c5846
+                   0e87;anchor=swh:1:rel:c90c05b9e71fc340ac44e6c742b2
+                   00fe3c655588;path=katzlabbrandeis-
+                   blech\_clust-10c7fab
+                  },
+}
+```
