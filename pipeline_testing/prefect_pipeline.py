@@ -457,20 +457,22 @@ def run_spike_test(data_dir):
     set_auto_car(data_dir, 0)
     run_CAR(data_dir)
 
-    # Run with classifier enabled + autosorting
-    change_waveform_classifier(data_dir, use_classifier=1)
-    change_auto_params(data_dir, use_auto=1)
-    run_jetstream_bash(data_dir)
-    # Keep raw in the first pass so jetstream step can be rerun
-    post_process(data_dir, use_file=False, keep_raw=True)
-    post_process(data_dir, use_file=False, keep_raw=True, delete_existing=True)
-
     # Run with classifier disabled and manual sorting
     change_waveform_classifier(data_dir, use_classifier=0)
     change_auto_params(data_dir, use_auto=0)
     run_jetstream_bash(data_dir)
     select_clusters(data_dir)
-    post_process(data_dir, use_file=True, keep_raw=False, delete_existing=True)
+    post_process(data_dir, use_file=True, keep_raw=True, delete_existing=False)
+
+    # Run with classifier enabled + autosorting
+    # Run this second so that final plots are actually units
+    change_waveform_classifier(data_dir, use_classifier=1)
+    change_auto_params(data_dir, use_auto=1)
+    run_jetstream_bash(data_dir)
+    # Keep raw in the first pass so jetstream step can be rerun
+    post_process(data_dir, use_file=False, keep_raw=True, delete_existing=True)
+    post_process(data_dir, use_file=False,
+                 keep_raw=False, delete_existing=True)
 
     make_arrays(data_dir)
     quality_assurance(data_dir)
