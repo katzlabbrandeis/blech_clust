@@ -220,6 +220,7 @@ if classifier_params['use_classifier'] and \
         # classifier_handler.clf_prob = clf_prob
         # classifier_handler.clf_pred = clf_prob > classifier_handler.clf_threshold
     else:
+        throw_out_noise_bool = False
         slices_og = spike_set.slices_dejittered
         times_og = spike_set.times_dejittered
         clf_prob_og = classifier_handler.clf_prob
