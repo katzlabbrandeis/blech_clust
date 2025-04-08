@@ -323,6 +323,8 @@ for cluster_num, fit_type in iters:
     cluster_handler.save_cluster_labels()
     cluster_handler.create_output_plots(params_dict)
     # NOTE: Classifier plots will not have outliers removed
+    if throw_out_noise_bool:
+        print('=== Classifier plots will NOT have outliers removed ===')
     if classifier_params['use_classifier'] and \
             classifier_params['use_neuRecommend']:
         cluster_handler.create_classifier_plots(
