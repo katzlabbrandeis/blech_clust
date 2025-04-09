@@ -338,7 +338,16 @@ class cluster_handler():
         self.clust_results_dir = clust_results_dir
         self.clust_plot_dir = clust_plot_dir
 
-    def create_classifier_plots(self, classifier_handler):
+    def create_classifier_plots(
+            self,
+            # classifier_handler
+            classifier_pred,
+            classifier_prob,
+            clf_threshold,
+            all_waveforms,
+            all_times,
+            labels=None,
+    ):
         """
         For each cluster, plot:
             1. Pred Spikes
@@ -350,18 +359,21 @@ class cluster_handler():
         Input data can come from classifier_handler
         """
 
-        self.check_classifier_data_exists(self.data_dir)
+        # self.check_classifier_data_exists(self.data_dir)
 
-        classifier_pred = classifier_handler.clf_pred
-        classifier_prob = classifier_handler.clf_prob
-        clf_threshold = classifier_handler.clf_threshold
-        # Use directly stored data instead of accessing through spike_set
-        all_waveforms = self.slices_dejittered
-        all_times = self.times_dejittered
+        # classifier_pred = classifier_handler.clf_pred
+        # classifier_prob = classifier_handler.clf_prob
+        # clf_threshold = classifier_handler.clf_threshold
+        # # Use directly stored data instead of accessing through spike_set
+        # all_waveforms = self.slices_dejittered
+        # all_times = self.times_dejittered
+
+        if labels is None:
+            labels = self.labels
 
         max_plot_count = 1000
-        for cluster in np.unique(self.labels):
-            cluster_bool = self.labels == cluster
+        for cluster in np.unique(labels):
+            cluster_bool = labels == cluster
             if sum(cluster_bool):
 
                 fig = plt.figure(figsize=(5, 10))
@@ -1083,17 +1095,25 @@ class spike_handler():
         del self.spike_times
 
     def extract_features(self,
+                         slices_dejittered,
                          feature_transformer,
                          feature_names,
-                         fitted_transformer=True):
+                         fitted_transformer=True,
+                         retain_features=True,
+                         ):
 
         self.feature_names = feature_names
         if fitted_transformer:
-            self.spike_features = feature_transformer.transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.transform(
+                slices_dejittered)
         else:
-            self.spike_features = feature_transformer.fit_transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.fit_transform(
+                slices_dejittered)
+
+        if retain_features:
+            # Retain features in the object
+            self.spike_features = spike_features.copy()
+        return spike_features
 
     def return_feature(self, wanted_feature):
         wanted_inds = [i for i, x in enumerate(self.feature_names)
