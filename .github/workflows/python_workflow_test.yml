@@ -80,10 +80,13 @@ jobs:
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
+        run:  conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+              tee ~/Desktop/blech_clust/github.log;
+              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+                echo "ERROR detected by bash";
+                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                exit 1;
+              fi
   EMG-Only-Install:
     runs-on: self-hosted
     needs: Spike-EMG-Install
@@ -96,9 +99,12 @@ jobs:
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
+              tee ~/Desktop/blech_clust/github.log;
+              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+                echo "ERROR detected by bash";
+                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                exit 1;
+              fi
   Spike-EMG:
     runs-on: self-hosted
     needs: Preamble
@@ -112,9 +118,12 @@ jobs:
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
+              tee ~/Desktop/blech_clust/github.log;
+              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+                echo "ERROR detected by bash";
+                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                exit 1;
+              fi
   EMG-Only:
     runs-on: self-hosted
     needs: Spike-EMG
@@ -128,6 +137,9 @@ jobs:
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-          tee ~/Desktop/blech_clust/github.log;
-          if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                            then echo "ERROR detected by bash"; exit 1; fi
+              tee ~/Desktop/blech_clust/github.log;
+              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+                echo "ERROR detected by bash";
+                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                exit 1;
+              fi
