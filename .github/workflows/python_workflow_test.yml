@@ -147,5 +147,3 @@ jobs:
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
                 echo "ERROR detected by bash"; exit 1;
               fi
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log;
-                                then echo "ERROR detected by bash"; exit 1; fi
