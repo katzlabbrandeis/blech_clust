@@ -69,7 +69,8 @@ for unit in trange(len(units)):
     waveforms = units[unit].waveforms[:]
     # Convert sample indices to time in minutes
     sampling_rate = params_dict['sampling_rate']
-    x = np.arange(waveforms.shape[1]) / (sampling_rate * 60)  # Convert to minutes
+    x = np.arange(waveforms.shape[1]) / \
+        (sampling_rate * 60)  # Convert to minutes
     times = units[unit].times[:]
     ISIs = np.diff(times)
 
@@ -131,7 +132,8 @@ for unit in trange(len(units)):
     waveforms = units[unit].waveforms[:]
     # Convert sample indices to time in minutes
     sampling_rate = params_dict['sampling_rate']
-    x = np.arange(waveforms.shape[1]) / (sampling_rate * 60)  # Convert to minutes
+    x = np.arange(waveforms.shape[1]) / \
+        (sampling_rate * 60)  # Convert to minutes
     times = units[unit].times[:]
     ISIs = np.diff(times)
 
