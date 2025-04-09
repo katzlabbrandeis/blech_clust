@@ -67,7 +67,9 @@ os.mkdir("unit_waveforms_plots")
 # Now plot the waveforms from the units in this directory one by one
 for unit in trange(len(units)):
     waveforms = units[unit].waveforms[:]
-    x = np.arange(waveforms.shape[1]) + 1
+    # Convert sample indices to time in minutes
+    sampling_rate = params_dict['sampling_rate']
+    x = np.arange(waveforms.shape[1]) / (sampling_rate * 60)  # Convert to minutes
     times = units[unit].times[:]
     ISIs = np.diff(times)
 
@@ -82,7 +84,7 @@ for unit in trange(len(units)):
     _, ax[0, 0] = blech_waveforms_datashader.\
         waveforms_datashader(waveforms, x, downsample=False,
                              ax=ax[0, 0])
-    ax[0, 0].set_xlabel('Sample (30 samples per ms)')
+    ax[0, 0].set_xlabel('Time (minutes)')
     ax[0, 0].set_ylabel('Voltage (microvolts)')
 
     # Also plot the mean and SD for every unit -
@@ -94,7 +96,7 @@ for unit in trange(len(units)):
         np.mean(waveforms, axis=0) - np.std(waveforms, axis=0),
         np.mean(waveforms, axis=0) + np.std(waveforms, axis=0),
         alpha=0.4)
-    ax[0, 1].set_xlabel('Sample (30 samples per ms)')
+    ax[0, 1].set_xlabel('Time (minutes)')
     # Set ylim same as ax[0,0]
     # ax[0,1].set_ylim(ax[0,0].get_ylim())
 
@@ -127,14 +129,16 @@ os.mkdir(plot_dir)
 
 for unit in trange(len(units)):
     waveforms = units[unit].waveforms[:]
-    x = np.arange(waveforms.shape[1]) + 1
+    # Convert sample indices to time in minutes
+    sampling_rate = params_dict['sampling_rate']
+    x = np.arange(waveforms.shape[1]) / (sampling_rate * 60)  # Convert to minutes
     times = units[unit].times[:]
     ISIs = np.diff(times)
 
     fig, ax = blech_waveforms_datashader.\
         waveforms_datashader(waveforms, x, downsample=False,
                              )
-    ax.set_xlabel('Sample (30 samples per ms)')
+    ax.set_xlabel('Time (minutes)')
     ax.set_ylabel('Voltage (microvolts)')
     fig.savefig(os.path.join(plot_dir, 'Unit%i_datashader.png' %
                 (unit)), bbox_inches='tight')
@@ -150,7 +154,7 @@ for unit in trange(len(units)):
         np.mean(waveforms, axis=0) - np.std(waveforms, axis=0),
         np.mean(waveforms, axis=0) + np.std(waveforms, axis=0),
         alpha=0.4)
-    ax.set_xlabel('Sample (30 samples per ms)')
+    ax.set_xlabel('Time (minutes)')
     fig.savefig(os.path.join(plot_dir, 'Unit%i_mean_sd.png' %
                 (unit)), bbox_inches='tight')
 
