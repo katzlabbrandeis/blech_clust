@@ -693,33 +693,33 @@ def dummy_upload_test_results():
 def analyze_traceback_logs(log_file_path, context_lines=50):
     """
     Analyzes a log file for Tracebacks and prints context around the first occurrence.
-    
+
     Args:
         log_file_path (str): Path to the log file
         context_lines (int): Number of lines to print before and after the Traceback
-    
+
     Returns:
         bool: True if Traceback was found, False otherwise
     """
     try:
         with open(log_file_path, 'r') as f:
             lines = f.readlines()
-        
+
         for i, line in enumerate(lines):
             if "Traceback (most recent call last):" in line:
                 print("\n===== TRACEBACK FOUND - SHOWING CONTEXT =====\n")
-                
+
                 # Calculate start and end indices with bounds checking
                 start_idx = max(0, i - context_lines)
                 end_idx = min(len(lines), i + context_lines)
-                
+
                 # Print context lines
                 for j in range(start_idx, end_idx):
                     print(lines[j].rstrip())
-                
+
                 print("\n===== END OF TRACEBACK CONTEXT =====\n")
                 return True
-        
+
         return False
     except Exception as e:
         print(f"Error analyzing log file: {str(e)}")
