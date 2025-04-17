@@ -75,7 +75,7 @@ for unit in trange(len(units)):
 
     # Get threshold from layout_frame
     layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
-    threshold = layout_frame['threshold'][layout_ind]
+    threshold = layout_frame['threshold'][layout_ind].values[0]
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 6), dpi=200)
     title_text = f'Unit {unit}, total waveforms = {waveforms.shape[0]}' + \
@@ -83,12 +83,11 @@ for unit in trange(len(units)):
         f'Single Unit: {unit_descriptor["single_unit"]}, ' + \
         f'RSU: {unit_descriptor["regular_spiking"]}, ' + \
         f'FS: {unit_descriptor["fast_spiking"]}, ' + \
-        f'SNR: {unit_descriptor["snr"]}'
+        f'SNR: {unit_descriptor["snr"]:.2f}'
 
     fig.suptitle(title_text, fontsize=12)
 
-    _, ax[0, 0] = blech_waveforms_datashader.\
-        waveforms_datashader(
+    _, ax[0, 0] = blech_waveforms_datashader.waveforms_datashader(
         waveforms,
         x,
         downsample=False,

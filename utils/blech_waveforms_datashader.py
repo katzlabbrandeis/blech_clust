@@ -104,9 +104,13 @@ def waveforms_datashader(
             ind = np.argmin(np.abs(orig_line - val))
             return fin_line[ind]
 
-        ax.axhline(y_transform(threshold, df['y'].max(), df['y'].min()), color='red',
+        trans_thresh = y_transform(threshold, df['y'].max(), df['y'].min())
+        neg_trans_thresh = y_transform(-threshold,
+                                       df['y'].max(), df['y'].min())
+
+        ax.axhline(trans_thresh, color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
-        ax.axhline(y_transform(-threshold, df['y'].max(), df['y'].min()), color='red',
+        ax.axhline(neg_trans_thresh, color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
 
     # Delete the dataframe
