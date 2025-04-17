@@ -588,7 +588,7 @@ def gen_plot_auto_merged_clusters(
                             for this_text, this_count in zip(
                                 current_legend_texts,
                                 waveform_counts,
-        )]
+                            )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,
@@ -738,6 +738,7 @@ class unit_descriptor_handler():
             this_sort_file_handler,
             split_or_merge,
             override_ask=False,
+            snr=None,
     ):
         """
         Save unit to hdf5 file
@@ -801,6 +802,7 @@ class unit_descriptor_handler():
         unit_description['single_unit'] = unit_properties['single_unit']
         unit_description['regular_spiking'] = unit_properties['regular_spiking']
         unit_description['fast_spiking'] = unit_properties['fast_spiking']
+        unit_description['snr'] = snr
         unit_description.append()
 
         # Flush table and hf5

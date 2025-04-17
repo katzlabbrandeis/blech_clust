@@ -415,12 +415,20 @@ while (not auto_post_process) or (args.sort_file is not None):
     # Finally, save the unit to the HDF5 file
     ############################################################
 
+    # Calculate SNR
+    layout_frame = metadata_handler.layout
+    frame_ind = layout_frame['electrode_ind'] == electrode_num
+    MAD_val = layout_frame['MAD_val'][frame_ind].values[0]
+    mean_amp = np.mean(np.max(np.abs(unit_waveforms), axis=1))
+    snr = mean_amp / MAD_val
+
     continue_bool, unit_name = this_descriptor_handler.save_unit(
         unit_waveforms,
         unit_times,
         electrode_num,
         this_sort_file_handler,
         split_or_merge,
+        snr=snr,
     )
 
     if continue_bool and (this_sort_file_handler.sort_table is not None):
