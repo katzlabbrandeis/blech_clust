@@ -146,7 +146,13 @@ filtered_data = electrode.preprocess_electrode()
 # Extract and process spikes from filtered data
 spike_set = bpu.spike_handler(filtered_data,
                               params_dict, data_dir_name, electrode_num)
-slices_dejittered, times_dejittered, threshold, mean_val = spike_set.process_spikes()
+(
+    slices_dejittered,
+    times_dejittered,
+    threshold,
+    mean_val,
+    MAD_val,
+) = spike_set.process_spikes()
 
 ############################################################
 # Extract windows from filt_el and plot with threshold overlayed

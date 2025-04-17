@@ -36,7 +36,10 @@ def extract_waveforms_abu(filt_el, spike_snapshot=[0.5, 1.0],
                           threshold_mult=5.0):
 
     m = np.mean(filt_el)
-    th = threshold_mult*np.median(np.abs(filt_el)/0.6745)
+    # Refer to https://en.wikipedia.org/wiki/Median_absolute_deviation
+    # for info on the normalization constant
+    mad_val = np.median(np.abs(filt_el - m))  # Outlier robust RMS
+    th = threshold_mult*mad_val/0.6745
 
     negative = np.where(filt_el <= m-th)[0]
     positive = np.where(filt_el >= m+th)[0]
@@ -72,7 +75,7 @@ def extract_waveforms_abu(filt_el, spike_snapshot=[0.5, 1.0],
     slices = np.array([filt_el[start:end]
                        for start, end in zip(before_inds, after_inds)])
 
-    return slices, spike_times[relevant_inds], polarity[relevant_inds], m, th
+    return slices, spike_times[relevant_inds], polarity[relevant_inds], m, th, mad_val
 
 
 def extract_waveforms_hannah(filt_el, spike_snapshot=[0.5, 1.0],

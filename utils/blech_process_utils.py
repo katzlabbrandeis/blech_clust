@@ -1050,13 +1050,13 @@ class spike_handler():
         self.dejitter_spikes()
 
         return (self.slices_dejittered, self.times_dejittered,
-                self.threshold, self.mean_val)
+                self.threshold, self.mean_val, self.MAD_val)
 
     def extract_waveforms(self):
         """
         Extract waveforms from filtered electrode
         """
-        slices, spike_times, polarity, mean_val, threshold = \
+        slices, spike_times, polarity, mean_val, threshold, MAD_val = \
             clust.extract_waveforms_abu(
                 self.filt_el,
                 spike_snapshot=[self.params_dict['spike_snapshot_before'],
@@ -1069,6 +1069,7 @@ class spike_handler():
         self.polarity = polarity
         self.mean_val = mean_val
         self.threshold = threshold
+        self.MAD_val = MAD_val
 
     def dejitter_spikes(self):
         """
