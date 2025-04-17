@@ -31,7 +31,7 @@ import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
-test_bool = True
+test_bool = False
 if test_bool:
     args = argparse.Namespace(
         data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/',
