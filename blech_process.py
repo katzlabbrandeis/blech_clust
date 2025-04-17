@@ -156,13 +156,14 @@ spike_set = bpu.spike_handler(filtered_data,
 
 # Write MAD_val to electrode_layout_frame
 # Reload layout to make sure we have the latest version
-metadata_handler.load_layout()
-ind = metadata_handler.layout.electrode_ind == electrode_num
-metadata_handler.layout.at[ind, 'mad_val'] = MAD_val
+# Run in a backoff loop to handle any errors with writing / mutliple processes
 write_success = False
 backoff_time = 1
 while not write_success and backoff_time < 20:
     try:
+        metadata_handler.load_layout()
+        ind = metadata_handler.layout.electrode_ind == electrode_num
+        metadata_handler.layout.at[ind, 'mad_val'] = MAD_val
         metadata_handler.layout.to_csv(
             metadata_handler.layout_file_path,
             index=False,
