@@ -27,6 +27,7 @@ This module processes single electrode waveforms for spike detection and cluster
 ############################################################
 # Imports
 ############################################################
+import time
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
@@ -166,7 +167,6 @@ while not write_success and backoff_time < 20:
         metadata_handler.layout.at[ind, 'mad_val'] = MAD_val
         metadata_handler.layout.to_csv(
             metadata_handler.layout_file_path,
-            index=False,
         )
         write_success = True
     except:

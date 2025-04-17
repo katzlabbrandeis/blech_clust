@@ -165,20 +165,27 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if args.delete_existing and ('/sorted_units' in hf5):
+sorted_units_exist_bool = '/sorted_units' in hf5
+if args.delete_existing and sorted_units_exist_bool:
     hf5.remove_node('/sorted_units', recursive=True)
     hf5.create_group('/', 'sorted_units')
     print('==== Cleared saved units. ====\n')
-elif '/sorted_units' in hf5:
+    sorted_units_exist_bool = False
+elif sorted_units_exist_bool:
     overwrite_hf5, continue_bool = entry_checker(
         msg='Saved units detected; remove them? (y/[n]): ',
         check_func=lambda x: x.lower() in ['y', 'n'],
         fail_response='Please enter y or n',
     )
+    if not continue_bool:
+        print('Exiting post-processing.')
+        hf5.close()
+        exit()
     if overwrite_hf5.lower() == 'y':
         hf5.remove_node('/sorted_units', recursive=True)
         hf5.create_group('/', 'sorted_units')
         print('==== Cleared saved units. ====\n')
+        sorted_units_exist_bool = False
 else:
     hf5.create_group('/', 'sorted_units')
 
@@ -415,20 +422,13 @@ while (not auto_post_process) or (args.sort_file is not None):
     # Finally, save the unit to the HDF5 file
     ############################################################
 
-    # Calculate SNR
-    layout_frame = metadata_handler.layout
-    frame_ind = layout_frame['electrode_ind'] == electrode_num
-    MAD_val = layout_frame['MAD_val'][frame_ind].values[0]
-    mean_amp = np.mean(np.max(np.abs(unit_waveforms), axis=1))
-    snr = mean_amp / MAD_val
-
     continue_bool, unit_name = this_descriptor_handler.save_unit(
         unit_waveforms,
         unit_times,
         electrode_num,
         this_sort_file_handler,
         split_or_merge,
-        snr=snr,
+        layout_frame=metadata_handler.layout,
     )
 
     if continue_bool and (this_sort_file_handler.sort_table is not None):
@@ -442,7 +442,7 @@ while (not auto_post_process) or (args.sort_file is not None):
 # Run auto-processing only if clustering was ALSO automatic
 # As currently, this does not have functionality to determine
 # correct number of clusters
-if auto_post_process and auto_cluster and (args.sort_file is None):
+if auto_post_process and auto_cluster and (args.sort_file is None) and not sorted_units_exist_bool:
     print('==== Auto Post-Processing ====\n')
 
     autosort_output_dir = os.path.join(
@@ -541,6 +541,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
                         this_sort_file_handler,
                         split_or_merge=None,
                         override_ask=True,
+                        layout_frame=metadata_handler.layout,
                     )
                 else:
                     continue_bool = True
@@ -549,6 +550,10 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
 
     print('==== Auto Post-Processing Complete ====\n')
     print('==== Post-Processing Exiting ====\n')
+else:
+    if sorted_units_exist_bool:
+        print('==== Auto Post-Processing skipped ====\n')
+        print('Sorted units already exist. Please delete them before running auto_post_process.')
 
 ############################################################
 # Final write of unit_descriptor and cleanup
