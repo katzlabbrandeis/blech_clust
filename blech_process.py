@@ -31,7 +31,7 @@ import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
-test_bool = False
+test_bool = True
 if test_bool:
     args = argparse.Namespace(
         data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/',
@@ -154,6 +154,26 @@ spike_set = bpu.spike_handler(filtered_data,
     MAD_val,
 ) = spike_set.process_spikes()
 
+# Write MAD_val to electrode_layout_frame
+# Reload layout to make sure we have the latest version
+metadata_handler.load_layout()
+ind = metadata_handler.layout.electrode_ind == electrode_num
+metadata_handler.layout.at[ind, 'mad_val'] = MAD_val
+write_success = False
+backoff_time = 1
+while not write_success and backoff_time < 20:
+    try:
+        metadata_handler.layout.to_csv(
+            metadata_handler.layout_file_path,
+            index=False,
+        )
+        write_success = True
+    except:
+        print(
+            f'Failed to write MAD val to layout file, retrying in {backoff_time} seconds')
+        time.sleep(backoff_time)
+        backoff_time *= 2
+
 ############################################################
 # Extract windows from filt_el and plot with threshold overlayed
 window_len = 0.2  # sec
@@ -243,13 +263,6 @@ if classifier_params['use_neuRecommend']:
     feature_pipeline = classifier_handler.feature_pipeline
     feature_names = classifier_handler.feature_names
     use_fitted_transformer = True
-    # _, spike_set.extract_features(
-    #     slices_dejittered,
-    #     classifier_handler.feature_pipeline,
-    #     classifier_handler.feature_names,
-    #     fitted_transformer=True,
-    #     retain_features=True,
-    # )
 else:
     print('Using blech_spike_features')
     import utils.blech_spike_features as bsf
@@ -359,4 +372,5 @@ with open(log_path, 'w') as f:
     json.dump(process_log, f, indent=2)
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not test_bool:
+    this_pipeline_check.write_to_log(script_path, 'completed')
