@@ -46,6 +46,7 @@ os.chdir(dir_name)
 print(f'Processing : {dir_name}')
 
 params_dict = metadata_handler.params_dict
+layout_frame = metadata_handler.layout
 
 # Open the hdf5 file
 hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
@@ -70,18 +71,30 @@ for unit in trange(len(units)):
     x = np.arange(waveforms.shape[1]) + 1
     times = units[unit].times[:]
     ISIs = np.diff(times)
+    unit_descriptor = hf5.root.unit_descriptor[unit]
+
+    # Get threshold from layout_frame
+    layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
+    threshold = layout_frame['threshold'][layout_ind]
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 6), dpi=200)
-    fig.suptitle('Unit %i, total waveforms = %i' % (unit, waveforms.shape[0])
-                 + '\n' + 'Electrode: %i, Single Unit: %i, RSU: %i, FS: %i' %
-                 (hf5.root.unit_descriptor[unit]['electrode_number'],
-                  hf5.root.unit_descriptor[unit]['single_unit'],
-                  hf5.root.unit_descriptor[unit]['regular_spiking'],
-                  hf5.root.unit_descriptor[unit]['fast_spiking']))
+    title_text = f'Unit {unit}, total waveforms = {waveforms.shape[0]}' + \
+        f'\nElectrode: {unit_descriptor["electrode_number"]}, ' + \
+        f'Single Unit: {unit_descriptor["single_unit"]}, ' + \
+        f'RSU: {unit_descriptor["regular_spiking"]}, ' + \
+        f'FS: {unit_descriptor["fast_spiking"]}, ' + \
+        f'SNR: {unit_descriptor["snr"]}'
+
+    fig.suptitle(title_text, fontsize=12)
 
     _, ax[0, 0] = blech_waveforms_datashader.\
-        waveforms_datashader(waveforms, x, downsample=False,
-                             ax=ax[0, 0])
+        waveforms_datashader(
+        waveforms,
+        x,
+        downsample=False,
+        threshold=threshold,
+        ax=ax[0, 0]
+    )
     ax[0, 0].set_xlabel('Sample (30 samples per ms)')
     ax[0, 0].set_ylabel('Voltage (microvolts)')
 
@@ -94,6 +107,11 @@ for unit in trange(len(units)):
         np.mean(waveforms, axis=0) - np.std(waveforms, axis=0),
         np.mean(waveforms, axis=0) + np.std(waveforms, axis=0),
         alpha=0.4)
+    # Plot threshold
+    ax[0, 1].axhline(threshold, color='red', linewidth=1,
+                     linestyle='--', alpha=0.5)
+    ax[0, 1].axhline(-threshold, color='red', linewidth=1,
+                     linestyle='--', alpha=0.5)
     ax[0, 1].set_xlabel('Sample (30 samples per ms)')
     # Set ylim same as ax[0,0]
     # ax[0,1].set_ylim(ax[0,0].get_ylim())

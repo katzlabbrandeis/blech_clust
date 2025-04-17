@@ -26,9 +26,15 @@ import os
 # A function that accepts a numpy array of waveforms and creates a datashader image from them
 
 
-def waveforms_datashader(waveforms, x_values,
-                         downsample=True, threshold=None, dir_name="datashader_temp",
-                         ax=None, include_envelope=False):
+def waveforms_datashader(
+        waveforms,
+        x_values,
+        downsample=True,
+        threshold=None,
+        dir_name="datashader_temp",
+        ax=None,
+        include_envelope=False
+):
 
     # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
