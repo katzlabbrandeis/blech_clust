@@ -557,26 +557,6 @@ class cluster_handler():
                 with open(file_path, 'w') as file_connect:
                     file_connect.write('')
 
-    # def create_auto_output_plots(self,
-    #                         params_dict):
-
-    #     slices_dejittered = self.spike_set.slices_dejittered
-    #     times_dejittered = self.spike_set.times_dejittered
-    #     standard_data = self.spike_set.spike_features
-    #     feature_names = self.spike_set.feature_names
-    #     threshold = self.spike_set.threshold
-
-    #     subcluster_inds = [np.where(self.labels == this_split)[0] \
-    #             for this_split in np.unique(self.labels)]
-    #     subcluster_waveforms = [slices_dejittered[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_times = [spike_times[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_prob = [clf_prob[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     mean_waveforms = [np.mean(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-    #     std_waveforms = [np.std(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-
 
 class classifier_handler():
     """

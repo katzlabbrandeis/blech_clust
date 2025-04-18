@@ -26,9 +26,15 @@ import os
 # A function that accepts a numpy array of waveforms and creates a datashader image from them
 
 
-def waveforms_datashader(waveforms, x_values,
-                         downsample=True, threshold=None, dir_name="datashader_temp",
-                         ax=None, include_envelope=False):
+def waveforms_datashader(
+        waveforms,
+        x_values,
+        downsample=True,
+        threshold=None,
+        dir_name="datashader_temp",
+        ax=None,
+        include_envelope=False
+):
 
     # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
@@ -98,9 +104,13 @@ def waveforms_datashader(waveforms, x_values,
             ind = np.argmin(np.abs(orig_line - val))
             return fin_line[ind]
 
-        ax.axhline(y_transform(threshold, df['y'].max(), df['y'].min()), color='red',
+        trans_thresh = y_transform(threshold, df['y'].max(), df['y'].min())
+        neg_trans_thresh = y_transform(-threshold,
+                                       df['y'].max(), df['y'].min())
+
+        ax.axhline(trans_thresh, color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
-        ax.axhline(y_transform(-threshold, df['y'].max(), df['y'].min()), color='red',
+        ax.axhline(neg_trans_thresh, color='red',
                    linewidth=1, linestyle='--', alpha=0.5)
 
     # Delete the dataframe
