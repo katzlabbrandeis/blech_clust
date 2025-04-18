@@ -730,6 +730,18 @@ class unit_descriptor_handler():
         hash_str = str(hash_value)[:10]
         return hash_str
 
+    @staticmethod
+    def calc_snr(
+            electrode_num,
+            unit_waveforms,
+            layout_frame,
+    ):
+        frame_ind = layout_frame['electrode_ind'] == electrode_num
+        MAD_val = layout_frame['mad_val'][frame_ind].values[0]
+        mean_amp = np.mean(np.max(np.abs(unit_waveforms), axis=1))
+        snr = mean_amp / MAD_val
+        return snr
+
     def save_unit(
             self,
             unit_waveforms,
@@ -738,6 +750,7 @@ class unit_descriptor_handler():
             this_sort_file_handler,
             split_or_merge,
             override_ask=False,
+            layout_frame=None,
     ):
         """
         Save unit to hdf5 file
@@ -792,6 +805,13 @@ class unit_descriptor_handler():
             'unit_metadata',
             description=sorted_unit_metadata)
 
+        # Calc SNR
+        snr = self.calc_snr(
+            electrode_num,
+            unit_waveforms,
+            layout_frame,
+        )
+
         # Get a new unit_descriptor table row for this new unit
         unit_description = unit_table.row
         # Add to unit_descriptor table
@@ -801,6 +821,7 @@ class unit_descriptor_handler():
         unit_description['single_unit'] = unit_properties['single_unit']
         unit_description['regular_spiking'] = unit_properties['regular_spiking']
         unit_description['fast_spiking'] = unit_properties['fast_spiking']
+        unit_description['snr'] = snr
         unit_description.append()
 
         # Flush table and hf5
@@ -1047,6 +1068,7 @@ class sorted_unit_metadata(tables.IsDescription):
     fast_spiking = tables.Int32Col()
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
+    snr = tables.Float32Col()
 
 # Define a unit_descriptor class to be used to add things (anything!)
 # about the sorted units to a pytables table
@@ -1060,6 +1082,7 @@ class unit_descriptor(tables.IsDescription):
     fast_spiking = tables.Int32Col()
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
+    snr = tables.Float32Col()
 
 
 class split_merge_signal:
