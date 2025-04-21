@@ -37,16 +37,24 @@ import tables
 import argparse
 from tqdm import tqdm
 
+test_bool = False
 # Parse command line arguments
-parser = argparse.ArgumentParser(
-    description='Generate summary of dataset characteristics')
-parser.add_argument('dir_name', type=str,
-                    help='Directory containing data files')
-args = parser.parse_args()
+if test_bool:
+    args = argparse.Namespace(
+        dir_name='/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    )
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/utils/blech_data_summary.py'
+else:
+    parser = argparse.ArgumentParser(
+        description='Generate summary of dataset characteristics')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory containing data files')
+    args = parser.parse_args()
+
+    script_path = os.path.realpath(__file__)
 
 # Import necessary modules from blech_clust
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(script_path)
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 
 
@@ -298,11 +306,6 @@ def generate_data_summary(dir_name):
     Returns:
         Dictionary with dataset summary
     """
-    # Initialize pipeline graph check
-    script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name)
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
 
     print(f"Generating data summary for {dir_name}")
 
@@ -374,9 +377,6 @@ def generate_data_summary(dir_name):
     # Add unit-level data if available
     if not unit_data.empty:
         data_summary['unit_data'] = unit_data.to_dict(orient='records')
-
-    # Mark as completed
-    this_pipeline_check.write_to_log(script_path, 'completed')
 
     return data_summary
 
