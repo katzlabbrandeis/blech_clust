@@ -50,6 +50,14 @@ This module is designed for handling and processing electrophysiological data, s
   - `register_labels`, `calc_linkage`, `sort_label_array`, `perform_agg_clustering`, `plot_waveform_dendogram`, `trim_data`: Helper functions for agglomerative clustering.
 """
 
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+from utils.blech_utils import ifisdir_rmdir
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 from matplotlib.patches import ConnectionPatch
 from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram
 from sklearn.cluster import AgglomerativeClustering, KMeans
@@ -69,9 +77,6 @@ from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
 import utils.clustering as clust
-import os
-os.environ['OMP_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
 # import subprocess
 # import sys
 
@@ -94,9 +99,24 @@ class cluster_handler():
     Class to handle clustering steps
     """
 
-    def __init__(self, params_dict,
-                 data_dir, electrode_num, cluster_num,
-                 spike_set, fit_type='manual'):
+    def __init__(self, params_dict, data_dir, electrode_num, cluster_num,
+                 spike_features=None, slices_dejittered=None, times_dejittered=None,
+                 threshold=None, feature_names=None, fit_type='manual'):
+        """
+        Initialize cluster handler with specific data rather than a spike_set object
+
+        Args:
+            params_dict: Dictionary of parameters
+            data_dir: Directory containing data
+            electrode_num: Electrode number
+            cluster_num: Number of clusters
+            spike_features: Features extracted from spikes
+            slices_dejittered: Dejittered spike waveforms
+            times_dejittered: Dejittered spike times
+            threshold: Threshold used for spike detection
+            feature_names: Names of features
+            fit_type: Type of fitting ('manual' or 'auto')
+        """
         assert fit_type in [
             'manual', 'auto'], 'fit_type must be manual or auto'
 
@@ -105,8 +125,15 @@ class cluster_handler():
         self.data_dir = data_dir
         self.electrode_num = electrode_num
         self.cluster_num = cluster_num
-        self.spike_set = spike_set
         self.fit_type = fit_type
+
+        # Store specific data instead of the whole spike_set
+        self.spike_features = spike_features
+        self.slices_dejittered = slices_dejittered
+        self.times_dejittered = times_dejittered
+        self.threshold = threshold
+        self.feature_names = feature_names
+
         self.create_output_dir()
 
     def check_classifier_data_exists(self, data_dir):
@@ -176,25 +203,35 @@ class cluster_handler():
         g.fit(bgm_train_data)
         return g
 
-    def get_cluster_labels(self, data, model):
+    def get_cluster_labels(self, data):
         """
-        Get cluster labels
+        Get cluster labels using the fitted model
         """
-        return model.predict(data)
+        return self.model.predict(data)
 
-    def perform_prediction(self):
+    def fit_model(self, train_set):
         """
-        Perform clustering
-        Model needs to be saved for calculation of mahalanobis distances
+        Fit appropriate model based on fit_type
         """
-        full_data = self.spike_set.spike_features
-        train_set = self.return_training_set(full_data)
         if self.fit_type == 'manual':
-            self.model = self.fit_manual_model(train_set, self.cluster_num)
+            return self.fit_manual_model(train_set, self.cluster_num)
         elif self.fit_type == 'auto':
-            self.model = self.fit_auto_model(train_set, self.cluster_num)
-        labels = self.get_cluster_labels(full_data, self.model)
-        self.labels = labels
+            return self.fit_auto_model(train_set, self.cluster_num)
+
+    def perform_clustering(self):
+        """
+        Complete clustering pipeline:
+        1. Get training set
+        2. Fit model
+        3. Get cluster labels
+
+        Returns:
+            numpy.ndarray: Cluster labels
+        """
+        train_set = self.return_training_set(self.spike_features)
+        self.model = self.fit_model(train_set)
+        self.labels = self.get_cluster_labels(self.spike_features)
+        return self.labels
 
     def remove_outliers(self, params_dict):
         """
@@ -213,7 +250,9 @@ class cluster_handler():
             this_cluster = remove_too_large_waveforms(
                 cluster_points,
                 # self.spike_set.amplitudes,
-                self.spike_set.return_feature('amplitude'),
+                # self.spike_set.return_feature('amplitude'),
+                self.spike_features[:, [i for i, x in enumerate(
+                    self.feature_names) if 'amplitude' in x][0]],
                 self.labels,
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
@@ -248,7 +287,7 @@ class cluster_handler():
         # assert model in dir(self), 'Model not found'
         cluster_labels = np.unique(self.labels)
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
-        full_data = self.spike_set.spike_features
+        full_data = self.spike_features
         for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels
@@ -299,7 +338,16 @@ class cluster_handler():
         self.clust_results_dir = clust_results_dir
         self.clust_plot_dir = clust_plot_dir
 
-    def create_classifier_plots(self, classifier_handler):
+    def create_classifier_plots(
+            self,
+            # classifier_handler
+            classifier_pred,
+            classifier_prob,
+            clf_threshold,
+            all_waveforms,
+            all_times,
+            labels=None,
+    ):
         """
         For each cluster, plot:
             1. Pred Spikes
@@ -311,17 +359,21 @@ class cluster_handler():
         Input data can come from classifier_handler
         """
 
-        self.check_classifier_data_exists(self.data_dir)
+        # self.check_classifier_data_exists(self.data_dir)
 
-        classifier_pred = classifier_handler.clf_pred
-        classifier_prob = classifier_handler.clf_prob
-        clf_threshold = classifier_handler.clf_threshold
-        all_waveforms = self.spike_set.slices_dejittered
-        all_times = self.spike_set.times_dejittered
+        # classifier_pred = classifier_handler.clf_pred
+        # classifier_prob = classifier_handler.clf_prob
+        # clf_threshold = classifier_handler.clf_threshold
+        # # Use directly stored data instead of accessing through spike_set
+        # all_waveforms = self.slices_dejittered
+        # all_times = self.times_dejittered
+
+        if labels is None:
+            labels = self.labels
 
         max_plot_count = 1000
-        for cluster in np.unique(self.labels):
-            cluster_bool = self.labels == cluster
+        for cluster in np.unique(labels):
+            cluster_bool = labels == cluster
             if sum(cluster_bool):
 
                 fig = plt.figure(figsize=(5, 10))
@@ -361,9 +413,9 @@ class cluster_handler():
                                   rotation=270,
                                   verticalalignment='center',
                                   transform=spike_ax.transAxes)
-                    spike_ax.axhline(self.spike_set.threshold,
+                    spike_ax.axhline(self.threshold,
                                      color='red', linestyle='--')
-                    spike_ax.axhline(-self.spike_set.threshold,
+                    spike_ax.axhline(-self.threshold,
                                      color='red', linestyle='--')
                     spike_hist_ax.hist(spike_times, bins=30)
 
@@ -381,9 +433,9 @@ class cluster_handler():
                                   rotation=270,
                                   verticalalignment='center',
                                   transform=noise_ax.transAxes)
-                    noise_ax.axhline(self.spike_set.threshold,
+                    noise_ax.axhline(self.threshold,
                                      color='red', linestyle='--')
-                    noise_ax.axhline(-self.spike_set.threshold,
+                    noise_ax.axhline(-self.threshold,
                                      color='red', linestyle='--')
                     noise_hist_ax.hist(noise_times, bins=30)
 
@@ -439,11 +491,12 @@ class cluster_handler():
                     bbox_inches='tight')
         plt.close(fig)
 
-        slices_dejittered = self.spike_set.slices_dejittered
-        times_dejittered = self.spike_set.times_dejittered
-        standard_data = self.spike_set.spike_features
-        feature_names = self.spike_set.feature_names
-        threshold = self.spike_set.threshold
+        # Use the directly stored data instead of accessing through spike_set
+        slices_dejittered = self.slices_dejittered
+        times_dejittered = self.times_dejittered
+        standard_data = self.spike_features
+        feature_names = self.feature_names
+        threshold = self.threshold
         # Create file, and plot spike waveforms for the different clusters.
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
@@ -456,7 +509,7 @@ class cluster_handler():
                 # from FURTHER downsampling the given waveforms for plotting
                 # Because in the previous version they were upsampled for clustering
 
-                # Create waveform datashader plot
+                # Create waveform datashader plot with envelope
                 #############################
                 fig, ax = gen_datashader_plot(
                     slices_dejittered,
@@ -503,26 +556,6 @@ class cluster_handler():
                     self.clust_plot_dir, f'no_spikes_Cluster{cluster}')
                 with open(file_path, 'w') as file_connect:
                     file_connect.write('')
-
-    # def create_auto_output_plots(self,
-    #                         params_dict):
-
-    #     slices_dejittered = self.spike_set.slices_dejittered
-    #     times_dejittered = self.spike_set.times_dejittered
-    #     standard_data = self.spike_set.spike_features
-    #     feature_names = self.spike_set.feature_names
-    #     threshold = self.spike_set.threshold
-
-    #     subcluster_inds = [np.where(self.labels == this_split)[0] \
-    #             for this_split in np.unique(self.labels)]
-    #     subcluster_waveforms = [slices_dejittered[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_times = [spike_times[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_prob = [clf_prob[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     mean_waveforms = [np.mean(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-    #     std_waveforms = [np.std(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
 
 
 class classifier_handler():
@@ -845,6 +878,32 @@ class electrode_handler():
             raise Exception(f'{el_path} not in HDF5')
         hf5.close()
 
+    def preprocess_electrode(self):
+        """
+        Complete preprocessing pipeline for electrode data:
+        1. Filter the electrode data
+        2. Cut to integer seconds
+        3. Calculate recording cutoff
+        4. Make cutoff plot
+        5. Apply cutoff to electrode data
+        """
+        # Filter electrode
+        self.filter_electrode()
+
+        # Cut to integer seconds
+        self.cut_to_int_seconds()
+
+        # Calculate recording cutoff
+        self.calc_recording_cutoff()
+
+        # Make cutoff plot
+        self.make_cutoff_plot()
+
+        # Apply cutoff to electrode data
+        self.cutoff_electrode()
+
+        return self.filt_el
+
     def filter_electrode(self):
         # Raw units get multiplied by 0.195 to get MICROVOLTS
         self.filt_el = clust.get_filtered_electrode(
@@ -946,7 +1005,7 @@ class electrode_handler():
 
 class spike_handler():
     """
-    Class to handler processing of spikes
+    Class to handle processing of spikes
     """
 
     def __init__(self, filt_el, params_dict, dir_name, electrode_num):
@@ -955,11 +1014,29 @@ class spike_handler():
         self.dir_name = dir_name
         self.electrode_num = electrode_num
 
+    def process_spikes(self):
+        """
+        Complete spike processing pipeline:
+        1. Extract waveforms from filtered electrode
+        2. Dejitter spikes and sort by time
+
+        Returns:
+            tuple: (slices_dejittered, times_dejittered, threshold, mean_val)
+        """
+        # Extract waveforms
+        self.extract_waveforms()
+
+        # Dejitter spikes
+        self.dejitter_spikes()
+
+        return (self.slices_dejittered, self.times_dejittered,
+                self.threshold, self.mean_val, self.MAD_val)
+
     def extract_waveforms(self):
         """
         Extract waveforms from filtered electrode
         """
-        slices, spike_times, polarity, mean_val, threshold = \
+        slices, spike_times, polarity, mean_val, threshold, MAD_val = \
             clust.extract_waveforms_abu(
                 self.filt_el,
                 spike_snapshot=[self.params_dict['spike_snapshot_before'],
@@ -972,6 +1049,7 @@ class spike_handler():
         self.polarity = polarity
         self.mean_val = mean_val
         self.threshold = threshold
+        self.MAD_val = MAD_val
 
     def dejitter_spikes(self):
         """
@@ -998,17 +1076,25 @@ class spike_handler():
         del self.spike_times
 
     def extract_features(self,
+                         slices_dejittered,
                          feature_transformer,
                          feature_names,
-                         fitted_transformer=True):
+                         fitted_transformer=True,
+                         retain_features=True,
+                         ):
 
         self.feature_names = feature_names
         if fitted_transformer:
-            self.spike_features = feature_transformer.transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.transform(
+                slices_dejittered)
         else:
-            self.spike_features = feature_transformer.fit_transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.fit_transform(
+                slices_dejittered)
+
+        if retain_features:
+            # Retain features in the object
+            self.spike_features = spike_features.copy()
+        return spike_features
 
     def return_feature(self, wanted_feature):
         wanted_inds = [i for i, x in enumerate(self.feature_names)
@@ -1059,62 +1145,7 @@ class spike_handler():
                 raise Exception(f'Feature {key} seems to have 0 size')
 
 
-def ifisdir_rmdir(dir_name):
-    if os.path.isdir(dir_name):
-        shutil.rmtree(dir_name)
-
-
-def return_cutoff_values(
-    filt_el,
-    sampling_rate,
-    voltage_cutoff,
-    max_breach_rate,
-    max_secs_above_cutoff,
-    max_mean_breach_rate_persec
-):
-    """
-    Return the cutoff values for the electrode recording
-
-    Inputs:
-        filt_el: numpy array (in
-        sampling_rate: int
-        voltage_cutoff: float
-        max_breach_rate: float
-        max_secs_above_cutoff: float
-        max_mean_breach_rate_persec: float
-
-    Outputs:
-        breach_rate: float
-        breaches_per_sec: numpy array
-        secs_above_cutoff: int
-        mean_breach_rate_persec: float
-        recording_cutoff: int
-    """
-
-    breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
-                        * int(sampling_rate))/len(filt_el)
-    test_el = np.reshape(filt_el, (-1, sampling_rate))
-    breaches_per_sec = (test_el > voltage_cutoff).sum(axis=-1)
-    secs_above_cutoff = (breaches_per_sec > 0).sum()
-    if secs_above_cutoff == 0:
-        mean_breach_rate_persec = 0
-    else:
-        mean_breach_rate_persec = np.mean(breaches_per_sec[
-            breaches_per_sec > 0])
-
-    # And if they all exceed the cutoffs,
-    # assume that the headstage fell off mid-experiment
-    recording_cutoff = int(len(filt_el)/sampling_rate)
-    if breach_rate >= max_breach_rate and \
-            secs_above_cutoff >= max_secs_above_cutoff and \
-            mean_breach_rate_persec >= max_mean_breach_rate_persec:
-        # Find the first 1 second epoch where the number of cutoff breaches
-        # is higher than the maximum allowed mean breach rate
-        recording_cutoff = np.where(breaches_per_sec >
-                                    max_mean_breach_rate_persec)[0][0]
-
-    return (breach_rate, breaches_per_sec, secs_above_cutoff,
-            mean_breach_rate_persec, recording_cutoff)
+# Import utility functions from the new module
 
 
 def gen_window_plots(
@@ -1165,18 +1196,40 @@ def gen_datashader_plot(
         sampling_rate,
         cluster,
 ):
-    fig, ax = blech_waveforms_datashader.waveforms_datashader(
+    # Create a figure with two subplots - one for datashader and one for envelope
+    fig = plt.figure(figsize=(10, 10))
+    gs = fig.add_gridspec(2, 1, height_ratios=[2, 1])
+
+    # Datashader plot in the top subplot
+    ax1 = fig.add_subplot(gs[0])
+    _, ax1 = blech_waveforms_datashader.waveforms_datashader(
         slices_dejittered[cluster_points, :],
         x,
         downsample=False,
         threshold=threshold,
-        dir_name="Plots/temp_plots/" + "datashader_temp_el" + str(electrode_num))
+        dir_name="Plots/temp_plots/" +
+        "datashader_temp_el" + str(electrode_num),
+        ax=ax1)
 
-    ax.set_xlabel('Sample ({:d} samples per ms)'.
-                  format(int(sampling_rate/1000)))
-    ax.set_ylabel('Voltage (microvolts)')
-    ax.set_title('Cluster%i' % cluster)
-    return fig, ax
+    ax1.set_xlabel('Sample ({:d} samples per ms)'.
+                   format(int(sampling_rate/1000)))
+    ax1.set_ylabel('Voltage (microvolts)')
+    ax1.set_title('Cluster%i Waveforms' % cluster)
+
+    # Envelope plot in the bottom subplot
+    ax2 = fig.add_subplot(gs[1])
+    _, ax2 = blech_waveforms_datashader.waveform_envelope_plot(
+        slices_dejittered[cluster_points, :],
+        x,
+        threshold=threshold,
+        ax=ax2)
+
+    ax2.set_xlabel('Sample ({:d} samples per ms)'.
+                   format(int(sampling_rate/1000)))
+    ax2.set_title('Cluster%i Mean ± Std Dev' % cluster)
+
+    plt.tight_layout()
+    return fig, ax1
 
 
 def gen_isi_hist(
@@ -1437,3 +1490,56 @@ def trim_data(data, n_max=20000):
     if len(data) > n_max:
         data = data[np.random.choice(len(data), n_max, replace=False)]
     return data
+
+
+def return_cutoff_values(
+    filt_el,
+    sampling_rate,
+    voltage_cutoff,
+    max_breach_rate,
+    max_secs_above_cutoff,
+    max_mean_breach_rate_persec
+):
+    """
+    Return the cutoff values for the electrode recording
+
+    Inputs:
+        filt_el: numpy array (in microvolts)
+        sampling_rate: int
+        voltage_cutoff: float
+        max_breach_rate: float
+        max_secs_above_cutoff: float
+        max_mean_breach_rate_persec: float
+
+    Outputs:
+        breach_rate: float
+        breaches_per_sec: numpy array
+        secs_above_cutoff: int
+        mean_breach_rate_persec: float
+        recording_cutoff: int
+    """
+
+    breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
+                        * int(sampling_rate))/len(filt_el)
+    test_el = np.reshape(filt_el, (-1, sampling_rate))
+    breaches_per_sec = (test_el > voltage_cutoff).sum(axis=-1)
+    secs_above_cutoff = (breaches_per_sec > 0).sum()
+    if secs_above_cutoff == 0:
+        mean_breach_rate_persec = 0
+    else:
+        mean_breach_rate_persec = np.mean(breaches_per_sec[
+            breaches_per_sec > 0])
+
+    # And if they all exceed the cutoffs,
+    # assume that the headstage fell off mid-experiment
+    recording_cutoff = int(len(filt_el)/sampling_rate)
+    if breach_rate >= max_breach_rate and \
+            secs_above_cutoff >= max_secs_above_cutoff and \
+            mean_breach_rate_persec >= max_mean_breach_rate_persec:
+        # Find the first 1 second epoch where the number of cutoff breaches
+        # is higher than the maximum allowed mean breach rate
+        recording_cutoff = np.where(breaches_per_sec >
+                                    max_mean_breach_rate_persec)[0][0]
+
+    return (breach_rate, breaches_per_sec, secs_above_cutoff,
+            mean_breach_rate_persec, recording_cutoff)

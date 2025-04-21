@@ -8,3 +8,4 @@ gdown
 psutil>=6.1.0
 fastcluster
 pymc
+boto3
