@@ -248,9 +248,9 @@ def extract_elbo_drift_results(dir_name):
 
                 return {
                     'best_change': best_change,
-                    'top_3_changes': top_3_changes,
+                    'top_3_changes': np.vectorize(int)(top_3_changes),
                     'top_3_elbos': top_3_elbos,
-                    'all_changes': sorted_elbo['changes'].tolist(),
+                    'all_changes': np.vectorize(int)(sorted_elbo['changes'].tolist()),
                     'all_elbos': sorted_elbo['elbo'].tolist()
                 }
             except Exception as e:
@@ -325,6 +325,17 @@ def generate_data_summary(dir_name):
     return data_summary
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+
 if __name__ == "__main__":
     dir_name = args.dir_name
 
@@ -334,6 +345,6 @@ if __name__ == "__main__":
     # Save to JSON file
     output_path = os.path.join(dir_name, 'data_summary.json')
     with open(output_path, 'w') as f:
-        json.dump(data_summary, f, indent=4)
+        json.dump(data_summary, f, indent=4, cls=NpEncoder)
 
     print(f"Data summary saved to {output_path}")
