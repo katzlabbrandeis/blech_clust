@@ -95,7 +95,7 @@ def extract_unit_characteristics(dir_name):
     return unit_data
 
 
-def extract_drift_parameters(dir_name):
+def extract_drift_parameters(dir_name, alpha=0.05):
     """
     Extract drift analysis parameters from QA_output directory
 
@@ -114,30 +114,43 @@ def extract_drift_parameters(dir_name):
     baseline_drift_path = os.path.join(qa_dir, 'baseline_drift_p_vals.csv')
     post_drift_path = os.path.join(qa_dir, 'post_drift_p_vals.csv')
 
-    drift_results = {
-        'baseline_drift': None,
-        'post_stimulus_drift': None
-    }
+    baseline_drift = pd.read_csv(baseline_drift_path, index_col=0)
+    post_drift = pd.read_csv(post_drift_path, index_col=0)
 
-    # Extract baseline drift results
-    if os.path.exists(baseline_drift_path):
-        baseline_drift = pd.read_csv(baseline_drift_path)
-        # Count significant p-values
-        alpha = 0.05
-        sig_counts = {
-            'trial_bin': (baseline_drift['trial_bin'] < alpha).sum(),
-            'taste': (baseline_drift['taste'] < alpha).sum(),
-            'interaction': (baseline_drift['trial_bin * taste'] < alpha).sum()
-        }
-        drift_results['baseline_drift'] = sig_counts
+    # Process baseline drift data
+    baseline_drift_sig = baseline_drift.copy()
+    baseline_drift_sig.drop(columns=['taste', 'Residual'], inplace=True)
+    base_dat_cols = ['trial_bin', 'trial_bin * taste']
+    baseline_drift_sig[base_dat_cols] = baseline_drift_sig[base_dat_cols].apply(
+        lambda x: np.where(x < alpha, 1, 0))
 
-    # Extract post-stimulus drift results
-    if os.path.exists(post_drift_path):
-        post_drift = pd.read_csv(post_drift_path)
-        # Count significant p-values
-        alpha = 0.05
-        sig_count = (post_drift['trial_bin'] < alpha).sum()
-        drift_results['post_stimulus_drift'] = {'trial_bin': sig_count}
+    # Process post-drift data
+    post_drift_sig = post_drift.copy()
+    post_drift_sig.drop(columns=['Error'], inplace=True)
+    dat_cols = ['trial_bin']
+    post_drift_sig[dat_cols] = post_drift_sig[dat_cols].apply(
+        lambda x: np.where(x < alpha, 1, 0))
+
+    # Get counts and fractions of significant units
+    baseline_drift_counts = baseline_drift_sig[base_dat_cols].sum()
+    baseline_drift_frac = baseline_drift_sig[base_dat_cols].mean()
+    post_drift_counts = post_drift_sig['trial_bin'].sum()
+    post_drift_frac = post_drift_sig['trial_bin'].mean()
+
+    # Combine results
+    baseline_frame = pd.DataFrame({
+        'comparison': baseline_drift_counts.index,
+        'period': 'baseline',
+        'sig_count': baseline_drift_counts.values,
+        'sig_fraction': baseline_drift_frac.values
+    })
+    post_frame = pd.DataFrame({
+        'comparison': 'trial_bin',
+        'period': 'post',
+        'sig_count': [post_drift_counts],
+        'sig_fraction': [post_drift_frac]
+    })
+    drift_results = pd.concat([baseline_frame, post_frame], axis=0)
 
     return drift_results
 
