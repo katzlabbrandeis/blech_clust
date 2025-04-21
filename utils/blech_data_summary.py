@@ -61,6 +61,7 @@ sys.path.append(blech_clust_dir)
 def extract_unit_characteristics(dir_name):
     """
     Extract unit-level characteristics from aggregated_characteristics.csv
+    Get count and fraction of significant units for each source type
 
     Args:
         dir_name: Directory containing the data
@@ -79,26 +80,19 @@ def extract_unit_characteristics(dir_name):
     # Load the characteristics data
     unit_data = pd.read_csv(characteristics_path)
 
-    # Create a more structured summary by pivoting the data
-    # Group by neuron_num and laser_tuple
-    summary = []
+    sig_count = unit_data.groupby(['Source', 'laser_tuple']).sum()[
+        'sig'].reset_index()
+    sig_frac = unit_data.groupby(['Source', 'laser_tuple']).mean()[
+        'sig'].reset_index()
+    sig_count.rename(columns={'sig': 'sig_count'}, inplace=True)
+    sig_frac.rename(columns={'sig': 'sig_fraction'}, inplace=True)
+    unit_data = pd.merge(sig_count, sig_frac, on=['Source', 'laser_tuple'])
 
-    for (neuron, laser), group in unit_data.groupby(['neuron_num', 'laser_tuple']):
-        neuron_summary = {
-            'neuron_num': neuron,
-            'laser_tuple': laser
-        }
+    # In source, rename: 'bin_num' --> 'dynamic', 'taste_num' -> 'discriminability'
+    unit_data['Source'] = unit_data['Source'].replace(
+        {'bin_num': 'dynamic', 'taste_num': 'discriminability'})
 
-        # Extract values for each source type
-        for source in group['Source'].unique():
-            source_data = group[group['Source'] == source]
-            if not source_data.empty:
-                neuron_summary[f"{source}_sig"] = bool(
-                    source_data['sig'].iloc[0])
-
-        summary.append(neuron_summary)
-
-    return pd.DataFrame(summary)
+    return unit_data
 
 
 def extract_drift_parameters(dir_name):
@@ -317,9 +311,6 @@ def generate_data_summary(dir_name):
         info_dict = metadata_handler.info_dict
         basic_info = {
             'experiment_name': os.path.basename(dir_name.rstrip('/')),
-            'tastes': info_dict['taste_params']['tastes'],
-            'palatability_rankings': info_dict['taste_params']['pal_rankings'],
-            'laser_present': len(info_dict['laser_params']['dig_in_nums']) > 0
         }
     except Exception as e:
         print(f"Error extracting basic info: {e}")
