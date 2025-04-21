@@ -9,11 +9,14 @@ containing both unit-level and session-level parameters, including:
    - Discriminability p-values
    - Palatability p-values
    - Dynamicity p-values
+   - Unit counts per region
 
 2. Session-Level Parameters:
    - Drift analysis results (pre-stimulus and post-stimulus)
    - Channel correlation violations
    - ELBO change point analysis results
+   - Number of laser conditions
+   - Total neuron count
 
 The summary is useful for quickly assessing dataset quality and characteristics
 without having to examine multiple individual analysis files.
@@ -260,6 +263,76 @@ def extract_elbo_drift_results(dir_name):
     return {'best_change': best_change}
 
 
+def extract_region_unit_counts(dir_name):
+    """
+    Extract neuron counts per region using ephys_data
+
+    Args:
+        dir_name: Directory containing the data
+
+    Returns:
+        Dictionary with neuron counts per region
+    """
+    try:
+        # Initialize ephys_data with the directory
+        from utils.ephys_data.ephys_data import ephys_data
+        data = ephys_data(data_dir=dir_name)
+
+        # Get region electrodes and units
+        data.get_region_electrodes()
+        data.get_region_units()
+
+        # Create a dictionary with neuron counts per region
+        region_unit_counts = {region: len(units)
+                              for region, units in zip(data.region_names, data.region_units)}
+
+        return {
+            'region_unit_counts': region_unit_counts,
+            'total_units': sum(region_unit_counts.values())
+        }
+    except Exception as e:
+        print(f"Error extracting region unit counts: {e}")
+        return {}
+
+
+def extract_laser_conditions(dir_name):
+    """
+    Extract laser conditions from trial_info_frame.csv
+
+    Args:
+        dir_name: Directory containing the data
+
+    Returns:
+        Dictionary with laser condition information
+    """
+    trial_info_path = os.path.join(dir_name, 'trial_info_frame.csv')
+
+    if not os.path.exists(trial_info_path):
+        print(f"Warning: {trial_info_path} not found.")
+        return {}
+
+    try:
+        # Load trial info frame
+        trial_info = pd.read_csv(trial_info_path)
+
+        # Extract unique laser conditions
+        laser_conditions = trial_info[[
+            'laser_duration_ms', 'laser_lag_ms']].drop_duplicates()
+
+        # Count trials per laser condition
+        condition_counts = trial_info.groupby(
+            ['laser_duration_ms', 'laser_lag_ms']).size().reset_index(name='trial_count')
+
+        return {
+            'n_laser_conditions': len(laser_conditions),
+            'laser_conditions': laser_conditions.to_dict('records'),
+            'condition_counts': condition_counts.to_dict('records')
+        }
+    except Exception as e:
+        print(f"Error extracting laser conditions: {e}")
+        return {}
+
+
 def generate_data_summary(dir_name):
     """
     Generate a comprehensive summary of dataset characteristics
@@ -304,6 +377,14 @@ def generate_data_summary(dir_name):
     print("Extracting ELBO drift results...")
     elbo_data = extract_elbo_drift_results(dir_name)
 
+    # Extract region unit counts
+    print("Extracting region unit counts...")
+    region_unit_data = extract_region_unit_counts(dir_name)
+
+    # Extract laser conditions
+    print("Extracting laser conditions...")
+    laser_condition_data = extract_laser_conditions(dir_name)
+
     # Since unit_data and drift_data are DataFrames, we need to convert them to dicts
     unit_data_dict = unit_data.set_index(['Source', 'laser_tuple']).T.to_dict()
     # Convert keys to strings for JSON serialization
@@ -319,7 +400,9 @@ def generate_data_summary(dir_name):
         'unit_counts': unit_data_dict,
         'drift_analysis': drift_data_dict,
         'channel_correlation': correlation_data,
-        'elbo_analysis': elbo_data
+        'elbo_analysis': elbo_data,
+        'region_units': region_unit_data,
+        'laser_conditions': laser_condition_data
     }
 
     return data_summary
@@ -339,6 +422,11 @@ class NpEncoder(json.JSONEncoder):
 if __name__ == "__main__":
     dir_name = args.dir_name
 
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
     # Generate the data summary
     data_summary = generate_data_summary(dir_name)
 
@@ -348,3 +436,6 @@ if __name__ == "__main__":
         json.dump(data_summary, f, indent=4, cls=NpEncoder)
 
     print(f"Data summary saved to {output_path}")
+
+    # Mark as completed
+    this_pipeline_check.write_to_log(script_path, 'completed')
