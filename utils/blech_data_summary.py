@@ -171,73 +171,30 @@ def extract_channel_correlation_violations(dir_name):
         print(f"Warning: {qa_dir} not found. Run blech_clust.py first.")
         return {}
 
+    metadata_handler = imp_metadata([[], dir_name])
+    params_dict = metadata_handler.params_dict
+    threshold = params_dict["qa_params"]["bridged_channel_threshold"]
+
     # Look for correlation matrix files
-    corr_files = glob.glob(os.path.join(qa_dir, '*corr*.csv'))
+    channel_corr_mat = np.load(
+        os.path.join(qa_dir, 'channel_corr_mat.npy'), allow_pickle=True)
 
-    if not corr_files:
-        # Try to generate correlation data from HDF5 file
-        metadata_handler = imp_metadata([[], dir_name])
-        hdf5_path = metadata_handler.hdf5_name
+    ut_inds = np.triu_indices(
+        channel_corr_mat.shape[0], k=1)
+    corr_vals = channel_corr_mat[ut_inds]
 
-        if os.path.exists(hdf5_path):
-            try:
-                # Get threshold from params file
-                params_dict = metadata_handler.params_dict
-                threshold = params_dict["qa_params"]["bridged_channel_threshold"]
+    # Check for violations
+    violation_bool = corr_vals > threshold
+    viol_count = np.sum(violation_bool)
+    viol_frac = np.mean(violation_bool)
 
-                # Calculate correlation matrix
-                down_dat_stack, chan_names = get_all_channels(
-                    hdf5_path,
-                    n_corr_samples=params_dict["qa_params"]["n_corr_samples"]
-                )
-                corr_mat = intra_corr(down_dat_stack)
-
-                # Find violations
-                violations = []
-                for i in range(corr_mat.shape[0]):
-                    for j in range(i+1, corr_mat.shape[1]):
-                        if corr_mat[i, j] > threshold:
-                            violations.append({
-                                'channel1': chan_names[i],
-                                'channel2': chan_names[j],
-                                'correlation': float(corr_mat[i, j])
-                            })
-
-                return {
-                    'threshold': threshold,
-                    'violations': violations,
-                    'violation_count': len(violations)
-                }
-            except Exception as e:
-                print(f"Error calculating correlation matrix: {e}")
-                return {}
-
-        return {}
-
-    # If correlation files exist, parse them
-    violations = []
-    threshold = 0.9  # Default threshold
-
-    for corr_file in corr_files:
-        try:
-            corr_data = pd.read_csv(corr_file)
-            # Extract violations based on file format
-            # This is a simplified approach and may need adjustment based on actual file format
-            if 'channel1' in corr_data.columns and 'channel2' in corr_data.columns:
-                for _, row in corr_data.iterrows():
-                    violations.append({
-                        'channel1': row['channel1'],
-                        'channel2': row['channel2'],
-                        'correlation': float(row['correlation'])
-                    })
-        except Exception as e:
-            print(f"Error parsing correlation file {corr_file}: {e}")
-
-    return {
+    viol_dict = {
         'threshold': threshold,
-        'violations': violations,
-        'violation_count': len(violations)
+        'viol_count': viol_count,
+        'viol_fraction': viol_frac
     }
+
+    return viol_dict
 
 
 def extract_elbo_drift_results(dir_name):
