@@ -28,8 +28,6 @@ Arguments:
     dir_name : Directory containing the processed data files
 """
 
-from utils.qa_utils.channel_corr import get_all_channels, intra_corr
-from utils.blech_utils import imp_metadata, pipeline_graph_check
 import os
 import sys
 import json
@@ -59,6 +57,8 @@ else:
 # Import necessary modules from blech_clust
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
+from utils.qa_utils.channel_corr import get_all_channels, intra_corr  # noqa
+from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 
 def extract_unit_characteristics(dir_name):
@@ -394,6 +394,10 @@ def generate_data_summary(dir_name):
     # Convert keys to strings for JSON serialization
     drift_data_dict = {str(k): v for k, v in drift_data_dict.items()}
 
+    # Add region unit counts and laser conditions to the summary
+    basic_info['region_units'] = region_unit_data,
+    basic_info['laser_conditions'] = laser_condition_data
+
     # Compile the summary
     data_summary = {
         'basic_info': basic_info,
@@ -401,8 +405,6 @@ def generate_data_summary(dir_name):
         'drift_analysis': drift_data_dict,
         'channel_correlation': correlation_data,
         'elbo_analysis': elbo_data,
-        'region_units': region_unit_data,
-        'laser_conditions': laser_condition_data
     }
 
     return data_summary
@@ -422,11 +424,6 @@ class NpEncoder(json.JSONEncoder):
 if __name__ == "__main__":
     dir_name = args.dir_name
 
-    # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(dir_name)
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
-
     # Generate the data summary
     data_summary = generate_data_summary(dir_name)
 
@@ -436,6 +433,3 @@ if __name__ == "__main__":
         json.dump(data_summary, f, indent=4, cls=NpEncoder)
 
     print(f"Data summary saved to {output_path}")
-
-    # Mark as completed
-    this_pipeline_check.write_to_log(script_path, 'completed')
