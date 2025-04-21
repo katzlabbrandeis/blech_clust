@@ -304,40 +304,23 @@ def generate_data_summary(dir_name):
     print("Extracting ELBO drift results...")
     elbo_data = extract_elbo_drift_results(dir_name)
 
-    # Count units by type
-    unit_counts = {}
-    if not unit_data.empty:
-        # Count responsive units
-        if 'responsiveness_sig' in unit_data.columns:
-            unit_counts['responsive_units'] = unit_data['responsiveness_sig'].sum()
-
-        # Count discriminatory units
-        if 'discriminability_sig' in unit_data.columns:
-            unit_counts['discriminatory_units'] = unit_data['discriminability_sig'].sum()
-
-        # Count palatability units
-        if 'palatability_sig' in unit_data.columns:
-            unit_counts['palatability_units'] = unit_data['palatability_sig'].sum()
-
-        # Count dynamic units
-        if 'Dynamic_sig' in unit_data.columns:
-            unit_counts['dynamic_units'] = unit_data['Dynamic_sig'].sum()
-
-        # Total units
-        unit_counts['total_units'] = len(unit_data)
+    # Since unit_data and drift_data are DataFrames, we need to convert them to dicts
+    unit_data_dict = unit_data.set_index(['Source', 'laser_tuple']).T.to_dict()
+    # Convert keys to strings for JSON serialization
+    unit_data_dict = {str(k): v for k, v in unit_data_dict.items()}
+    drift_data_dict = drift_data.set_index(
+        ['period', 'comparison']).T.to_dict()
+    # Convert keys to strings for JSON serialization
+    drift_data_dict = {str(k): v for k, v in drift_data_dict.items()}
 
     # Compile the summary
     data_summary = {
         'basic_info': basic_info,
-        'unit_counts': unit_counts,
-        'drift_analysis': drift_data,
+        'unit_counts': unit_data_dict,
+        'drift_analysis': drift_data_dict,
         'channel_correlation': correlation_data,
         'elbo_analysis': elbo_data
     }
-
-    # Add unit-level data if available
-    if not unit_data.empty:
-        data_summary['unit_data'] = unit_data.to_dict(orient='records')
 
     return data_summary
 
