@@ -1,5 +1,5 @@
 """
-This module processes neural data stored in an HDF5 file, generating and saving plots of unit waveforms, 
+This module processes neural data stored in an HDF5 file, generating and saving plots of unit waveforms,
 inter-spike interval (ISI) histograms, and spike count histograms. It also logs the execution of the processing pipeline.
 """
 # Import stuff!
@@ -21,10 +21,10 @@ from utils.blech_process_utils import gen_isi_hist
 def setup_environment(args):
     """
     Set up the environment for processing neural data.
-    
+
     Args:
         args: Command line arguments
-        
+
     Returns:
         tuple: metadata_handler, dir_name, params_dict, layout_frame, pipeline_check
     """
@@ -43,14 +43,14 @@ def setup_environment(args):
 
     params_dict = metadata_handler.params_dict
     layout_frame = metadata_handler.layout
-    
+
     return metadata_handler, dir_name, params_dict, layout_frame, this_pipeline_check, script_path
 
 
 def prepare_output_directory(output_dir="unit_waveforms_plots"):
     """
     Create a clean output directory for storing plots.
-    
+
     Args:
         output_dir: Directory name for storing plots
     """
@@ -65,10 +65,10 @@ def prepare_output_directory(output_dir="unit_waveforms_plots"):
 def load_units_data(hdf5_name):
     """
     Load units data from HDF5 file.
-    
+
     Args:
         hdf5_name: Path to the HDF5 file
-        
+
     Returns:
         tuple: hf5 file handle, units data, min_time, max_time
     """
@@ -81,13 +81,14 @@ def load_units_data(hdf5_name):
     # Find min-max time for plotting
     min_time = np.min([x.times[0] for x in units])
     max_time = np.max([x.times[-1] for x in units])
-    
+
     return hf5, units, min_time, max_time
+
 
 def plot_unit_summary(unit_index, unit_data, unit_descriptor, layout_frame, params_dict, min_time, max_time, output_dir="unit_waveforms_plots"):
     """
     Generate and save a summary plot for a single neural unit.
-    
+
     Args:
         unit_index: Index of the unit
         unit_data: Data for the unit
@@ -102,7 +103,7 @@ def plot_unit_summary(unit_index, unit_data, unit_descriptor, layout_frame, para
     x = np.arange(waveforms.shape[1]) + 1
     times = unit_data.times[:]
     ISIs = np.diff(times)
-    
+
     # Get threshold from layout_frame
     layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
     threshold = layout_frame['threshold'][layout_ind].values[0]
@@ -168,7 +169,7 @@ def plot_unit_summary(unit_index, unit_data, unit_descriptor, layout_frame, para
 def process_all_units(units, hf5, layout_frame, params_dict, min_time, max_time, output_dir="unit_waveforms_plots"):
     """
     Process and plot all units.
-    
+
     Args:
         units: Neural units data
         hf5: HDF5 file handle
@@ -181,14 +182,14 @@ def process_all_units(units, hf5, layout_frame, params_dict, min_time, max_time,
     # Now plot the waveforms from the units in this directory one by one
     for unit in trange(len(units)):
         unit_descriptor = hf5.root.unit_descriptor[unit]
-        plot_unit_summary(unit, units[unit], unit_descriptor, layout_frame, 
+        plot_unit_summary(unit, units[unit], unit_descriptor, layout_frame,
                           params_dict, min_time, max_time, output_dir)
 
 
 def save_individual_plots(units, output_subdir="waveforms_only"):
     """
     Save individual datashader and average plots for each unit.
-    
+
     Args:
         units: Neural units data
         output_subdir: Subdirectory name for individual plots
@@ -200,13 +201,13 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
         waveforms = units[unit].waveforms[:]
         x = np.arange(waveforms.shape[1]) + 1
         times = units[unit].times[:]
-        
+
         # Save datashader plot
         fig, ax = blech_waveforms_datashader.waveforms_datashader(
             waveforms, x, downsample=False)
         ax.set_xlabel('Sample (30 samples per ms)')
         ax.set_ylabel('Voltage (microvolts)')
-        fig.savefig(os.path.join(plot_dir, f'Unit{unit}_datashader.png'), 
+        fig.savefig(os.path.join(plot_dir, f'Unit{unit}_datashader.png'),
                     bbox_inches='tight')
         plt.close("all")
 
@@ -219,7 +220,7 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
             np.mean(waveforms, axis=0) + np.std(waveforms, axis=0),
             alpha=0.4)
         ax.set_xlabel('Sample (30 samples per ms)')
-        fig.savefig(os.path.join(plot_dir, f'Unit{unit}_mean_sd.png'), 
+        fig.savefig(os.path.join(plot_dir, f'Unit{unit}_mean_sd.png'),
                     bbox_inches='tight')
         plt.close("all")
 
@@ -227,23 +228,26 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
 def main():
     """Main function to process neural data and generate plots."""
     # Setup environment
-    metadata_handler, dir_name, params_dict, layout_frame, this_pipeline_check, script_path = setup_environment(sys.argv)
-    
+    metadata_handler, dir_name, params_dict, layout_frame, this_pipeline_check, script_path = setup_environment(
+        sys.argv)
+
     # Prepare output directory
     prepare_output_directory()
-    
+
     # Load data
-    hf5, units, min_time, max_time = load_units_data(metadata_handler.hdf5_name)
-    
+    hf5, units, min_time, max_time = load_units_data(
+        metadata_handler.hdf5_name)
+
     # Process all units
-    process_all_units(units, hf5, layout_frame, params_dict, min_time, max_time)
-    
+    process_all_units(units, hf5, layout_frame,
+                      params_dict, min_time, max_time)
+
     # Save individual plots
     save_individual_plots(units)
-    
+
     # Cleanup
     hf5.close()
-    
+
     # Write successful execution to log
     this_pipeline_check.write_to_log(script_path, 'completed')
 
