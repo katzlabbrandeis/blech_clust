@@ -64,12 +64,15 @@ import os  # noqa
 
 def parse_arguments():
     """Parse command line arguments for blech_clust.py"""
-    parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
+    parser = argparse.ArgumentParser(
+        description='Load data and create hdf5 file')
     parser.add_argument('dir_name', type=str,
                         help='Directory name with data files')
     parser.add_argument('--force_run', action='store_true',
                         help='Force run the script without asking user')
     return parser.parse_args()
+
+
 class HDF5Handler:
     """Handles HDF5 file operations for blech_clust"""
 
@@ -127,6 +130,8 @@ class HDF5Handler:
 
         self.hf5.close()
         return continue_bool, reload_data_str
+
+
 def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
                                 all_electrodes, all_params_dict):
     """Generate bash scripts for running single and parallel processing
@@ -180,13 +185,15 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
               "bash $DIR/temp/blech_process_single.sh " +
               f"::: {' '.join([str(x) for x in bash_electrode_list])}",
               file=f)
+
+
 def create_directories(dir_list, force_run):
     """Create necessary directories for storing data and results
-    
+
     Args:
         dir_list: List of directories to create
         force_run: Whether to force operations without asking user
-        
+
     Returns:
         bool: Whether to continue execution
     """
@@ -214,10 +221,10 @@ def create_directories(dir_list, force_run):
 
 def check_template_file(blech_clust_dir):
     """Check if the template parameter file exists
-    
+
     Args:
         blech_clust_dir: Directory containing blech_clust code
-        
+
     Returns:
         str: Path to the template file
     """
@@ -233,12 +240,12 @@ def check_template_file(blech_clust_dir):
 
 def setup_pipeline_check(metadata_handler, blech_clust_dir, script_path):
     """Setup pipeline check and create execution log if needed
-    
+
     Args:
         metadata_handler: Metadata handler object
         blech_clust_dir: Directory containing blech_clust code
         script_path: Path to the current script
-        
+
     Returns:
         pipeline_graph_check: Pipeline check object
     """
@@ -246,20 +253,23 @@ def setup_pipeline_check(metadata_handler, blech_clust_dir, script_path):
     # If info_dict present but execution log is not
     # just create the execution log with blech_exp_info marked
     if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
-        blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
+        blech_exp_info_path = os.path.join(
+            blech_clust_dir, 'blech_exp_info.py')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
         print('Execution log created for blech_exp_info')
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
     return this_pipeline_check
+
+
 def get_file_lists(file_list, file_type):
     """Get lists of amplifier and digital input files based on file type
-    
+
     Args:
         file_list: List of files in the directory
         file_type: Type of files ('one file per signal type', 'one file per channel', 'traditional')
-        
+
     Returns:
         dict: Dictionary of file lists by type
     """
@@ -274,33 +284,33 @@ def get_file_lists(file_list, file_type):
             'rhd': sorted([name for name in file_list if name.endswith('.rhd')])
         }
     }
-    
+
     # Valid file types
     VALID_FILE_TYPES = ['one file per signal type',
                         'one file per channel', 'traditional']
     if file_type not in VALID_FILE_TYPES:
         raise ValueError(
             f"Invalid file_type: {file_type}. Must be one of: {VALID_FILE_TYPES}")
-            
+
     return file_lists
 
 
 def process_file_info(dir_name, file_type, file_lists, info_dict):
     """Process file information based on file type
-    
+
     Args:
         dir_name: Directory containing the data
         file_type: Type of files
         file_lists: Dictionary of file lists by type
         info_dict: Dictionary of experiment information
-        
+
     Returns:
         tuple: Various file information (electrodes_list, sampling_rate, etc.)
     """
     electrodes_list = None
     num_recorded_samples = None
     rhd_file_list = None
-    
+
     if file_type != 'traditional':
         electrodes_list = file_lists[file_type]['electrodes']
 
@@ -310,7 +320,8 @@ def process_file_info(dir_name, file_type, file_lists, info_dict):
             print("\tOne file per SIGNAL Detected")
 
         # Use info file for port list calculation
-        info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
+        info_file = np.fromfile(dir_name + '/info.rhd',
+                                dtype=np.dtype('float32'))
         sampling_rate = int(info_file[2])
 
         # Read the time.dat file for use in separating out
@@ -331,9 +342,9 @@ def process_file_info(dir_name, file_type, file_lists, info_dict):
             header = read_header(f)
         # temp_file, data_present = importrhdutilities.load_file(file_list[0])
         amp_channel_ports = [x['port_prefix']
-                            for x in header['amplifier_channels']]
+                             for x in header['amplifier_channels']]
         amp_channel_names = [x['native_channel_name']
-                            for x in header['amplifier_channels']]
+                             for x in header['amplifier_channels']]
         sampling_rate = int(header['sample_rate'])
         ports = np.unique(amp_channel_ports)
 
@@ -343,16 +354,16 @@ def process_file_info(dir_name, file_type, file_lists, info_dict):
         == Ports: {ports}\n
         """
         print(check_str)
-        
+
     return electrodes_list, sampling_rate, num_recorded_samples, rhd_file_list
 
 
 def get_electrode_info(info_dict):
     """Get electrode information from info_dict
-    
+
     Args:
         info_dict: Dictionary of experiment information
-        
+
     Returns:
         tuple: Lists of electrodes and EMG channels
     """
@@ -363,17 +374,19 @@ def get_electrode_info(info_dict):
                 if len(group) > 0:
                     all_car_group_vals.append(group)
     all_electrodes = [electrode for region in all_car_group_vals
-                    for electrode in region]
+                      for electrode in region]
 
     emg_info = info_dict['emg']
     emg_port = emg_info['port']
     emg_channels = sorted(emg_info['electrodes'])
-    
+
     return all_electrodes, emg_channels
-def process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame, 
+
+
+def process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame,
                  electrodes_list, num_recorded_samples, emg_channels, rhd_file_list):
     """Process data files based on file type
-    
+
     Args:
         file_type: Type of files
         reload_data_str: Whether to reload data
@@ -387,7 +400,8 @@ def process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame,
     if reload_data_str in ['y', 'yes']:
         if file_type == 'one file per channel':
             # read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
-            read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+            read_file.read_electrode_channels(
+                hdf5_name, electrode_layout_frame)
             if len(emg_channels) > 0:
                 read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
         elif file_type == 'one file per signal type':
@@ -407,12 +421,12 @@ def process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame,
 
 def create_params_file(params_template_path, hdf5_name, sampling_rate):
     """Create parameter file if not present
-    
+
     Args:
         params_template_path: Path to the template parameter file
         hdf5_name: Name of the HDF5 file
         sampling_rate: Sampling rate of the data
-        
+
     Returns:
         dict: Dictionary of parameters
     """
@@ -428,11 +442,13 @@ def create_params_file(params_template_path, hdf5_name, sampling_rate):
             json.dump(all_params_dict, params_file, indent=4)
     else:
         print("Params file already present...not writing a new one")
-        
+
     return all_params_dict
+
+
 def perform_quality_assurance(hdf5_name, all_params_dict, dir_name, file_type):
     """Perform quality assurance checks on the data
-    
+
     Args:
         hdf5_name: Name of the HDF5 file
         all_params_dict: Dictionary of parameters
@@ -456,8 +472,8 @@ def perform_quality_assurance(hdf5_name, all_params_dict, dir_name, file_type):
         shutil.rmtree(qa_out_path)
         os.mkdir(qa_out_path)
     channel_corr.gen_corr_output(corr_mat,
-                                qa_out_path,
-                                qa_threshold,)
+                                 qa_out_path,
+                                 qa_threshold,)
     # Also write out the correlation matrix to qa_out_path
     np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
 
@@ -465,11 +481,13 @@ def perform_quality_assurance(hdf5_name, all_params_dict, dir_name, file_type):
     if file_type in ['one file per channel', 'one file per signal type']:
         print('\nGenerating channel profile plots')
         plot_channels(dir_name, qa_out_path, file_type)
-        
+
     return qa_out_path
+
+
 def plot_digital_inputs(this_dig_handler, info_dict, sampling_rate, qa_out_path):
     """Plot digital input information
-    
+
     Args:
         this_dig_handler: Digital input handler object
         info_dict: Dictionary of experiment information
@@ -493,7 +511,8 @@ def plot_digital_inputs(this_dig_handler, info_dict, sampling_rate, qa_out_path)
         dig_in_map[num] = 'laser'
 
     # Sort dig_in_map
-    dig_in_map = {num: dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
+    dig_in_map = {num: dig_in_map[num]
+                  for num in sorted(list(dig_in_map.keys()))}
     dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
 
     for i, vals in enumerate(dig_in_markers):
@@ -513,86 +532,92 @@ def plot_digital_inputs(this_dig_handler, info_dict, sampling_rate, qa_out_path)
     plt.ylabel('Digital Input Channel')
     plt.savefig(os.path.join(qa_out_path, 'digital_inputs.png'))
     plt.close()
+
+
 def main():
     """Main function for blech_clust.py"""
     # Parse command line arguments
     args = parse_arguments()
     force_run = args.force_run
-    
+
     # Get blech_clust path
     script_path = os.path.realpath(__file__)
     blech_clust_dir = os.path.dirname(script_path)
-    
+
     # Check that template file is present
     params_template_path = check_template_file(blech_clust_dir)
-    
+
     # Initialize metadata handler
     metadata_handler = imp_metadata([[], args.dir_name])
     dir_name = metadata_handler.dir_name
-    
+
     # Perform pipeline graph check
-    this_pipeline_check = setup_pipeline_check(metadata_handler, blech_clust_dir, script_path)
-    
+    this_pipeline_check = setup_pipeline_check(
+        metadata_handler, blech_clust_dir, script_path)
+
     print(f'Processing : {dir_name}')
     os.chdir(dir_name)
-    
+
     info_dict = metadata_handler.info_dict
     file_list = metadata_handler.file_list
     file_type = info_dict['file_type']
-    
+
     # Create HDF5 handler and initialize groups
     hdf5_handler = HDF5Handler(dir_name, force_run)
     continue_bool, reload_data_str = hdf5_handler.initialize_groups()
     hdf5_name = hdf5_handler.hdf5_name
-    
+
     # Create directories to store waveforms, spike times, clustering results, and plots
     dir_list = ['spike_waveforms', 'spike_times', 'clustering_results',
                 'Plots', 'memory_monitor_clustering']
     if not create_directories(dir_list, force_run):
         quit()
-    
+
     # Get file lists and process file information
     file_lists = get_file_lists(file_list, file_type)
-    
+
     # Get digin and laser info
     print('Getting trial markers from digital inputs')
     this_dig_handler = read_file.DigInHandler(dir_name, file_type)
     this_dig_handler.load_dig_in_frame()
-    
+
     print('DigIn data loaded')
     print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
-    
+
     # Process file information
     electrodes_list, sampling_rate, num_recorded_samples, rhd_file_list = process_file_info(
         dir_name, file_type, file_lists, info_dict)
-    
+
     # Get electrode information
     all_electrodes, emg_channels = get_electrode_info(info_dict)
-    
+
     # Get electrode layout
     layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
     electrode_layout_frame = pd.read_csv(layout_path)
-    
+
     # Process data files
-    process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame, 
+    process_data(file_type, reload_data_str, hdf5_name, electrode_layout_frame,
                  electrodes_list, num_recorded_samples, emg_channels, rhd_file_list)
-    
+
     # Create parameter file
-    all_params_dict = create_params_file(params_template_path, hdf5_name, sampling_rate)
-    
+    all_params_dict = create_params_file(
+        params_template_path, hdf5_name, sampling_rate)
+
     # Perform quality assurance
-    qa_out_path = perform_quality_assurance(hdf5_name, all_params_dict, dir_name, file_type)
-    
+    qa_out_path = perform_quality_assurance(
+        hdf5_name, all_params_dict, dir_name, file_type)
+
     # Plot digital inputs
-    plot_digital_inputs(this_dig_handler, info_dict, sampling_rate, qa_out_path)
-    
+    plot_digital_inputs(this_dig_handler, info_dict,
+                        sampling_rate, qa_out_path)
+
     # Generate the processing scripts
     generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
                                 all_electrodes, all_params_dict)
-    
+
     print('blech_clust.py complete \n')
     print('*** Please check params file to make sure all is good ***\n')
-    
+
     # Write success to log
     this_pipeline_check.write_to_log(script_path, 'completed')
 
