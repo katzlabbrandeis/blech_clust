@@ -77,6 +77,7 @@ from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
 import utils.clustering as clust
+from blech_units_plot import plot_unit_summary
 # import subprocess
 # import sys
 
@@ -465,6 +466,11 @@ class cluster_handler():
                 plt.close(fig)
     # return fig, ax
 
+    class UnitData():
+        def __init__(self, waveforms, times):
+            self.waveforms = waveforms
+            self.times = times
+
     def create_output_plots(self,
                             params_dict):
 
@@ -511,15 +517,29 @@ class cluster_handler():
 
                 # Create waveform datashader plot with envelope
                 #############################
-                fig, ax = gen_datashader_plot(
-                    slices_dejittered,
-                    cluster_points,
-                    x,
-                    threshold,
-                    self.electrode_num,
-                    params_dict['sampling_rate'],
-                    cluster,
+                fig, ax = plot_unit_summary(
+                    unit_data=UnitData(
+                        unit_index,
+                        slices_dejittered[cluster_points],
+                        times_dejittered[cluster_points]
+                    ),
+                    min_time=min_time,
+                    max_time=max_time,
+                    params_dict=params_dict,
+                    return_only=True,
                 )
+
+                # fig, ax = gen_datashader_plot(
+                #     slices_dejittered,
+                #     cluster_points,
+                #     x,
+                #     threshold,
+                #     self.electrode_num,
+                #     params_dict['sampling_rate'],
+                #     cluster,
+                # )
+                fig.suptitle(f'Cluster {cluster} waveforms')
+
                 fig.savefig(os.path.join(
                     self.clust_plot_dir, f'Cluster{cluster}_waveforms'))
                 plt.close("all")
