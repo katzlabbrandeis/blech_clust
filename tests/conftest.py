@@ -4,10 +4,12 @@ import pandas as pd
 import numpy as np
 from unittest.mock import MagicMock
 
+
 @pytest.fixture
 def mock_dir_name():
     """Fixture providing a mock directory name"""
     return '/path/to/test_data/'
+
 
 @pytest.fixture
 def mock_file_list():
@@ -17,6 +19,7 @@ def mock_file_list():
         'time.dat', 'info.rhd', 'digital_in.dat',
         'test_layout.csv'
     ]
+
 
 @pytest.fixture
 def mock_info_dict():
@@ -42,6 +45,7 @@ def mock_info_dict():
         }
     }
 
+
 @pytest.fixture
 def mock_electrode_layout_frame():
     """Fixture providing a mock electrode layout DataFrame"""
@@ -52,6 +56,7 @@ def mock_electrode_layout_frame():
         'channel': [1, 2, 3, 1, 2, 1, 2],
         'region': ['region1', 'region1', 'region1', 'region2', 'none', 'emg', 'emg']
     })
+
 
 @pytest.fixture
 def mock_dig_handler():
@@ -70,6 +75,7 @@ def mock_dig_handler():
         ]
     })
     return mock_handler
+
 
 @pytest.fixture
 def mock_hdf5_file():
