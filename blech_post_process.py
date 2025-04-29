@@ -189,6 +189,7 @@ elif sorted_units_exist_bool:
 else:
     hf5.create_group('/', 'sorted_units')
 
+
 ############################################################
 # Main Processing Loop
 ############################################################

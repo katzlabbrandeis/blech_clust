@@ -1561,9 +1561,9 @@ def auto_process_electrode(
     )
 
     if len(final_merge_sets) > 0:
-        print(f'=== Merging {len(final_merge_sets)} Clusters ===')
+        print(f'=== Merging {len(final_merge_sets)} Clusters ===\n')
         for this_merge_set, new_name in zip(final_merge_sets, new_clust_names):
-            print(f'==== {this_merge_set} => {new_name} ====')
+            print(f'==== {this_merge_set} => {new_name} ====\n')
 
         fig, ax = gen_plot_auto_merged_clusters(
             spike_waveforms,
