@@ -18,24 +18,24 @@ jobs:
     steps:
       - name: Set up repo
         uses: actions/checkout@v4
-      
+
       - name: Display Python version
         run: |
           python --version
           which python
-      
+
       - name: Install pytest if needed
         run: |
           conda run -n blech_clust pip install pytest pytest-cov
-      
+
       - name: Run pytest
         run: |
           conda run -n blech_clust python -m pytest tests/ -v
-      
+
       - name: Run pytest with coverage
         run: |
           conda run -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
-      
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v3
         with:
