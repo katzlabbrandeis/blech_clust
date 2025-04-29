@@ -1,3 +1,14 @@
+"""
+This module processes electrophysiological data files, organizes them into an HDF5 format, and reads data from various file types. It handles both single-file and multi-file data formats, creating necessary groups in the HDF5 file for raw data, EMG data, and digital inputs/outputs.
+
+- Imports necessary Python and custom modules for file handling, data processing, and path management.
+- Determines the type of data files present (either one file per signal type or one file per channel).
+- Creates or opens an HDF5 file, setting up groups for raw data, EMG data, and digital inputs/outputs.
+- Identifies and sorts lists of amplifier and digital input files based on the file type.
+- Reads metadata from an info file to determine sampling rates and other parameters.
+- Reads and processes digital input data and electrode channels, handling both single-file and multi-file formats.
+- Utilizes utility functions from imported modules to read and append data to the HDF5 file.
+"""
 # Necessary python modules
 import os
 import tables
@@ -12,15 +23,12 @@ import shutil
 # Get blech_clust path
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.basename(script_path))
-import sys
 sys.path.append(blech_clust_dir)
-
 # Necessary blech_clust modules
-from utils import read_file
-from utils import qa_utils as qa
-from utils.blech_utils import entry_checker, imp_metadata
-from utils.blech_process_utils import path_handler
-
+from utils.blech_process_utils import path_handler  # noqa: E402
+from utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
+from utils import qa_utils as qa  # noqa: E402
+from utils import read_file  # noqa: E402
 
 ############################################################
 
@@ -77,7 +85,7 @@ dig_in_list = sorted(dig_in_list)
 info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
 sampling_rate = int(info_file[2])
 
-# Read the time.dat file for use in separating out 
+# Read the time.dat file for use in separating out
 # the one file per signal type data
 num_recorded_samples = len(np.fromfile(
     dir_name + '/' + 'time.dat', dtype=np.dtype('float32')))
@@ -104,7 +112,7 @@ elif file_type == ['one file per signal type']:
     dig_in = np.arange(info_dict['dig_ins']['count'])
 
 check_str = f'ports used: {ports} \n sampling rate: {sampling_rate} Hz'\
-            f'\n digital inputs on intan board: {dig_in}'
+    f'\n digital inputs on intan board: {dig_in}'
 
 print(check_str)
 

@@ -5,20 +5,40 @@ choose_folder() {
     zenity --file-selection --directory --title="Select data folder" 2>/dev/null
 }
 
-DIR=$1
+# Parse arguments
+DELETE_LOG=false
+DIR=""
 
-# Check if the result log exists, ask whether to overwrite
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --delete-log)
+            DELETE_LOG=true
+            shift
+            ;;
+        *)
+            DIR="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check if the result log exists, handle based on delete-log flag
 LOG_FILE="$DIR/results.log"
 if [ -f "$LOG_FILE" ]; then
-    while true; do
-    	read -p "results.log detected, overwrite existing log? ([y]/n) :: " yn
-        yn=${yn:-y}  # Default to 'y' if no input is provided
-    	case $yn in
-   	    [Yy]* ) echo "Overwriting existing log";rm "$LOG_FILE"; break;;
-    	    [Nn]* ) echo "Using existing log"; break;;
-    	    * ) echo "Please answer yes or no.";;
-    	esac
-    done
+    if [ "$DELETE_LOG" = true ]; then
+        echo "Forcing deletion of existing log"
+        rm "$LOG_FILE"
+    else
+        while true; do
+            read -p "results.log detected, overwrite existing log? ([y]/n) :: " yn
+            yn=${yn:-y}  # Default to 'y' if no input is provided
+            case $yn in
+                [Yy]* ) echo "Overwriting existing log";rm "$LOG_FILE"; break;;
+                [Nn]* ) echo "Using existing log"; break;;
+                * ) echo "Please answer yes or no.";;
+            esac
+        done
+    fi
 fi
 
 
@@ -40,8 +60,39 @@ if [ ! -d "$DIR" ]; then
     fi
 fi
 
+# Start RAM monitoring in background
+python3 utils/ram_monitor.py "$DIR" &
+RAM_MONITOR_PID=$!
+
 echo "Processing $DIR"
 for i in {1..10}; do
     echo Retry $i
     bash $DIR/temp/blech_process_parallel.sh
 done
+
+# Kill RAM monitor when done
+kill $RAM_MONITOR_PID
+
+# Check all logs for completion status
+echo "Checking completion status of all electrodes..."
+python3 - <<EOF
+import json
+import sys
+import pathlib
+
+log_path = pathlib.Path("$DIR") / 'blech_process.log'
+if not log_path.exists():
+    print("Error: blech_process.log not found")
+    sys.exit(1)
+
+with open(log_path) as f:
+    process_log = json.load(f)
+
+incomplete = [e for e, data in process_log.items() if data['status'] == 'attempted']
+
+if incomplete:
+    print(f"Error: The following electrodes did not complete successfully: {incomplete}")
+    sys.exit(1)
+else:
+    print("All electrodes completed successfully")
+EOF

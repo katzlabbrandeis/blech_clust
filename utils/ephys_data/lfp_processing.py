@@ -1,6 +1,70 @@
 """
-Module for ephys_data to streamline lfp_extraction
-Adapted from blech_clust/LFP_analysis/LFP_Processing_Final.py
+lfp_processing.py - LFP extraction and processing utilities
+
+This module provides functions for extracting and processing Local Field Potential (LFP)
+data from electrophysiology recordings. Adapted from blech_clust LFP analysis tools.
+
+Key Functions:
+    extract_lfps: Main function for LFP extraction and processing
+    extract_emgs: Similar processing for EMG signals
+    get_filtered_electrode: Apply bandpass filtering to electrode signals
+    return_good_lfp_trials: Quality control for LFP trials
+    return_good_lfp_trial_inds: Get indices of good quality trials
+
+Features:
+    - Automatic trial segmentation based on digital inputs
+    - Configurable filtering parameters
+    - Data quality visualization
+    - EMG-specific processing
+    - Trial quality assessment using MAD thresholds
+
+Dependencies:
+    - numpy, scipy, tables
+    - matplotlib for visualization
+
+Usage:
+    >>> from utils.ephys_data import lfp_processing
+    >>>
+    >>> # Extract LFPs with default parameters
+    >>> lfp_processing.extract_lfps(
+    ...     dir_name='/path/to/data',
+    ...     freq_bounds=[1, 300],          # Frequency range in Hz
+    ...     sampling_rate=30000,           # Original sampling rate
+    ...     taste_signal_choice='Start',   # Trial alignment
+    ...     fin_sampling_rate=1000,        # Final sampling rate
+    ...     dig_in_list=[0,1,2,3],        # Digital inputs to process
+    ...     trial_durations=[2000,5000]    # Pre/post trial durations
+    ... )
+    >>>
+    >>> # Extract EMGs similarly
+    >>> lfp_processing.extract_emgs(
+    ...     dir_name='/path/to/data',
+    ...     emg_electrode_nums=[0,1],      # EMG electrode numbers
+    ...     freq_bounds=[1, 300],
+    ...     sampling_rate=30000,
+    ...     taste_signal_choice='Start',
+    ...     fin_sampling_rate=1000,
+    ...     dig_in_list=[0,1,2,3],
+    ...     trial_durations=[2000,5000]
+    ... )
+    >>>
+    >>> # Filter individual electrode data
+    >>> filtered_data = lfp_processing.get_filtered_electrode(
+    ...     data=raw_data,
+    ...     low_pass=1,
+    ...     high_pass=300,
+    ...     sampling_rate=1000
+    ... )
+    >>>
+    >>> # Get good quality trials
+    >>> good_trials = lfp_processing.return_good_lfp_trials(
+    ...     data=lfp_data,
+    ...     MAD_threshold=3
+    ... )
+
+Installation:
+    Required packages can be installed via pip:
+    $ pip install numpy scipy tables matplotlib
 """
 # ==============================
 # Setup
@@ -18,7 +82,18 @@ import shutil
 # Import specific functions in order to filter the data file
 from scipy.signal import butter
 from scipy.signal import filtfilt
-from scipy.stats import median_absolute_deviation as MAD
+try:
+    from scipy.stats import median_abs_deviation as MAD
+    try_again = False
+except:
+    print('Could not import median_abs_deviation, using deprecated version')
+    try_again = True
+
+if try_again:
+    try:
+        from scipy.stats import median_absolute_deviation as MAD
+    except:
+        raise ImportError('Could not import median_absolute_deviation')
 
 # ==============================
 # Define Functions
@@ -289,6 +364,18 @@ def extract_emgs(dir_name,
                  fin_sampling_rate,
                  dig_in_list,
                  trial_durations):
+    """Extract EMG data from raw recordings
+
+    Args:
+        dir_name: Directory containing data files
+        emg_electrode_nums: List of electrode numbers for EMG channels
+        freq_bounds: [low, high] frequency bounds for filtering
+        sampling_rate: Original sampling rate
+        taste_signal_choice: 'Start' or 'End' for trial alignment
+        fin_sampling_rate: Final sampling rate after downsampling
+        dig_in_list: List of digital input channels to process
+        trial_durations: [pre_trial, post_trial] durations in ms
+    """
 
     if taste_signal_choice == 'Start':
         diff_val = 1
@@ -351,7 +438,7 @@ def extract_emgs(dir_name,
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
         hf5.create_array('/raw_emg', 'electrode{:0>3}'.
-                         format(electrodegroup[i]), filt_el_down)
+                         format(emg_electrode_nums[i]), filt_el_down)
         hf5.flush()
         del data, data_down, filt_el_down
 
@@ -391,7 +478,7 @@ def extract_emgs(dir_name,
     # Code further below simply enumerates arrays in Parsed_LFP
     if "/Parsed_emg_channels" in hf5:
         hf5.remove_node('/Parsed_emg_channels')
-    hf5.create_array('/', 'Parsed_emg_channels', electrodegroup)
+    hf5.create_array('/', 'Parsed_emg_channels', emg_electrode_nums)
     hf5.flush()
 
     # Remove dig_ins which are not relevant
@@ -509,7 +596,8 @@ def extract_emgs(dir_name,
     hf5.flush()
     hf5.close()
 
-def return_good_lfp_trial_inds(data, MAD_threshold = 3,):
+
+def return_good_lfp_trial_inds(data, MAD_threshold=3,):
     """
     Return boolean array of good trials (for all channels) based on MAD threshold
     Remove trials based on deviation from median LFP per trial
@@ -524,22 +612,24 @@ def return_good_lfp_trial_inds(data, MAD_threshold = 3,):
     lfp_median = np.median(data, axis=1)
     lfp_MAD = MAD(data, axis=1)
     # Use total deviation per trial scaled by MAD to remove trial
-    mean_trial_deviation = np.mean(np.abs(data - lfp_median[:,np.newaxis,:])/lfp_MAD[:,None], axis=2)
+    mean_trial_deviation = np.mean(
+        np.abs(data - lfp_median[:, np.newaxis, :])/lfp_MAD[:, None], axis=2)
     deviation_median = np.median(mean_trial_deviation, axis=1)
     deviation_MAD = MAD(mean_trial_deviation, axis=1)
     deviation_threshold = 3
     fin_deviation_threshold = deviation_median + deviation_threshold*deviation_MAD
     # Remove trials with high deviation
-    good_trials_bool = mean_trial_deviation < fin_deviation_threshold[:,np.newaxis]
+    good_trials_bool = mean_trial_deviation < fin_deviation_threshold[:, np.newaxis]
     # Take only trials good for both regions
     good_trials_bool = np.all(good_trials_bool, axis=0)
     return good_trials_bool
 
-def return_good_lfp_trials(data, MAD_threshold = 3,): 
+
+def return_good_lfp_trials(data, MAD_threshold=3,):
     """Return good trials (for all channels) based on MAD threshold
     data : shape (n_channels, n_trials, n_timepoints)
     MAD_threshold : number of MADs to use as threshold for individual timepoints
     """
     good_trials_bool = return_good_lfp_trial_inds(data, MAD_threshold,)
     good_lfp_data = data.copy()
-    return good_lfp_data[:,good_trials_bool]
+    return good_lfp_data[:, good_trials_bool]

@@ -1,6 +1,10 @@
 {
-   "use_neuRecommend":true,
-   "use_classifier":true,
-   "throw_out_noise":false,
-   "min_suggestion_count" : 2000
+    "use_neuRecommend": true,
+    "use_classifier": true,
+    "throw_out_noise": false,
+    "min_suggestion_count": 2000,
+    "classifier_threshold_override": {
+        "override": false,
+        "threshold": 0.8
+    }
 }

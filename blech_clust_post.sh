@@ -1,14 +1,17 @@
 DIR=$1
-BLECH_DIR=$HOME/Desktop/blech_clust
-echo Running Units Plot
-python $BLECH_DIR/blech_units_plot.py $DIR;
-echo Running Make Arrays
-python $BLECH_DIR/blech_make_arrays.py $DIR;
-echo Running Quality Assurance 
-bash $BLECH_DIR/blech_run_QA.sh $DIR;
-echo Running Make PSTHs
-python $BLECH_DIR/blech_make_psth.py $DIR;
-echo Running Palatability Identity Setup
-python $BLECH_DIR/blech_palatability_identity_setup.py $DIR;
-echo Running Overlay PSTH
-python $BLECH_DIR/blech_overlay_psth.py $DIR;
+if [ ! -d $DIR ]; then
+    echo "Directory $DIR does not exist"
+    exit 1
+fi
+
+SCRIPT_DIR=$0
+BLECH_DIR=$(dirname $SCRIPT_DIR)
+echo === Make Arrays ===
+python blech_make_arrays.py $DIR &&
+echo === Quality Assurance ===
+bash blech_run_QA.sh $DIR &&
+echo === Units Plot ===
+python blech_units_plot.py $DIR &&
+echo === Get unit characteristics ===
+python blech_units_characteristics.py $DIR &&
+echo === Done ===

@@ -1,26 +1,84 @@
+"""
+This module is designed for handling and processing electrophysiological data, specifically focusing on clustering and classification of neural spike waveforms. It includes classes and functions for managing paths, clustering, classification, electrode data handling, and spike processing.
 
+- **path_handler**: Manages directory paths for the module.
+- **cluster_handler**: Handles clustering of spike waveforms.
+  - `check_classifier_data_exists`: Checks if classifier data exists.
+  - `return_training_set`: Returns a training set for clustering.
+  - `fit_manual_model`: Fits a Gaussian Mixture Model manually.
+  - `fit_auto_model`: Fits a Bayesian Gaussian Mixture Model automatically.
+  - `get_cluster_labels`: Retrieves cluster labels from a model.
+  - `perform_prediction`: Performs clustering and saves the model.
+  - `remove_outliers`: Removes outliers from clusters.
+  - `save_cluster_labels`: Saves cluster labels to a file.
+  - `calc_mahalanobis_distance_matrix`: Calculates and saves Mahalanobis distance matrix.
+  - `create_output_dir`: Creates directories for clustering results.
+  - `create_classifier_plots`: Generates plots for classifier results.
+  - `create_output_plots`: Generates output plots for clusters.
+
+- **classifier_handler**: Manages classification of waveforms.
+  - `download_neurecommend_models`: Downloads necessary models if not present.
+  - `return_waveform_classifier_params_path`: Returns the path to classifier parameters.
+  - `get_waveform_classifier_params`: Loads classifier parameters.
+  - `load_pipelines`: Loads feature and prediction pipelines.
+  - `classify_waveforms`: Classifies waveforms and saves results.
+  - `write_out_recommendations`: Writes out recommendations based on classification.
+  - `gen_plots`: Generates plots for predicted spikes and noise.
+
+- **electrode_handler**: Handles electrode data processing.
+  - `filter_electrode`: Filters raw electrode data.
+  - `cut_to_int_seconds`: Cuts data to integer seconds.
+  - `calc_recording_cutoff`: Calculates recording cutoff based on parameters.
+  - `make_cutoff_plot`: Generates a plot showing recording cutoff.
+  - `cutoff_electrode`: Cuts off electrode data at the calculated cutoff.
+
+- **spike_handler**: Processes spikes from electrode data.
+  - `extract_waveforms`: Extracts waveforms from filtered electrode data.
+  - `dejitter_spikes`: Dejitters spikes to correct timing.
+  - `extract_features`: Extracts features from spike waveforms.
+  - `return_feature`: Returns specific features from spike data.
+  - `write_out_spike_data`: Saves spike data to files.
+
+- **Utility Functions**:
+  - `ifisdir_rmdir`: Removes a directory if it exists.
+  - `return_cutoff_values`: Calculates cutoff values for electrode recording.
+  - `gen_window_plots`: Generates plots for data windows.
+  - `gen_datashader_plot`: Generates datashader plots for waveforms.
+  - `gen_isi_hist`: Generates inter-spike interval histograms.
+  - `remove_too_large_waveforms`: Removes waveforms that are too large.
+  - `feature_timeseries_plot`: Plots feature timeseries for clusters.
+  - `register_labels`, `calc_linkage`, `sort_label_array`, `perform_agg_clustering`, `plot_waveform_dendogram`, `trim_data`: Helper functions for agglomerative clustering.
+"""
+
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+from utils.blech_utils import ifisdir_rmdir
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
+from matplotlib.patches import ConnectionPatch
+from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram
+from sklearn.cluster import AgglomerativeClustering, KMeans
+import pandas as pd
+import matplotlib
+import shutil
+from glob import glob
+import tables
+import numpy as np
+import json
+import pylab as plt
+from scipy.stats import zscore
+import subprocess
+from utils import blech_waveforms_datashader
+from scipy.spatial.distance import mahalanobis
+from sklearn.mixture import BayesianGaussianMixture as BGM
+from sklearn.mixture import GaussianMixture as gmm
+from joblib import load
 import utils.clustering as clust
 # import subprocess
-from joblib import load
-from sklearn.mixture import GaussianMixture as gmm
-from sklearn.mixture import BayesianGaussianMixture as BGM
-from scipy.spatial.distance import mahalanobis
-from utils import blech_waveforms_datashader
-import subprocess
-from scipy.stats import zscore
-import pylab as plt
-import json
 # import sys
-import numpy as np
-import tables
-import os
-from glob import glob
-import shutil
-import matplotlib
-import pandas as pd
-from sklearn.cluster import AgglomerativeClustering, KMeans
-from scipy.cluster.hierarchy import cut_tree, linkage, dendrogram
-from matplotlib.patches import ConnectionPatch
 
 ############################################################
 # Define Functions
@@ -32,27 +90,50 @@ class path_handler():
     def __init__(self):
         self.home_dir = os.getenv('HOME')
         file_path = os.path.abspath(__file__)
-        blech_clust_dir =  ('/').join(file_path.split('/')[:-2])
+        blech_clust_dir = ('/').join(file_path.split('/')[:-2])
         self.blech_clust_dir = blech_clust_dir
+
 
 class cluster_handler():
     """
     Class to handle clustering steps
     """
 
-    def __init__(self, params_dict,
-                 data_dir, electrode_num, cluster_num,
-                 spike_set, fit_type = 'manual'):
-        assert fit_type in ['manual', 'auto'], 'fit_type must be manual or auto'
+    def __init__(self, params_dict, data_dir, electrode_num, cluster_num,
+                 spike_features=None, slices_dejittered=None, times_dejittered=None,
+                 threshold=None, feature_names=None, fit_type='manual'):
+        """
+        Initialize cluster handler with specific data rather than a spike_set object
 
+        Args:
+            params_dict: Dictionary of parameters
+            data_dir: Directory containing data
+            electrode_num: Electrode number
+            cluster_num: Number of clusters
+            spike_features: Features extracted from spikes
+            slices_dejittered: Dejittered spike waveforms
+            times_dejittered: Dejittered spike times
+            threshold: Threshold used for spike detection
+            feature_names: Names of features
+            fit_type: Type of fitting ('manual' or 'auto')
+        """
+        assert fit_type in [
+            'manual', 'auto'], 'fit_type must be manual or auto'
 
         self.params_dict = params_dict
         self.dat_thresh = 10e3
         self.data_dir = data_dir
         self.electrode_num = electrode_num
         self.cluster_num = cluster_num
-        self.spike_set = spike_set
         self.fit_type = fit_type
+
+        # Store specific data instead of the whole spike_set
+        self.spike_features = spike_features
+        self.slices_dejittered = slices_dejittered
+        self.times_dejittered = times_dejittered
+        self.threshold = threshold
+        self.feature_names = feature_names
+
         self.create_output_dir()
 
     def check_classifier_data_exists(self, data_dir):
@@ -61,7 +142,8 @@ class cluster_handler():
             'spike_waveforms/electrode*/clf_prob.npy'))
 
         if len(clf_list) == 0:
-            raise Exception('Classifier output not found, please run blech_run_process.sh with classifier.')
+            raise Exception(
+                'Classifier output not found, please run blech_run_process.sh with classifier.')
 
     def return_training_set(self, data):
         """
@@ -82,7 +164,7 @@ class cluster_handler():
             max_iter=self.params_dict['clustering_params']['num_iter'],
             n_init=self.params_dict['clustering_params']['num_restarts'],
             tol=self.params_dict['clustering_params']['thresh'],
-            ).fit(train_set)
+        ).fit(train_set)
         return model
 
     def fit_auto_model(self, train_set, clusters):
@@ -96,50 +178,60 @@ class cluster_handler():
         max_k = 1000
 
         if len(train_set) > max_k:
-            kmean_obj = KMeans(n_clusters = max_k)	
+            kmean_obj = KMeans(n_clusters=max_k)
             kmean_obj.fit(train_set)
             bgm_train_data = kmean_obj.cluster_centers_
         else:
             bgm_train_data = train_set
 
         g = BGM(
-                random_state=0,
-                n_components=clusters,
-                max_iter=self.params_dict['clustering_params']['num_iter'],
-                n_init=self.params_dict['clustering_params']['num_restarts'],
-                tol=self.params_dict['clustering_params']['thresh'],
-                covariance_type = 'full',
-                weight_concentration_prior_type = 'dirichlet_process',
-                # This can be systematically adjusted to match
-                # actual data
-                weight_concentration_prior = 0.1,
-                verbose = 0,
-                )
+            random_state=0,
+            n_components=clusters,
+            max_iter=self.params_dict['clustering_params']['num_iter'],
+            n_init=self.params_dict['clustering_params']['num_restarts'],
+            tol=self.params_dict['clustering_params']['thresh'],
+            covariance_type='full',
+            weight_concentration_prior_type='dirichlet_process',
+            # This can be systematically adjusted to match
+            # actual data
+            weight_concentration_prior=0.1,
+            verbose=0,
+        )
 
         # Train on kmeans centroids but predict on the actual data
         # This is not a problem as both sets belong to the same space/dimensions
         g.fit(bgm_train_data)
         return g
 
-    def get_cluster_labels(self, data, model):
+    def get_cluster_labels(self, data):
         """
-        Get cluster labels
+        Get cluster labels using the fitted model
         """
-        return model.predict(data)
+        return self.model.predict(data)
 
-    def perform_prediction(self): 
+    def fit_model(self, train_set):
         """
-        Perform clustering
-        Model needs to be saved for calculation of mahalanobis distances
+        Fit appropriate model based on fit_type
         """
-        full_data = self.spike_set.spike_features
-        train_set = self.return_training_set(full_data)
         if self.fit_type == 'manual':
-            self.model = self.fit_manual_model(train_set, self.cluster_num)
+            return self.fit_manual_model(train_set, self.cluster_num)
         elif self.fit_type == 'auto':
-            self.model = self.fit_auto_model(train_set, self.cluster_num)
-        labels = self.get_cluster_labels(full_data, self.model)
-        self.labels = labels
+            return self.fit_auto_model(train_set, self.cluster_num)
+
+    def perform_clustering(self):
+        """
+        Complete clustering pipeline:
+        1. Get training set
+        2. Fit model
+        3. Get cluster labels
+
+        Returns:
+            numpy.ndarray: Cluster labels
+        """
+        train_set = self.return_training_set(self.spike_features)
+        self.model = self.fit_model(train_set)
+        self.labels = self.get_cluster_labels(self.spike_features)
+        return self.labels
 
     def remove_outliers(self, params_dict):
         """
@@ -157,13 +249,15 @@ class cluster_handler():
             cluster_points = np.where(self.labels[:] == cluster)[0]
             this_cluster = remove_too_large_waveforms(
                 cluster_points,
-                #self.spike_set.amplitudes,
-                self.spike_set.return_feature('amplitude'),
+                # self.spike_set.amplitudes,
+                # self.spike_set.return_feature('amplitude'),
+                self.spike_features[:, [i for i, x in enumerate(
+                    self.feature_names) if 'amplitude' in x][0]],
                 self.labels,
                 wf_amplitude_sd_cutoff)
             self.labels[cluster_points] = this_cluster
         # Make sure cluster labels are continuous numbers
-        # as auto-model can return non-continuous numbers 
+        # as auto-model can return non-continuous numbers
         # (e.g. 0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
         # This is not a problem for manual model
         # Rename all but label=-1
@@ -193,12 +287,12 @@ class cluster_handler():
         # assert model in dir(self), 'Model not found'
         cluster_labels = np.unique(self.labels)
         mahal_matrix = np.zeros((len(cluster_labels), len(cluster_labels)))
-        full_data = self.spike_set.spike_features
-        for i, clust_i in enumerate(cluster_labels): 
+        full_data = self.spike_features
+        for i, clust_i in enumerate(cluster_labels):
             for j, clust_j in enumerate(cluster_labels):
                 # Use sample covariances so we can use labels
                 this_cluster_data = \
-                        full_data[np.where(self.labels == clust_i)[0]]
+                    full_data[np.where(self.labels == clust_i)[0]]
                 # If cluster is smaller than 3, it gives
                 # singular covariance matrix
                 if len(this_cluster_data) > 2:
@@ -210,9 +304,9 @@ class cluster_handler():
                     other_cluster = np.where(self.labels == clust_j)[0]
                     other_cluster_data = full_data[other_cluster]
                     mahal_list = [
-                        mahalanobis(x, this_cluster_mean, inv_cov) \
-                                for x in other_cluster_data
-                                ]
+                        mahalanobis(x, this_cluster_mean, inv_cov)
+                        for x in other_cluster_data
+                    ]
                     mahal_matrix[i, j] = np.mean(mahal_list)
                 else:
                     mahal_matrix[i, j] = np.nan
@@ -244,7 +338,16 @@ class cluster_handler():
         self.clust_results_dir = clust_results_dir
         self.clust_plot_dir = clust_plot_dir
 
-    def create_classifier_plots(self, classifier_handler):
+    def create_classifier_plots(
+            self,
+            # classifier_handler
+            classifier_pred,
+            classifier_prob,
+            clf_threshold,
+            all_waveforms,
+            all_times,
+            labels=None,
+    ):
         """
         For each cluster, plot:
             1. Pred Spikes
@@ -256,17 +359,21 @@ class cluster_handler():
         Input data can come from classifier_handler
         """
 
-        self.check_classifier_data_exists(self.data_dir)
+        # self.check_classifier_data_exists(self.data_dir)
 
-        classifier_pred = classifier_handler.clf_pred
-        classifier_prob = classifier_handler.clf_prob
-        clf_threshold = classifier_handler.clf_threshold
-        all_waveforms = self.spike_set.slices_dejittered
-        all_times = self.spike_set.times_dejittered
+        # classifier_pred = classifier_handler.clf_pred
+        # classifier_prob = classifier_handler.clf_prob
+        # clf_threshold = classifier_handler.clf_threshold
+        # # Use directly stored data instead of accessing through spike_set
+        # all_waveforms = self.slices_dejittered
+        # all_times = self.times_dejittered
+
+        if labels is None:
+            labels = self.labels
 
         max_plot_count = 1000
-        for cluster in np.unique(self.labels):
-            cluster_bool = self.labels == cluster
+        for cluster in np.unique(labels):
+            cluster_bool = labels == cluster
             if sum(cluster_bool):
 
                 fig = plt.figure(figsize=(5, 10))
@@ -306,9 +413,9 @@ class cluster_handler():
                                   rotation=270,
                                   verticalalignment='center',
                                   transform=spike_ax.transAxes)
-                    spike_ax.axhline(self.spike_set.threshold,
+                    spike_ax.axhline(self.threshold,
                                      color='red', linestyle='--')
-                    spike_ax.axhline(-self.spike_set.threshold,
+                    spike_ax.axhline(-self.threshold,
                                      color='red', linestyle='--')
                     spike_hist_ax.hist(spike_times, bins=30)
 
@@ -326,9 +433,9 @@ class cluster_handler():
                                   rotation=270,
                                   verticalalignment='center',
                                   transform=noise_ax.transAxes)
-                    noise_ax.axhline(self.spike_set.threshold,
+                    noise_ax.axhline(self.threshold,
                                      color='red', linestyle='--')
-                    noise_ax.axhline(-self.spike_set.threshold,
+                    noise_ax.axhline(-self.threshold,
                                      color='red', linestyle='--')
                     noise_hist_ax.hist(noise_times, bins=30)
 
@@ -368,7 +475,8 @@ class cluster_handler():
         # Annotated the plot with values of the matrix
         for (i, j), z in np.ndenumerate(self.mahal_matrix):
             ax.text(j, i, '{:0.1f}'.format(z), ha='center', va='center',
-                    bbox=dict(boxstyle='round', facecolor='white', edgecolor='0.3'),
+                    bbox=dict(boxstyle='round',
+                              facecolor='white', edgecolor='0.3'),
                     fontweight='bold', color='red')
         cluster_labels = np.unique(self.labels)
         ax.set_xticks(np.arange(len(cluster_labels)))
@@ -383,11 +491,12 @@ class cluster_handler():
                     bbox_inches='tight')
         plt.close(fig)
 
-        slices_dejittered = self.spike_set.slices_dejittered
-        times_dejittered = self.spike_set.times_dejittered
-        standard_data = self.spike_set.spike_features
-        feature_names = self.spike_set.feature_names
-        threshold = self.spike_set.threshold
+        # Use the directly stored data instead of accessing through spike_set
+        slices_dejittered = self.slices_dejittered
+        times_dejittered = self.times_dejittered
+        standard_data = self.spike_features
+        feature_names = self.feature_names
+        threshold = self.threshold
         # Create file, and plot spike waveforms for the different clusters.
         # Plot 10 times downsampled dejittered/smoothed waveforms.
         # Additionally plot the ISI distribution of each cluster
@@ -400,7 +509,7 @@ class cluster_handler():
                 # from FURTHER downsampling the given waveforms for plotting
                 # Because in the previous version they were upsampled for clustering
 
-                # Create waveform datashader plot
+                # Create waveform datashader plot with envelope
                 #############################
                 fig, ax = gen_datashader_plot(
                     slices_dejittered,
@@ -447,26 +556,6 @@ class cluster_handler():
                     self.clust_plot_dir, f'no_spikes_Cluster{cluster}')
                 with open(file_path, 'w') as file_connect:
                     file_connect.write('')
-
-    # def create_auto_output_plots(self,
-    #                         params_dict):
-
-    #     slices_dejittered = self.spike_set.slices_dejittered
-    #     times_dejittered = self.spike_set.times_dejittered
-    #     standard_data = self.spike_set.spike_features
-    #     feature_names = self.spike_set.feature_names
-    #     threshold = self.spike_set.threshold
-
-    #     subcluster_inds = [np.where(self.labels == this_split)[0] \
-    #             for this_split in np.unique(self.labels)]
-    #     subcluster_waveforms = [slices_dejittered[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_times = [spike_times[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     subcluster_prob = [clf_prob[this_inds] \
-    #             for this_inds in subcluster_inds]
-    #     mean_waveforms = [np.mean(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
-    #     std_waveforms = [np.std(this_waveform, axis = 0) for this_waveform in subcluster_waveforms]
 
 
 class classifier_handler():
@@ -522,12 +611,12 @@ class classifier_handler():
         neurecommend_dir = f'{home_dir}/Desktop/neuRecommend'
         if not os.path.exists(neurecommend_dir):
             process = subprocess.Popen(
-                    f'git clone {git_path} {neurecommend_dir}', shell=True)
+                f'git clone {git_path} {neurecommend_dir}', shell=True)
             # Forces process to complete before proceeding
             stdout, stderr = process.communicate()
             # Install requirements for neuRecommend
             process = subprocess.Popen(
-                    f'pip install -r {neurecommend_dir}/requirements.txt', shell=True)
+                f'pip install -r {neurecommend_dir}/requirements.txt', shell=True)
             # Forces process to complete before proceeding
             stdout, stderr = process.communicate()
 
@@ -559,14 +648,16 @@ class classifier_handler():
         # If params file doesn't exist, stop execution
         if not os.path.exists(params_file_path):
             print('=== Waveform Classifier Params file not found. ===')
-            print('==> Please copy [[ blech_clust/params/_templates/waveform_classifier_params.json ]] to [[ blech_clust/params/waveform_classifier_params.json ]] and update as needed.')
+            print(
+                '==> Please copy [[ blech_clust/params/_templates/waveform_classifier_params.json ]] to [[ blech_clust/params/waveform_classifier_params.json ]] and update as needed.')
             exit()
         return params_file_path
 
     def get_waveform_classifier_params(self):
         this_path_handler = path_handler()
         self.blech_clust_dir = this_path_handler.blech_clust_dir
-        params_file_path = self.return_waveform_classifier_params_path(self.blech_clust_dir)
+        params_file_path = self.return_waveform_classifier_params_path(
+            self.blech_clust_dir)
         with open(params_file_path, 'r') as this_file:
             self.classifier_params = json.load(this_file)
 
@@ -613,10 +704,10 @@ class classifier_handler():
 
         # Write out both prob and pred
         out_dir = os.path.join(
-                self.data_dir, 
-                'spike_waveforms',
-                f'electrode{self.electrode_num:02}'
-                )
+            self.data_dir,
+            'spike_waveforms',
+            f'electrode{self.electrode_num:02}'
+        )
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         np.save(os.path.join(out_dir, 'clf_prob.npy'), clf_prob)
@@ -653,7 +744,7 @@ class classifier_handler():
                     df.loc[self.electrode_num, columns] = data
                 else:
                     # Append new data to df
-                    df = pd.concat([df, new_df]) 
+                    df = pd.concat([df, new_df])
                 # Write out updated frame
                 df.sort_index(inplace=True)
                 df[round_cols] = df[round_cols].round(3)
@@ -675,8 +766,8 @@ class classifier_handler():
         # Adjust ylims to 8-SD of amplitudes to avoid domination
         # by outliers
         slice_mid = waveform_data.shape[1]//2
-        amp_sd = np.std(waveform_data[:,slice_mid])
-        amp_mean = np.mean(waveform_data[:,slice_mid])
+        amp_sd = np.std(waveform_data[:, slice_mid])
+        amp_mean = np.mean(waveform_data[:, slice_mid])
         amp_lims = [amp_mean - 8*amp_sd, amp_mean + 8*amp_sd]
         ax0.plot(x, waveform_data
                  [::10].T, c='k', alpha=0.05)
@@ -704,17 +795,17 @@ class classifier_handler():
         data = trim_data(self.pos_spike_dict['waveforms'], 20000)
         features = self.feature_pipeline.transform(data)
         cut_label_array, map_dict, clust_range = \
-                perform_agg_clustering(
-                        features, 
-                        max_clusters = 4)
+            perform_agg_clustering(
+                features,
+                max_clusters=4)
         plot_waveform_dendogram(
-                data, 
-                cut_label_array, 
-                clust_range, 
-                map_dict,
-                plot_n = 1000,
-                save_path = os.path.join(self.plot_dir, 
-                                         f'{self.electrode_num:02}_pred_spikes_dendogram.png'))
+            data,
+            cut_label_array,
+            clust_range,
+            map_dict,
+            plot_n=1000,
+            save_path=os.path.join(self.plot_dir,
+                                   f'{self.electrode_num:02}_pred_spikes_dendogram.png'))
 
         # Cluster noise and plot waveforms + times on single plot
         # Pull out noise info
@@ -737,7 +828,7 @@ class classifier_handler():
             max_iter=self.params_dict['clustering_params']['num_iter'],
             n_init=1,
             tol=self.params_dict['clustering_params']['thresh']
-            ).fit(noise_transformed_train)
+        ).fit(noise_transformed_train)
         predictions = gmm_model.predict(noise_transformed)
 
         clust_num = len(np.unique(predictions))
@@ -787,7 +878,34 @@ class electrode_handler():
             raise Exception(f'{el_path} not in HDF5')
         hf5.close()
 
+    def preprocess_electrode(self):
+        """
+        Complete preprocessing pipeline for electrode data:
+        1. Filter the electrode data
+        2. Cut to integer seconds
+        3. Calculate recording cutoff
+        4. Make cutoff plot
+        5. Apply cutoff to electrode data
+        """
+        # Filter electrode
+        self.filter_electrode()
+
+        # Cut to integer seconds
+        self.cut_to_int_seconds()
+
+        # Calculate recording cutoff
+        self.calc_recording_cutoff()
+
+        # Make cutoff plot
+        self.make_cutoff_plot()
+
+        # Apply cutoff to electrode data
+        self.cutoff_electrode()
+
+        return self.filt_el
+
     def filter_electrode(self):
+        # Raw units get multiplied by 0.195 to get MICROVOLTS
         self.filt_el = clust.get_filtered_electrode(
             self.raw_el,
             freq=[self.params_dict['bandpass_lower_cutoff'],
@@ -846,16 +964,33 @@ class electrode_handler():
         recording_cutoff: int
         """
         fig = plt.figure()
+        # filt_el is in microvolts
         second_data = np.reshape(
             self.filt_el,
             (-1, self.params_dict['sampling_rate']))
-        plt.plot(np.mean(second_data, axis=1))
+        mean_data = np.mean(second_data, axis=1)
+        std_data = np.std(second_data, axis=1)
+        plt.plot(mean_data, label='Mean')
+        plt.fill_between(
+            x=np.arange(len(mean_data)),
+            y1=mean_data + std_data,
+            y2=mean_data - std_data,
+            label='STD',
+        )
         plt.axvline(self.recording_cutoff,
-                    color='k', linewidth=4.0, linestyle='--')
+                    color='k', linewidth=2, linestyle='--',
+                    label='Recording cutoff')
+        plt.axhline(self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--',
+                    label='Voltage cutoff')
+        plt.axhline(-self.params_dict['voltage_cutoff'],
+                    color='r', linewidth=2.0, linestyle='--')
         plt.xlabel('Recording time (secs)')
         plt.ylabel('Average voltage recorded per sec (microvolts)')
         plt.title(f'Recording length : {len(second_data)}s' + '\n' +
                   f'Cutoff time : {self.recording_cutoff}s')
+        plt.legend()
+        plt.yscale('symlog')
         fig.savefig(
             f'./Plots/{self.electrode_num:02}/cutoff_time.png',
             bbox_inches='tight')
@@ -870,7 +1005,7 @@ class electrode_handler():
 
 class spike_handler():
     """
-    Class to handler processing of spikes
+    Class to handle processing of spikes
     """
 
     def __init__(self, filt_el, params_dict, dir_name, electrode_num):
@@ -879,23 +1014,42 @@ class spike_handler():
         self.dir_name = dir_name
         self.electrode_num = electrode_num
 
+    def process_spikes(self):
+        """
+        Complete spike processing pipeline:
+        1. Extract waveforms from filtered electrode
+        2. Dejitter spikes and sort by time
+
+        Returns:
+            tuple: (slices_dejittered, times_dejittered, threshold, mean_val)
+        """
+        # Extract waveforms
+        self.extract_waveforms()
+
+        # Dejitter spikes
+        self.dejitter_spikes()
+
+        return (self.slices_dejittered, self.times_dejittered,
+                self.threshold, self.mean_val, self.MAD_val)
+
     def extract_waveforms(self):
         """
         Extract waveforms from filtered electrode
         """
-        slices, spike_times, polarity, mean_val, threshold = \
-                clust.extract_waveforms_abu(
-                        self.filt_el,
-                        spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                                     self.params_dict['spike_snapshot_after']],
-                        sampling_rate=self.params_dict['sampling_rate'],
-                        threshold_mult=self.params_dict['waveform_threshold'])
+        slices, spike_times, polarity, mean_val, threshold, MAD_val = \
+            clust.extract_waveforms_abu(
+                self.filt_el,
+                spike_snapshot=[self.params_dict['spike_snapshot_before'],
+                                self.params_dict['spike_snapshot_after']],
+                sampling_rate=self.params_dict['sampling_rate'],
+                threshold_mult=self.params_dict['waveform_threshold'])
 
         self.slices = slices
         self.spike_times = spike_times
         self.polarity = polarity
         self.mean_val = mean_val
         self.threshold = threshold
+        self.MAD_val = MAD_val
 
     def dejitter_spikes(self):
         """
@@ -922,21 +1076,29 @@ class spike_handler():
         del self.spike_times
 
     def extract_features(self,
+                         slices_dejittered,
                          feature_transformer,
                          feature_names,
-                         fitted_transformer = True):
+                         fitted_transformer=True,
+                         retain_features=True,
+                         ):
 
         self.feature_names = feature_names
         if fitted_transformer:
-            self.spike_features = feature_transformer.transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.transform(
+                slices_dejittered)
         else:
-            self.spike_features = feature_transformer.fit_transform(
-                self.slices_dejittered)
+            spike_features = feature_transformer.fit_transform(
+                slices_dejittered)
+
+        if retain_features:
+            # Retain features in the object
+            self.spike_features = spike_features.copy()
+        return spike_features
 
     def return_feature(self, wanted_feature):
-        wanted_inds = [i for i, x in enumerate(self.feature_names) \
-                if wanted_feature in x]
+        wanted_inds = [i for i, x in enumerate(self.feature_names)
+                       if wanted_feature in x]
         wanted_data = self.spike_features[:, wanted_inds]
         if any([x == 0 for x in wanted_data.shape]):
             raise Exception(f'Feature {wanted_feature} seems to have 0 shape')
@@ -956,12 +1118,12 @@ class spike_handler():
 
         slices_dejittered = self.slices_dejittered
         times_dejittered = self.times_dejittered
-        #pca_inds = [i for i, x in enumerate(self.feature_names) if 'pca' in x]
-        #pca_slices = self.spike_features[:, pca_inds]
-        #energy_inds = [i for i, x in enumerate(self.feature_names) if 'energy' in x]
-        #energy = self.spike_features[:, energy_inds]
-        #amp_inds = [i for i, x in enumerate(self.feature_names) if 'amplitude' in x]
-        #amplitude = self.spike_features[:,amp_inds]
+        # pca_inds = [i for i, x in enumerate(self.feature_names) if 'pca' in x]
+        # pca_slices = self.spike_features[:, pca_inds]
+        # energy_inds = [i for i, x in enumerate(self.feature_names) if 'energy' in x]
+        # energy = self.spike_features[:, energy_inds]
+        # amp_inds = [i for i, x in enumerate(self.feature_names) if 'amplitude' in x]
+        # amplitude = self.spike_features[:,amp_inds]
         pca_slices = self.return_feature('pca')
         energy = self.return_feature('energy')
         amplitude = self.return_feature('amplitude')
@@ -983,44 +1145,7 @@ class spike_handler():
                 raise Exception(f'Feature {key} seems to have 0 size')
 
 
-def ifisdir_rmdir(dir_name):
-    if os.path.isdir(dir_name):
-        shutil.rmtree(dir_name)
-
-
-def return_cutoff_values(
-    filt_el,
-    sampling_rate,
-    voltage_cutoff,
-    max_breach_rate,
-    max_secs_above_cutoff,
-    max_mean_breach_rate_persec
-):
-
-    breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
-                        * int(sampling_rate))/len(filt_el)
-    test_el = np.reshape(filt_el, (-1, sampling_rate))
-    breaches_per_sec = (test_el > voltage_cutoff).sum(axis=-1)
-    secs_above_cutoff = (breaches_per_sec > 0).sum()
-    if secs_above_cutoff == 0:
-        mean_breach_rate_persec = 0
-    else:
-        mean_breach_rate_persec = np.mean(breaches_per_sec[
-            breaches_per_sec > 0])
-
-    # And if they all exceed the cutoffs,
-    # assume that the headstage fell off mid-experiment
-    recording_cutoff = int(len(filt_el)/sampling_rate)
-    if breach_rate >= max_breach_rate and \
-            secs_above_cutoff >= max_secs_above_cutoff and \
-            mean_breach_rate_persec >= max_mean_breach_rate_persec:
-        # Find the first 1 second epoch where the number of cutoff breaches
-        # is higher than the maximum allowed mean breach rate
-        recording_cutoff = np.where(breaches_per_sec >
-                                    max_mean_breach_rate_persec)[0][0]
-
-    return (breach_rate, breaches_per_sec, secs_above_cutoff,
-            mean_breach_rate_persec, recording_cutoff)
+# Import utility functions from the new module
 
 
 def gen_window_plots(
@@ -1071,25 +1196,47 @@ def gen_datashader_plot(
         sampling_rate,
         cluster,
 ):
-    fig, ax = blech_waveforms_datashader.waveforms_datashader(
+    # Create a figure with two subplots - one for datashader and one for envelope
+    fig = plt.figure(figsize=(10, 10))
+    gs = fig.add_gridspec(2, 1, height_ratios=[2, 1])
+
+    # Datashader plot in the top subplot
+    ax1 = fig.add_subplot(gs[0])
+    _, ax1 = blech_waveforms_datashader.waveforms_datashader(
         slices_dejittered[cluster_points, :],
         x,
         downsample=False,
         threshold=threshold,
-        dir_name="Plots/temp_plots/" + "datashader_temp_el" + str(electrode_num))
+        dir_name="Plots/temp_plots/" +
+        "datashader_temp_el" + str(electrode_num),
+        ax=ax1)
 
-    ax.set_xlabel('Sample ({:d} samples per ms)'.
-                  format(int(sampling_rate/1000)))
-    ax.set_ylabel('Voltage (microvolts)')
-    ax.set_title('Cluster%i' % cluster)
-    return fig, ax
+    ax1.set_xlabel('Sample ({:d} samples per ms)'.
+                   format(int(sampling_rate/1000)))
+    ax1.set_ylabel('Voltage (microvolts)')
+    ax1.set_title('Cluster%i Waveforms' % cluster)
+
+    # Envelope plot in the bottom subplot
+    ax2 = fig.add_subplot(gs[1])
+    _, ax2 = blech_waveforms_datashader.waveform_envelope_plot(
+        slices_dejittered[cluster_points, :],
+        x,
+        threshold=threshold,
+        ax=ax2)
+
+    ax2.set_xlabel('Sample ({:d} samples per ms)'.
+                   format(int(sampling_rate/1000)))
+    ax2.set_title('Cluster%i Mean ± Std Dev' % cluster)
+
+    plt.tight_layout()
+    return fig, ax1
 
 
 def gen_isi_hist(
         times_dejittered,
         cluster_points,
         sampling_rate,
-        ax = None,
+        ax=None,
 ):
     if ax is None:
         fig, ax = plt.subplots()
@@ -1111,14 +1258,14 @@ def gen_isi_hist(
     if upper_lim:
         ax.set_ylim([0, upper_lim])
     ax.set_title("2ms ISI violations = %.1f percent (%i/%i)"
-              % ((float(len(np.where(ISIs < 2.0)[0])) /
-                  float(len(cluster_times)))*100.0,
-                 len(np.where(ISIs < 2.0)[0]),
-                 len(cluster_times)) + '\n' +
-              "1ms ISI violations = %.1f percent (%i/%i)"
-              % ((float(len(np.where(ISIs < 1.0)[0])) /
-                  float(len(cluster_times)))*100.0,
-                 len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
+                 % ((float(len(np.where(ISIs < 2.0)[0])) /
+                     float(len(cluster_times)))*100.0,
+                    len(np.where(ISIs < 2.0)[0]),
+                    len(cluster_times)) + '\n' +
+                 "1ms ISI violations = %.1f percent (%i/%i)"
+                 % ((float(len(np.where(ISIs < 1.0)[0])) /
+                     float(len(cluster_times)))*100.0,
+                    len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
     ax.set_xlabel('ISI (ms)')
     ax.set_ylabel('Count')
     return fig, ax
@@ -1162,7 +1309,9 @@ def feature_timeseries_plot(
 ##############################
 # Agglomerative clustering helper functions
 ##############################
-def register_labels(x,y):
+
+
+def register_labels(x, y):
     """
     Register labels from one level to the next
     Input:
@@ -1172,8 +1321,9 @@ def register_labels(x,y):
         map_dict: dictionary mapping labels from level n to level n+1
     """
     unique_x = np.unique(x)
-    x_cluster_y = [np.unique(y[x==i]) for i in unique_x]
+    x_cluster_y = [np.unique(y[x == i]) for i in unique_x]
     return dict(zip(unique_x, x_cluster_y))
+
 
 def calc_linkage(model):
     """
@@ -1200,6 +1350,8 @@ def calc_linkage(model):
     return linkage_matrix
 
 # Resort mapping so that children are always in order
+
+
 def sort_label_array(label_array):
     """
     Resort map_dict so that children are always in order
@@ -1212,8 +1364,8 @@ def sort_label_array(label_array):
         label_array: levels x samples
     """
     n_levels = label_array.shape[0]
-    level_pairs = list(zip(np.arange(n_levels-1), np.arange(1,n_levels)))
-    for x,y in level_pairs:
+    level_pairs = list(zip(np.arange(n_levels-1), np.arange(1, n_levels)))
+    for x, y in level_pairs:
         parent_labels = np.unique(label_array[x])
         child_labels = np.unique(label_array[y])
         child_map = {}
@@ -1221,8 +1373,9 @@ def sort_label_array(label_array):
         for this_parent in parent_labels:
             this_child = label_array[y][label_array[x] == this_parent]
             this_child = np.unique(this_child)
-            wanted_labels = np.arange(highest_so_far, highest_so_far + len(this_child))
-            highest_so_far = np.max(wanted_labels) + 1 
+            wanted_labels = np.arange(
+                highest_so_far, highest_so_far + len(this_child))
+            highest_so_far = np.max(wanted_labels) + 1
             for i in range(len(this_child)):
                 child_map[this_child[i]] = wanted_labels[i]
         # Remap
@@ -1230,7 +1383,8 @@ def sort_label_array(label_array):
             label_array[y][i] = child_map[label_array[y][i]]
     return label_array
 
-def perform_agg_clustering(features, max_clusters = 8):
+
+def perform_agg_clustering(features, max_clusters=8):
     """
     Perform agglomerative clustering on features
     Input:
@@ -1243,17 +1397,17 @@ def perform_agg_clustering(features, max_clusters = 8):
     """
     clust_range = np.arange(1, max_clusters+1)
     ward = AgglomerativeClustering(
-            distance_threshold =0, 
-            n_clusters = None, 
-            linkage="ward").fit(features)
+        distance_threshold=0,
+        n_clusters=None,
+        linkage="ward").fit(features)
     linkage = calc_linkage(ward)
     clust_label_list = [
-            cut_tree(
-                linkage, 
-                n_clusters = this_num
-                ).flatten()
-            for this_num in clust_range
-            ]
+        cut_tree(
+            linkage,
+            n_clusters=this_num
+        ).flatten()
+        for this_num in clust_range
+    ]
 
     cut_label_array = np.stack(clust_label_list)
     cut_label_array = sort_label_array(cut_label_array)
@@ -1261,69 +1415,71 @@ def perform_agg_clustering(features, max_clusters = 8):
     map_dict = {}
     for i in range(len(clust_range)-1):
         map_dict[i] = register_labels(
-                cut_label_array[i],
-                cut_label_array[i+1]
-                )
+            cut_label_array[i],
+            cut_label_array[i+1]
+        )
     return cut_label_array, map_dict, clust_range
 
-def plot_waveform_dendogram(data, 
-                            cut_label_array, 
-                            clust_range, 
+
+def plot_waveform_dendogram(data,
+                            cut_label_array,
+                            clust_range,
                             map_dict,
-                            plot_n = 1000,
-                            save_path = None):
+                            plot_n=1000,
+                            save_path=None):
     if save_path is None:
         raise ValueError('Please provide a save path')
     slice_mid = data.shape[1]//2
     # Adjust ylims to 8-SD of amplitudes to avoid domination
     # by outliers
-    amp_sd = np.std(data[:,slice_mid])
-    amp_mean = np.mean(data[:,slice_mid])
+    amp_sd = np.std(data[:, slice_mid])
+    amp_mean = np.mean(data[:, slice_mid])
     amp_lims = [amp_mean - 8*amp_sd, amp_mean + 8*amp_sd]
     # Plot dendogram
-    fig,ax = plt.subplots(len(clust_range), np.max(clust_range)+1,
-                          figsize = (7,7), sharex = True, sharey = True)
+    fig, ax = plt.subplots(len(clust_range), np.max(clust_range)+1,
+                           figsize=(7, 7), sharex=True, sharey=True)
     for row in range(len(clust_range)):
         center = int(np.max(clust_range)//2)
-        labels = cut_label_array.T[:,row]
+        labels = cut_label_array.T[:, row]
         unique_labels = np.unique(labels)
         med_label = int(np.median(unique_labels))
         ax_inds = unique_labels - med_label + center
-        parent_unique_labels = np.unique(cut_label_array.T[:,row-1])
+        parent_unique_labels = np.unique(cut_label_array.T[:, row-1])
         parent_med_label = int(np.median(parent_unique_labels))
         parent_ax_inds = parent_unique_labels - parent_med_label + center
-        ax[row,0].set_ylabel(f'{clust_range[row]} Clusters')
+        ax[row, 0].set_ylabel(f'{clust_range[row]} Clusters')
         for x in unique_labels:
-            this_dat = data[labels==x] 
+            this_dat = data[labels == x]
             if len(this_dat) > plot_n:
                 plot_dat = this_dat[np.random.choice(len(this_dat), plot_n)]
             else:
                 plot_dat = this_dat
             ax[row, ax_inds[x]].plot(plot_dat.T,
-                color = 'k', alpha = 0.01)
+                                     color='k', alpha=0.01)
             ax[row, ax_inds[x]].set_ylim(amp_lims)
-        if row > 0: 
+        if row > 0:
             this_map = map_dict[row-1]
-            for key,val in this_map.items():
+            for key, val in this_map.items():
                 for child in val:
                     con = ConnectionPatch(
-                            xyA = (slice_mid,0), coordsA = ax[row-1, parent_ax_inds[key]].transData,
-                            xyB = (slice_mid,0), coordsB = ax[row, ax_inds[child]].transData,
-                            arrowstyle = "-|>"
-                            )
+                        xyA=(slice_mid, 0), coordsA=ax[row-1, parent_ax_inds[key]].transData,
+                        xyB=(slice_mid, 0), coordsB=ax[row, ax_inds[child]].transData,
+                        arrowstyle="-|>"
+                    )
                     fig.add_artist(con)
     # Remove box round each subplot
     for ax0 in ax.flatten():
         ax0.axis('off')
     fig.suptitle('Predicted Waveform Dendogram')
-    fig.savefig(save_path, dpi = 300)
+    fig.savefig(save_path, dpi=300)
     plt.close(fig)
 
-def trim_data(data, n_max = 20000):
+
+def trim_data(data, n_max=20000):
     """
     Agglomerative clustering doesn't like large datasets
     If we have more than n_max samples, we will randomly sample n_max samples
-    
+
     Input:
         data: samples x features
         n_max: maximum number of samples to use
@@ -1332,5 +1488,58 @@ def trim_data(data, n_max = 20000):
         data: samples x features
     """
     if len(data) > n_max:
-        data = data[np.random.choice(len(data), n_max, replace = False)]
+        data = data[np.random.choice(len(data), n_max, replace=False)]
     return data
+
+
+def return_cutoff_values(
+    filt_el,
+    sampling_rate,
+    voltage_cutoff,
+    max_breach_rate,
+    max_secs_above_cutoff,
+    max_mean_breach_rate_persec
+):
+    """
+    Return the cutoff values for the electrode recording
+
+    Inputs:
+        filt_el: numpy array (in microvolts)
+        sampling_rate: int
+        voltage_cutoff: float
+        max_breach_rate: float
+        max_secs_above_cutoff: float
+        max_mean_breach_rate_persec: float
+
+    Outputs:
+        breach_rate: float
+        breaches_per_sec: numpy array
+        secs_above_cutoff: int
+        mean_breach_rate_persec: float
+        recording_cutoff: int
+    """
+
+    breach_rate = float(len(np.where(filt_el > voltage_cutoff)[0])
+                        * int(sampling_rate))/len(filt_el)
+    test_el = np.reshape(filt_el, (-1, sampling_rate))
+    breaches_per_sec = (test_el > voltage_cutoff).sum(axis=-1)
+    secs_above_cutoff = (breaches_per_sec > 0).sum()
+    if secs_above_cutoff == 0:
+        mean_breach_rate_persec = 0
+    else:
+        mean_breach_rate_persec = np.mean(breaches_per_sec[
+            breaches_per_sec > 0])
+
+    # And if they all exceed the cutoffs,
+    # assume that the headstage fell off mid-experiment
+    recording_cutoff = int(len(filt_el)/sampling_rate)
+    if breach_rate >= max_breach_rate and \
+            secs_above_cutoff >= max_secs_above_cutoff and \
+            mean_breach_rate_persec >= max_mean_breach_rate_persec:
+        # Find the first 1 second epoch where the number of cutoff breaches
+        # is higher than the maximum allowed mean breach rate
+        recording_cutoff = np.where(breaches_per_sec >
+                                    max_mean_breach_rate_persec)[0][0]
+
+    return (breach_rate, breaches_per_sec, secs_above_cutoff,
+            mean_breach_rate_persec, recording_cutoff)
