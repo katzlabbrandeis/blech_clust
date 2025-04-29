@@ -86,13 +86,13 @@ def load_units_data(hdf5_name):
 
 
 def plot_unit_summary(
-        unit_index,
         unit_data,
-        unit_descriptor,
-        layout_frame,
-        params_dict,
         min_time,
         max_time,
+        unit_index=None,
+        unit_descriptor=None,
+        layout_frame=None,
+        params_dict=None,
         output_dir="unit_waveforms_plots",
         return_only=False,
 ):
@@ -117,18 +117,26 @@ def plot_unit_summary(
     ISIs = np.diff(times)
 
     # Get threshold from layout_frame
-    layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
-    threshold = layout_frame['threshold'][layout_ind].values[0]
+    if (unit_index is None) and (unit_descriptor is None):
+        layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
+        threshold = layout_frame['threshold'][layout_ind].values[0]
+    else:
+        threshold = None
+
+    if (unit_index is not None) and (unit_descriptor is not None):
+        title_text = f'Unit {unit_index}, total waveforms = {waveforms.shape[0]}' + \
+            f'\nElectrode: {unit_descriptor["electrode_number"]}, ' + \
+            f'Single Unit: {unit_descriptor["single_unit"]}, ' + \
+            f'RSU: {unit_descriptor["regular_spiking"]}, ' + \
+            f'FS: {unit_descriptor["fast_spiking"]}, ' + \
+            f'SNR: {unit_descriptor["snr"]:.2f}'
+    else:
+        title_text = None
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 6), dpi=200)
-    title_text = f'Unit {unit_index}, total waveforms = {waveforms.shape[0]}' + \
-        f'\nElectrode: {unit_descriptor["electrode_number"]}, ' + \
-        f'Single Unit: {unit_descriptor["single_unit"]}, ' + \
-        f'RSU: {unit_descriptor["regular_spiking"]}, ' + \
-        f'FS: {unit_descriptor["fast_spiking"]}, ' + \
-        f'SNR: {unit_descriptor["snr"]:.2f}'
 
-    fig.suptitle(title_text, fontsize=12)
+    if title_text is None:
+        fig.suptitle(title_text, fontsize=12)
 
     # Plot datashader waveforms
     _, ax[0, 0] = blech_waveforms_datashader.waveforms_datashader(
@@ -149,14 +157,14 @@ def plot_unit_summary(
         np.mean(waveforms, axis=0) + np.std(waveforms, axis=0),
         alpha=0.4)
     # Plot threshold
-    ax[0, 1].axhline(threshold, color='red', linewidth=1,
-                     linestyle='--', alpha=0.5)
-    ax[0, 1].axhline(-threshold, color='red', linewidth=1,
-                     linestyle='--', alpha=0.5)
+    if threshold is not None:
+        ax[0, 1].axhline(threshold, color='red', linewidth=1,
+                         linestyle='--', alpha=0.5)
+        ax[0, 1].axhline(-threshold, color='red', linewidth=1,
+                         linestyle='--', alpha=0.5)
     ax[0, 1].set_xlabel('Sample (30 samples per ms)')
 
     # Plot ISI histogram
-    ISI_threshold_ms = 10  # ms
     bin_count = 25
     bins = np.linspace(min_time, max_time, bin_count)
 
@@ -207,8 +215,16 @@ def process_all_units(
     # Now plot the waveforms from the units in this directory one by one
     for unit in trange(len(units)):
         unit_descriptor = hf5.root.unit_descriptor[unit]
-        plot_unit_summary(unit, units[unit], unit_descriptor, layout_frame,
-                          params_dict, min_time, max_time, output_dir)
+        plot_unit_summary(
+            unit_data=units[unit],
+            min_time=min_time,
+            max_time=max_time,
+            unit_index=unit,
+            unit_descriptor=unit_descriptor,
+            layout_frame=layout_frame,
+            params_dict=params_dict,
+            output_dir=output_dir
+        )
 
 
 def save_individual_plots(units, output_subdir="waveforms_only"):
