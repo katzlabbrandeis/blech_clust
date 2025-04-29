@@ -85,14 +85,26 @@ def load_units_data(hdf5_name):
     return hf5, units, min_time, max_time
 
 
-def plot_unit_summary(unit_index, unit_data, unit_descriptor, layout_frame, params_dict, min_time, max_time, output_dir="unit_waveforms_plots"):
+def plot_unit_summary(
+        unit_index,
+        unit_data,
+        unit_descriptor,
+        layout_frame,
+        params_dict,
+        min_time,
+        max_time,
+        output_dir="unit_waveforms_plots",
+        return_only=False,
+):
     """
     Generate and save a summary plot for a single neural unit.
 
     Args:
         unit_index: Index of the unit
         unit_data: Data for the unit
+            - Contains: waveforms, times
         unit_descriptor: Descriptor information for the unit
+            - Dictionary-like object with keys: electrode_number, single_unit, regular_spiking, fast_spiking, snr
         layout_frame: Layout information
         params_dict: Parameters dictionary
         min_time: Minimum time for plotting
@@ -162,11 +174,24 @@ def plot_unit_summary(unit_index, unit_data, unit_descriptor, layout_frame, para
     ax[1, 1].set_title('Counts over time')
 
     plt.tight_layout()
-    fig.savefig(f'./{output_dir}/Unit{unit_index}.png', bbox_inches='tight')
-    plt.close("all")
+
+    if return_only:
+        return fig, ax
+    else:
+        fig.savefig(f'./{output_dir}/Unit{unit_index}.png',
+                    bbox_inches='tight')
+        plt.close("all")
 
 
-def process_all_units(units, hf5, layout_frame, params_dict, min_time, max_time, output_dir="unit_waveforms_plots"):
+def process_all_units(
+        units,
+        hf5,
+        layout_frame,
+        params_dict,
+        min_time,
+        max_time,
+        output_dir="unit_waveforms_plots",
+):
     """
     Process and plot all units.
 
