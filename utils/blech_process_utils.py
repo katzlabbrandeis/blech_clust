@@ -77,13 +77,19 @@ from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
 import utils.clustering as clust
-from blech_units_plot import plot_unit_summary
+from blech_units_plot import plot_unit_summary, gen_isi_hist
 # import subprocess
 # import sys
 
 ############################################################
 # Define Functions
 ############################################################
+
+
+class UnitData():
+    def __init__(self, waveforms, times):
+        self.waveforms = waveforms
+        self.times = times
 
 
 class path_handler():
@@ -466,11 +472,6 @@ class cluster_handler():
                 plt.close(fig)
     # return fig, ax
 
-    class UnitData():
-        def __init__(self, waveforms, times):
-            self.waveforms = waveforms
-            self.times = times
-
     def create_output_plots(self,
                             params_dict):
 
@@ -519,12 +520,11 @@ class cluster_handler():
                 #############################
                 fig, ax = plot_unit_summary(
                     unit_data=UnitData(
-                        unit_index,
                         slices_dejittered[cluster_points],
                         times_dejittered[cluster_points]
                     ),
-                    min_time=min_time,
-                    max_time=max_time,
+                    min_time=0,
+                    max_time=times_dejittered.max(),
                     params_dict=params_dict,
                     return_only=True,
                 )
@@ -1250,45 +1250,6 @@ def gen_datashader_plot(
 
     plt.tight_layout()
     return fig, ax1
-
-
-def gen_isi_hist(
-        times_dejittered,
-        cluster_points,
-        sampling_rate,
-        ax=None,
-):
-    if ax is None:
-        fig, ax = plt.subplots()
-    else:
-        fig = ax.get_figure()
-
-    cluster_times = times_dejittered[cluster_points]
-    ISIs = np.ediff1d(np.sort(cluster_times))
-    ISIs = ISIs/(sampling_rate / 1000)
-    max_ISI_val = 20
-    bin_count = 100
-    neg_pos_ISI = np.concatenate((-1*ISIs, ISIs), axis=-1)
-    hist_obj = ax.hist(
-        neg_pos_ISI,
-        bins=np.linspace(-max_ISI_val, max_ISI_val, bin_count))
-    ax.set_xlim([-max_ISI_val, max_ISI_val])
-    # Scale y-lims by all but the last value
-    upper_lim = np.max(hist_obj[0][:-1])
-    if upper_lim:
-        ax.set_ylim([0, upper_lim])
-    ax.set_title("2ms ISI violations = %.1f percent (%i/%i)"
-                 % ((float(len(np.where(ISIs < 2.0)[0])) /
-                     float(len(cluster_times)))*100.0,
-                    len(np.where(ISIs < 2.0)[0]),
-                    len(cluster_times)) + '\n' +
-                 "1ms ISI violations = %.1f percent (%i/%i)"
-                 % ((float(len(np.where(ISIs < 1.0)[0])) /
-                     float(len(cluster_times)))*100.0,
-                    len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
-    ax.set_xlabel('ISI (ms)')
-    ax.set_ylabel('Count')
-    return fig, ax
 
 
 def remove_too_large_waveforms(
