@@ -15,7 +15,6 @@ from tqdm import tqdm, trange
 # Import 3rd part code
 from utils import blech_waveforms_datashader
 from utils.blech_utils import imp_metadata, pipeline_graph_check
-from utils.blech_process_utils import gen_isi_hist
 
 
 def setup_environment(args):
@@ -85,6 +84,45 @@ def load_units_data(hdf5_name):
     return hf5, units, min_time, max_time
 
 
+def gen_isi_hist(
+        times_dejittered,
+        cluster_points,
+        sampling_rate,
+        ax=None,
+):
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.get_figure()
+
+    cluster_times = times_dejittered[cluster_points]
+    ISIs = np.ediff1d(np.sort(cluster_times))
+    ISIs = ISIs/(sampling_rate / 1000)
+    max_ISI_val = 20
+    bin_count = 100
+    neg_pos_ISI = np.concatenate((-1*ISIs, ISIs), axis=-1)
+    hist_obj = ax.hist(
+        neg_pos_ISI,
+        bins=np.linspace(-max_ISI_val, max_ISI_val, bin_count))
+    ax.set_xlim([-max_ISI_val, max_ISI_val])
+    # Scale y-lims by all but the last value
+    upper_lim = np.max(hist_obj[0][:-1])
+    if upper_lim:
+        ax.set_ylim([0, upper_lim])
+    ax.set_title("2ms ISI violations = %.1f percent (%i/%i)"
+                 % ((float(len(np.where(ISIs < 2.0)[0])) /
+                     float(len(cluster_times)))*100.0,
+                    len(np.where(ISIs < 2.0)[0]),
+                    len(cluster_times)) + '\n' +
+                 "1ms ISI violations = %.1f percent (%i/%i)"
+                 % ((float(len(np.where(ISIs < 1.0)[0])) /
+                     float(len(cluster_times)))*100.0,
+                    len(np.where(ISIs < 1.0)[0]), len(cluster_times)))
+    ax.set_xlabel('ISI (ms)')
+    ax.set_ylabel('Count')
+    return fig, ax
+
+
 def plot_unit_summary(
         unit_data,
         min_time,
@@ -117,7 +155,7 @@ def plot_unit_summary(
     ISIs = np.diff(times)
 
     # Get threshold from layout_frame
-    if (unit_index is None) and (unit_descriptor is None):
+    if (unit_index is not None) and (unit_descriptor is not None):
         layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
         threshold = layout_frame['threshold'][layout_ind].values[0]
     else:

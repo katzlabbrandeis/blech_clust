@@ -67,7 +67,7 @@ import matplotlib.image as mpimg
 import pandas as pd
 import hashlib
 from utils.blech_utils import entry_checker, imp_metadata
-from utils.blech_process_utils import gen_isi_hist
+from blech_units_plot import gen_isi_hist
 from utils import blech_waveforms_datashader
 from datetime import datetime
 from scipy.stats import chisquare
@@ -588,7 +588,7 @@ def gen_plot_auto_merged_clusters(
                             for this_text, this_count in zip(
                                 current_legend_texts,
                                 waveform_counts,
-        )]
+                            )]
         for this_text, new_text in zip(
                 current_legend_texts,
                 new_legend_texts,
