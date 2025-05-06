@@ -334,13 +334,22 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
+    cluster_handler.ensure_continuous_labels()
+
     # At this point, cluster_handler has a trained GMM
     # If 'throw_out_noise', then get labels for all waveforms
+    # otherwise, use the labels from the GMM
     if throw_out_noise_bool:
         print('=== GMM trained using only classified spikes ===')
         all_labels = cluster_handler.get_cluster_labels(
             all_features,
         )
+        # Since GMM will return predictions using original labels,
+        # if auto_clustering, will need to relabel
+        if auto_cluster:
+            all_labels = np.array(
+                [cluster_handler.cluster_map[label] for label in all_labels]
+            )
     else:
         all_labels = cluster_handler.labels
     cluster_handler.remove_outliers(params_dict)

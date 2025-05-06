@@ -240,29 +240,11 @@ class cluster_handler():
         self.labels = self.get_cluster_labels(self.spike_features)
         return self.labels
 
-    def remove_outliers(self, params_dict):
+    def ensure_continuous_labels(self):
         """
-        Clear large waveforms
+        Ensure cluster labels are continuous numbers
         """
-        # Sometimes large amplitude noise waveforms cluster with the
-        # spike waveforms because the amplitude has been factored out of
-        # the scaled slices.
-        # Run through the clusters and find the waveforms that are more than
-        # wf_amplitude_sd_cutoff larger than the cluster mean.
-        # Set predictions = -1 at these points so that they aren't
-        # picked up by blech_post_process
-        wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels[:] == cluster)[0]
-            this_cluster = remove_too_large_waveforms(
-                cluster_points,
-                # self.spike_set.amplitudes,
-                # self.spike_set.return_feature('amplitude'),
-                self.spike_features[:, [i for i, x in enumerate(
-                    self.feature_names) if 'amplitude' in x][0]],
-                self.labels,
-                wf_amplitude_sd_cutoff)
-            self.labels[cluster_points] = this_cluster
+
         # Make sure cluster labels are continuous numbers
         # as auto-model can return non-continuous numbers
         # (e.g. 0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
@@ -279,6 +261,29 @@ class cluster_handler():
             print('Renaming Cluters')
             print(f'Cluster map: {cluster_map}')
             self.labels = np.array([cluster_map[x] for x in self.labels])
+            self.cluster_map = cluster_map
+
+    def remove_outliers(self, params_dict):
+        """
+        Clear large waveforms
+        """
+        # Sometimes large amplitude noise waveforms cluster with the
+        # spike waveforms because the amplitude has been factored out of
+        # the scaled slices.
+        # Run through the clusters and find the waveforms that are more than
+        # wf_amplitude_sd_cutoff larger than the cluster mean.
+        # Set predictions = -1 at these points so that they aren't
+        # picked up by blech_post_process
+        wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
+        for cluster in np.unique(self.labels):
+            cluster_points = np.where(self.labels[:] == cluster)[0]
+            this_cluster = remove_too_large_waveforms(
+                cluster_points,
+                self.spike_features[:, [i for i, x in enumerate(
+                    self.feature_names) if 'amplitude' in x][0]],
+                self.labels,
+                wf_amplitude_sd_cutoff)
+            self.labels[cluster_points] = this_cluster
 
     def save_cluster_labels(self):
         np.save(
