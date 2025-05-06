@@ -426,9 +426,9 @@ if auto_car_inference:
         print("Using original CAR groups as specified.")
         electrode_layout_frame['CAR_group'] = electrode_layout_frame['original_CAR_group']
     else:
-    electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
-    )
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+            lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
+        )
     num_groups = electrode_layout_frame.CAR_group.nunique()
 
     pred_map = dict(zip(
