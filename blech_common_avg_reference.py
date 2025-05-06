@@ -333,7 +333,8 @@ raw_electrodes = hf5.list_nodes('/raw')
 use_original_car = '--use-original-car' in sys.argv
 if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
-    auto_car_inference = auto_car_section.get('use_auto_CAR', False) and not use_original_car
+    auto_car_inference = auto_car_section.get(
+        'use_auto_CAR', False) and not use_original_car
     max_clusters = auto_car_section.get(
         'max_clusters', 10)  # Default to 10 if not specified
     # Use BIC for clustering by default
