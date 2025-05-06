@@ -22,11 +22,21 @@ import os
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
+from scipy.signal import butter
+from scipy.signal import filtfilt
 
 # Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from utils.importrhdutilities import load_file, read_header
+
+
+def get_filtered_electrode(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
+    el = 0.195*(data)
+    m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0 *
+                  freq[1]/sampling_rate], btype='bandpass')
+    filt_el = filtfilt(m, n, el)
+    return filt_el
 
 
 class DigInHandler:
@@ -291,6 +301,12 @@ def read_traditional_intan(
                         '/raw', array_name, atom, (0,))
                 else:
                     hf5_el_array = hf5.get_node('/raw', array_name)
+                # If not emg, filter the data
+                this_amp = get_filtered_electrode(
+                    this_amp,
+                    freq=...,
+                    sampling_rate=...,
+                )
                 hf5_el_array.append(this_amp)
             hf5.flush()
         pbar.update(1)
@@ -343,6 +359,11 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
             # Label raw_emg with electrode_ind so it's more easily identifiable
             array_name = f'electrode{channel_ind:02}'
             hf5_el_array = hf5.create_earray('/raw', array_name, atom, (0,))
+            data = get_filtered_electrode(
+                data,
+                freq=...,
+                sampling_rate=...,
+            )
             hf5_el_array.append(data)
             hf5.flush()
     hf5.close()
@@ -365,18 +386,23 @@ def read_electrode_emg_channels_single_file(
         # Loading should use file name
         # but writing should use channel ind so that channels from
         # multiple boards are written into a monotonic sequence
+        this_amp = amp_reshape[num, :]
         emg_bool = 'emg' not in row.CAR_group.lower()
         none_bool = row.CAR_group.lower() not in ['none', 'na']
         if emg_bool and none_bool:
             print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
-# el = hf5.create_earray('/raw_emg', f'emg{emg_counter:02}', atom, (0,))
-# Label raw_emg with electrode_ind so it's more easily identifiable
             el = hf5.create_earray(
                 '/raw', f'electrode{channel_ind:02}', atom, (0,))
+            # Filter before adding
+            this_amp = get_filtered_electrode(
+                this_amp,
+                freq=...,
+                sampling_rate=...,
+            )
             exec(
-                f"hf5.root.raw.electrode{channel_ind:02}.append(amp_reshape[num,:])")
+                f"hf5.root.raw.electrode{channel_ind:02}.append(this_amp)")
             hf5.flush()
         elif not (emg_bool) and none_bool:
             port = row.port
@@ -384,5 +410,5 @@ def read_electrode_emg_channels_single_file(
             el = hf5.create_earray(
                 '/raw_emg', f'emg{channel_ind:02}', atom, (0,))
             exec(
-                f"hf5.root.raw_emg.emg{channel_ind:02}.append(amp_reshape[num,:])")
+                f"hf5.root.raw_emg.emg{channel_ind:02}.append(this_amp)")
     hf5.close()

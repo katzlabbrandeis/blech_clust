@@ -406,6 +406,8 @@ if __name__ == '__main__':
         for this_el in tqdm(raw_emg_electrodes):
             raw_el = this_el[:]
             # High bandpass filter the raw electrode recordings
+            # NOTE: This filtered electrode is NOT USED downstream,
+            # don't worry about filtering EMG electrode with non-emg frequencies
             filt_el = get_filtered_electrode(
                 raw_el,
                 freq=[params_dict['bandpass_lower_cutoff'],
