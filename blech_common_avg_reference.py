@@ -20,10 +20,11 @@ It processes electrode recordings by:
    - Maintains data integrity through careful memory management
 
 Usage:
-    python blech_common_avg_reference.py <dir_name>
+    python blech_common_avg_reference.py <dir_name> [--use-original-car]
 
 Arguments:
     dir_name : Directory containing the HDF5 file with raw electrode data
+    --use-original-car : Optional flag to use original CAR groups if present
 
 Dependencies:
     - numpy, tables, tqdm
@@ -328,16 +329,17 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
 # Pull out the raw electrode nodes of the HDF5 file
 raw_electrodes = hf5.list_nodes('/raw')
 
-# Check if auto_CAR parameters are enabled in the parameters
+# Check if the --use-original-car argument is provided
+use_original_car = '--use-original-car' in sys.argv
 if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
     auto_car_section = metadata_handler.params_dict.get('auto_CAR', {})
-    auto_car_inference = auto_car_section.get('use_auto_CAR', False)
+    auto_car_inference = auto_car_section.get('use_auto_CAR', False) and not use_original_car
     max_clusters = auto_car_section.get(
         'max_clusters', 10)  # Default to 10 if not specified
     # Use BIC for clustering by default
     use_bic = auto_car_section.get('use_bic', True)
 else:
-    auto_car_inference = False
+    auto_car_inference = False or use_original_car
     max_clusters = 10
 
 plots_dir = os.path.join(dir_name, 'QA_output')
@@ -420,7 +422,10 @@ if auto_car_inference:
     # Save original CAR_groups as backup
     electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
-    # Append cluster numbers to CAR group names
+    if use_original_car:
+        print("Using original CAR groups as specified.")
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame['original_CAR_group']
+    else:
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
         lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
     )
