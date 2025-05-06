@@ -546,14 +546,14 @@ class cluster_handler():
 
                 # Create ISI distribution plot
                 #############################
-                fig, ax = gen_isi_hist(
-                    times_dejittered,
-                    cluster_points,
-                    params_dict['sampling_rate'],
-                )
-                fig.savefig(os.path.join(
-                    self.clust_plot_dir, f'Cluster{cluster}_ISIs'))
-                plt.close("all")
+                # fig, ax = gen_isi_hist(
+                #     times_dejittered,
+                #     cluster_points,
+                #     params_dict['sampling_rate'],
+                # )
+                # fig.savefig(os.path.join(
+                #     self.clust_plot_dir, f'Cluster{cluster}_ISIs'))
+                # plt.close("all")
 
                 # Create features timeseries plot
                 # And plot histogram of spiketimes
