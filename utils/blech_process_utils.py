@@ -472,9 +472,42 @@ class cluster_handler():
                         prob_hist_ax.axhline(clf_threshold,
                                              linestyle='--', color='k')
                 fig.suptitle(f'Cluster {cluster}')
-                fig.savefig(os.path.join(
-                    self.clust_plot_dir, f'Cluster{cluster}_classifier'))
+                clf_fig_path = os.path.join(
+                    self.clust_plot_dir, f'Cluster{cluster}_classifier.png')
+                fig.savefig(clf_fig_path, bbox_inches='tight')
                 plt.close(fig)
+
+            # If cluster waveform plot exists, merge with that
+            waveform_plot_path = os.path.join(
+                self.clust_plot_dir, f'Cluster{cluster}_waveforms.png')
+            if os.path.exists(waveform_plot_path):
+                print(
+                    f'Cluster{cluster} : Waveform plot exists, merging with classifier plot')
+                wav_img = plt.imread(waveform_plot_path)
+                clf_img = plt.imread(clf_fig_path)
+                # Use gridspec to have wav img be 2x wide
+                fig = plt.figure(figsize=(15, 10))
+                gs = fig.add_gridspec(1, 2, width_ratios=(2, 1))
+                ax0 = fig.add_subplot(gs[0, 0])
+                ax1 = fig.add_subplot(gs[0, 1])
+                ax0.imshow(wav_img)
+                ax1.imshow(clf_img)
+                ax0.axis('off')
+                ax1.axis('off')
+                fig.suptitle(f'Cluster {cluster}')
+                fig.savefig(waveform_plot_path, bbox_inches='tight')
+                plt.close(fig)
+                # Delete the classifier plot
+                os.remove(os.path.join(self.clust_plot_dir,
+                          f'Cluster{cluster}_classifier.png'))
+            else:
+                print(
+                    f'Cluster {cluster} : Waveform plot does not exist, classifier plot will be saved as is')
+                # Just rename the plot
+                os.rename(
+                    os.path.join(self.clust_plot_dir,
+                                 f'Cluster{cluster}_classifier.png'),
+                    waveform_plot_path)
     # return fig, ax
 
     def create_output_plots(self,
