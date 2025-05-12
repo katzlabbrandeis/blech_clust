@@ -1035,7 +1035,7 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Handle the special case for laser dig-ins
     if isinstance(laser_select_str, str):
-        if len(laser_select_str) == 0:
+        if laser_select_str.lower() == "none":
             laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
         else:
             laser_digin_ind = [int(laser_select_str)]
