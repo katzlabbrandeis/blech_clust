@@ -285,11 +285,12 @@ def populate_field_with_defaults(
         )
 
     if continue_bool:
-        if user_input.strip():
-            # Convert input if conversion function provided
-            if convert_func:
-                return convert_func(user_input)
-            return user_input
+        if user_input.strip().lower() == "none":
+            return default_value
+        # Convert input if conversion function provided
+        if convert_func:
+            return convert_func(user_input)
+        return user_input
         else:
             # Use default if input is empty
             return default_value
@@ -691,7 +692,7 @@ def process_laser_params_programmatic(this_dig_handler, args):
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
     """
     # Process laser dig-ins
-    if args.laser_digin:
+    if args.laser_digin and args.laser_digin.lower() != "none":
         laser_digin_ind = parse_csv(args.laser_digin, int)
     else:
         laser_digin_ind = []
