@@ -294,8 +294,6 @@ def populate_field_with_defaults(
     else:
         # Use default if input is empty
         return default_value
-    else:
-        exit()
 
 
 def parse_laser_params(s):
