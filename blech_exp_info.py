@@ -291,9 +291,9 @@ def populate_field_with_defaults(
         if convert_func:
             return convert_func(user_input)
         return user_input
-        else:
-            # Use default if input is empty
-            return default_value
+    else:
+        # Use default if input is empty
+        return default_value
     else:
         exit()
 
