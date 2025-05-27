@@ -38,9 +38,11 @@ import tables
 import argparse
 from tqdm import tqdm
 
+
 def load_grading_criteria(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
+
 
 def grade_dataset(dataset, criteria):
     scores = {}
@@ -51,6 +53,7 @@ def grade_dataset(dataset, criteria):
                 scores[metric] = details['scores'][i]
                 break
     return scores
+
 
 test_bool = False
 # Parse command line arguments
@@ -422,8 +425,9 @@ def generate_data_summary(dir_name):
     }
 
     # Load grading criteria
-    criteria = load_grading_criteria(os.path.join(blech_clust_dir, 'utils', 'grading_metrics.json'))
-    
+    criteria = load_grading_criteria(os.path.join(
+        blech_clust_dir, 'utils', 'grading_metrics.json'))
+
     # Grade the dataset
     scores = grade_dataset(data_summary, criteria)
     data_summary['scores'] = scores
