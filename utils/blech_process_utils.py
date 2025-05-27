@@ -567,34 +567,12 @@ class cluster_handler():
                     return_only=True,
                 )
 
-                # fig, ax = gen_datashader_plot(
-                #     slices_dejittered,
-                #     cluster_points,
-                #     x,
-                #     threshold,
-                #     self.electrode_num,
-                #     params_dict['sampling_rate'],
-                #     cluster,
-                # )
                 fig.suptitle(f'Cluster {cluster} waveforms')
 
                 fig.savefig(os.path.join(
                     self.clust_plot_dir, f'Cluster{cluster}_waveforms'))
                 plt.close("all")
 
-                # Create ISI distribution plot
-                #############################
-                # fig, ax = gen_isi_hist(
-                #     times_dejittered,
-                #     cluster_points,
-                #     params_dict['sampling_rate'],
-                # )
-                # fig.savefig(os.path.join(
-                #     self.clust_plot_dir, f'Cluster{cluster}_ISIs'))
-                # plt.close("all")
-
-                # Create features timeseries plot
-                # And plot histogram of spiketimes
                 #############################
                 fig, ax = feature_timeseries_plot(
                     standard_data,
