@@ -1,0 +1,44 @@
+# GitHub Actions workflow for running pytest tests
+# This workflow runs pytest on pull requests and manual triggers
+
+name: Pytest
+run-name: pytest_tests
+on:
+  pull_request:
+    paths:
+      - '**.py'  # Only run when Python files change
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  pytest:
+    runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v4
+
+      - name: Display Python version
+        run: |
+          python --version
+          which python
+
+      - name: Install pytest if needed
+        run: |
+          conda run -n blech_clust pip install pytest pytest-cov
+
+      - name: Run pytest
+        run: |
+          conda run -n blech_clust python -m pytest tests/ -v
+
+      - name: Run pytest with coverage
+        run: |
+          conda run -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
