@@ -1,8 +1,10 @@
 import json
 
+
 def load_grading_metrics():
     with open('grading_metrics.json', 'r') as file:
         return json.load(file)
+
 
 def calculate_unit_score(unit_count):
     if unit_count < 3:
@@ -14,11 +16,14 @@ def calculate_unit_score(unit_count):
     else:
         return 1
 
+
 def calculate_metric_score(sig_fraction):
     return sig_fraction
 
+
 def calculate_drift_score(sig_fraction):
     return 1 - sig_fraction
+
 
 def calculate_elbo_score(best_change):
     if best_change <= 1:
@@ -29,6 +34,7 @@ def calculate_elbo_score(best_change):
         return 0.33
     else:
         return 0
+
 
 # Example usage
 metrics = load_grading_metrics()
