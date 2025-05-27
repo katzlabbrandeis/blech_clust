@@ -5,6 +5,18 @@ import json
 import pandas as pd
 import numpy as np
 
+"""
+Dataset Grading Utility
+
+This script grades neural recording datasets based on multiple quality metrics:
+1. Unit count - Total number of recorded units
+2. Unit quality - Significant unit counts and fractions for each taste
+3. Drift metrics - Both unit-based drift and ELBO-based drift analysis
+
+The grades are calculated using thresholds defined in a grading_metrics.json file
+and saved to the dataset's QA_output directory.
+"""
+
 
 test_bool = False
 if test_bool:
@@ -37,6 +49,23 @@ with open(grading_crit_path, 'r') as file:
     grading_criteria=json.load(file)
 
 def extract_summary_values(data_summary):
+    """
+    Extract relevant values from the data summary for grading.
+    
+    Parameters:
+    -----------
+    data_summary : dict
+        Dictionary containing the dataset summary information
+        
+    Returns:
+    --------
+    dict
+        Dictionary containing:
+        - total_units: Total number of units in the dataset
+        - unit_qual_frame: DataFrame with unit quality metrics
+        - drift_frame: DataFrame with drift analysis results
+        - best_elbo: Best ELBO (Evidence Lower Bound) change value from drift analysis
+    """
     total_units=data_summary['basic_info']['region_units'][0]['total_units']
 
     unit_qual_frame=pd.DataFrame(data_summary['unit_counts'])
@@ -59,12 +88,71 @@ summary_values=extract_summary_values(data_summary)
 def get_count_score(value, thresholds, scores):
     """
     Get the score based on the value and the defined thresholds.
+    
+    The function finds the first threshold that the value is less than or equal to,
+    and returns the corresponding score from the scores list.
+    
+    Parameters:
+    -----------
+    value : int or float
+        The value to be scored
+    thresholds : list
+        List of threshold values in ascending order
+    scores : list
+        List of scores corresponding to thresholds
+        
+    Returns:
+    --------
+    float
+        The score corresponding to the appropriate threshold
+    
+    Example:
+    --------
+    If thresholds = [10, 20, 30] and scores = [3, 2, 1, 0],
+    a value of 15 would return a score of 2 (second threshold)
     """
     index=np.where(value <= np.array(thresholds))[0][0]
     return scores[index]
 
 def grade_dataset(summary_values, grading_criteria):
-
+    """
+    Grade the dataset based on multiple criteria.
+    
+    The grading process evaluates:
+    1. Total unit count - Higher counts receive better scores
+    2. Unit quality - Based on significant unit counts and fractions
+    3. Drift metrics - Both unit-based drift and ELBO-based drift
+    
+    Parameters:
+    -----------
+    summary_values : dict
+        Dictionary containing extracted summary values:
+        - total_units: Total number of units
+        - unit_qual_frame: DataFrame with unit quality metrics
+        - drift_frame: DataFrame with drift analysis results
+        - best_elbo: Best ELBO change value
+        
+    grading_criteria : dict
+        Dictionary containing thresholds and scores for each criterion
+        
+    Returns:
+    --------
+    pd.Series
+        Series containing scores for:
+        - unit_count: Score based on total unit count
+        - taste-specific scores: One score per taste condition
+        - drift_unit: Score based on unit drift (1 - significant fraction)
+        - drift_elbo: Score based on ELBO change
+    
+    Notes:
+    ------
+    - Unit quality scores are calculated as: sig_count_score * sig_fraction
+    - Drift unit score is calculated as: 1 - significant_fraction_post
+    - Lower ELBO values indicate less drift and receive higher scores
+    """
+    unit_count = summary_values['total_units']
+    best_elbo = summary_values['best_elbo']
+    
     unit_count_score=get_count_score(unit_count,
                                        grading_criteria['unit_count']['thresholds'],
                                        grading_criteria['unit_count']['scores'])
@@ -85,6 +173,7 @@ def grade_dataset(summary_values, grading_criteria):
 
     sig_fracs=unit_qual_frame.T['sig_fraction']
 
+    # Final unit scores are the product of count scores and significant fractions
     unit_scores=np.array(sig_count_scores) * np.array(sig_fracs)
 
     # Calculate drift scores based on the drift frame
