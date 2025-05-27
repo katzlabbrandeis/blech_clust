@@ -374,25 +374,6 @@ plt.savefig(os.path.join(agg_plot_dir, 'responsiveness_heatmap.png'),
             bbox_inches='tight')
 plt.close()
 
-
-def calculate_score(p_values, alpha=0.05):
-    return np.clip(1 - (p_values / alpha), 0, 1)
-
-
-resp_frame['score'] = calculate_score(resp_frame['resp_pval'])
-taste_sig['score'] = calculate_score(taste_sig['p-unc'])
-bin_sig['score'] = calculate_score(bin_sig['p-unc'])
-pal_frame['score'] = calculate_score(pal_frame['pval'])
-
-# Mock data for demonstration purposes
-taste_sig = pd.DataFrame({'p-unc': np.random.rand(10)})
-bin_sig = pd.DataFrame({'p-unc': np.random.rand(10)})
-pal_frame = pd.DataFrame({'pval': np.random.rand(10)})
-
-# Calculate scores
-taste_sig['score'] = calculate_score(taste_sig['p-unc'])
-bin_sig['score'] = calculate_score(bin_sig['p-unc'])
-pal_frame['score'] = calculate_score(pal_frame['pval'])
 resp_num_laser = pd.DataFrame(
     resp_neurons.groupby('laser_tuple')['resp_pval'].sum())
 resp_num_laser.reset_index(inplace=True)
