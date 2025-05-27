@@ -45,6 +45,11 @@ def main():
             # Generate summary
             agent = FileSummaryAgent(file_path)
             summary = agent.generate_summary()
+            summary['responsiveness_score'] = resp_frame['score'].mean()
+            summary['discriminability_score'] = taste_sig['score'].mean()
+            summary['dynamicity_score'] = bin_sig['score'].mean()
+            summary['palatability_score'] = pal_frame['score'].mean()
+            summary['drift_score'] = run_frame['drift_score'].mean()
 
             # Save summary
             with open(output_file, 'w') as f:

@@ -262,6 +262,11 @@ if not os.path.exists(artifact_save_path) or args.force:
 
         mode_list = [[np.argmax(x) for x in y] for y in tau_list]
 
+    def calculate_drift_score(elbo_values):
+        min_elbo = np.min(elbo_values)
+        max_elbo = np.max(elbo_values)
+        return (elbo_values - min_elbo) / (max_elbo - min_elbo)
+
     run_frame = pd.DataFrame(
         dict(
             elbo=elbo_list,

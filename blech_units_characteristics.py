@@ -374,6 +374,14 @@ plt.savefig(os.path.join(agg_plot_dir, 'responsiveness_heatmap.png'),
             bbox_inches='tight')
 plt.close()
 
+def calculate_score(p_values, alpha=0.05):
+    return np.clip(1 - (p_values / alpha), 0, 1)
+
+resp_frame['score'] = calculate_score(resp_frame['resp_pval'])
+taste_sig['score'] = calculate_score(taste_sig['p-unc'])
+bin_sig['score'] = calculate_score(bin_sig['p-unc'])
+pal_frame['score'] = calculate_score(pal_frame['pval'])
+
 # Plot pvalues for all neurons across tastes and fraction of significant neurons
 resp_num_laser = pd.DataFrame(
     resp_neurons.groupby('laser_tuple')['resp_pval'].sum())
@@ -762,6 +770,11 @@ this_pal_sig_frame['Source'] = 'palatability'
 out_frame = pd.concat(
     [this_resp_neurons, taste_bin_pval_frame, this_pal_sig_frame])
 out_frame.drop(columns=['p-unc'], inplace=True)
+
+out_frame['responsiveness_score'] = resp_frame['score']
+out_frame['discriminability_score'] = taste_sig['score']
+out_frame['dynamicity_score'] = bin_sig['score']
+out_frame['palatability_score'] = pal_frame['score']
 
 out_frame.to_csv(os.path.join(dir_name, 'aggregated_characteristics.csv'),
                  index=False)
