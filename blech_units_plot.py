@@ -182,7 +182,8 @@ def plot_unit_summary(
         x,
         downsample=False,
         threshold=threshold,
-        ax=ax[0, 0]
+        ax=ax[0, 0],
+        dir_name=os.path.join(output_dir, 'datashader_temp')
     )
     ax[0, 0].set_xlabel('Sample (30 samples per ms)')
     ax[0, 0].set_ylabel('Voltage (microvolts)')

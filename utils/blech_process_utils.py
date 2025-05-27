@@ -565,7 +565,13 @@ class cluster_handler():
                     max_time=times_dejittered.max(),
                     params_dict=params_dict,
                     return_only=True,
+                    # Use electrode and cluster-specific directories
+                    # to avoid over-writing by other parallel processes
+                    output_dir=f'{self.clust_plot_dir}/{cluster:02}_temp',
                 )
+                # Since blech_waveforms_datashader.waveforms_datashader only removes
+                # the inner temp_dir, remove the above outer dir manually
+                ifisdir_rmdir(f'{self.clust_plot_dir}/{cluster:02}_temp')
 
                 fig.suptitle(f'Cluster {cluster} waveforms')
 
