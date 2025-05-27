@@ -38,6 +38,20 @@ import tables
 import argparse
 from tqdm import tqdm
 
+def load_grading_criteria(file_path):
+    with open(file_path, 'r') as file:
+        return json.load(file)
+
+def grade_dataset(dataset, criteria):
+    scores = {}
+    for metric, details in criteria['grading_criteria'].items():
+        value = dataset.get(metric, 0)
+        for i, threshold in enumerate(details['thresholds']):
+            if value <= threshold:
+                scores[metric] = details['scores'][i]
+                break
+    return scores
+
 test_bool = False
 # Parse command line arguments
 if test_bool:
@@ -406,6 +420,13 @@ def generate_data_summary(dir_name):
         'channel_correlation': correlation_data,
         'elbo_analysis': elbo_data,
     }
+
+    # Load grading criteria
+    criteria = load_grading_criteria(os.path.join(blech_clust_dir, 'utils', 'grading_metrics.json'))
+    
+    # Grade the dataset
+    scores = grade_dataset(data_summary, criteria)
+    data_summary['scores'] = scores
 
     return data_summary
 
