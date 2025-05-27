@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 
-test_bool = True
+test_bool = False
 if test_bool:
     data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     args = argparse.Namespace(data_dir=data_dir)
