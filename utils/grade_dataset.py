@@ -94,10 +94,10 @@ def grade_dataset(summary_values, grading_criteria):
 
     # Compile everything into a DataFrame
     grading_df=pd.Series({
-        'unit_count_score': unit_count_score,
+        'unit_count': unit_count_score,
         **dict(zip(unit_qual_frame.columns, unit_scores)),
-        'drift_unit_score': drift_unit_score,
-        'drift_elbo_score': elbo_score,
+        'drift_unit': drift_unit_score,
+        'drift_elbo': elbo_score,
     })
 
     return grading_df
