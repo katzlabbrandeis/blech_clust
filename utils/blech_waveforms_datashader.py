@@ -73,6 +73,8 @@ def waveforms_datashader(
 
     # Transfer the aggregated data to image using log
     # transform and export the temporary image file
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     export(tf.shade(agg, how='eq_hist'), 'tempfile')
 
     # Read in the temporary image file

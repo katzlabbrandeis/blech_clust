@@ -579,7 +579,7 @@ def compress_image(image_path, max_size_kb=50):
         width, height = img.size
         scale_factor = (max_size_kb * 1024) / current_size
 
-        print(f'Scale factor: {scale_factor}')
+        # print(f'Scale factor: {scale_factor}')
         new_width = int(width * scale_factor)
         new_height = int(height * scale_factor)
         resized_img = img.resize((new_width, new_height), Image.LANCZOS)

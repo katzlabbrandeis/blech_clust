@@ -240,29 +240,11 @@ class cluster_handler():
         self.labels = self.get_cluster_labels(self.spike_features)
         return self.labels
 
-    def remove_outliers(self, params_dict):
+    def ensure_continuous_labels(self):
         """
-        Clear large waveforms
+        Ensure cluster labels are continuous numbers
         """
-        # Sometimes large amplitude noise waveforms cluster with the
-        # spike waveforms because the amplitude has been factored out of
-        # the scaled slices.
-        # Run through the clusters and find the waveforms that are more than
-        # wf_amplitude_sd_cutoff larger than the cluster mean.
-        # Set predictions = -1 at these points so that they aren't
-        # picked up by blech_post_process
-        wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
-        for cluster in np.unique(self.labels):
-            cluster_points = np.where(self.labels[:] == cluster)[0]
-            this_cluster = remove_too_large_waveforms(
-                cluster_points,
-                # self.spike_set.amplitudes,
-                # self.spike_set.return_feature('amplitude'),
-                self.spike_features[:, [i for i, x in enumerate(
-                    self.feature_names) if 'amplitude' in x][0]],
-                self.labels,
-                wf_amplitude_sd_cutoff)
-            self.labels[cluster_points] = this_cluster
+
         # Make sure cluster labels are continuous numbers
         # as auto-model can return non-continuous numbers
         # (e.g. 0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
@@ -279,6 +261,29 @@ class cluster_handler():
             print('Renaming Cluters')
             print(f'Cluster map: {cluster_map}')
             self.labels = np.array([cluster_map[x] for x in self.labels])
+            self.cluster_map = cluster_map
+
+    def remove_outliers(self, params_dict):
+        """
+        Clear large waveforms
+        """
+        # Sometimes large amplitude noise waveforms cluster with the
+        # spike waveforms because the amplitude has been factored out of
+        # the scaled slices.
+        # Run through the clusters and find the waveforms that are more than
+        # wf_amplitude_sd_cutoff larger than the cluster mean.
+        # Set predictions = -1 at these points so that they aren't
+        # picked up by blech_post_process
+        wf_amplitude_sd_cutoff = params_dict['wf_amplitude_sd_cutoff']
+        for cluster in np.unique(self.labels):
+            cluster_points = np.where(self.labels[:] == cluster)[0]
+            this_cluster = remove_too_large_waveforms(
+                cluster_points,
+                self.spike_features[:, [i for i, x in enumerate(
+                    self.feature_names) if 'amplitude' in x][0]],
+                self.labels,
+                wf_amplitude_sd_cutoff)
+            self.labels[cluster_points] = this_cluster
 
     def save_cluster_labels(self):
         np.save(
@@ -467,9 +472,42 @@ class cluster_handler():
                         prob_hist_ax.axhline(clf_threshold,
                                              linestyle='--', color='k')
                 fig.suptitle(f'Cluster {cluster}')
-                fig.savefig(os.path.join(
-                    self.clust_plot_dir, f'Cluster{cluster}_classifier'))
+                clf_fig_path = os.path.join(
+                    self.clust_plot_dir, f'Cluster{cluster}_classifier.png')
+                fig.savefig(clf_fig_path, bbox_inches='tight')
                 plt.close(fig)
+
+            # If cluster waveform plot exists, merge with that
+            waveform_plot_path = os.path.join(
+                self.clust_plot_dir, f'Cluster{cluster}_waveforms.png')
+            if os.path.exists(waveform_plot_path):
+                print(
+                    f'Cluster{cluster} : Waveform plot exists, merging with classifier plot')
+                wav_img = plt.imread(waveform_plot_path)
+                clf_img = plt.imread(clf_fig_path)
+                # Use gridspec to have wav img be 2x wide
+                fig = plt.figure(figsize=(15, 10))
+                gs = fig.add_gridspec(1, 2, width_ratios=(2, 1))
+                ax0 = fig.add_subplot(gs[0, 0])
+                ax1 = fig.add_subplot(gs[0, 1])
+                ax0.imshow(wav_img)
+                ax1.imshow(clf_img)
+                ax0.axis('off')
+                ax1.axis('off')
+                fig.suptitle(f'Cluster {cluster}')
+                fig.savefig(waveform_plot_path, bbox_inches='tight')
+                plt.close(fig)
+                # Delete the classifier plot
+                os.remove(os.path.join(self.clust_plot_dir,
+                          f'Cluster{cluster}_classifier.png'))
+            else:
+                print(
+                    f'Cluster {cluster} : Waveform plot does not exist, classifier plot will be saved as is')
+                # Just rename the plot
+                os.rename(
+                    os.path.join(self.clust_plot_dir,
+                                 f'Cluster{cluster}_classifier.png'),
+                    waveform_plot_path)
     # return fig, ax
 
     def create_output_plots(self,
@@ -527,36 +565,20 @@ class cluster_handler():
                     max_time=times_dejittered.max(),
                     params_dict=params_dict,
                     return_only=True,
+                    # Use electrode and cluster-specific directories
+                    # to avoid over-writing by other parallel processes
+                    output_dir=f'{self.clust_plot_dir}/{cluster:02}_temp',
                 )
+                # Since blech_waveforms_datashader.waveforms_datashader only removes
+                # the inner temp_dir, remove the above outer dir manually
+                ifisdir_rmdir(f'{self.clust_plot_dir}/{cluster:02}_temp')
 
-                # fig, ax = gen_datashader_plot(
-                #     slices_dejittered,
-                #     cluster_points,
-                #     x,
-                #     threshold,
-                #     self.electrode_num,
-                #     params_dict['sampling_rate'],
-                #     cluster,
-                # )
                 fig.suptitle(f'Cluster {cluster} waveforms')
 
                 fig.savefig(os.path.join(
                     self.clust_plot_dir, f'Cluster{cluster}_waveforms'))
                 plt.close("all")
 
-                # Create ISI distribution plot
-                #############################
-                # fig, ax = gen_isi_hist(
-                #     times_dejittered,
-                #     cluster_points,
-                #     params_dict['sampling_rate'],
-                # )
-                # fig.savefig(os.path.join(
-                #     self.clust_plot_dir, f'Cluster{cluster}_ISIs'))
-                # plt.close("all")
-
-                # Create features timeseries plot
-                # And plot histogram of spiketimes
                 #############################
                 fig, ax = feature_timeseries_plot(
                     standard_data,
