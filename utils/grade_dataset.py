@@ -37,7 +37,7 @@ if os.path.exists(data_summary_path):
     with open(data_summary_path, 'r') as file:
         data_summary = json.load(file)
 else:
-    print(f"Data summary file not found @ : data_
+    print(f"Data summary file not found @ : {data_summary_path}")
     sys.exit(1)
 
 grading_crit_path=os.path.join(
