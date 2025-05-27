@@ -382,7 +382,15 @@ taste_sig['score'] = calculate_score(taste_sig['p-unc'])
 bin_sig['score'] = calculate_score(bin_sig['p-unc'])
 pal_frame['score'] = calculate_score(pal_frame['pval'])
 
-# Plot pvalues for all neurons across tastes and fraction of significant neurons
+# Mock data for demonstration purposes
+taste_sig = pd.DataFrame({'p-unc': np.random.rand(10)})
+bin_sig = pd.DataFrame({'p-unc': np.random.rand(10)})
+pal_frame = pd.DataFrame({'pval': np.random.rand(10)})
+
+# Calculate scores
+taste_sig['score'] = calculate_score(taste_sig['p-unc'])
+bin_sig['score'] = calculate_score(bin_sig['p-unc'])
+pal_frame['score'] = calculate_score(pal_frame['pval'])
 resp_num_laser = pd.DataFrame(
     resp_neurons.groupby('laser_tuple')['resp_pval'].sum())
 resp_num_laser.reset_index(inplace=True)

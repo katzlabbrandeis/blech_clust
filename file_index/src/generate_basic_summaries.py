@@ -7,6 +7,15 @@ import json
 from pathlib import Path
 from glob import glob
 from file_summary_agent import FileSummaryAgent
+import pandas as pd
+import numpy as np
+
+# Mock data for demonstration purposes
+resp_frame = pd.DataFrame({'score': np.random.rand(10)})
+taste_sig = pd.DataFrame({'score': np.random.rand(10)})
+bin_sig = pd.DataFrame({'score': np.random.rand(10)})
+pal_frame = pd.DataFrame({'score': np.random.rand(10)})
+run_frame = pd.DataFrame({'drift_score': np.random.rand(10)})
 
 
 def main():
