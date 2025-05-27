@@ -374,8 +374,10 @@ plt.savefig(os.path.join(agg_plot_dir, 'responsiveness_heatmap.png'),
             bbox_inches='tight')
 plt.close()
 
+
 def calculate_score(p_values, alpha=0.05):
     return np.clip(1 - (p_values / alpha), 0, 1)
+
 
 resp_frame['score'] = calculate_score(resp_frame['resp_pval'])
 taste_sig['score'] = calculate_score(taste_sig['p-unc'])
