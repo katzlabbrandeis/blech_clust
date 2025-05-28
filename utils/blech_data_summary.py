@@ -38,6 +38,7 @@ import tables
 import argparse
 from tqdm import tqdm
 
+
 test_bool = False
 # Parse command line arguments
 if test_bool:

@@ -33,6 +33,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Quality assurance: spike-time collisions and drift analysis
 9. `python blech_unit_characteristics.py`
     - Analyze unit characteristics
+10. `python utils/blech_data_summary.py`
+    - Generate comprehensive dataset summary
+11. `python utils/grade_dataset.py`
+    - Grade dataset quality based on metrics
 
 **EMG Analysis Pipelines:**
 
@@ -62,6 +66,23 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 ### Module Documentation
 
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
+
+### Dataset Quality Assessment
+
+The pipeline includes tools for assessing and grading dataset quality:
+
+1. **Data Summary Generation** (`utils/blech_data_summary.py`):
+   - Aggregates key metrics from analysis outputs
+   - Summarizes unit counts, responsiveness, drift metrics, and more
+   - Creates a comprehensive `data_summary.json` file
+
+2. **Dataset Grading** (`utils/grade_dataset.py`):
+   - Evaluates dataset quality based on configurable criteria
+   - Grades datasets on unit counts, unit quality, and drift metrics
+   - Uses thresholds defined in `utils/grading_metrics.json`
+   - Outputs grades to `QA_output/grading.json`
+
+These tools help standardize quality assessment across datasets and identify recordings that meet experimental quality standards.
 
 ### Blog
 
@@ -147,6 +168,11 @@ The project uses GitHub Actions for automated testing on pull requests:
 
 ### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+
+### Quality Assessment Workflow
+```
+blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+```
 
 ### Workflow Walkthrough
 *This section is being expanded, in progress.*
@@ -242,6 +268,8 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
 - - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
+- - [blech_unit_characteristics] -> [blech_data_summary]
+- - [blech_data_summary] -> [grade_dataset]
 
 - **EMG shared**
 - - [blech_clust] -> [blech_make_arrays]
