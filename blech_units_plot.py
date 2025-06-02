@@ -156,7 +156,7 @@ def plot_unit_summary(
 
     # Get threshold from layout_frame
     if (unit_index is not None) and (unit_descriptor is not None):
-        layout_ind = layout_frame['electrode_num'] == unit_descriptor['electrode_number']
+        layout_ind = layout_frame['electrode_ind'] == unit_descriptor['electrode_number']
         threshold = layout_frame['threshold'][layout_ind].values[0]
     else:
         threshold = None
@@ -253,17 +253,26 @@ def process_all_units(
     """
     # Now plot the waveforms from the units in this directory one by one
     for unit in trange(len(units)):
-        unit_descriptor = hf5.root.unit_descriptor[unit]
-        plot_unit_summary(
-            unit_data=units[unit],
-            min_time=min_time,
-            max_time=max_time,
-            unit_index=unit,
-            unit_descriptor=unit_descriptor,
-            layout_frame=layout_frame,
-            params_dict=params_dict,
-            output_dir=output_dir
-        )
+        try:
+            unit_descriptor = hf5.root.unit_descriptor[unit]
+            plot_unit_summary(
+                unit_data=units[unit],
+                min_time=min_time,
+                max_time=max_time,
+                unit_index=unit,
+                unit_descriptor=unit_descriptor,
+                layout_frame=layout_frame,
+                params_dict=params_dict,
+                output_dir=output_dir
+            )
+        except Exception as e:
+            print(f"Error processing unit index {unit}: {e}")
+            try:
+                unit_descriptor = hf5.root.unit_descriptor[unit]
+                print(f"Unit descriptor: {unit_descriptor}")
+            except Exception as e:
+                print(f"Error retrieving unit descriptor for unit {unit}: {e}")
+                unit_descriptor = None
 
 
 def save_individual_plots(units, output_subdir="waveforms_only"):
@@ -308,8 +317,23 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
 def main():
     """Main function to process neural data and generate plots."""
     # Setup environment
-    metadata_handler, dir_name, params_dict, layout_frame, this_pipeline_check, script_path = setup_environment(
-        sys.argv)
+    test_bool = False
+    if not test_bool:
+        (
+            metadata_handler,
+            dir_name,
+            params_dict,
+            layout_frame,
+            this_pipeline_check,
+            script_path,
+        ) = setup_environment(sys.argv)
+    else:
+        data_dir = '/media/storage/NM_resorted_data/laser_2500ms/NM43_2500ms_160515_104159'
+        metadata_handler = imp_metadata([[], data_dir])
+        dir_name = metadata_handler.dir_name
+        params_dict = metadata_handler.params_dict
+        layout_frame = metadata_handler.layout
+        os.chdir(dir_name)
 
     # Prepare output directory
     prepare_output_directory()
