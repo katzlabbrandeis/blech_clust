@@ -18,39 +18,6 @@ and saved to the dataset's QA_output directory.
 """
 
 
-test_bool = False
-if test_bool:
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-    args = argparse.Namespace(data_dir=data_dir)
-    blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
-else:
-    parser = argparse.ArgumentParser(
-        description='Grade a dataset based on specified criteria.')
-    parser.add_argument(
-        'data_dir', type=str, help='Path to the directory containing the dataset files.')
-    args = parser.parse_args()
-    file_path = os.path.abspath(__file__)
-    blech_clust_dir = os.path.dirname(os.path.dirname(file_path))
-
-data_dir = args.data_dir
-
-data_summary_path = os.path.join(data_dir, 'data_summary.json')
-if os.path.exists(data_summary_path):
-    with open(data_summary_path, 'r') as file:
-        data_summary = json.load(file)
-else:
-    print(f"Data summary file not found @ : {data_summary_path}")
-    sys.exit(1)
-
-grading_crit_path = os.path.join(
-    blech_clust_dir, 'utils', 'grading_metrics.json')
-if not os.path.exists(grading_crit_path):
-    print(f"Grading criteria file not found @: {grading_crit_path}")
-    sys.exit(1)
-with open(grading_crit_path, 'r') as file:
-    grading_criteria = json.load(file)
-
-
 def extract_summary_values(data_summary):
     """
     Extract relevant values from the data summary for grading.
@@ -72,6 +39,11 @@ def extract_summary_values(data_summary):
     total_units = data_summary['basic_info']['region_units'][0]['total_units']
 
     unit_qual_frame = pd.DataFrame(data_summary['unit_counts'])
+    # Only grade for laser condition '(0, 0)',
+    # as we only want to evaluate neural properties without perturbation
+    # Only keep columns with this condition
+    wanted_columns = [x for x in unit_qual_frame.columns if '(0, 0)' in x]
+    unit_qual_frame = unit_qual_frame[wanted_columns]
     unit_qual_frame.columns = [eval(x)[0] for x in unit_qual_frame.columns]
 
     drift_frame = pd.DataFrame(data_summary['drift_analysis'])
@@ -85,9 +57,6 @@ def extract_summary_values(data_summary):
         'drift_frame': drift_frame,
         'best_elbo': best_elbo
     }
-
-
-summary_values = extract_summary_values(data_summary)
 
 
 def get_count_score(value, thresholds, scores):
@@ -197,6 +166,43 @@ def grade_dataset(summary_values, grading_criteria):
 
     return grading_df
 
+############################################################
+
+
+test_bool = False
+if test_bool:
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/storage/NM_resorted_data/laser_2500ms/NM43_2500ms_160515_104159'
+    args = argparse.Namespace(data_dir=data_dir)
+    blech_clust_dir = '/home/abuzarmahmood/Desktop/blech_clust'
+else:
+    parser = argparse.ArgumentParser(
+        description='Grade a dataset based on specified criteria.')
+    parser.add_argument(
+        'data_dir', type=str, help='Path to the directory containing the dataset files.')
+    args = parser.parse_args()
+    file_path = os.path.abspath(__file__)
+    blech_clust_dir = os.path.dirname(os.path.dirname(file_path))
+
+data_dir = args.data_dir
+
+data_summary_path = os.path.join(data_dir, 'data_summary.json')
+if os.path.exists(data_summary_path):
+    with open(data_summary_path, 'r') as file:
+        data_summary = json.load(file)
+else:
+    print(f"Data summary file not found @ : {data_summary_path}")
+    sys.exit(1)
+
+grading_crit_path = os.path.join(
+    blech_clust_dir, 'utils', 'grading_metrics.json')
+if not os.path.exists(grading_crit_path):
+    print(f"Grading criteria file not found @: {grading_crit_path}")
+    sys.exit(1)
+with open(grading_crit_path, 'r') as file:
+    grading_criteria = json.load(file)
+
+summary_values = extract_summary_values(data_summary)
 
 grades = grade_dataset(summary_values, grading_criteria)
 
