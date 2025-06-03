@@ -72,10 +72,12 @@ from PIL import Image  # noqa
 from io import BytesIO  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
+import pandas as pd  # noqa
 
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 import utils.blech_utils as bu  # noqa
+import utils.ephys_data.ephys_data as ephys_data  # noqa
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
@@ -452,54 +454,111 @@ def test_ephys_data(data_dir):
     """Test ephys_data functionality"""
     print("Testing ephys_data with directory:", data_dir)
 
-    dat = ephys_data(data_dir)
+    dat = ephys_data.ephys_data(data_dir)
     dat.firing_rate_params = dat.default_firing_params
 
-    # Test core functionality
-    print("Testing core functionality...")
-    dat.get_unit_descriptors()
-    dat.get_spikes()
-    dat.get_firing_rates()
-    dat.get_lfps()
+    test_methods = {
+        'get_unit_descriptors': 'core',
+        'get_spikes': 'core',
+        'get_firing_rates': 'core',
+        'get_lfps': 'core',
+        'get_info_dict': 'core',
+        'get_region_electrodes': 'electrode_handling',
+        'get_region_units': 'electrode_handling',
+        'get_lfp_electrodes': 'electrode_handling',
+        'return_region_spikes': 'electrode_handling',
+        'get_region_firing': 'electrode_handling',
+        'return_region_lfps': 'electrode_handling',
+        'return_representative_lfp_channels': 'electrode_handling',
+        'get_stft': 'stft',
+        'get_mean_stft_amplitude': 'stft',
+        'get_trial_info_frame': 'trial_sequestering',
+        'sequester_trial_inds': 'trial_sequestering',
+        'get_sequestered_spikes': 'trial_sequestering',
+        'get_sequestered_firing': 'trial_sequestering',
+        'get_sequestered_data': 'trial_sequestering',
+        'calc_palatability': 'palatability',
+    }
 
-    # Test laser-related methods if laser exists
-    print("Testing laser functionality...")
     dat.check_laser()
     if dat.laser_exists:
-        print("Laser detected, testing laser-specific methods...")
-        dat.separate_laser_spikes()
-        dat.separate_laser_firing()
-        dat.separate_laser_lfp()
+        test_methods.update({
+            'separate_laser_spikes': 'laser',
+            'separate_laser_firing': 'laser',
+            'separate_laser_lfp': 'laser',
+        })
     else:
         print("No laser detected, skipping laser-specific methods")
 
-    # Test region/electrode handling
-    print("Testing region/electrode handling...")
-    dat.get_info_dict()
-    dat.get_region_electrodes()
-    dat.get_region_units()
-    dat.get_lfp_electrodes()
-    dat.return_region_spikes()
-    dat.get_region_firing()
-    dat.return_region_lfps()
-    dat.return_representative_lfp_channels()
+    ephys_test_df = pd.DataFrame(columns=['method', 'category', 'result'])
+    print("Starting ephys data tests...")
 
-    # Test STFT functionality
-    print("Testing STFT functionality...")
-    dat.get_stft()
-    dat.get_mean_stft_amplitude()
+    # Run tests for each method and keep track of results
+    for method, category in test_methods.items():
+        try:
+            print(f"Testing {method}...")
+            getattr(dat, method)()
+            result = 'Success'
+        except Exception as e:
+            print(f"Error in {method}: {str(e)}")
+            result = 'Failed'
 
-    # Test trial sequestering
-    print("Testing trial sequestering...")
-    dat.get_trial_info_frame()
-    dat.sequester_trial_inds()
-    dat.get_sequestered_spikes()
-    dat.get_sequestered_firing()
-    dat.get_sequestered_data()
+        # Append result to DataFrame
+        ephys_test_df = ephys_test_df.append({
+            'method': method,
+            'category': category,
+            'result': result
+        }, ignore_index=True)
 
-    # Test palatability calculation
-    print("Testing palatability calculation...")
-    dat.calc_palatability()
+    print("Ephys data tests complete!")
+    print("Test results:")
+    print(ephys_test_df)
+
+    # # Test core functionality
+    # print("Testing core functionality...")
+    # dat.get_unit_descriptors()
+    # dat.get_spikes()
+    # dat.get_firing_rates()
+    # dat.get_lfps()
+    #
+    # # Test laser-related methods if laser exists
+    # print("Testing laser functionality...")
+    # dat.check_laser()
+    # if dat.laser_exists:
+    #     print("Laser detected, testing laser-specific methods...")
+    #     dat.separate_laser_spikes()
+    #     dat.separate_laser_firing()
+    #     dat.separate_laser_lfp()
+    # else:
+    #     print("No laser detected, skipping laser-specific methods")
+    #
+    # # Test region/electrode handling
+    # print("Testing region/electrode handling...")
+    # dat.get_info_dict()
+    # dat.get_region_electrodes()
+    # dat.get_region_units()
+    # dat.get_lfp_electrodes()
+    # dat.return_region_spikes()
+    # dat.get_region_firing()
+    # dat.return_region_lfps()
+    # dat.return_representative_lfp_channels()
+    #
+    # # Test STFT functionality
+    # print("Testing STFT functionality...")
+    # dat.get_stft()
+    # dat.get_mean_stft_amplitude()
+    #
+    # # Test trial sequestering
+    # print("Testing trial sequestering...")
+    # dat.get_trial_info_frame()
+    # dat.sequester_trial_inds()
+    # dat.get_sequestered_spikes()
+    # dat.get_sequestered_firing()
+    # dat.get_sequestered_data()
+    #
+    # # Test palatability calculation
+    # print("Testing palatability calculation...")
+    # dat.calc_palatability()
 
     print("Ephys data testing complete!")
 
