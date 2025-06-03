@@ -67,10 +67,12 @@ from PIL import Image  # noqa
 from io import BytesIO  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
+import pandas as pd  # noqa
 
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 import utils.blech_utils as bu  # noqa
+import utils.ephys_data.ephys_data as ephys_data  # noqa
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
@@ -430,6 +432,83 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
     raise_error_if_error(data_dir, process, stderr, stdout)
 
 ############################################################
+# Ephys Data Tests
+############################################################
+
+
+@task(log_prints=True)
+def test_ephys_data(data_dir):
+    """Test ephys_data functionality"""
+    print("Testing ephys_data with directory:", data_dir)
+
+    dat = ephys_data.ephys_data(data_dir)
+    dat.firing_rate_params = dat.default_firing_params
+
+    test_methods = {
+        'get_unit_descriptors': 'core',
+        'get_spikes': 'core',
+        'get_firing_rates': 'core',
+        'get_lfps': 'core',
+        'get_info_dict': 'core',
+        'get_region_electrodes': 'electrode_handling',
+        'get_region_units': 'electrode_handling',
+        'get_lfp_electrodes': 'electrode_handling',
+        'return_region_spikes': 'electrode_handling',
+        'get_region_firing': 'electrode_handling',
+        'return_region_lfps': 'electrode_handling',
+        'return_representative_lfp_channels': 'electrode_handling',
+        'get_stft': 'stft',
+        'get_mean_stft_amplitude': 'stft',
+        'get_trial_info_frame': 'trial_sequestering',
+        'sequester_trial_inds': 'trial_sequestering',
+        'get_sequestered_spikes': 'trial_sequestering',
+        'get_sequestered_firing': 'trial_sequestering',
+        'get_sequestered_data': 'trial_sequestering',
+        'calc_palatability': 'palatability',
+    }
+
+    dat.check_laser()
+    if dat.laser_exists:
+        test_methods.update({
+            'separate_laser_spikes': 'laser',
+            'separate_laser_firing': 'laser',
+            'separate_laser_lfp': 'laser',
+        })
+    else:
+        print("No laser detected, skipping laser-specific methods")
+
+    ephys_test_df = pd.DataFrame(columns=['method', 'category', 'result'])
+    print("Starting ephys data tests...")
+
+    # Run tests for each method and keep track of results
+    for method, category in test_methods.items():
+        try:
+            print(f"Testing {method}...")
+            getattr(dat, method)()
+            result = 'Success'
+        except Exception as e:
+            print(f"Error in {method}: {str(e)}")
+            result = 'Failed'
+
+        # Append result to DataFrame
+        ephys_test_df = ephys_test_df.append({
+            'method': method,
+            'category': category,
+            'result': result
+        }, ignore_index=True)
+
+    print("Ephys data tests complete!")
+    print("Test results:")
+    print(ephys_test_df)
+
+    print("Ephys data testing complete!")
+
+    # If any tests fail, raise an error
+    if 'Failed' in ephys_test_df['result'].values:
+        raise Exception(
+            "Some ephys data tests failed. Check the output above.")
+
+############################################################
 # Define Flows
 ############################################################
 
@@ -478,10 +557,14 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
+
     run_rnn(data_dir, separate_regions=False,   separate_tastes=False)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
+
+    # Run ephys_data tests as part of spike testing
+    test_ephys_data(data_dir)
 
 
 @flow(log_prints=True)
