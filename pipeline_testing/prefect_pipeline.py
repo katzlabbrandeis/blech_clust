@@ -514,53 +514,12 @@ def test_ephys_data(data_dir):
     print("Test results:")
     print(ephys_test_df)
 
-    # # Test core functionality
-    # print("Testing core functionality...")
-    # dat.get_unit_descriptors()
-    # dat.get_spikes()
-    # dat.get_firing_rates()
-    # dat.get_lfps()
-    #
-    # # Test laser-related methods if laser exists
-    # print("Testing laser functionality...")
-    # dat.check_laser()
-    # if dat.laser_exists:
-    #     print("Laser detected, testing laser-specific methods...")
-    #     dat.separate_laser_spikes()
-    #     dat.separate_laser_firing()
-    #     dat.separate_laser_lfp()
-    # else:
-    #     print("No laser detected, skipping laser-specific methods")
-    #
-    # # Test region/electrode handling
-    # print("Testing region/electrode handling...")
-    # dat.get_info_dict()
-    # dat.get_region_electrodes()
-    # dat.get_region_units()
-    # dat.get_lfp_electrodes()
-    # dat.return_region_spikes()
-    # dat.get_region_firing()
-    # dat.return_region_lfps()
-    # dat.return_representative_lfp_channels()
-    #
-    # # Test STFT functionality
-    # print("Testing STFT functionality...")
-    # dat.get_stft()
-    # dat.get_mean_stft_amplitude()
-    #
-    # # Test trial sequestering
-    # print("Testing trial sequestering...")
-    # dat.get_trial_info_frame()
-    # dat.sequester_trial_inds()
-    # dat.get_sequestered_spikes()
-    # dat.get_sequestered_firing()
-    # dat.get_sequestered_data()
-    #
-    # # Test palatability calculation
-    # print("Testing palatability calculation...")
-    # dat.calc_palatability()
-
     print("Ephys data testing complete!")
+
+    # If any tests fail, raise an error
+    if 'Failed' in ephys_test_df['result'].values:
+        raise Exception(
+            "Some ephys data tests failed. Check the output above.")
 
 ############################################################
 # Define Flows
