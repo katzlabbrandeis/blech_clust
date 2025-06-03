@@ -718,7 +718,7 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3):
     return good_trials_bool
 
 
-def return_good_lfp_trials(data, MAD_threshold=3)
+def return_good_lfp_trials(data, MAD_threshold=3):
 
 """Return good trials (for all channels) based on MAD threshold
     data : shape (n_channels, n_trials, n_timepoints)
