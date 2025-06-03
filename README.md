@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/119422765.svg)](https://doi.org/10.5281/zenodo.15175272)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/katzlabbrandeis/blech_clust/master.svg)](https://results.pre-commit.ci/latest/github/katzlabbrandeis/blech_clust/master)
 
 # blech_clust
@@ -32,6 +33,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Quality assurance: spike-time collisions and drift analysis
 9. `python blech_unit_characteristics.py`
     - Analyze unit characteristics
+10. `python utils/blech_data_summary.py`
+    - Generate comprehensive dataset summary
+11. `python utils/grade_dataset.py`
+    - Grade dataset quality based on metrics
 
 **EMG Analysis Pipelines:**
 
@@ -62,9 +67,32 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
+### Dataset Quality Assessment
+
+The pipeline includes tools for assessing and grading dataset quality:
+
+1. **Data Summary Generation** (`utils/blech_data_summary.py`):
+   - Aggregates key metrics from analysis outputs
+   - Summarizes unit counts, responsiveness, drift metrics, and more
+   - Creates a comprehensive `data_summary.json` file
+
+2. **Dataset Grading** (`utils/grade_dataset.py`):
+   - Evaluates dataset quality based on configurable criteria
+   - Grades datasets on unit counts, unit quality, and drift metrics
+   - Uses thresholds defined in `utils/grading_metrics.json`
+   - Outputs grades to `QA_output/grading.json`
+
+These tools help standardize quality assessment across datasets and identify recordings that meet experimental quality standards.
+
 ### Blog
 
 For more insights and updates, visit our [Blog Page](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html).
+
+### Acknowledgments
+
+This work used ACCESS-allocated resources at Brandeis University through allocation BIO230103 from the [Advanced Cyberinfrastructure Coordination Ecosystem: Services & Support](https://access-ci.org/) (ACCESS) program, which is supported by U.S. National Science Foundation grants #2138259, #2138286, #2138307, #2137603, and #2138296.
+
+The project titled "Computational Processing and Modeling of Neural Ensembles in Identifying the Nonlinear Dynamics of Taste Perception" was led by PI Abuzar Mahmood. The computational allocation was active from 2023-06-26 to 2024-06-25.
 
 ### Setup
 
@@ -140,6 +168,11 @@ The project uses GitHub Actions for automated testing on pull requests:
 
 ### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+
+### Quality Assessment Workflow
+```
+blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+```
 
 ### Workflow Walkthrough
 *This section is being expanded, in progress.*
@@ -235,6 +268,8 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
 - - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
+- - [blech_unit_characteristics] -> [blech_data_summary]
+- - [blech_data_summary] -> [grade_dataset]
 
 - **EMG shared**
 - - [blech_clust] -> [blech_make_arrays]
@@ -248,3 +283,33 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 
 - **QDA (Jenn Li)**
 - - [emg_freq_setup] -> [get_gapes_Li]
+
+### Citation
+If you use this code in your research, please cite the following paper:
+
+```bibtex
+@software{blech_clust_katz,
+  author       = {Mahmood, Abuzar and
+                  Mukherjee, Narendra and
+                  Stone, Bradly and
+                  Raymond, Martin and
+                  Germaine, Hannah and
+                  Lin, Jian-You and
+                  Mazzio, Christina and
+                  Katz, Donald},
+  title        = {katzlabbrandeis/blech\_clust: v1.1.0},
+  month        = apr,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {1.1.0},
+  doi          = {10.5281/zenodo.15175273},
+  url          = {https://doi.org/10.5281/zenodo.15175273},
+  swhid        = {swh:1:dir:3970ccd774c6854819d510a288871435b6df3102
+                   ;origin=https://doi.org/10.5281/zenodo.15175272;vi
+                   sit=swh:1:snp:8c3e68b1e08e872f071a89982e99270c5846
+                   0e87;anchor=swh:1:rel:c90c05b9e71fc340ac44e6c742b2
+                   00fe3c655588;path=katzlabbrandeis-
+                   blech\_clust-10c7fab
+                  },
+}
+```
