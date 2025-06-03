@@ -543,7 +543,8 @@ class ephys_data():
                 self.laser_durations = np.array([dig_in.laser_durations[:]
                                                  for dig_in in dig_in_list])
 
-                non_zero_laser_durations = np.any(np.sum(self.laser_durations, axis=0) > 0)
+                non_zero_laser_durations = np.any(
+                    np.sum(self.laser_durations, axis=0) > 0)
 
             # If laser_durations exists, only non_zero durations
             # will indicate laser
