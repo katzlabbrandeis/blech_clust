@@ -935,12 +935,7 @@ class ephys_data():
         """
         json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
         if os.path.exists(json_path):
-<<<<<<< HEAD
             self.sorting_params_dict = json.load(open(json_path, 'r'))
-=======
-            json_dict = json.load(open(json_path, 'r'))
-            self.sorting_params_dict = json_dict['sorting_params']
->>>>>>> f6f5d44 (refactor(ephys_data): improve time vector calculation and add sorting params retrieval)
         else:
             raise Exception('No info file found')
 
