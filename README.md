@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/119422765.svg)](https://doi.org/10.5281/zenodo.15175272)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/katzlabbrandeis/blech_clust/master.svg)](https://results.pre-commit.ci/latest/github/katzlabbrandeis/blech_clust/master)
 
 # blech_clust
@@ -32,6 +33,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Quality assurance: spike-time collisions and drift analysis
 9. `python blech_unit_characteristics.py`
     - Analyze unit characteristics
+10. `python utils/blech_data_summary.py`
+    - Generate comprehensive dataset summary
+11. `python utils/grade_dataset.py`
+    - Grade dataset quality based on metrics
 
 **EMG Analysis Pipelines:**
 
@@ -62,55 +67,99 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
+### Dataset Quality Assessment
+
+The pipeline includes tools for assessing and grading dataset quality:
+
+1. **Data Summary Generation** (`utils/blech_data_summary.py`):
+   - Aggregates key metrics from analysis outputs
+   - Summarizes unit counts, responsiveness, drift metrics, and more
+   - Creates a comprehensive `data_summary.json` file
+
+2. **Dataset Grading** (`utils/grade_dataset.py`):
+   - Evaluates dataset quality based on configurable criteria
+   - Grades datasets on unit counts, unit quality, and drift metrics
+   - Uses thresholds defined in `utils/grading_metrics.json`
+   - Outputs grades to `QA_output/grading.json`
+
+These tools help standardize quality assessment across datasets and identify recordings that meet experimental quality standards.
+
 ### Blog
 
 For more insights and updates, visit our [Blog Page](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html).
 
+### Acknowledgments
+
+This work used ACCESS-allocated resources at Brandeis University through allocation BIO230103 from the [Advanced Cyberinfrastructure Coordination Ecosystem: Services & Support](https://access-ci.org/) (ACCESS) program, which is supported by U.S. National Science Foundation grants #2138259, #2138286, #2138307, #2137603, and #2138296.
+
+The project titled "Computational Processing and Modeling of Neural Ensembles in Identifying the Nonlinear Dynamics of Taste Perception" was led by PI Abuzar Mahmood. The computational allocation was active from 2023-06-26 to 2024-06-25.
+
 ### Setup
+
+The installation process is managed through a Makefile that handles all dependencies and environment setup.
+
+To install everything (recommended):
+```bash
+make all
 ```
-conda deactivate                                            # Make sure we're in the base environemnt
-conda update -n base conda                                  # Update conda to have the new Libmamba solver
 
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda clean --all -y                                        # Removes unused packages and caches
-conda create --name blech_clust python=3.8.13 -y            # Create "blech_clust" environment with conda requirements
-conda activate blech_clust                                  # Activate blech_clust environment
-conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
-bash install_gnu_parallel.sh                                # Install GNU Parallel
-pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
-bash patch_dependencies.sh                                  # Fix issues with dependencies
+Or install components individually:
+```bash
+make base      # Install base environment and dependencies
+make emg       # Install EMG analysis requirements (optional)
+make neurec    # Install neuRecommend classifier
+make blechrnn  # Install BlechRNN for firing rate estimation (optional)
+```
 
-### Install neuRecommend (classifier)
-cd ~/Desktop                                                # Relocate to download classifier library
-git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifier library
-pip install -r neuRecommend/requirements.txt
+**Note:** If you plan to use GPU with BlechRNN, you'll need to install CUDA separately.
+See: [Installing PyTorch with GPU Support](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266)
 
-### Install EMG (BSA) requirements (OPTIONAL)
-# Tested with installation after neuRecommend requirements
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
-bash emg_install.sh                                         # Install EMG requirements
-
-### Install BlechRNN for firing rate estimation (OPTIONAL)
-cd ~/Desktop                                                # Relocate to download BlechRNN
-git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
-cd blechRNN                                                 # Move into BlechRNN directory
-pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements
-**Note: If you'd like to use GPU, you'll need to install CUDA
--- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
-
+To remove the environment and start fresh:
+```bash
+make clean
 ```
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
 ### Testing
-```
-cd <path_to_blech_clust>                                    # Move to blech_clust directory
-conda activate blech_clust                                  # Activate blech_clust environment
-pip install -U prefect                                      # Update prefect
-python pipeline_testing/prefect_pipeline.py --all           # Run all tests
+
+#### Local Testing with Prefect
+The project uses Prefect for orchestrating test pipelines locally. To run tests:
+
+1. Start the Prefect server in a separate terminal:
+```bash
+prefect server start
 ```
 
-Use `prefect server start` to start the prefect server in a different terminal window, and monitor the progress of the pipeline in th Prefect UI.
+2. In another terminal, run the tests:
+```bash
+cd <path_to_blech_clust>                # Move to blech_clust directory
+make prefect                            # Install/update Prefect
+```
+
+3. Run specific test suites:
+```bash
+# Run all tests
+python pipeline_testing/prefect_pipeline.py --all
+
+# Run only spike sorting tests
+python pipeline_testing/prefect_pipeline.py -s
+
+# Run only EMG analysis tests
+python pipeline_testing/prefect_pipeline.py -e
+
+# Run spike sorting followed by EMG analysis
+python pipeline_testing/prefect_pipeline.py --spike-emg
+```
+
+You can monitor test progress and results in the Prefect UI at http://localhost:4200
+
+#### Continuous Integration
+The project uses GitHub Actions for automated testing on pull requests:
+
+- Pre-commit checks run automatically on all PRs to enforce code style and quality
+- The full test suite runs on self-hosted runners when PRs are labeled with 'install'
+- Test results are reported in the PR checks interface
+- The workflow configuration is in `.github/workflows/python_workflow_test.yml`
 
 
 ### Convenience scripts
@@ -119,6 +168,11 @@ Use `prefect server start` to start the prefect server in a different terminal w
 
 ### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+
+### Quality Assessment Workflow
+```
+blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+```
 
 ### Workflow Walkthrough
 *This section is being expanded, in progress.*
@@ -214,6 +268,8 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
 - - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
+- - [blech_unit_characteristics] -> [blech_data_summary]
+- - [blech_data_summary] -> [grade_dataset]
 
 - **EMG shared**
 - - [blech_clust] -> [blech_make_arrays]
@@ -227,3 +283,33 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 
 - **QDA (Jenn Li)**
 - - [emg_freq_setup] -> [get_gapes_Li]
+
+### Citation
+If you use this code in your research, please cite the following paper:
+
+```bibtex
+@software{blech_clust_katz,
+  author       = {Mahmood, Abuzar and
+                  Mukherjee, Narendra and
+                  Stone, Bradly and
+                  Raymond, Martin and
+                  Germaine, Hannah and
+                  Lin, Jian-You and
+                  Mazzio, Christina and
+                  Katz, Donald},
+  title        = {katzlabbrandeis/blech\_clust: v1.1.0},
+  month        = apr,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {1.1.0},
+  doi          = {10.5281/zenodo.15175273},
+  url          = {https://doi.org/10.5281/zenodo.15175273},
+  swhid        = {swh:1:dir:3970ccd774c6854819d510a288871435b6df3102
+                   ;origin=https://doi.org/10.5281/zenodo.15175272;vi
+                   sit=swh:1:snp:8c3e68b1e08e872f071a89982e99270c5846
+                   0e87;anchor=swh:1:rel:c90c05b9e71fc340ac44e6c742b2
+                   00fe3c655588;path=katzlabbrandeis-
+                   blech\_clust-10c7fab
+                  },
+}
+```

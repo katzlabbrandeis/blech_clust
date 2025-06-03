@@ -1,3 +1,5 @@
+SRC_DIR=$(dirname "$0")
+cd $SRC_DIR
 DIR=$1
 echo === EMG Pipeline Starting ===
 echo === EMG Filter ===

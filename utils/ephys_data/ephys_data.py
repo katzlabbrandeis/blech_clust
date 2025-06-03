@@ -1,6 +1,159 @@
 """
 This module provides a class for streamlined electrophysiology data analysis, focusing on handling and analyzing data from multiple files. It includes features for automatic data loading, spike train and LFP data processing, firing rate calculation, digital input parsing, trial segmentation, region-based analysis, laser condition handling, and data quality checks.
 
+EXAMPLE WORKFLOWS:
+
+This class provides a comprehensive interface for analyzing electrophysiology data.
+Below are examples of common analysis workflows:
+
+Workflow 1: Basic Data Loading and Processing
+-----------------------------------------------------
+from utils.ephys_data.ephys_data import ephys_data
+
+# Initialize with data directory
+data = ephys_data(data_dir='/path/to/data')
+
+# Load and process data
+data.get_unit_descriptors()  # Get unit information
+data.get_spikes()            # Extract spike data
+data.get_firing_rates()      # Calculate firing rates
+data.get_lfps()              # Extract LFP data
+
+# Access processed data
+spikes = data.spikes         # Access spike data
+firing = data.firing_array   # Access firing rate data
+lfps = data.lfp_array        # Access LFP data
+
+Workflow 2: Region-Based Analysis
+-----------------------------------------------------
+from utils.ephys_data.ephys_data import ephys_data
+import matplotlib.pyplot as plt
+
+# Initialize and load data
+data = ephys_data(data_dir='/path/to/data')
+data.extract_and_process()   # Extract and process all data
+
+# Get region information
+data.get_region_units()      # Get units by brain region
+
+# Analyze specific brain regions
+for region in data.region_names:
+    # Get spikes for this region
+    region_spikes = data.return_region_spikes(region)
+
+    # Get firing rates for this region
+    region_firing = data.get_region_firing(region)
+
+    # Get LFPs for this region
+    region_lfps, _ = data.return_region_lfps()
+
+    # Example: Plot mean firing rate for this region
+    if region_firing is not None:
+        plt.figure(figsize=(10, 6))
+        plt.plot(np.mean(region_firing, axis=(0, 1)))
+        plt.title(f'Mean Firing Rate - {region}')
+        plt.xlabel('Time (bins)')
+        plt.ylabel('Firing Rate (Hz)')
+        plt.show()
+
+Workflow 3: Laser Condition Analysis
+-----------------------------------------------------
+from utils.ephys_data.ephys_data import ephys_data
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Initialize and load data
+data = ephys_data(data_dir='/path/to/data')
+data.extract_and_process()   # Extract and process all data
+
+# Check if laser trials exist
+data.check_laser()
+
+if data.laser_exists:
+    # Separate data by laser condition
+    data.separate_laser_data()
+
+    # Compare firing rates between laser conditions
+    on_firing = data.all_on_firing   # Laser on trials
+    off_firing = data.all_off_firing # Laser off trials
+
+    # Example: Plot mean firing rate comparison
+    plt.figure(figsize=(12, 6))
+
+    # Calculate mean across trials and neurons
+    mean_on = np.mean(on_firing, axis=(0, 1))
+    mean_off = np.mean(off_firing, axis=(0, 1))
+
+    plt.plot(mean_on, 'r-', label='Laser On')
+    plt.plot(mean_off, 'b-', label='Laser Off')
+    plt.title('Mean Firing Rate Comparison')
+    plt.xlabel('Time (bins)')
+    plt.ylabel('Firing Rate (Hz)')
+    plt.legend()
+    plt.show()
+
+Workflow 4: Palatability Analysis
+-----------------------------------------------------
+from utils.ephys_data.ephys_data import ephys_data
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Initialize and load data
+data = ephys_data(data_dir='/path/to/data')
+data.extract_and_process()   # Extract and process all data
+
+# Calculate palatability correlation
+data.calc_palatability()
+
+# Plot palatability correlation over time
+plt.figure(figsize=(10, 6))
+plt.imshow(data.pal_array, aspect='auto', cmap='viridis')
+plt.colorbar(label='|Palatability Correlation|')
+plt.xlabel('Time (bins)')
+plt.ylabel('Neuron')
+plt.title('Palatability Correlation Over Time')
+plt.show()
+
+# Find neurons with strong palatability coding
+strong_pal_neurons = np.where(np.max(data.pal_array, axis=1) > 0.7)[0]
+print(f"Neurons with strong palatability coding: {strong_pal_neurons}")
+
+Workflow 5: Time-Frequency Analysis
+-----------------------------------------------------
+from utils.ephys_data.ephys_data import ephys_data
+import matplotlib.pyplot as plt
+
+# Initialize and load data
+data = ephys_data(data_dir='/path/to/data')
+data.get_lfps()  # Extract LFP data
+
+# Set STFT parameters
+data.stft_params = {
+    'Fs': 1000,
+    'signal_window': 500,
+    'window_overlap': 499,
+    'max_freq': 100,
+    'time_range_tuple': (0, 5)
+}
+
+# Calculate STFT
+data.get_stft(recalculate=True, dat_type=['amplitude', 'phase'])
+
+# Plot STFT amplitude for a specific channel and trial
+taste = 0
+channel = 0
+trial = 0
+
+plt.figure(figsize=(12, 8))
+plt.pcolormesh(data.time_vec, data.freq_vec,
+              data.amplitude_array[taste, channel, trial],
+              shading='gouraud', cmap='viridis')
+plt.colorbar(label='Power')
+plt.xlabel('Time (s)')
+plt.ylabel('Frequency (Hz)')
+plt.title(f'STFT Amplitude - Taste {taste}, Channel {channel}, Trial {trial}')
+plt.show()
+
 - `ephys_data`: Main class for data handling and analysis.
   - `__init__`: Initializes the class with optional data directory.
   - `calc_stft`: Computes the Short-Time Fourier Transform (STFT) of a trial.
@@ -176,6 +329,10 @@ class ephys_data():
                                 calculation
         sampling_rate :: params :: In ms, To calculate total number of bins
         spike_array :: params :: N-D array with time as last dimension
+
+        Returns:
+            firing_rate: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in ms)
         """
 
         if np.sum([step_size % dt, window_size % dt]) > 1e-14:
@@ -199,13 +356,22 @@ class ephys_data():
             firing_rate[..., bin_inds[0]//fin_step_size] = \
                 np.sum(spike_array[..., bin_inds[0]:bin_inds[1]], axis=-1)
 
-        return firing_rate
+        # Calculate time vector relative to stimulus delivery
+        # Center of each bin in milliseconds
+        time_vector = np.array([x[0] for x in bin_list]) * dt + \
+            (fin_window_size//2) * dt
+
+        return firing_rate, time_vector
 
     @staticmethod
     def _calc_baks_rate(resolution, dt, spike_array):
         """
         resolution : resolution of output firing rate (sec)
         dt : resolution of input spike trains (sec)
+
+        Returns:
+            firing_rate_array: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in sec)
         """
         t = np.arange(0, spike_array.shape[-1]*dt, resolution)
         array_inds = list(np.ndindex((spike_array.shape[:-1])))
@@ -219,7 +385,11 @@ class ephys_data():
         firing_rate_array = np.zeros((*spike_array.shape[:-1], len(t)))
         for this_inds, this_firing in zip(array_inds, firing_rates):
             firing_rate_array[this_inds] = this_firing
-        return firing_rate_array
+
+        # Time vector is already calculated as t (in seconds)
+        time_vector = t
+
+        return firing_rate_array, time_vector
 
     @staticmethod
     def get_hdf5_path(data_dir):
@@ -229,7 +399,8 @@ class ephys_data():
         hdf5_path = glob.glob(
             os.path.join(data_dir, '**.h5'))
         if not len(hdf5_path) > 0:
-            raise Exception('No HDF5 file detected')
+            raise Exception('No HDF5 file detected' +
+                            f'Looking in {data_dir}')
         elif len(hdf5_path) > 1:
             selection_list = ['{}) {} \n'.format(num, os.path.basename(file))
                               for num, file in enumerate(hdf5_path)]
@@ -393,6 +564,9 @@ class ephys_data():
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
+                # Sort dig_in_list by the digital input number to ensure consistent ordering
+                dig_in_list = sorted(
+                    dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
                 self.dig_in_name_list = [x._v_name for x in dig_in_list]
                 self.dig_in_num_list = [int(x.split('_')[-1])
                                         for x in self.dig_in_name_list]
@@ -401,7 +575,7 @@ class ephys_data():
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {x}' for i, x in enumerate(self.dig_in_name_list)]))
+                "\n".join([f'{i}. {x} (dig_in_{self.dig_in_num_list[i]})' for i, x in enumerate(self.dig_in_name_list)]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
@@ -430,7 +604,7 @@ class ephys_data():
         json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_ins']
+            taste_dig_ins = json_dict['taste_params']['dig_in_nums']
         else:
             raise Exception("Cannot find json file. Make sure it's present")
         # Add final argument to argument list
@@ -546,25 +720,25 @@ class ephys_data():
 
             # If all good, define the function to be used
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_conv_rates(
                         step_size=self.firing_rate_params['step_size'],
                         window_size=self.firing_rate_params['window_size'],
                         dt=self.firing_rate_params['dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         if params['type'] == 'baks':
             param_name_list = ['baks_resolution', 'baks_dt']
             check_firing_rate_params(params, param_name_list)
 
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_baks_rate(
                         resolution=self.firing_rate_params['baks_resolution'],
                         dt=self.firing_rate_params['baks_dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         return calc_firing_func
 
@@ -583,6 +757,7 @@ class ephys_data():
             - normalized_firing : 4D array of normalized firing rates
             - all_firing_array : 3D array of all firing rates
             - all_normalized_firing : 3D array of all normalized firing rates
+            - time_vector : 1D array of time points relative to stimulus delivery
         """
 
         if 'spikes' not in dir(self):
@@ -595,15 +770,18 @@ class ephys_data():
             pp(self.default_firing_params)
             print('If you want specific firing params, set them manually')
             self.firing_rate_params = self.default_firing_params
+        if 'sorting_params_dict' not in dir(self):
+            print('No sorting params found, getting info dict ...')
+            self.get_sorting_params_dict()
+        spike_train_lims = self.sorting_params_dict['spike_array_durations']
 
         calc_firing_func = self.firing_rate_method_selector()
-        self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
+        results = [calc_firing_func(spikes) for spikes in self.spikes]
+        self.firing_list = [result[0] for result in results]
+        # Store the time vector from the first result (they should all be the same)
+        # Adjust time relative to stimulus delivery
+        raw_time_vector = results[0][1] - spike_train_lims[0]
+        self.time_vector = np.array(raw_time_vector)
 
         if np.sum([self.firing_list[0].shape == x.shape
                    for x in self.firing_list]) == len(self.firing_list):
@@ -640,8 +818,6 @@ class ephys_data():
                 swapaxes(0, 1)
 
         else:
-            # raise Exception('Cannot currently handle different'\
-            #         'numbers of trials')
             print('Uneven numbers of trials...not stacking into firing rates array')
 
     def calc_palatability(self):
@@ -667,20 +843,52 @@ class ephys_data():
         if 'firing_list' not in dir(self):
             print('Firing list not found...Loading')
             self.get_firing_rates()
+
+        # Get taste information from info_dict
         self.taste_names = self.info_dict['taste_params']['tastes']
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
+
+        # Get digital input information from info_dict to ensure correct mapping
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
+
+        # Create a mapping from dig_in numbers to indices in the taste arrays
+        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
+
+        # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
+        ordered_taste_names = []
+        ordered_pal_ranks = []
+
+        for dig_in_num in self.dig_in_num_list:
+            if dig_in_num in dig_in_to_index:
+                idx = dig_in_to_index[dig_in_num]
+                if idx < len(self.taste_names):
+                    ordered_taste_names.append(self.taste_names[idx])
+                    ordered_pal_ranks.append(self.palatability_ranks[idx])
+                else:
+                    warnings.warn(
+                        f"Index {idx} out of range for taste_names and palatability_ranks")
+                    ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    ordered_pal_ranks.append(0)  # Default palatability rank
+            else:
+                warnings.warn(
+                    f"Digital input {dig_in_num} not found in taste_params.dig_ins")
+                ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                ordered_pal_ranks.append(0)  # Default palatability rank
+
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
                 dig_ins=self.dig_in_name_list,
-                taste_names=self.taste_names,
-                pal_ranks=self.palatability_ranks,
+                dig_in_nums=self.dig_in_num_list,
+                taste_names=ordered_taste_names,
+                pal_ranks=ordered_pal_ranks,
             )
         )
         print(self.pal_df)
         trial_counts = [x.shape[0] for x in self.firing_list]
+        # Use the ordered palatability ranks from the pal_df DataFrame
         pal_vec = np.concatenate(
-            [np.repeat(x, y) for x, y in zip(self.palatability_ranks, trial_counts)])
+            [np.repeat(x, y) for x, y in zip(self.pal_df['pal_ranks'], trial_counts)])
         cat_firing = np.concatenate(self.firing_list, axis=0).T
         inds = list(np.ndindex(cat_firing.shape[:2]))
         pal_array = np.zeros(cat_firing.shape[:2])
@@ -713,6 +921,17 @@ class ephys_data():
         json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             self.info_dict = json_dict = json.load(open(json_path, 'r'))
+        else:
+            raise Exception('No info file found')
+
+    def get_sorting_params_dict(self):
+        """
+        Extract sorting parameters from the info file
+        """
+        json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
+        if os.path.exists(json_path):
+            json_dict = json.load(open(json_path, 'r'))
+            self.sorting_params_dict = json_dict['sorting_params']
         else:
             raise Exception('No info file found')
 
@@ -1134,3 +1353,56 @@ class ephys_data():
         """
         self.get_sequestered_spikes()
         self.get_sequestered_firing()
+
+    def get_stable_units(self, p_val_threshold=0.05):
+        """
+        Load drift check results from a CSV file and mark units as stable or unstable
+        based on a p-value threshold.
+
+        Parameters:
+        -----------
+        p_val_threshold : float, default=0.05
+            Threshold for p-value to determine stability.
+            Units with p-values >= p_val_threshold are considered stable.
+
+        Returns:
+        --------
+        None
+            Results are stored as class attributes:
+            - drift_results: DataFrame containing the loaded CSV data
+            - stable_units: Boolean array indicating which units are stable
+            - unstable_units: Boolean array indicating which units are unstable
+
+        Example:
+        --------
+        >>> data = ephys_data(data_dir='/path/to/data')
+        >>> data.get_stable_units('/path/to/drift_results.csv')
+        >>> # Access stable units
+        >>> stable_unit_indices = np.where(data.stable_units)[0]
+        """
+
+        csv_path = os.path.join(
+            self.data_dir, 'QA_output', 'post_drift_p_vals.csv')
+
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(
+                f"Drift check results file not found: {csv_path}")
+
+        # Load the CSV file
+        self.drift_results = pd.read_csv(csv_path, index_col=0)
+
+        # Rename "trial_bin" column to "p_val"
+        self.drift_results.rename(columns={'trial_bin': 'p_val'}, inplace=True)
+
+        # Mark stable
+        self.drift_results['stable'] = self.drift_results['p_val'] >= p_val_threshold
+
+        # Get the indices of stable and unstable units
+        self.stable_units = self.drift_results[self.drift_results['stable']]['unit'].values
+        self.unstable_units = self.drift_results[~self.drift_results['stable']]['unit'].values
+
+        print(
+            f"Loaded drift check results for {len(self.drift_results)} units")
+        print(
+            f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
+        print(f"Using p-value threshold of {p_val_threshold}")

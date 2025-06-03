@@ -33,8 +33,11 @@ import tables
 import pandas as pd
 import pylab as plt
 
-sys.path.append('..')
-from utils.blech_process_utils import path_handler  # noqa: E402
+script_path = os.path.realpath(__file__)
+blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(blech_clust_dir)
+print(f'blech_clust_dir: {blech_clust_dir}')
+# from utils.blech_process_utils import path_handler  # noqa: E402
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
@@ -42,10 +45,15 @@ metadata_handler = imp_metadata(sys.argv)
 data_dir = metadata_handler.dir_name
 
 # Perform pipeline graph check
-script_path = os.path.realpath(__file__)
 this_pipeline_check = pipeline_graph_check(data_dir)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
+
+# Get paths
+# this_path_handler = path_handler()
+# blech_clust_dir = this_path_handler.blech_clust_dir
+blech_emg_dir = os.path.join(blech_clust_dir, 'emg')
+print(f'blech_emg_dir: {blech_emg_dir}')
 
 os.chdir(data_dir)
 print(f'Processing : {data_dir}')
@@ -61,11 +69,6 @@ plot_params = params_dict['psth_params']['durations']
 fin_inds = [pre_stim - plot_params[0], pre_stim + plot_params[1]]
 time_vec = np.arange(-plot_params[0], plot_params[1])
 
-# Get paths
-this_path_handler = path_handler()
-blech_clust_dir = this_path_handler.blech_clust_dir
-blech_emg_dir = os.path.join(blech_clust_dir, 'emg')
-print(f'blech_emg_dir: {blech_emg_dir}')
 
 print(f'blech_clust_dir: {blech_clust_dir}')
 print()
