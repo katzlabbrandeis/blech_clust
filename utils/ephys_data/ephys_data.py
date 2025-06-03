@@ -538,10 +538,11 @@ class ephys_data():
 
             # If it does, pull out laser durations
             if self.laser_durations_exists:
-                self.laser_durations = [dig_in.laser_durations[:]
-                                        for dig_in in dig_in_list]
+                self.laser_durations = np.array([dig_in.laser_durations[:]
+                                                 for dig_in in dig_in_list])
 
-                non_zero_laser_durations = np.sum(self.laser_durations) > 0
+                non_zero_laser_durations = np.any(
+                    np.sum(self.laser_durations, axis=0) > 0)
 
             # If laser_durations exists, only non_zero durations
             # will indicate laser
@@ -930,8 +931,7 @@ class ephys_data():
         """
         json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
         if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            self.sorting_params_dict = json_dict['sorting_params']
+            self.sorting_params_dict = json.load(open(json_path, 'r'))
         else:
             raise Exception('No info file found')
 
