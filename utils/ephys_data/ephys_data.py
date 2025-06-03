@@ -547,6 +547,9 @@ class ephys_data():
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
+                # Sort dig_in_list by the digital input number to ensure consistent ordering
+                dig_in_list = sorted(
+                    dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
                 self.dig_in_name_list = [x._v_name for x in dig_in_list]
                 self.dig_in_num_list = [int(x.split('_')[-1])
                                         for x in self.dig_in_name_list]
@@ -555,7 +558,7 @@ class ephys_data():
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {x}' for i, x in enumerate(self.dig_in_name_list)]))
+                "\n".join([f'{i}. {x} (dig_in_{self.dig_in_num_list[i]})' for i, x in enumerate(self.dig_in_name_list)]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
@@ -976,20 +979,52 @@ class ephys_data():
         if 'firing_list' not in dir(self):
             print('Firing list not found...Loading')
             self.get_firing_rates()
+
+        # Get taste information from info_dict
         self.taste_names = self.info_dict['taste_params']['tastes']
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
+
+        # Get digital input information from info_dict to ensure correct mapping
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
+
+        # Create a mapping from dig_in numbers to indices in the taste arrays
+        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
+
+        # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
+        ordered_taste_names = []
+        ordered_pal_ranks = []
+
+        for dig_in_num in self.dig_in_num_list:
+            if dig_in_num in dig_in_to_index:
+                idx = dig_in_to_index[dig_in_num]
+                if idx < len(self.taste_names):
+                    ordered_taste_names.append(self.taste_names[idx])
+                    ordered_pal_ranks.append(self.palatability_ranks[idx])
+                else:
+                    warnings.warn(
+                        f"Index {idx} out of range for taste_names and palatability_ranks")
+                    ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    ordered_pal_ranks.append(0)  # Default palatability rank
+            else:
+                warnings.warn(
+                    f"Digital input {dig_in_num} not found in taste_params.dig_ins")
+                ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                ordered_pal_ranks.append(0)  # Default palatability rank
+
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
                 dig_ins=self.dig_in_name_list,
-                taste_names=self.taste_names,
-                pal_ranks=self.palatability_ranks,
+                dig_in_nums=self.dig_in_num_list,
+                taste_names=ordered_taste_names,
+                pal_ranks=ordered_pal_ranks,
             )
         )
         print(self.pal_df)
         trial_counts = [x.shape[0] for x in self.firing_list]
+        # Use the ordered palatability ranks from the pal_df DataFrame
         pal_vec = np.concatenate(
-            [np.repeat(x, y) for x, y in zip(self.palatability_ranks, trial_counts)])
+            [np.repeat(x, y) for x, y in zip(self.pal_df['pal_ranks'], trial_counts)])
         cat_firing = np.concatenate(self.firing_list, axis=0).T
         inds = list(np.ndindex(cat_firing.shape[:2]))
         pal_array = np.zeros(cat_firing.shape[:2])
