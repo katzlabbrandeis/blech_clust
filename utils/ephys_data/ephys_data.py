@@ -932,8 +932,7 @@ class ephys_data():
         """
         json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
         if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            self.sorting_params_dict = json_dict['sorting_params']
+            self.sorting_params_dict = json.load(open(json_path, 'r'))
         else:
             raise Exception('No info file found')
 
