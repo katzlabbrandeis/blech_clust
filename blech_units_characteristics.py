@@ -25,9 +25,9 @@ import os
 import json
 import glob
 import itertools
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.ephys_data import ephys_data
-from utils.ephys_data import visualize as vz
+from .utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+from .utils.ephys_data import ephys_data
+from .utils.ephys_data import visualize as vz
 import pandas as pd
 from ast import literal_eval
 pd.options.mode.chained_assignment = None
