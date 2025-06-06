@@ -46,6 +46,17 @@ firing = data.firing_array # 4D array of firing rates
 
 ### LFP Analysis
 
+### Stable Units Analysis
+
+```python
+# Identify stable units across sessions
+stable_units = data.get_stable_units()
+
+# Access stable unit data
+stable_spikes = data.stable_spikes
+stable_firing = data.stable_firing
+```
+
 ```python
 # Access LFP data
 lfps = data.lfp_array     # Raw LFP data
@@ -55,6 +66,17 @@ phase = data.phase_array  # STFT Phase
 ```
 
 ### Region-Based Analysis
+
+### Drift Results Analysis
+
+```python
+# Analyze drift results over time
+drift_results = data.get_drift_results()
+
+# Access drift data
+drift_metrics = data.drift_metrics
+drift_plots = data.drift_plots
+```
 
 ```python
 # Get units by brain region
