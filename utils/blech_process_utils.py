@@ -930,7 +930,7 @@ class electrode_handler():
         5. Apply cutoff to electrode data
         """
         # Filter electrode
-        self.filter_electrode()
+        # self.filter_electrode()
 
         # Cut to integer seconds
         self.cut_to_int_seconds()
@@ -946,15 +946,15 @@ class electrode_handler():
 
         return self.filt_el
 
-    def filter_electrode(self):
-        # Raw units get multiplied by 0.195 to get MICROVOLTS
-        self.filt_el = clust.get_filtered_electrode(
-            self.raw_el,
-            freq=[self.params_dict['bandpass_lower_cutoff'],
-                  self.params_dict['bandpass_upper_cutoff']],
-            sampling_rate=self.params_dict['sampling_rate'],)
-        # Delete raw electrode recording from memory
-        del self.raw_el
+    # def filter_electrode(self):
+    #     # Raw units get multiplied by 0.195 to get MICROVOLTS
+    #     self.filt_el = clust.get_filtered_electrode(
+    #         self.raw_el,
+    #         freq=[self.params_dict['bandpass_lower_cutoff'],
+    #               self.params_dict['bandpass_upper_cutoff']],
+    #         sampling_rate=self.params_dict['sampling_rate'],)
+    #     # Delete raw electrode recording from memory
+    #     del self.raw_el
 
     def adjust_to_sampling_rate(data, sampling_rate):
         return
