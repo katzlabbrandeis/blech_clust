@@ -44,8 +44,6 @@ spikes = data.spikes       # List of spike arrays per taste
 firing = data.firing_array # 4D array of firing rates
 ```
 
-### LFP Analysis
-
 ### Stable Units Analysis
 
 ```python
@@ -57,16 +55,6 @@ stable_spikes = data.stable_spikes
 stable_firing = data.stable_firing
 ```
 
-```python
-# Access LFP data
-lfps = data.lfp_array     # Raw LFP data
-stft = data.stft_array    # Complex Spectrograms
-amplitude = data.amplitude_array # STFT Amplitude (power)
-phase = data.phase_array  # STFT Phase
-```
-
-### Region-Based Analysis
-
 ### Drift Results Analysis
 
 ```python
@@ -77,6 +65,18 @@ drift_results = data.get_drift_results()
 drift_metrics = data.drift_metrics
 drift_plots = data.drift_plots
 ```
+
+### LFP Analysis
+
+```python
+# Access LFP data
+lfps = data.lfp_array     # Raw LFP data
+stft = data.stft_array    # Complex Spectrograms
+amplitude = data.amplitude_array # STFT Amplitude (power)
+phase = data.phase_array  # STFT Phase
+```
+
+### Region-Based Analysis
 
 ```python
 # Get units by brain region
