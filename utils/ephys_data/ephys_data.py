@@ -132,7 +132,19 @@ class ephys_data():
     #####################
 
     @staticmethod
-    def calc_stft(
+    """
+    Main class for handling and analyzing electrophysiology data.
+
+    Attributes:
+    - data_dir (str): Directory containing the data files.
+    - hdf5_path (str): Path to the HDF5 file.
+    - hdf5_name (str): Name of the HDF5 file.
+    - firing_rate_params (dict): Parameters for firing rate calculation.
+    - lfp_params (dict): Parameters for LFP processing.
+    - default_firing_params (dict): Default parameters for firing rate calculation.
+    - default_lfp_params (dict): Default parameters for LFP processing.
+    - stft_params (dict): Parameters for STFT calculation.
+    """
         trial,
         max_freq,
         time_range_tuple,
@@ -141,13 +153,20 @@ class ephys_data():
         window_overlap
     ):
         """
-        trial : 1D array
-        max_freq : where to lob off the transform
-        time_range_tuple : (start,end) in seconds, time_lims of spectrogram
-                                from start of trial snippet`
-        Fs : sampling rate
-        signal_window : window size for spectrogram
-        window_overlap : overlap between windows
+        Computes the Short-Time Fourier Transform (STFT) of a trial.
+
+        Parameters:
+        - trial (1D array): The trial data to transform.
+        - max_freq (float): Maximum frequency to include in the transform.
+        - time_range_tuple (tuple): Start and end time in seconds for the spectrogram.
+        - Fs (float): Sampling rate.
+        - signal_window (int): Window size for the spectrogram.
+        - window_overlap (int): Overlap between windows.
+
+        Returns:
+        - fin_freq (array): Final frequency array.
+        - fin_t (array): Final time array.
+        - this_stft (array): STFT of the trial.
         """
         f, t, this_stft = scipy.signal.stft(
             scipy.signal.detrend(trial),
@@ -166,16 +185,31 @@ class ephys_data():
     # Calculate absolute and phase
     @staticmethod
     def parallelize(func, iterator):
+        """
+        Utilizes parallel processing to apply a function over an iterator.
+
+        Parameters:
+        - func (callable): Function to apply.
+        - iterator (iterable): Iterable over which to apply the function.
+
+        Returns:
+        - list: Results of the function applied to each element of the iterator.
+        """
         return Parallel(n_jobs=mp.cpu_count()-2)(delayed(func)(this_iter) for this_iter in tqdm(iterator))
 
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt, spike_array):
         """
-        step_size
-        window_size :: params :: In milliseconds. For moving window firing rate
-                                calculation
-        sampling_rate :: params :: In ms, To calculate total number of bins
-        spike_array :: params :: N-D array with time as last dimension
+        Calculates firing rates using a convolution method.
+
+        Parameters:
+        - step_size (float): Step size in milliseconds.
+        - window_size (float): Window size in milliseconds.
+        - dt (float): Sampling interval in milliseconds.
+        - spike_array (ndarray): N-D array with time as the last dimension.
+
+        Returns:
+        - ndarray: Firing rates calculated over the spike array.
         """
 
         if np.sum([step_size % dt, window_size % dt]) > 1e-14:
@@ -204,8 +238,15 @@ class ephys_data():
     @staticmethod
     def _calc_baks_rate(resolution, dt, spike_array):
         """
-        resolution : resolution of output firing rate (sec)
-        dt : resolution of input spike trains (sec)
+        Calculates firing rates using Bayesian Adaptive Kernel Smoother (BAKS).
+
+        Parameters:
+        - resolution (float): Resolution of output firing rate in seconds.
+        - dt (float): Resolution of input spike trains in seconds.
+        - spike_array (ndarray): N-D array with time as the last dimension.
+
+        Returns:
+        - ndarray: Firing rates calculated over the spike array.
         """
         t = np.arange(0, spike_array.shape[-1]*dt, resolution)
         array_inds = list(np.ndindex((spike_array.shape[:-1])))
@@ -224,7 +265,16 @@ class ephys_data():
     @staticmethod
     def get_hdf5_path(data_dir):
         """
-        Look for the hdf5 file in the directory
+        Look for the HDF5 file in the specified directory.
+
+        Parameters:
+        - data_dir (str): Directory to search for the HDF5 file.
+
+        Returns:
+        - str: Path to the HDF5 file if found.
+
+        Raises:
+        - Exception: If no HDF5 file is found or multiple files are detected.
         """
         hdf5_path = glob.glob(
             os.path.join(data_dir, '**.h5'))
