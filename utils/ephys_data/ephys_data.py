@@ -132,19 +132,7 @@ class ephys_data():
     #####################
 
     @staticmethod
-    """
-    Main class for handling and analyzing electrophysiology data.
-
-    Attributes:
-    - data_dir (str): Directory containing the data files.
-    - hdf5_path (str): Path to the HDF5 file.
-    - hdf5_name (str): Name of the HDF5 file.
-    - firing_rate_params (dict): Parameters for firing rate calculation.
-    - lfp_params (dict): Parameters for LFP processing.
-    - default_firing_params (dict): Default parameters for firing rate calculation.
-    - default_lfp_params (dict): Default parameters for LFP processing.
-    - stft_params (dict): Parameters for STFT calculation.
-    """
+    def calc_stft(
         trial,
         max_freq,
         time_range_tuple,
