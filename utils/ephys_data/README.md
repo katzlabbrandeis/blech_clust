@@ -44,6 +44,28 @@ spikes = data.spikes       # List of spike arrays per taste
 firing = data.firing_array # 4D array of firing rates
 ```
 
+### Stable Units Analysis
+
+```python
+# Identify stable units across sessions
+stable_units = data.get_stable_units()
+
+# Access stable unit data
+stable_spikes = data.stable_spikes
+stable_firing = data.stable_firing
+```
+
+### Drift Results Analysis
+
+```python
+# Analyze drift results over time
+drift_results = data.get_drift_results()
+
+# Access drift data
+drift_metrics = data.drift_metrics
+drift_plots = data.drift_plots
+```
+
 ### LFP Analysis
 
 ```python
