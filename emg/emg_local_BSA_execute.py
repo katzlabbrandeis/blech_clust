@@ -68,6 +68,12 @@ os.chdir(os.path.join(dir_name, 'emg_output'))
 # Read the data files
 emg_env = np.load('flat_emg_env_data.npy')
 
+# Determine the maximum length of trials
+max_length = max([len(trial) for trial in emg_env])
+
+# Pad each trial to the maximum length
+padded_emg_env = np.array([np.pad(trial, (0, max_length - len(trial)), 'constant', constant_values=np.nan) for trial in emg_env])
+
 task = int(sys.argv[1])
 
 # print(f'Processing taste {taste}, trial {trial}')
@@ -91,7 +97,7 @@ ro.r('t = c(t_r)')
 
 # Run BSA on trial 'trial' of taste 'taste' and assign the results to p and omega.
 # input_data = emg_env[taste, trial, :]
-input_data = emg_env[task]
+input_data = padded_emg_env[task]
 # Check that trial is non-zero, if it isn't, don't try to run BSA
 if not any(np.isnan(input_data)):
 
