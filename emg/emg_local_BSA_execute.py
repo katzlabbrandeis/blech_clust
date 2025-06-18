@@ -72,7 +72,8 @@ emg_env = np.load('flat_emg_env_data.npy')
 max_length = max([len(trial) for trial in emg_env])
 
 # Pad each trial to the maximum length
-padded_emg_env = np.array([np.pad(trial, (0, max_length - len(trial)), 'constant', constant_values=np.nan) for trial in emg_env])
+padded_emg_env = np.array([np.pad(trial, (0, max_length - len(trial)),
+                          'constant', constant_values=np.nan) for trial in emg_env])
 
 task = int(sys.argv[1])
 
