@@ -62,11 +62,11 @@ else:
     parser.add_argument('--forecast_time', type=int,
                         help='Time to forecast into the future (default: %(default)s)')
     parser.add_argument('--separate_tastes', action='store_true',
+                        help='Fit RNNs for each taste separately (default: %(default)s)')
     parser.add_argument('--loss_function', type=str, choices=['mse', 'smooth_mse'],
                         default='mse', help='Loss function to use (default: mse)')
     parser.add_argument('--alpha', type=float, default=0.05,
                         help='Alpha value for smooth_MSELoss (default: 0.05)')
-                        help='Fit RNNs for each taste separately (default: %(default)s)')
 
     args = parser.parse_args()
 
@@ -509,7 +509,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
             criterion = MSELoss()
 
         # Pass the criterion to the train_model function
-            net,
+        net, loss, cross_val_loss = train_model(
             train_inputs,
             train_labels,
             output_size=output_size,
