@@ -259,6 +259,7 @@ bin_size = params_dict.get('bin_size', 25)  # Default bin size
 use_pca = params_dict.get('use_pca', True)  # Default PCA usage
 forecast_time = params_dict.get('forecast_time', 25)  # Default forecast time
 train_steps = params_dict.get('train_steps', 1000)  # Default training steps
+train_test_split = params_dict.get('train_test_split', 0.8)  # Default train-test split
 
 ##############################
 
