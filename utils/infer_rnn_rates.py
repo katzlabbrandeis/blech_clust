@@ -64,7 +64,7 @@ else:
     parser.add_argument('--separate_tastes', action='store_true',
                         help='Fit RNNs for each taste separately (default: %(default)s)')
     parser.add_argument('--loss_function', type=str, choices=['mse', 'smooth_mse'],
-                        default='mse', help='Loss function to use (default: mse)')
+                        default='smooth_mse', help='Loss function to use (default: mse)')
     parser.add_argument('--alpha', type=float, default=0.05,
                         help='Alpha value for smooth_MSELoss (default: 0.05)')
 
@@ -102,37 +102,8 @@ else:
 from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils.ephys_data import visualize as vz  # noqa
 from utils.ephys_data import ephys_data  # noqa
-from src.train import train_model, MSELoss  # noqa
+from src.train import train_model, MSELoss, smooth_MSELoss  # noqa
 from src.model import autoencoderRNN  # noqa
-
-
-class smooth_MSELoss(torch.nn.Module):
-    """
-    MSE loss with temporal smoothness constraint
-    """
-
-    def __init__(self, alpha=0.05):
-        super(smooth_MSELoss, self).__init__()
-        self.loss1 = torch.nn.MSELoss()
-        self.alpha = alpha
-
-    def mean_diffrence(self, x):
-        """
-        Calculate the mean difference between adjacent elements
-
-        Args:
-            x: (seq_len, batch, output_size)
-        """
-        return torch.mean(torch.abs(x[1:] - x[:-1])) * self.alpha
-
-    def forward(self, input, target):
-        """
-        Args:
-            input: (seq_len,batch, output_size)
-            target: (seq_len,batch, output_size)
-        """
-        loss = self.loss1(input, target) + self.mean_diffrence(input)
-        return loss
 
 ############################################################
 ############################################################
@@ -252,16 +223,6 @@ print(f'Processing data from {data_dir}')
 params_dict = load_config()
 params_dict = update_config_from_args(params_dict, args)
 pprint(params_dict)
-
-# Initialize variables from params_dict
-hidden_size = params_dict.get('hidden_size', 8)  # Default value if not set
-time_lims = params_dict.get('time_lims', [0, 1000])  # Default time limits
-bin_size = params_dict.get('bin_size', 25)  # Default bin size
-use_pca = params_dict.get('use_pca', True)  # Default PCA usage
-forecast_time = params_dict.get('forecast_time', 25)  # Default forecast time
-train_steps = params_dict.get('train_steps', 1000)  # Default training steps
-train_test_split = params_dict.get(
-    'train_test_split', 0.8)  # Default train-test split
 
 ##############################
 
