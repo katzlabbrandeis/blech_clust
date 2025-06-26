@@ -252,6 +252,14 @@ params_dict = load_config()
 params_dict = update_config_from_args(params_dict, args)
 pprint(params_dict)
 
+# Initialize variables from params_dict
+hidden_size = params_dict.get('hidden_size', 8)  # Default value if not set
+time_lims = params_dict.get('time_lims', [0, 1000])  # Default time limits
+bin_size = params_dict.get('bin_size', 25)  # Default bin size
+use_pca = params_dict.get('use_pca', True)  # Default PCA usage
+forecast_time = params_dict.get('forecast_time', 25)  # Default forecast time
+train_steps = params_dict.get('train_steps', 1000)  # Default training steps
+
 ##############################
 
 # mse loss performs better than poisson loss
