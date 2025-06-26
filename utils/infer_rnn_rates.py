@@ -480,8 +480,8 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         else:
             criterion = MSELoss()
 
-        # Pass the criterion to the train_model function
         net, loss, cross_val_loss = train_model(
+            net,
             train_inputs,
             train_labels,
             output_size=output_size,
