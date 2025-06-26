@@ -291,18 +291,9 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [utils/blech_channel_profile] -> [Profiles channel data]
 - - [utils/blech_waveforms_datashader] -> [Visualizes waveforms using datashader]
 - - [utils/makeRaisedCosBasis] -> [Generates raised cosine basis functions]
-- - [utils/blech_post_process_utils] -> [Provides utilities for post-processing]
-- - [utils/clustering] -> [Performs clustering operations]
 - - [utils/blech_hdf5_repack] -> [Repackages HDF5 files]
-- - [utils/importrhdutilities] -> [Utilities for importing RHD files]
-- - [utils/blech_utils] -> [General utilities for blech_clust]
 - - [utils/read_file] -> [Reads EMG channel data]
 - - [utils/blech_held_units_detect] -> [Detects held units across sessions]
-- - [utils/blech_process_utils] -> [Utilities for processing data]
-- - [utils/blech_spike_features] -> [Extracts spike features]
-- - [utils/qa_utils/drift_check] -> [Checks for drift in spike trains]
-- - [utils/qa_utils/elbo_drift] -> [Analyzes drift using ELBO]
-- - [utils/qa_utils/unit_similarity] -> [Calculates unit similarity]
 - - [utils/ram_monitor] -> [Monitors RAM usage]
 
 ### Citation
