@@ -62,6 +62,10 @@ else:
     parser.add_argument('--forecast_time', type=int,
                         help='Time to forecast into the future (default: %(default)s)')
     parser.add_argument('--separate_tastes', action='store_true',
+    parser.add_argument('--loss_function', type=str, choices=['mse', 'smooth_mse'],
+                        default='mse', help='Loss function to use (default: mse)')
+    parser.add_argument('--alpha', type=float, default=0.05,
+                        help='Alpha value for smooth_MSELoss (default: 0.05)')
                         help='Fit RNNs for each taste separately (default: %(default)s)')
 
     args = parser.parse_args()
@@ -101,6 +105,34 @@ from utils.ephys_data import ephys_data  # noqa
 from src.train import train_model, MSELoss  # noqa
 from src.model import autoencoderRNN  # noqa
 
+class smooth_MSELoss(torch.nn.Module):
+    """
+    MSE loss with temporal smoothness constraint
+    """
+
+    def __init__(self, alpha=0.05):
+        super(smooth_MSELoss, self).__init__()
+        self.loss1 = torch.nn.MSELoss()
+        self.alpha = alpha
+
+    def mean_diffrence(self, x):
+        """
+        Calculate the mean difference between adjacent elements
+
+        Args:
+            x: (seq_len, batch, output_size)
+        """
+        return torch.mean(torch.abs(x[1:] - x[:-1])) * self.alpha
+
+    def forward(self, input, target):
+        """
+        Args:
+            input: (seq_len,batch, output_size)
+            target: (seq_len,batch, output_size)
+        """
+        loss = self.loss1(input, target) + self.mean_diffrence(input)
+        return loss
+
 ############################################################
 ############################################################
 
@@ -137,6 +169,12 @@ def update_config_from_args(params_dict, args):
     if args.time_lims:
         print(f'Using provided time_lims: {args.time_lims}')
         params_dict['time_lims'] = args.time_lims
+    if args.loss_function:
+        print(f'Using provided loss function: {args.loss_function}')
+        params_dict['loss_function'] = args.loss_function
+    if args.alpha:
+        print(f'Using provided alpha value: {args.alpha}')
+        params_dict['alpha'] = args.alpha
     if args.forecast_time:
         print(f'Using provided forecast_time: {args.forecast_time}')
         params_dict['forecast_time'] = args.forecast_time
@@ -464,14 +502,20 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         if args.retrain:
             print('Retraining model')
         net.to(device)
-        net, loss, cross_val_loss = train_model(
+        # Update the criterion based on the selected loss function
+        if args.loss_function == 'smooth_mse':
+            criterion = smooth_MSELoss(alpha=args.alpha)
+        else:
+            criterion = MSELoss()
+
+        # Pass the criterion to the train_model function
             net,
             train_inputs,
             train_labels,
             output_size=output_size,
             lr=0.001,
             train_steps=train_steps,
-            criterion=MSELoss(),
+            criterion=criterion,
             test_inputs=test_inputs,
             test_labels=test_labels,
         )
