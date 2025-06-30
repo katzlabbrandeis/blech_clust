@@ -368,7 +368,8 @@ class ephys_data():
                     self.parent.laser_durations = [dig_in.laser_durations[:]
                                                    for dig_in in dig_in_list]
 
-                    non_zero_laser_durations = np.sum(self.parent.laser_durations) > 0
+                    non_zero_laser_durations = np.sum(
+                        self.parent.laser_durations) > 0
 
                 # If laser_durations exists, only non_zero durations
                 # will indicate laser
@@ -395,7 +396,8 @@ class ephys_data():
                     dig_in_list = \
                         [x for x in hf5.list_nodes('/spike_trains')
                          if 'dig_in' in x.__str__()]
-                    self.parent.dig_in_name_list = [x._v_name for x in dig_in_list]
+                    self.parent.dig_in_name_list = [
+                        x._v_name for x in dig_in_list]
                     self.parent.dig_in_num_list = [int(x.split('_')[-1])
                                                    for x in self.parent.dig_in_name_list]
                 else:
@@ -406,7 +408,8 @@ class ephys_data():
                     "\n".join([f'{i}. {x}' for i, x in enumerate(self.parent.dig_in_name_list)]))
                 # list of length n_tastes, each element is a 3D array
                 # array dimensions are (n_trials, n_neurons, n_timepoints)
-                self.parent.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
+                self.parent.spikes = [dig_in.spike_array[:]
+                                      for dig_in in dig_in_list]
 
         def separate_laser_spikes(self):
             """
@@ -433,18 +436,21 @@ class ephys_data():
             Wrapper function to extract LFPs from raw data files and save to HDF5
             Loads relevant information for .info file
             """
-            json_path = glob.glob(os.path.join(self.parent.data_dir, "**.info"))[0]
+            json_path = glob.glob(os.path.join(
+                self.parent.data_dir, "**.info"))[0]
             if os.path.exists(json_path):
                 json_dict = json.load(open(json_path, 'r'))
                 taste_dig_ins = json_dict['taste_params']['dig_ins']
             else:
-                raise Exception("Cannot find json file. Make sure it's present")
+                raise Exception(
+                    "Cannot find json file. Make sure it's present")
             # Add final argument to argument list
             if None in self.parent.lfp_params.values():
                 print('No LFP params found...using default LFP params')
                 self.parent.lfp_params = self.parent.default_lfp_params
             self.parent.lfp_params.update({'dig_in_list': taste_dig_ins})
-            lfp_processing.extract_lfps(self.parent.data_dir, **self.parent.lfp_params)
+            lfp_processing.extract_lfps(
+                self.parent.data_dir, **self.parent.lfp_params)
 
         def get_lfp_channels(self):
             """
@@ -485,7 +491,8 @@ class ephys_data():
                 lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
                              if 'dig_in' in node.__str__()]
                 # Account for parsed LFPs being different
-                self.parent.lfp_array = np.asarray([node[:] for node in lfp_nodes])
+                self.parent.lfp_array = np.asarray(
+                    [node[:] for node in lfp_nodes])
                 self.parent.all_lfp_array = \
                     self.parent.lfp_array.\
                     swapaxes(1, 2).\
@@ -509,9 +516,11 @@ class ephys_data():
                                                 for taste, laser in
                                                 zip(self.parent.lfp_array, self.parent.laser_durations)])
                 self.parent.all_on_lfp =\
-                    np.reshape(self.parent.on_lfp, (-1, *self.parent.on_lfp.shape[-2:]))
+                    np.reshape(self.parent.on_lfp,
+                               (-1, *self.parent.on_lfp.shape[-2:]))
                 self.parent.all_off_lfp =\
-                    np.reshape(self.parent.off_lfp, (-1, *self.parent.off_lfp.shape[-2:]))
+                    np.reshape(self.parent.off_lfp,
+                               (-1, *self.parent.off_lfp.shape[-2:]))
             else:
                 raise Exception('No laser trials in this experiment')
 
@@ -733,14 +742,16 @@ class ephys_data():
             """
             # json_name = self.hdf5_path.split('.')[0] + '.info'
             # json_path = os.path.join(self.data_dir, json_name)
-            json_path = glob.glob(os.path.join(self.parent.data_dir, "**.info"))[0]
+            json_path = glob.glob(os.path.join(
+                self.parent.data_dir, "**.info"))[0]
             if os.path.exists(json_path):
                 json_dict = json.load(open(json_path, 'r'))
                 self.parent.region_electrode_dict = json_dict["electrode_layout"]
                 self.parent.region_names = [x for x in self.parent.region_electrode_dict.keys()
                                             if 'emg' not in x]
             else:
-                raise Exception("Cannot find json file. Make sure it's present")
+                raise Exception(
+                    "Cannot find json file. Make sure it's present")
 
         def get_region_units(self):
             """
