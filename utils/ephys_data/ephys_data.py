@@ -344,84 +344,85 @@ class ephys_data():
         self.get_firing_rates()
         self.get_lfps()
 
-    def separate_laser_data(self):
-        self.separate_laser_spikes()
-        self.separate_laser_firing()
-        self.separate_laser_lfp()
+    class LaserConditionHandling:
+        def __init__(self, parent):
+            self.parent = parent
 
-    def get_unit_descriptors(self):
-        """
-        Extract unit descriptors from HDF5 file
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5_file:
-            self.unit_descriptors = hf5_file.root.unit_descriptor[:]
+        def separate_laser_data(self):
+            self.parent.spike_processing.separate_laser_spikes()
+            self.parent.spike_processing.separate_laser_firing()
+            self.parent.lfp_processing.separate_laser_lfp()
 
-    def check_laser(self):
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            dig_in_list = \
-                [x for x in hf5.list_nodes('/spike_trains')
-                 if 'dig_in' in x.__str__()]
-
-            # Mark whether laser exists or not
-            self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
-                                               for dig_in in dig_in_list]) > 0
-
-            # If it does, pull out laser durations
-            if self.laser_durations_exists:
-                self.laser_durations = [dig_in.laser_durations[:]
-                                        for dig_in in dig_in_list]
-
-                non_zero_laser_durations = np.sum(self.laser_durations) > 0
-
-            # If laser_durations exists, only non_zero durations
-            # will indicate laser
-            # If it doesn't exist, then mark laser as absent
-            if self.laser_durations_exists:
-                if non_zero_laser_durations:
-                    self.laser_exists = True
-                else:
-                    self.laser_exists = False
-            else:
-                self.laser_exists = False
-
-    def get_spikes(self):
-        """
-        Extract spike arrays from specified HD5 files
-        """
-        print('Loading spikes')
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            if '/spike_trains' in hf5:
+        def check_laser(self):
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
                 dig_in_list = \
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
-                self.dig_in_name_list = [x._v_name for x in dig_in_list]
-                self.dig_in_num_list = [int(x.split('_')[-1])
-                                        for x in self.dig_in_name_list]
+
+                # Mark whether laser exists or not
+                self.parent.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
+                                                          for dig_in in dig_in_list]) > 0
+
+                # If it does, pull out laser durations
+                if self.parent.laser_durations_exists:
+                    self.parent.laser_durations = [dig_in.laser_durations[:]
+                                                   for dig_in in dig_in_list]
+
+                    non_zero_laser_durations = np.sum(self.parent.laser_durations) > 0
+
+                # If laser_durations exists, only non_zero durations
+                # will indicate laser
+                # If it doesn't exist, then mark laser as absent
+                if self.parent.laser_durations_exists:
+                    if non_zero_laser_durations:
+                        self.parent.laser_exists = True
+                    else:
+                        self.parent.laser_exists = False
+                else:
+                    self.parent.laser_exists = False
+
+    class SpikeProcessing:
+        def __init__(self, parent):
+            self.parent = parent
+
+        def get_spikes(self):
+            """
+            Extract spike arrays from specified HD5 files
+            """
+            print('Loading spikes')
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
+                if '/spike_trains' in hf5:
+                    dig_in_list = \
+                        [x for x in hf5.list_nodes('/spike_trains')
+                         if 'dig_in' in x.__str__()]
+                    self.parent.dig_in_name_list = [x._v_name for x in dig_in_list]
+                    self.parent.dig_in_num_list = [int(x.split('_')[-1])
+                                                   for x in self.parent.dig_in_name_list]
+                else:
+                    raise Exception('No spike trains found in HF5')
+
+                print('Spike trains loaded from following dig-ins')
+                print(
+                    "\n".join([f'{i}. {x}' for i, x in enumerate(self.parent.dig_in_name_list)]))
+                # list of length n_tastes, each element is a 3D array
+                # array dimensions are (n_trials, n_neurons, n_timepoints)
+                self.parent.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
+
+        def separate_laser_spikes(self):
+            """
+            Separate spike arrays into laser on and off conditions
+            """
+            if 'laser_exists' not in dir(self.parent):
+                self.parent.check_laser()
+            if 'spikes' not in dir(self.parent):
+                self.get_spikes()
+            if self.parent.laser_exists:
+                self.parent.on_spikes = np.array([taste[laser > 0] for taste, laser in
+                                                  zip(self.parent.spikes, self.parent.laser_durations)])
+                self.parent.off_spikes = np.array([taste[laser == 0] for taste, laser in
+                                                   zip(self.parent.spikes, self.parent.laser_durations)])
             else:
-                raise Exception('No spike trains found in HF5')
-
-            print('Spike trains loaded from following dig-ins')
-            print(
-                "\n".join([f'{i}. {x}' for i, x in enumerate(self.dig_in_name_list)]))
-            # list of length n_tastes, each element is a 3D array
-            # array dimensions are (n_trials, n_neurons, n_timepoints)
-            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
-
-    def separate_laser_spikes(self):
-        """
-        Separate spike arrays into laser on and off conditions
-        """
-        if 'laser_exists' not in dir(self):
-            self.check_laser()
-        if 'spikes' not in dir(self):
-            self.get_spikes()
-        if self.laser_exists:
-            self.on_spikes = np.array([taste[laser > 0] for taste, laser in
-                                       zip(self.spikes, self.laser_durations)])
-            self.off_spikes = np.array([taste[laser == 0] for taste, laser in
-                                        zip(self.spikes, self.laser_durations)])
-        else:
-            raise Exception('No laser trials in this experiment')
+                raise Exception('No laser trials in this experiment')
 
     class LFPProcessing:
         def __init__(self, parent):
