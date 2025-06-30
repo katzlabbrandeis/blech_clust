@@ -423,92 +423,96 @@ class ephys_data():
         else:
             raise Exception('No laser trials in this experiment')
 
-    def extract_lfps(self):
-        """
-        Wrapper function to extract LFPs from raw data files and save to HDF5
-        Loads relevant information for .info file
-        """
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_ins']
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
-        # Add final argument to argument list
-        if None in self.lfp_params.values():
-            print('No LFP params found...using default LFP params')
-            self.lfp_params = self.default_lfp_params
-        self.lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
+    class LFPProcessing:
+        def __init__(self, parent):
+            self.parent = parent
 
-    def get_lfp_channels(self):
-        """
-        Extract Parsed_LFP_channels
-        This is done separately from "get_lfps" to avoid
-        the overhead of reading the large lfp arrays
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            if '/Parsed_LFP_channels' not in hf5:
-                extract_bool = True
+        def extract_lfps(self):
+            """
+            Wrapper function to extract LFPs from raw data files and save to HDF5
+            Loads relevant information for .info file
+            """
+            json_path = glob.glob(os.path.join(self.parent.data_dir, "**.info"))[0]
+            if os.path.exists(json_path):
+                json_dict = json.load(open(json_path, 'r'))
+                taste_dig_ins = json_dict['taste_params']['dig_ins']
             else:
-                extract_bool = False
+                raise Exception("Cannot find json file. Make sure it's present")
+            # Add final argument to argument list
+            if None in self.parent.lfp_params.values():
+                print('No LFP params found...using default LFP params')
+                self.parent.lfp_params = self.parent.default_lfp_params
+            self.parent.lfp_params.update({'dig_in_list': taste_dig_ins})
+            lfp_processing.extract_lfps(self.parent.data_dir, **self.parent.lfp_params)
 
-        if extract_bool:
-            self.extract_lfps()
+        def get_lfp_channels(self):
+            """
+            Extract Parsed_LFP_channels
+            This is done separately from "get_lfps" to avoid
+            the overhead of reading the large lfp arrays
+            """
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
+                if '/Parsed_LFP_channels' not in hf5:
+                    extract_bool = True
+                else:
+                    extract_bool = False
 
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            self.parsed_lfp_channels = \
-                hf5.root.Parsed_LFP_channels[:]
+            if extract_bool:
+                self.extract_lfps()
 
-    def get_lfps(self, re_extract=False):
-        """
-        Wrapper function to either
-        - initiate LFP extraction, or
-        - pull LFP arrays from HDF5 file
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
+                self.parent.parsed_lfp_channels = \
+                    hf5.root.Parsed_LFP_channels[:]
 
-            if ('/Parsed_LFP' not in hf5) or (re_extract == True):
-                extract_bool = True
+        def get_lfps(self, re_extract=False):
+            """
+            Wrapper function to either
+            - initiate LFP extraction, or
+            - pull LFP arrays from HDF5 file
+            """
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
+
+                if ('/Parsed_LFP' not in hf5) or (re_extract == True):
+                    extract_bool = True
+                else:
+                    extract_bool = False
+
+            if extract_bool:
+                self.extract_lfps()
+
+            with tables.open_file(self.parent.hdf5_path, 'r+') as hf5:
+                lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
+                             if 'dig_in' in node.__str__()]
+                # Account for parsed LFPs being different
+                self.parent.lfp_array = np.asarray([node[:] for node in lfp_nodes])
+                self.parent.all_lfp_array = \
+                    self.parent.lfp_array.\
+                    swapaxes(1, 2).\
+                    reshape(-1, self.parent.lfp_array.shape[1],
+                            self.parent.lfp_array.shape[-1]).\
+                    swapaxes(0, 1)
+
+        def separate_laser_lfp(self):
+            """
+            Separate spike arrays into laser on and off conditions
+            """
+            if 'laser_exists' not in dir(self.parent):
+                self.parent.check_laser()
+            if 'lfp_array' not in dir(self.parent):
+                self.get_lfps()
+            if self.parent.laser_exists:
+                self.parent.on_lfp = np.array([taste.swapaxes(0, 1)[laser > 0]
+                                               for taste, laser in
+                                               zip(self.parent.lfp_array, self.parent.laser_durations)])
+                self.parent.off_lfp = np.array([taste.swapaxes(0, 1)[laser == 0]
+                                                for taste, laser in
+                                                zip(self.parent.lfp_array, self.parent.laser_durations)])
+                self.parent.all_on_lfp =\
+                    np.reshape(self.parent.on_lfp, (-1, *self.parent.on_lfp.shape[-2:]))
+                self.parent.all_off_lfp =\
+                    np.reshape(self.parent.off_lfp, (-1, *self.parent.off_lfp.shape[-2:]))
             else:
-                extract_bool = False
-
-        if extract_bool:
-            self.extract_lfps()
-
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
-                         if 'dig_in' in node.__str__()]
-            # Account for parsed LFPs being different
-            self.lfp_array = np.asarray([node[:] for node in lfp_nodes])
-            self.all_lfp_array = \
-                self.lfp_array.\
-                swapaxes(1, 2).\
-                reshape(-1, self.lfp_array.shape[1],
-                        self.lfp_array.shape[-1]).\
-                swapaxes(0, 1)
-
-    def separate_laser_lfp(self):
-        """
-        Separate spike arrays into laser on and off conditions
-        """
-        if 'laser_exists' not in dir(self):
-            self.check_laser()
-        if 'lfp_array' not in dir(self):
-            self.get_lfps()
-        if self.laser_exists:
-            self.on_lfp = np.array([taste.swapaxes(0, 1)[laser > 0]
-                                    for taste, laser in
-                                    zip(self.lfp_array, self.laser_durations)])
-            self.off_lfp = np.array([taste.swapaxes(0, 1)[laser == 0]
-                                     for taste, laser in
-                                     zip(self.lfp_array, self.laser_durations)])
-            self.all_on_lfp =\
-                np.reshape(self.on_lfp, (-1, *self.on_lfp.shape[-2:]))
-            self.all_off_lfp =\
-                np.reshape(self.off_lfp, (-1, *self.off_lfp.shape[-2:]))
-        else:
-            raise Exception('No laser trials in this experiment')
+                raise Exception('No laser trials in this experiment')
 
     def firing_rate_method_selector(self):
         params = self.firing_rate_params
@@ -717,133 +721,137 @@ class ephys_data():
         else:
             raise Exception('No info file found')
 
-    def get_region_electrodes(self):
-        """
-        If the appropriate json file is present in the data_dir,
-        extract the electrodes for each region
-        """
-        # json_name = self.hdf5_path.split('.')[0] + '.info'
-        # json_path = os.path.join(self.data_dir, json_name)
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            self.region_electrode_dict = json_dict["electrode_layout"]
-            self.region_names = [x for x in self.region_electrode_dict.keys()
-                                 if 'emg' not in x]
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
+    class RegionBasedAnalysis:
+        def __init__(self, parent):
+            self.parent = parent
 
-    def get_region_units(self):
-        """
-        Extracts indices of units by region of electrodes
-        `"""
-        if "region_electrode_dict" not in dir(self):
-            self.get_region_electrodes()
-        if "unit_descriptors" not in dir(self):
-            self.get_unit_descriptors()
+        def get_region_electrodes(self):
+            """
+            If the appropriate json file is present in the data_dir,
+            extract the electrodes for each region
+            """
+            # json_name = self.hdf5_path.split('.')[0] + '.info'
+            # json_path = os.path.join(self.data_dir, json_name)
+            json_path = glob.glob(os.path.join(self.parent.data_dir, "**.info"))[0]
+            if os.path.exists(json_path):
+                json_dict = json.load(open(json_path, 'r'))
+                self.parent.region_electrode_dict = json_dict["electrode_layout"]
+                self.parent.region_names = [x for x in self.parent.region_electrode_dict.keys()
+                                            if 'emg' not in x]
+            else:
+                raise Exception("Cannot find json file. Make sure it's present")
 
-        unit_electrodes = [x['electrode_number']
-                           for x in self.unit_descriptors]
-        region_electrode_vals = [val for key, val in
-                                 self.region_electrode_dict.items() if key != 'emg']
+        def get_region_units(self):
+            """
+            Extracts indices of units by region of electrodes
+            `"""
+            if "region_electrode_dict" not in dir(self.parent):
+                self.get_region_electrodes()
+            if "unit_descriptors" not in dir(self.parent):
+                self.parent.get_unit_descriptors()
 
-        car_name = []
-        car_electrodes = []
-        for key, val in self.region_electrode_dict.items():
-            if key != 'emg':
-                for num, this_car in enumerate(val):
-                    car_electrodes.append(this_car)
-                    car_name.append(key+str(num))
+            unit_electrodes = [x['electrode_number']
+                               for x in self.parent.unit_descriptors]
+            region_electrode_vals = [val for key, val in
+                                     self.parent.region_electrode_dict.items() if key != 'emg']
 
-        self.car_names = car_name
-        self.car_electrodes = car_electrodes
+            car_name = []
+            car_electrodes = []
+            for key, val in self.parent.region_electrode_dict.items():
+                if key != 'emg':
+                    for num, this_car in enumerate(val):
+                        car_electrodes.append(this_car)
+                        car_name.append(key+str(num))
 
-        car_ind_vec = np.zeros(len(unit_electrodes))
-        for num, val in enumerate(self.car_electrodes):
+            self.parent.car_names = car_name
+            self.parent.car_electrodes = car_electrodes
+
+            car_ind_vec = np.zeros(len(unit_electrodes))
+            for num, val in enumerate(self.parent.car_electrodes):
+                for elec_num, elec in enumerate(unit_electrodes):
+                    if elec in val:
+                        # This tells you which car group each neuron is in
+                        car_ind_vec[elec_num] = num
+
+            self.parent.car_units = [np.where(car_ind_vec == x)[0]
+                                     for x in np.unique(car_ind_vec)]
+
+            region_ind_vec = np.zeros(len(unit_electrodes))
             for elec_num, elec in enumerate(unit_electrodes):
-                if elec in val:
-                    # This tells you which car group each neuron is in
-                    car_ind_vec[elec_num] = num
+                for region_num, region in enumerate(region_electrode_vals):
+                    for car in region:
+                        if elec in car:
+                            region_ind_vec[elec_num] = region_num
 
-        self.car_units = [np.where(car_ind_vec == x)[0]
-                          for x in np.unique(car_ind_vec)]
+            self.parent.region_units = [np.where(region_ind_vec == x)[0]
+                                        for x in np.unique(region_ind_vec)]
 
-        region_ind_vec = np.zeros(len(unit_electrodes))
-        for elec_num, elec in enumerate(unit_electrodes):
-            for region_num, region in enumerate(region_electrode_vals):
-                for car in region:
-                    if elec in car:
-                        region_ind_vec[elec_num] = region_num
+        def return_region_spikes(self, region_name='all'):
+            if 'region_names' not in dir(self.parent):
+                self.get_region_units()
+            if self.parent.spikes is None:
+                self.parent.get_spikes()
 
-        self.region_units = [np.where(region_ind_vec == x)[0]
-                             for x in np.unique(region_ind_vec)]
-
-    def return_region_spikes(self, region_name='all'):
-        if 'region_names' not in dir(self):
-            self.get_region_units()
-        if self.spikes is None:
-            self.get_spikes()
-
-        if not region_name == 'all':
-            region_ind = [num for num, x in enumerate(self.region_names)
-                          if x == region_name]
-            if not len(region_ind) == 1:
-                raise Exception('Region name not found, or too many matches found, '
-                                'acceptable options are' +
-                                '\n' + f"===> {self.region_names, 'all'}")
-            else:
-                if region_ind[0] < len(self.region_units):
-                    this_region_units = self.region_units[region_ind[0]]
-                    region_spikes = [x[:, this_region_units]
-                                     for x in self.spikes]
-                    return np.array(region_spikes)
+            if not region_name == 'all':
+                region_ind = [num for num, x in enumerate(self.parent.region_names)
+                              if x == region_name]
+                if not len(region_ind) == 1:
+                    raise Exception('Region name not found, or too many matches found, '
+                                    'acceptable options are' +
+                                    '\n' + f"===> {self.parent.region_names, 'all'}")
                 else:
-                    print(f'No units found in this region: {region_name}')
-                    return None
-        else:
-            return np.array(self.spikes)
-
-    def get_region_firing(self, region_name='all'):
-        if 'region_units' not in dir(self):
-            self.get_region_units()
-        if 'firing_array' not in dir(self):
-            self.get_firing_rates()
-
-        if not region_name == 'all':
-            region_ind = [num for num, x in enumerate(self.region_names)
-                          if x == region_name]
-            if not len(region_ind) == 1:
-                raise Exception('Region name not found, or too many matches found, '
-                                'acceptable options are' +
-                                '\n' + f"===> {self.region_names, 'all'}")
+                    if region_ind[0] < len(self.parent.region_units):
+                        this_region_units = self.parent.region_units[region_ind[0]]
+                        region_spikes = [x[:, this_region_units]
+                                         for x in self.parent.spikes]
+                        return np.array(region_spikes)
+                    else:
+                        print(f'No units found in this region: {region_name}')
+                        return None
             else:
-                this_region_units = self.region_units[region_ind[0]]
-                region_firing = [x[this_region_units]
-                                 for x in self.firing_array]
-                return np.array(region_firing)
-        else:
-            return np.array(self.firing_array)
+                return np.array(self.parent.spikes)
 
-    def get_lfp_electrodes(self):
-        """
-        Extracts indices of lfp_electrodes according to region
-        """
-        if 'parsed_lfp_channels' not in dir(self):
-            self.get_lfp_channels()
-        if 'region_electrode_dict' not in dir(self):
-            self.get_region_electrodes()
+        def get_region_firing(self, region_name='all'):
+            if 'region_units' not in dir(self.parent):
+                self.get_region_units()
+            if 'firing_array' not in dir(self.parent):
+                self.parent.get_firing_rates()
 
-        region_electrode_vals = [val for key, val in
-                                 self.region_electrode_dict.items() if key != 'emg']
-        region_ind_vec = np.zeros(len(self.parsed_lfp_channels))
-        for elec_num, elec in enumerate(self.parsed_lfp_channels):
-            for region_num, region in enumerate(region_electrode_vals):
-                for car in region:
-                    if elec in car:
-                        region_ind_vec[elec_num] = region_num
+            if not region_name == 'all':
+                region_ind = [num for num, x in enumerate(self.parent.region_names)
+                              if x == region_name]
+                if not len(region_ind) == 1:
+                    raise Exception('Region name not found, or too many matches found, '
+                                    'acceptable options are' +
+                                    '\n' + f"===> {self.parent.region_names, 'all'}")
+                else:
+                    this_region_units = self.parent.region_units[region_ind[0]]
+                    region_firing = [x[this_region_units]
+                                     for x in self.parent.firing_array]
+                    return np.array(region_firing)
+            else:
+                return np.array(self.parent.firing_array)
 
-        self.lfp_region_electrodes = [np.where(region_ind_vec == x)[0]
-                                      for x in np.unique(region_ind_vec)]
+        def get_lfp_electrodes(self):
+            """
+            Extracts indices of lfp_electrodes according to region
+            """
+            if 'parsed_lfp_channels' not in dir(self.parent):
+                self.parent.get_lfp_channels()
+            if 'region_electrode_dict' not in dir(self.parent):
+                self.get_region_electrodes()
+
+            region_electrode_vals = [val for key, val in
+                                     self.parent.region_electrode_dict.items() if key != 'emg']
+            region_ind_vec = np.zeros(len(self.parent.parsed_lfp_channels))
+            for elec_num, elec in enumerate(self.parent.parsed_lfp_channels):
+                for region_num, region in enumerate(region_electrode_vals):
+                    for car in region:
+                        if elec in car:
+                            region_ind_vec[elec_num] = region_num
+
+            self.parent.lfp_region_electrodes = [np.where(region_ind_vec == x)[0]
+                                                 for x in np.unique(region_ind_vec)]
 
     def get_stft(
             self,
