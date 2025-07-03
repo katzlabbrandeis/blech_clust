@@ -71,6 +71,8 @@ parser.add_argument('--skip-processed', help='Skip already processed electrodes'
                     action='store_true')
 parser.add_argument('--delete-existing', help='Delete existing units',
                     action='store_true')
+parser.add_argument('--manual', help='Force manual processing logic',
+                    action='store_true')
 args = parser.parse_args()
 
 ############################################################
@@ -196,10 +198,12 @@ else:
 # pick clusters from the electrodes
 
 # Providing a sort file will force use of the sort file and
-# skip auto_post_process
+# skip auto_post_process. Manual processing will occur if
+# auto_post_process is False, no sort file is provided, or
+# if the --manual flag is set.
 
-# This section will run if not auto_post_process
-while (not auto_post_process) or (args.sort_file is not None):
+# This section will run if not auto_post_process or if manual flag is set
+while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
     ############################################################
     # Get unit details and load data
