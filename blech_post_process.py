@@ -67,6 +67,8 @@ parser.add_argument('--show-plot',
                     action='store_true')
 parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
                     action='store_true')
+parser.add_argument('--manual', help='Force manual processing logic',
+                    action='store_true')
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
                     action='store_true')
 parser.add_argument('--delete-existing', help='Delete existing units',
