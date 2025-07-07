@@ -22,18 +22,38 @@ import json
 import sys
 import pandas as pd
 
-sys.path.append('..')
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+test_bool = False
 
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
+if test_bool:
+    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
+    script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
+    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+    sys.path.append(blech_clust_dir)
+    print(f'blech_clust_dir: {blech_clust_dir}')
+    # from utils.blech_process_utils import path_handler  # noqa: E402
+    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+
+else:
+    script_path = os.path.realpath(__file__)
+
+    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+    sys.path.append(blech_clust_dir)
+    print(f'blech_clust_dir: {blech_clust_dir}')
+    # from utils.blech_process_utils import path_handler  # noqa: E402
+    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata(sys.argv)
+    dir_name = metadata_handler.dir_name
+
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -48,7 +68,6 @@ try:
 except:
     print("Raw EMG recordings have already been removed, so moving on ..")
 
-hf5.close()
 
 # Extract info experimental info file
 info_dict = metadata_handler.info_dict
@@ -77,6 +96,9 @@ omega = [x for x in omega_data if not any(np.isnan(x))][0]
 # np.save(os.path.join('emg_output', 'p_flat.npy'), p_flat)
 np.save(os.path.join('emg_output', 'omega.npy'), omega)
 
+# Write out concatenated p_data to disk
+np.save(os.path.join('emg_output', 'p_data.npy'), p_data)
+
 ############################################################
 # ## Create gape and ltp arrays
 ############################################################
@@ -101,5 +123,107 @@ ltp_array = np.sum(p_data[:, :, 11:], axis=2) /\
 np.save('emg_output/gape_array.npy', gape_array)
 np.save('emg_output/ltp_array.npy', ltp_array)
 
+############################################################
+# Also export to HDF5 as arrays 
+# These will NOT be used for downstream processing
+# but are exported for backwards compatibility
+
+# Matching commit: 431ceb
+# ==============================
+# Add group to hdf5 file for emg BSA results
+if '/emg_BSA_results' in hf5:
+    hf5.remove_node('/','emg_BSA_results', recursive = True)
+hf5.create_group('/', 'emg_BSA_results')
+
+# Add omega to the hdf5 file
+if '/emg_BSA_results/omega' not in hf5:
+    atom = tables.Atom.from_dtype(omega.dtype)
+    om = hf5.create_carray('/emg_BSA_results', 'omega', atom, omega.shape)
+    om[:] = omega 
+    hf5.flush()
+
+# for num, this_dir in enumerate(channel_dirs):
+#     os.chdir(this_dir)
+#     this_basename = channels_discovered[num]
+#     print(f'Processing data for : {this_basename}')
+#
+#     # Load sig_trials.npy to get number of tastes
+#     sig_trials = np.load('sig_trials.npy')
+#     tastes = sig_trials.shape[0]
+#
+#     print(f'Trials taken from emg_data.npy ::: {dict(zip(taste_names, trials))}')
+#
+#     # Change to emg_BSA_results
+#     os.chdir('emg_BSA_results')
+#
+#     # Omega doesn't vary by trial, 
+#     # so just pick it up from the 1st taste and trial, 
+#     first_omega = 'taste00_trial00_omega.npy'
+#     if os.path.exists(first_omega):
+#         omega = np.load(first_omega)
+#
+#         # Load one of the p arrays to find out the time length of the emg data
+#         p = np.load('taste00_trial00_p.npy')
+#         time_length = p.shape[0]
+#
+#         # Go through the tastes and trials
+#         # todo: Output to HDF5 needs to be named by channel
+#         for i in range(tastes):
+#             # Make an array for posterior probabilities for each taste
+#             #p = np.zeros((trials[i], time_length, 20))
+#             # Make array with highest numbers of trials, so uneven trial numbers
+#             # can be accomadated
+#             p = np.zeros((np.max(trials), time_length, 20))
+#             for j in range(trials[i]):
+#                 p[j, :, :] = np.load(f'taste{i:02}_trial{j:02}_p.npy')
+#             # Save p to hdf5 file
+#             atom = tables.Atom.from_dtype(p.dtype)
+#             prob = hf5.create_carray(
+#                     os.path.join(base_dir, this_basename), 
+#                     'taste%i_p' % i, 
+#                     atom, 
+#                     p.shape)
+#             prob[:, :, :] = p
+#         hf5.flush()
+############################################################
+
+max_n_trials = np.max(emg_trials_frame['trial_inds']) + 1
+
+emg_trials_frame['taste_num'] = emg_trials_frame['dig_in'].rank(method='dense') - 1
+emg_trials_frame['taste_num'] = emg_trials_frame['taste_num'].astype(int)
+
+car_grouped_df = emg_trials_frame.groupby('car')
+
+base_dir = '/emg_BSA_results'
+for _, this_df in car_grouped_df:
+    this_basename = this_df['car'].unique()[0]
+
+    if os.path.join(base_dir, this_basename) in hf5:
+        hf5.remove_node(base_dir, this_basename, recursive = True)
+    hf5.create_group(base_dir, this_basename)
+
+    dig_in_grouped_df = this_df.groupby('dig_in')
+    for dig_in_ind, dig_df in dig_in_grouped_df:
+
+        this_p_array = np.zeros((max_n_trials, *p_data.shape[1:]))
+        # fill with NaNs
+        this_p_array.fill(np.nan)
+
+        for row_ind, this_row in dig_df.iterrows(): 
+            this_trial_ind = this_row['trial_inds']
+            this_p_array[this_trial_ind] = p_data[row_ind] 
+
+        # Save p to hdf5 file
+        atom = tables.Atom.from_dtype(this_p_array.dtype)
+        taste_num = this_row['taste_num']
+        hf5.create_array(
+            os.path.join(base_dir, this_basename), 
+            'taste%i_p' % taste_num,
+            this_p_array,
+            atom=atom)
+        hf5.flush()
+
+hf5.close()
+############################################################
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
