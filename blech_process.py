@@ -29,6 +29,7 @@ This module processes single electrode waveforms for spike detection and cluster
 ############################################################
 import time
 
+
 def update_process_log(log_path, electrode_num, key, value):
     """Update the process log for a specific electrode."""
     with open(log_path) as f:
@@ -38,6 +39,8 @@ def update_process_log(log_path, electrode_num, key, value):
     process_log[str(electrode_num)][key] = value
     with open(log_path, 'w') as f:
         json.dump(process_log, f, indent=2)
+
+
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
@@ -116,7 +119,8 @@ else:
     process_log = {}
 
 # Log processing start
-update_process_log(log_path, electrode_num, 'start_time', datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'start_time',
+                   datetime.datetime.now().isoformat())
 update_process_log(log_path, electrode_num, 'status', 'attempted')
 
 params_dict = metadata_handler.params_dict
@@ -398,7 +402,8 @@ if classifier_params['use_classifier'] and \
 print(f'Electrode {electrode_num} complete.')
 
 # Update processing log with completion
-update_process_log(log_path, electrode_num, 'end_time', datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'end_time',
+                   datetime.datetime.now().isoformat())
 update_process_log(log_path, electrode_num, 'status', 'complete')
 
 # Write successful execution to log
