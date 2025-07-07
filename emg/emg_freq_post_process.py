@@ -76,6 +76,11 @@ taste_names = info_dict['taste_params']['tastes']
 # Use trial count from emg_data to account for chopping down of trials
 emg_trials_frame = pd.read_csv('emg_output/emg_env_df.csv', index_col=0)
 
+emg_env_merge_frame = pd.read_csv('emg_output/emg_env_merge_df.csv', index_col=0)
+emg_env_merge_frame['laser_cond'] = \
+        emg_env_merge_frame['laser_lag_ms'].astype(str) + '_' + \
+        emg_env_merge_frame['laser_duration_ms'].astype(str)
+
 # Load frequency analysis output
 results_path = os.path.join(dir_name, 'emg_output', 'emg_BSA_results')
 # p_files = sorted(glob.glob(os.path.join(results_path, '*_p.npy')))
@@ -223,7 +228,45 @@ for _, this_df in car_grouped_df:
             atom=atom)
         hf5.flush()
 
+# SHAPE : channel x laser_cond x taste x trial x time
+n_laser_conds = emg_env_merge_frame['laser_cond'].nunique()
+taste_gape_array = np.zeros(
+    (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, gape_array.shape[1]))
+taste_ltp_array = np.zeros(
+    (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, ltp_array.shape[1]))
+
+emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond'].rank(method='dense') - 1
+emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond_num'].astype(int)
+
+emg_env_merge_frame['car_num'] = emg_env_merge_frame['car'].rank(method='dense') - 1
+emg_env_merge_frame['car_num'] = emg_env_merge_frame['car_num'].astype(int)
+
+emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste'].rank(method='dense') - 1
+emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste_num'].astype(int)
+
+for row_ind, this_row in emg_env_merge_frame.iterrows():
+    this_car_num = this_row['car_num']
+    this_laser_cond_num = this_row['laser_cond_num']
+    this_taste_num = this_row['taste_num']
+    this_trial_ind = this_row['taste_rel_trial_num']
+
+    taste_gape_array[this_car_num, this_laser_cond_num, this_taste_num, 
+                     this_trial_ind] = gape_array[row_ind]
+    taste_ltp_array[this_car_num, this_laser_cond_num, this_taste_num, 
+                    this_trial_ind] = ltp_array[row_ind]
+
+# hf5.create_array('/emg_BSA_results', 'gapes', final_gapes_array)
+# hf5.create_array('/emg_BSA_results', 'ltps', final_ltps_array)
+
+# Save gape and ltp arrays to hdf5
+atom = tables.Atom.from_dtype(taste_gape_array.dtype)
+hf5.create_array(
+    '/emg_BSA_results', 'gapes', taste_gape_array, atom=atom)
+hf5.create_array(
+    '/emg_BSA_results', 'ltps', taste_ltp_array, atom=atom)
+
 hf5.close()
+
 ############################################################
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
