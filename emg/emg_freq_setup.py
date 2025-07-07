@@ -167,17 +167,17 @@ emg_env_df.to_csv('emg_env_df.csv')
 np.save('flat_emg_env_data.npy', flat_emg_env_data)
 
 ############################################################
-# Also export to numpy 
+# Also export to numpy
 # These will NOT be used for downstream processing
 # but are exported for backwards compatibility
 
 # Matching commit: 431ceb
 # ==============================
-# # NOTE: Currently DIFFERENT sig_trials for each channel 
-# # Save the highpass filtered signal, 
+# # NOTE: Currently DIFFERENT sig_trials for each channel
+# # Save the highpass filtered signal,
 # # the envelope and the indicator of significant trials as a np array
-# # Iterate over channels and save them in different directories 
-# for num,this_name in enumerate(emg_car_names): 
+# # Iterate over channels and save them in different directories
+# for num,this_name in enumerate(emg_car_names):
 #     #dir_path = f'emg_output/emg_channel{num}'
 #     dir_path = f'emg_output/{this_name}'
 #     if os.path.exists(dir_path):
@@ -193,7 +193,7 @@ np.save('flat_emg_env_data.npy', flat_emg_env_data)
 max_n_trials = emg_env_df.trial_inds.max() + 1
 n_dig_ins = emg_env_df.dig_in.nunique()
 
-emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]), 
+emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
                          dtype=np.float32)
 emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
                           dtype=np.float32)
