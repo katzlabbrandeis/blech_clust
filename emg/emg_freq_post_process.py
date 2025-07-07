@@ -235,6 +235,10 @@ taste_gape_array = np.zeros(
 taste_ltp_array = np.zeros(
     (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, ltp_array.shape[1]))
 
+# SHAPE : channel x laser_cond x taste x trial x time x freq
+final_p_array = np.zeros(
+    (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, p_data.shape[1], p_data.shape[2]))
+
 emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond'].rank(method='dense') - 1
 emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond_num'].astype(int)
 
@@ -255,8 +259,12 @@ for row_ind, this_row in emg_env_merge_frame.iterrows():
     taste_ltp_array[this_car_num, this_laser_cond_num, this_taste_num, 
                     this_trial_ind] = ltp_array[row_ind]
 
+    final_p_array[this_car_num, this_laser_cond_num, this_taste_num,
+                  this_trial_ind] = p_data[row_ind]
+
 # hf5.create_array('/emg_BSA_results', 'gapes', final_gapes_array)
 # hf5.create_array('/emg_BSA_results', 'ltps', final_ltps_array)
+# hf5.create_array('/emg_BSA_results', 'emg_BSA_results_final', final_emg_BSA_array)
 
 # Save gape and ltp arrays to hdf5
 atom = tables.Atom.from_dtype(taste_gape_array.dtype)
@@ -264,6 +272,8 @@ hf5.create_array(
     '/emg_BSA_results', 'gapes', taste_gape_array, atom=atom)
 hf5.create_array(
     '/emg_BSA_results', 'ltps', taste_ltp_array, atom=atom)
+hf5.create_array(
+    '/emg_BSA_results', 'emg_BSA_results_final', final_p_array, atom=atom)
 
 hf5.close()
 
