@@ -36,8 +36,10 @@ import pylab as plt
 test_bool = False
 
 if test_bool:
-    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
-    script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
+    # data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
+    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    # script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_freq_setup.py'
     blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
     sys.path.append(blech_clust_dir)
     print(f'blech_clust_dir: {blech_clust_dir}')
@@ -150,6 +152,9 @@ emg_env_df = pd.DataFrame(
     )
 )
 
+emg_env_df['dig_in_ind'] = emg_env_df.dig_in.rank(
+    method='dense').astype(int) - 1
+
 
 emg_output_dir = os.path.join(data_dir, 'emg_output')
 plot_dir = os.path.join(emg_output_dir, 'plots')
@@ -204,10 +209,10 @@ emg_filt_array.fill(np.nan)
 
 # Fill the arrays with the data
 for i, this_row in emg_env_df.iterrows():
-    dig_in_num = this_row['dig_in']
+    dig_in_ind = this_row['dig_in_ind']
     trial_ind = this_row['trial_inds']
-    emg_env_array[dig_in_num, trial_ind, :] = flat_emg_env_data[i]
-    emg_filt_array[dig_in_num, trial_ind, :] = flat_emg_filt_data[i]
+    emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
+    emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
 
 # Save the arrays to numpy files
 np.save(os.path.join(emg_output_dir, 'emg_env.npy'), emg_env_array)
