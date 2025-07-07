@@ -53,6 +53,10 @@ else:
                         help='File types to run tests on',
                         choices=['ofpc', 'trad', 'all'],
                         default='all', type=str)
+    parser.add_argument('--data_type',
+                        help='Data type to run tests on',
+                        choices=['emg', 'emg_spike', 'all'],
+                        default='all', type=str)
     parser.add_argument('--dummy-upload', action='store_true',
                         help='Run dummy upload test')
     args = parser.parse_args()
@@ -86,6 +90,14 @@ if args.file_type == 'all':
     file_types = ['ofpc', 'trad']
 else:
     file_types = [args.file_type]
+print(f'Running tests for file types: {file_types}')
+
+# Set data_types to run
+if args.data_type == 'all':
+    data_type_list = ['emg', 'emg_spike']
+else:
+    data_type_list = [args.data_type]
+print(f'Running tests for data types: {data_types}')
 
 if break_bool:
     print('====================')
@@ -769,7 +781,7 @@ def bsa_only_test():
     if break_bool:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running BSA test with
                       file type : {file_type}
                       data type : {data_type}""")
@@ -780,7 +792,7 @@ def bsa_only_test():
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running BSA test with
                       file type : {file_type}
                       data type : {data_type}""")
@@ -801,7 +813,7 @@ def stft_only_test():
     if break_bool:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running STFT test with
                       file type : {file_type}
                       data type : {data_type}""")
@@ -812,7 +824,7 @@ def stft_only_test():
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running STFT test with
                       file type : {file_type}
                       data type : {data_type}""")
@@ -833,7 +845,7 @@ def run_EMG_QDA_test():
     if break_bool:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running EMG QDA test with
                       file type : {file_type}
                       data type : {data_type}""")
@@ -847,7 +859,7 @@ def run_EMG_QDA_test():
     else:
         for file_type in file_types:
             data_dir = data_dirs_dict[file_type]
-            for data_type in ['emg', 'emg_spike']:
+            for data_type in data_type_list:
                 print(f"""Running EMG QDA test with
                       file type : {file_type}
                       data type : {data_type}""")
