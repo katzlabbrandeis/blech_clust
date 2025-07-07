@@ -124,7 +124,7 @@ np.save('emg_output/gape_array.npy', gape_array)
 np.save('emg_output/ltp_array.npy', ltp_array)
 
 ############################################################
-# Also export to HDF5 as arrays 
+# Also export to HDF5 as arrays
 # These will NOT be used for downstream processing
 # but are exported for backwards compatibility
 
@@ -132,14 +132,14 @@ np.save('emg_output/ltp_array.npy', ltp_array)
 # ==============================
 # Add group to hdf5 file for emg BSA results
 if '/emg_BSA_results' in hf5:
-    hf5.remove_node('/','emg_BSA_results', recursive = True)
+    hf5.remove_node('/', 'emg_BSA_results', recursive=True)
 hf5.create_group('/', 'emg_BSA_results')
 
 # Add omega to the hdf5 file
 if '/emg_BSA_results/omega' not in hf5:
     atom = tables.Atom.from_dtype(omega.dtype)
     om = hf5.create_carray('/emg_BSA_results', 'omega', atom, omega.shape)
-    om[:] = omega 
+    om[:] = omega
     hf5.flush()
 
 # for num, this_dir in enumerate(channel_dirs):
@@ -156,8 +156,8 @@ if '/emg_BSA_results/omega' not in hf5:
 #     # Change to emg_BSA_results
 #     os.chdir('emg_BSA_results')
 #
-#     # Omega doesn't vary by trial, 
-#     # so just pick it up from the 1st taste and trial, 
+#     # Omega doesn't vary by trial,
+#     # so just pick it up from the 1st taste and trial,
 #     first_omega = 'taste00_trial00_omega.npy'
 #     if os.path.exists(first_omega):
 #         omega = np.load(first_omega)
@@ -179,9 +179,9 @@ if '/emg_BSA_results/omega' not in hf5:
 #             # Save p to hdf5 file
 #             atom = tables.Atom.from_dtype(p.dtype)
 #             prob = hf5.create_carray(
-#                     os.path.join(base_dir, this_basename), 
-#                     'taste%i_p' % i, 
-#                     atom, 
+#                     os.path.join(base_dir, this_basename),
+#                     'taste%i_p' % i,
+#                     atom,
 #                     p.shape)
 #             prob[:, :, :] = p
 #         hf5.flush()
@@ -189,7 +189,8 @@ if '/emg_BSA_results/omega' not in hf5:
 
 max_n_trials = np.max(emg_trials_frame['trial_inds']) + 1
 
-emg_trials_frame['taste_num'] = emg_trials_frame['dig_in'].rank(method='dense') - 1
+emg_trials_frame['taste_num'] = emg_trials_frame['dig_in'].rank(
+    method='dense') - 1
 emg_trials_frame['taste_num'] = emg_trials_frame['taste_num'].astype(int)
 
 car_grouped_df = emg_trials_frame.groupby('car')
@@ -199,7 +200,7 @@ for _, this_df in car_grouped_df:
     this_basename = this_df['car'].unique()[0]
 
     if os.path.join(base_dir, this_basename) in hf5:
-        hf5.remove_node(base_dir, this_basename, recursive = True)
+        hf5.remove_node(base_dir, this_basename, recursive=True)
     hf5.create_group(base_dir, this_basename)
 
     dig_in_grouped_df = this_df.groupby('dig_in')
@@ -209,15 +210,15 @@ for _, this_df in car_grouped_df:
         # fill with NaNs
         this_p_array.fill(np.nan)
 
-        for row_ind, this_row in dig_df.iterrows(): 
+        for row_ind, this_row in dig_df.iterrows():
             this_trial_ind = this_row['trial_inds']
-            this_p_array[this_trial_ind] = p_data[row_ind] 
+            this_p_array[this_trial_ind] = p_data[row_ind]
 
         # Save p to hdf5 file
         atom = tables.Atom.from_dtype(this_p_array.dtype)
         taste_num = this_row['taste_num']
         hf5.create_array(
-            os.path.join(base_dir, this_basename), 
+            os.path.join(base_dir, this_basename),
             'taste%i_p' % taste_num,
             this_p_array,
             atom=atom)
