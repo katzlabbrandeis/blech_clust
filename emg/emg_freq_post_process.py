@@ -76,10 +76,11 @@ taste_names = info_dict['taste_params']['tastes']
 # Use trial count from emg_data to account for chopping down of trials
 emg_trials_frame = pd.read_csv('emg_output/emg_env_df.csv', index_col=0)
 
-emg_env_merge_frame = pd.read_csv('emg_output/emg_env_merge_df.csv', index_col=0)
+emg_env_merge_frame = pd.read_csv(
+    'emg_output/emg_env_merge_df.csv', index_col=0)
 emg_env_merge_frame['laser_cond'] = \
-        emg_env_merge_frame['laser_lag_ms'].astype(str) + '_' + \
-        emg_env_merge_frame['laser_duration_ms'].astype(str)
+    emg_env_merge_frame['laser_lag_ms'].astype(str) + '_' + \
+    emg_env_merge_frame['laser_duration_ms'].astype(str)
 
 # Load frequency analysis output
 results_path = os.path.join(dir_name, 'emg_output', 'emg_BSA_results')
@@ -240,13 +241,17 @@ taste_ltp_array = np.zeros(
 final_p_array = np.zeros(
     (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, p_data.shape[1], p_data.shape[2]))
 
-emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond'].rank(method='dense') - 1
-emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond_num'].astype(int)
+emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond'].rank(
+    method='dense') - 1
+emg_env_merge_frame['laser_cond_num'] = emg_env_merge_frame['laser_cond_num'].astype(
+    int)
 
-emg_env_merge_frame['car_num'] = emg_env_merge_frame['car'].rank(method='dense') - 1
+emg_env_merge_frame['car_num'] = emg_env_merge_frame['car'].rank(
+    method='dense') - 1
 emg_env_merge_frame['car_num'] = emg_env_merge_frame['car_num'].astype(int)
 
-emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste'].rank(method='dense') - 1
+emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste'].rank(
+    method='dense') - 1
 emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste_num'].astype(int)
 
 for row_ind, this_row in emg_env_merge_frame.iterrows():
@@ -255,9 +260,9 @@ for row_ind, this_row in emg_env_merge_frame.iterrows():
     this_taste_num = this_row['taste_num']
     this_trial_ind = this_row['taste_rel_trial_num']
 
-    taste_gape_array[this_car_num, this_laser_cond_num, this_taste_num, 
+    taste_gape_array[this_car_num, this_laser_cond_num, this_taste_num,
                      this_trial_ind] = gape_array[row_ind]
-    taste_ltp_array[this_car_num, this_laser_cond_num, this_taste_num, 
+    taste_ltp_array[this_car_num, this_laser_cond_num, this_taste_num,
                     this_trial_ind] = ltp_array[row_ind]
 
     final_p_array[this_car_num, this_laser_cond_num, this_taste_num,
