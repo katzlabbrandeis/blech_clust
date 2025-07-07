@@ -28,6 +28,16 @@ This module processes single electrode waveforms for spike detection and cluster
 # Imports
 ############################################################
 import time
+
+def update_process_log(log_path, electrode_num, key, value):
+    """Update the process log for a specific electrode."""
+    with open(log_path) as f:
+        process_log = json.load(f)
+    if str(electrode_num) not in process_log:
+        process_log[str(electrode_num)] = {}
+    process_log[str(electrode_num)][key] = value
+    with open(log_path, 'w') as f:
+        json.dump(process_log, f, indent=2)
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
@@ -106,12 +116,8 @@ else:
     process_log = {}
 
 # Log processing start
-process_log[str(electrode_num)] = {
-    'start_time': datetime.datetime.now().isoformat(),
-    'status': 'attempted'
-}
-with open(log_path, 'w') as f:
-    json.dump(process_log, f, indent=2)
+update_process_log(log_path, electrode_num, 'start_time', datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'status', 'attempted')
 
 params_dict = metadata_handler.params_dict
 auto_params = params_dict['clustering_params']['auto_params']
@@ -137,12 +143,21 @@ electrode = bpu.electrode_handler(
     electrode_num,
     params_dict)
 
+# Log preprocessing start
+update_process_log(log_path, electrode_num, 'preprocessing', 'started')
+
 # Run complete preprocessing pipeline
 filtered_data = electrode.preprocess_electrode()
+
+# Log preprocessing completion
+update_process_log(log_path, electrode_num, 'preprocessing', 'completed')
 
 #############################################################
 # Process Spikes
 #############################################################
+
+# Log spike processing start
+update_process_log(log_path, electrode_num, 'spike_processing', 'started')
 
 # Extract and process spikes from filtered data
 spike_set = bpu.spike_handler(filtered_data,
@@ -154,6 +169,9 @@ spike_set = bpu.spike_handler(filtered_data,
     mean_val,
     MAD_val,
 ) = spike_set.process_spikes()
+
+# Log spike processing completion
+update_process_log(log_path, electrode_num, 'spike_processing', 'completed')
 
 # Write MAD_val and threshold to electrode_layout_frame
 # Reload layout to make sure we have the latest version
@@ -318,6 +336,9 @@ else:
         (max_clusters, 'auto')
     ]
 
+# Log clustering start
+update_process_log(log_path, electrode_num, 'clustering', 'started')
+
 for cluster_num, fit_type in iters:
     # Pass specific data instead of the whole spike_set
     cluster_handler = bpu.cluster_handler(
@@ -335,6 +356,9 @@ for cluster_num, fit_type in iters:
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
     cluster_handler.ensure_continuous_labels()
+
+# Log clustering completion
+update_process_log(log_path, electrode_num, 'clustering', 'completed')
 
     # At this point, cluster_handler has a trained GMM
     # If 'throw_out_noise', then get labels for all waveforms
@@ -374,13 +398,8 @@ for cluster_num, fit_type in iters:
 print(f'Electrode {electrode_num} complete.')
 
 # Update processing log with completion
-with open(log_path) as f:
-    process_log = json.load(f)
-process_log[str(electrode_num)
-            ]['end_time'] = datetime.datetime.now().isoformat()
-process_log[str(electrode_num)]['status'] = 'complete'
-with open(log_path, 'w') as f:
-    json.dump(process_log, f, indent=2)
+update_process_log(log_path, electrode_num, 'end_time', datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'status', 'complete')
 
 # Write successful execution to log
 if not test_bool:
