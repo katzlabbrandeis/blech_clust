@@ -32,6 +32,15 @@ import json
 import tables
 import pandas as pd
 import pylab as plt
+import argparse
+
+parser = argparse.ArgumentParser(
+    description='Setup EMG data for running BSA on the envelope of EMG data')
+parser.add_argument('data_dir', type=str,
+                    help='Directory containing the data files')
+parser.add_argument('--no_plots', action='store_true',
+                    help='Whether to make plots of the EMG data')
+args = parser.parse_args()
 
 test_bool = False
 
@@ -60,7 +69,7 @@ else:
     from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
     # Get name of directory with the data files
-    metadata_handler = imp_metadata(sys.argv)
+    metadata_handler = imp_metadata([[], args.data_dir])
     data_dir = metadata_handler.dir_name
 
     # Perform pipeline graph check
@@ -297,43 +306,44 @@ car_group = list(merge_frame.groupby('car'))
 
 max_trials = merge_frame.taste_rel_trial_num.max() + 1
 
-for car_name, car_data in car_group:
-    n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs,
-                           sharex=True, sharey=True,
-                           figsize=(n_digs*4, max_trials)
-                           )
-    for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
-        ax[0, i].set_title(dig_name)
-        dat_inds = dig_data.index.values
-        dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
-        for j, trial in enumerate(dig_filt):
-            ax[j, i].plot(time_vec, trial)
-            ax[j, i].axvline(0, color='r', linestyle='--')
-    fig.suptitle(f'{car_name} EMG Filt')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_env.png'),
-                bbox_inches='tight')
-    plt.close()
+if not args.no_plots:
+    for car_name, car_data in car_group:
+        n_digs = car_data.dig_in_num_taste.nunique()
+        fig, ax = plt.subplots(max_trials, n_digs,
+                               sharex=True, sharey=True,
+                               figsize=(n_digs*4, max_trials)
+                               )
+        for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
+            ax[0, i].set_title(dig_name)
+            dat_inds = dig_data.index.values
+            dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
+            for j, trial in enumerate(dig_filt):
+                ax[j, i].plot(time_vec, trial)
+                ax[j, i].axvline(0, color='r', linestyle='--')
+        fig.suptitle(f'{car_name} EMG Filt')
+        plt.tight_layout()
+        plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_env.png'),
+                    bbox_inches='tight')
+        plt.close()
 
-for car_name, car_data in car_group:
-    n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs,
-                           sharex=True, sharey=True,
-                           figsize=(n_digs*4, max_trials)
-                           )
-    for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
-        ax[0, i].set_title(dig_name)
-        dat_inds = dig_data.index.values
-        dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
-        for j, trial in enumerate(dig_filt):
-            ax[j, i].plot(time_vec, trial)
-            ax[j, i].axvline(0, color='r', linestyle='--')
-    fig.suptitle(f'{car_name} EMG Filt')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_filt.png'),
-                bbox_inches='tight')
-    plt.close()
+    for car_name, car_data in car_group:
+        n_digs = car_data.dig_in_num_taste.nunique()
+        fig, ax = plt.subplots(max_trials, n_digs,
+                               sharex=True, sharey=True,
+                               figsize=(n_digs*4, max_trials)
+                               )
+        for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
+            ax[0, i].set_title(dig_name)
+            dat_inds = dig_data.index.values
+            dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
+            for j, trial in enumerate(dig_filt):
+                ax[j, i].plot(time_vec, trial)
+                ax[j, i].axvline(0, color='r', linestyle='--')
+        fig.suptitle(f'{car_name} EMG Filt')
+        plt.tight_layout()
+        plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_filt.png'),
+                    bbox_inches='tight')
+        plt.close()
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
