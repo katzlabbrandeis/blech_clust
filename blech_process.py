@@ -360,40 +360,40 @@ for cluster_num, fit_type in iters:
 # Log clustering completion
 update_process_log(log_path, electrode_num, 'clustering', 'completed')
 
-    # At this point, cluster_handler has a trained GMM
-    # If 'throw_out_noise', then get labels for all waveforms
-    # otherwise, use the labels from the GMM
-    if throw_out_noise_bool:
-        print('=== GMM trained using only classified spikes ===')
-        all_labels = cluster_handler.get_cluster_labels(
-            all_features,
+# At this point, cluster_handler has a trained GMM
+# If 'throw_out_noise', then get labels for all waveforms
+# otherwise, use the labels from the GMM
+if throw_out_noise_bool:
+    print('=== GMM trained using only classified spikes ===')
+    all_labels = cluster_handler.get_cluster_labels(
+        all_features,
+    )
+    # Since GMM will return predictions using original labels,
+    # if auto_clustering, will need to relabel
+    if auto_cluster:
+        all_labels = np.array(
+            [cluster_handler.cluster_map[label] for label in all_labels]
         )
-        # Since GMM will return predictions using original labels,
-        # if auto_clustering, will need to relabel
-        if auto_cluster:
-            all_labels = np.array(
-                [cluster_handler.cluster_map[label] for label in all_labels]
-            )
-    else:
-        all_labels = cluster_handler.labels
-    cluster_handler.remove_outliers(params_dict)
-    cluster_handler.calc_mahalanobis_distance_matrix()
-    cluster_handler.save_cluster_labels()
-    cluster_handler.create_output_plots(params_dict)
-    # NOTE: Classifier plots will not have outliers removed
-    if throw_out_noise_bool:
-        print('=== Classifier plots will NOT have outliers removed ===')
-    if classifier_params['use_classifier'] and \
-            classifier_params['use_neuRecommend']:
-        cluster_handler.create_classifier_plots(
-            # classifier_handler
-            classifier_pred=clf_prob_og > classifier_handler.clf_threshold,
-            classifier_prob=clf_prob_og,
-            clf_threshold=classifier_handler.clf_threshold,
-            all_waveforms=slices_og,
-            all_times=times_og,
-            labels=all_labels,
-        )
+else:
+    all_labels = cluster_handler.labels
+cluster_handler.remove_outliers(params_dict)
+cluster_handler.calc_mahalanobis_distance_matrix()
+cluster_handler.save_cluster_labels()
+cluster_handler.create_output_plots(params_dict)
+# NOTE: Classifier plots will not have outliers removed
+if throw_out_noise_bool:
+    print('=== Classifier plots will NOT have outliers removed ===')
+if classifier_params['use_classifier'] and \
+        classifier_params['use_neuRecommend']:
+    cluster_handler.create_classifier_plots(
+        # classifier_handler
+        classifier_pred=clf_prob_og > classifier_handler.clf_threshold,
+        classifier_prob=clf_prob_og,
+        clf_threshold=classifier_handler.clf_threshold,
+        all_waveforms=slices_og,
+        all_times=times_og,
+        labels=all_labels,
+    )
 
 print(f'Electrode {electrode_num} complete.')
 
