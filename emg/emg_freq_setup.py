@@ -32,22 +32,50 @@ import json
 import tables
 import pandas as pd
 import pylab as plt
+import argparse
 
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-sys.path.append(blech_clust_dir)
-print(f'blech_clust_dir: {blech_clust_dir}')
-# from utils.blech_process_utils import path_handler  # noqa: E402
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+parser = argparse.ArgumentParser(
+    description='Setup EMG data for running BSA on the envelope of EMG data')
+parser.add_argument('data_dir', type=str,
+                    help='Directory containing the data files')
+parser.add_argument('--no_plots', action='store_true',
+                    help='Whether to make plots of the EMG data')
+args = parser.parse_args()
 
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-data_dir = metadata_handler.dir_name
+test_bool = False
 
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(data_dir)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if test_bool:
+    # data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
+    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    # script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_freq_setup.py'
+    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+    sys.path.append(blech_clust_dir)
+    print(f'blech_clust_dir: {blech_clust_dir}')
+    # from utils.blech_process_utils import path_handler  # noqa: E402
+    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], data_dir])
+    data_dir = metadata_handler.dir_name
+
+else:
+    script_path = os.path.realpath(__file__)
+
+    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
+    sys.path.append(blech_clust_dir)
+    print(f'blech_clust_dir: {blech_clust_dir}')
+    # from utils.blech_process_utils import path_handler  # noqa: E402
+    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.data_dir])
+    data_dir = metadata_handler.dir_name
+
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(data_dir)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 # Get paths
 # this_path_handler = path_handler()
@@ -133,6 +161,9 @@ emg_env_df = pd.DataFrame(
     )
 )
 
+emg_env_df['dig_in_ind'] = emg_env_df.dig_in.rank(
+    method='dense').astype(int) - 1
+
 
 emg_output_dir = os.path.join(data_dir, 'emg_output')
 plot_dir = os.path.join(emg_output_dir, 'plots')
@@ -142,9 +173,61 @@ if not os.path.exists(plot_dir):
 print(f'emg_output_dir: {emg_output_dir}')
 os.chdir(emg_output_dir)
 
+# Write the emg_filt data to a file
+np.save('flat_emg_filt_data.npy', flat_emg_filt_data)
+
 # Write the emg_env data to a file
 emg_env_df.to_csv('emg_env_df.csv')
 np.save('flat_emg_env_data.npy', flat_emg_env_data)
+
+############################################################
+# Also export to numpy
+# These will NOT be used for downstream processing
+# but are exported for backwards compatibility
+
+# Matching commit: 431ceb
+# ==============================
+# # NOTE: Currently DIFFERENT sig_trials for each channel
+# # Save the highpass filtered signal,
+# # the envelope and the indicator of significant trials as a np array
+# # Iterate over channels and save them in different directories
+# for num,this_name in enumerate(emg_car_names):
+#     #dir_path = f'emg_output/emg_channel{num}'
+#     dir_path = f'emg_output/{this_name}'
+#     if os.path.exists(dir_path):
+#         shutil.rmtree(dir_path)
+#     os.makedirs(dir_path)
+#     # emg_filt (output shape): tastes x trials x time
+#     np.save(os.path.join(dir_path, f'emg_filt.npy'), emg_filt_list[num])
+#     # env (output shape): tastes x trials x time
+#     np.save(os.path.join(dir_path, f'emg_env.npy'), emg_env_list[num])
+#     # sig_trials (output shape): tastes x trials
+#     np.save(os.path.join(dir_path, 'sig_trials.npy'), sig_trials_list[num])
+
+max_n_trials = emg_env_df.trial_inds.max() + 1
+n_dig_ins = emg_env_df.dig_in.nunique()
+
+emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
+                         dtype=np.float32)
+emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
+                          dtype=np.float32)
+
+# Fill both with nans
+emg_env_array.fill(np.nan)
+emg_filt_array.fill(np.nan)
+
+# Fill the arrays with the data
+for i, this_row in emg_env_df.iterrows():
+    dig_in_ind = this_row['dig_in_ind']
+    trial_ind = this_row['trial_inds']
+    emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
+    emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
+
+# Save the arrays to numpy files
+np.save(os.path.join(emg_output_dir, 'emg_env.npy'), emg_env_array)
+np.save(os.path.join(emg_output_dir, 'emg_filt.npy'), emg_filt_array)
+
+############################################################
 
 print('Deleting emg_BSA_results')
 if os.path.exists('emg_BSA_results'):
@@ -213,6 +296,7 @@ merge_frame.drop(
 # Write out merge frame
 merge_frame.to_csv(os.path.join(data_dir, 'emg_output/emg_env_merge_df.csv'))
 
+
 ############################################################
 # Plots
 ############################################################
@@ -222,43 +306,44 @@ car_group = list(merge_frame.groupby('car'))
 
 max_trials = merge_frame.taste_rel_trial_num.max() + 1
 
-for car_name, car_data in car_group:
-    n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs,
-                           sharex=True, sharey=True,
-                           figsize=(n_digs*4, max_trials)
-                           )
-    for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
-        ax[0, i].set_title(dig_name)
-        dat_inds = dig_data.index.values
-        dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
-        for j, trial in enumerate(dig_filt):
-            ax[j, i].plot(time_vec, trial)
-            ax[j, i].axvline(0, color='r', linestyle='--')
-    fig.suptitle(f'{car_name} EMG Filt')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_env.png'),
-                bbox_inches='tight')
-    plt.close()
+if not args.no_plots:
+    for car_name, car_data in car_group:
+        n_digs = car_data.dig_in_num_taste.nunique()
+        fig, ax = plt.subplots(max_trials, n_digs,
+                               sharex=True, sharey=True,
+                               figsize=(n_digs*4, max_trials)
+                               )
+        for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
+            ax[0, i].set_title(dig_name)
+            dat_inds = dig_data.index.values
+            dig_filt = flat_emg_env_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
+            for j, trial in enumerate(dig_filt):
+                ax[j, i].plot(time_vec, trial)
+                ax[j, i].axvline(0, color='r', linestyle='--')
+        fig.suptitle(f'{car_name} EMG Filt')
+        plt.tight_layout()
+        plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_env.png'),
+                    bbox_inches='tight')
+        plt.close()
 
-for car_name, car_data in car_group:
-    n_digs = car_data.dig_in_num_taste.nunique()
-    fig, ax = plt.subplots(max_trials, n_digs,
-                           sharex=True, sharey=True,
-                           figsize=(n_digs*4, max_trials)
-                           )
-    for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
-        ax[0, i].set_title(dig_name)
-        dat_inds = dig_data.index.values
-        dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
-        for j, trial in enumerate(dig_filt):
-            ax[j, i].plot(time_vec, trial)
-            ax[j, i].axvline(0, color='r', linestyle='--')
-    fig.suptitle(f'{car_name} EMG Filt')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_filt.png'),
-                bbox_inches='tight')
-    plt.close()
+    for car_name, car_data in car_group:
+        n_digs = car_data.dig_in_num_taste.nunique()
+        fig, ax = plt.subplots(max_trials, n_digs,
+                               sharex=True, sharey=True,
+                               figsize=(n_digs*4, max_trials)
+                               )
+        for i, (dig_name, dig_data) in enumerate(car_data.groupby('dig_in_name_taste')):
+            ax[0, i].set_title(dig_name)
+            dat_inds = dig_data.index.values
+            dig_filt = flat_emg_filt_data[dat_inds][:, fin_inds[0]:fin_inds[1]]
+            for j, trial in enumerate(dig_filt):
+                ax[j, i].plot(time_vec, trial)
+                ax[j, i].axvline(0, color='r', linestyle='--')
+        fig.suptitle(f'{car_name} EMG Filt')
+        plt.tight_layout()
+        plt.savefig(os.path.join(plot_dir, f'{car_name}_emg_filt.png'),
+                    bbox_inches='tight')
+        plt.close()
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
