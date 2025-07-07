@@ -73,8 +73,6 @@ parser.add_argument('--skip-processed', help='Skip already processed electrodes'
                     action='store_true')
 parser.add_argument('--delete-existing', help='Delete existing units',
                     action='store_true')
-parser.add_argument('--manual', help='Force manual processing logic',
-                    action='store_true')
 args = parser.parse_args()
 
 ############################################################
