@@ -184,6 +184,18 @@ elif sorted_units_exist_bool:
         hf5.close()
         exit()
     if overwrite_hf5.lower() == 'y':
+        # Double check if the user wants to delete existing units
+        overwrite_hf5, continue_bool = entry_checker(
+                msg='Are you sure you want to delete existing units? (y/[n]): ',
+                check_func=lambda x: x.lower() in ['y', 'n'],
+                fail_response='Please enter y or n',
+                )
+        if not continue_bool:
+            print('Exiting post-processing.')
+            hf5.close()
+            exit()
+    if overwrite_hf5.lower() == 'y':
+        # Remove the sorted_units group and create a new one
         hf5.remove_node('/sorted_units', recursive=True)
         hf5.create_group('/', 'sorted_units')
         print('==== Cleared saved units. ====\n')
