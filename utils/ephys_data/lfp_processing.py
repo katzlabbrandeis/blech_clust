@@ -698,15 +698,10 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3):
     Inputs:
         data : shape (n_channels, n_trials, n_timepoints)
         MAD_threshold : number of MADs to use as threshold for individual timepoints
-        deviation_threshold : number of MADs to use as threshold for trial deviation
-                             (defaults to MAD_threshold if None)
 
     Outputs:
         good_trials_bool : boolean array of good trials
     """
-    # Use provided deviation_threshold or default to MAD_threshold
-    if deviation_threshold is None:
-        deviation_threshold = MAD_threshold
 
     lfp_median = np.median(data, axis=1)
     lfp_MAD = MAD(data, axis=1)
