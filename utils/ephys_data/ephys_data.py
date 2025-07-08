@@ -892,12 +892,18 @@ class ephys_data():
         pal_vec = np.concatenate(
             [np.repeat(x, y) for x, y in zip(self.pal_df['pal_ranks'], trial_counts)])
         cat_firing = np.concatenate(self.firing_list, axis=0).T
+        # Add very small noise to avoid issues with zero or same firing rates
+        # when calculating Spearman correlation
+        cat_firing += np.random.normal(0, 1e-6, cat_firing.shape)
         inds = list(np.ndindex(cat_firing.shape[:2]))
-        pal_array = np.zeros(cat_firing.shape[:2])
+        pal_rho_array = np.zeros(cat_firing.shape[:2])
+        pal_p_array = np.zeros(cat_firing.shape[:2])
         for this_ind in tqdm(inds):
             rho, p_val = spearmanr(cat_firing[tuple(this_ind)], pal_vec)
-            pal_array[tuple(this_ind)] = rho
-        self.pal_array = np.abs(pal_array).T
+            pal_rho_array[tuple(this_ind)] = rho
+            pal_p_array[tuple(this_ind)] = p_val
+        self.pal_rho_array = np.abs(pal_rho_array).T
+        self.pal_p_array = pal_p_array.T
 
     def separate_laser_firing(self):
         """
