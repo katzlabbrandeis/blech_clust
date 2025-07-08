@@ -1017,6 +1017,21 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
             return []
         return [int(input_str)]
 
+    # Use helper function with special handling for blank input
+    laser_select_str = populate_field_with_defaults(
+        field_name='dig_in_nums',
+        nested_field='laser_params',
+        entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
+        check_func=count_check,
+        existing_info=existing_info,
+        cache=cache,
+        convert_func=convert_laser_digin,
+        fail_response='Please enter numbers in index of dataframe above',
+        default_value_override=default_laser_digin_ind,
+        force_default=args.auto_defaults
+    )
+
+    # Handle the special case for laser dig-ins
     if isinstance(laser_select_str, str):
         if laser_select_str.lower() == "none":
             laser_digin_ind = []
