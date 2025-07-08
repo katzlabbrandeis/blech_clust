@@ -227,6 +227,7 @@ for this_car, this_df in emg_env_df.groupby('car'):
 
     # Save the arrays to numpy files
     emg_car_output_dir = os.path.join(emg_output_dir, this_car)
+    os.makedirs(emg_car_output_dir, exist_ok=True)
     np.save(os.path.join(emg_car_output_dir, 'emg_env.npy'), emg_env_array)
     np.save(os.path.join(emg_car_output_dir, 'emg_filt.npy'), emg_filt_array)
 
