@@ -690,7 +690,7 @@ def extract_emgs(dir_name,
     hf5.close()
 
 
-def return_good_lfp_trial_inds(data, MAD_threshold=3, deviation_threshold=None):
+def return_good_lfp_trial_inds(data, MAD_threshold=3):
     """
     Return boolean array of good trials (for all channels) based on MAD threshold
     Remove trials based on deviation from median LFP per trial
@@ -698,15 +698,10 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3, deviation_threshold=None):
     Inputs:
         data : shape (n_channels, n_trials, n_timepoints)
         MAD_threshold : number of MADs to use as threshold for individual timepoints
-        deviation_threshold : number of MADs to use as threshold for trial deviation
-                             (defaults to MAD_threshold if None)
 
     Outputs:
         good_trials_bool : boolean array of good trials
     """
-    # Use provided deviation_threshold or default to MAD_threshold
-    if deviation_threshold is None:
-        deviation_threshold = MAD_threshold
 
     lfp_median = np.median(data, axis=1)
     lfp_MAD = MAD(data, axis=1)
@@ -715,7 +710,7 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3, deviation_threshold=None):
         np.abs(data - lfp_median[:, np.newaxis, :])/lfp_MAD[:, None], axis=2)
     deviation_median = np.median(mean_trial_deviation, axis=1)
     deviation_MAD = MAD(mean_trial_deviation, axis=1)
-    fin_deviation_threshold = deviation_median + deviation_threshold*deviation_MAD
+    fin_deviation_threshold = deviation_median + MAD_threshold*deviation_MAD
     # Remove trials with high deviation
     good_trials_bool = mean_trial_deviation < fin_deviation_threshold[:, np.newaxis]
     # Take only trials good for both regions
