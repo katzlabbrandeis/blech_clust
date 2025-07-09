@@ -600,18 +600,23 @@ class ephys_data():
         Wrapper function to extract LFPs from raw data files and save to HDF5
         Loads relevant information for .info file
         """
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_in_nums']
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
+        if 'info_dict' not in dir(self):
+            print('Info dict not found...Loading')
+            self.get_info_dict()
+        if 'trial_info_frame' not in dir(self):
+            print('Trial info frame not found...Loading')
+            self.get_trial_info_frame()
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
         # Add final argument to argument list
         if None in self.lfp_params.values():
             print('No LFP params found...using default LFP params')
             self.lfp_params = self.default_lfp_params
         self.lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
+        lfp_processing.extract_lfps(
+                self.data_dir, 
+                **self.lfp_params,
+                trial_info_frame = self.trial_info_frame
+                )
 
     def get_lfp_channels(self):
         """
