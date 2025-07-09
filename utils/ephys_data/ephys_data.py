@@ -1205,6 +1205,10 @@ class ephys_data():
         """
         # Region lfps shape : (n_tastes, n_channels, n_trials, n_timepoints)
         region_lfps, region_names = self.return_region_lfps()
+        # Drop 'none' if in region_names
+        keep_inds = [i for i, x in enumerate(region_names) if x != 'none']
+        region_lfps = [region_lfps[i] for i in keep_inds]
+        region_names = [region_names[i] for i in keep_inds]
 
         # Sort by region_names to make sure order is always same
         sort_inds = np.argsort(region_names)
