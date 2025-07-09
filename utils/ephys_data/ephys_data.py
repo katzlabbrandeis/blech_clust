@@ -126,6 +126,54 @@ Installation:
 
 
 class ephys_data():
+    class SpikeProcessing:
+        def get_spikes(self):
+            # Existing code for get_spikes
+
+        def separate_laser_spikes(self):
+            # Existing code for separate_laser_spikes
+
+        def get_sequestered_spikes(self):
+            # Existing code for get_sequestered_spikes
+
+    class LFPProcessing:
+        def extract_lfps(self):
+            # Existing code for extract_lfps
+
+        def get_lfp_channels(self):
+            # Existing code for get_lfp_channels
+
+        def get_lfps(self, re_extract=False):
+            # Existing code for get_lfps
+
+        def separate_laser_lfp(self):
+            # Existing code for separate_laser_lfp
+
+    class LaserConditionHandling:
+        def separate_laser_data(self):
+            # Existing code for separate_laser_data
+
+        def check_laser(self):
+            # Existing code for check_laser
+
+        def separate_laser_firing(self):
+            # Existing code for separate_laser_firing
+
+    class RegionBasedAnalysis:
+        def get_region_electrodes(self):
+            # Existing code for get_region_electrodes
+
+        def get_region_units(self):
+            # Existing code for get_region_units
+
+        def return_region_spikes(self, region_name='all'):
+            # Existing code for return_region_spikes
+
+        def get_region_firing(self, region_name='all'):
+            # Existing code for get_region_firing
+
+        def get_lfp_electrodes(self):
+            # Existing code for get_lfp_electrodes
 
     ######################
     # Define static methods
