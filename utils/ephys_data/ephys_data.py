@@ -141,16 +141,20 @@ class ephys_data():
 
     class LFPProcessing:
         def extract_lfps(self):
-            # Existing code for extract_lfps
+            """Extract LFPs from raw data files and save to HDF5"""
+            pass
 
         def get_lfp_channels(self):
-            # Existing code for get_lfp_channels
+            """Extract parsed LFP channels"""
+            pass
 
         def get_lfps(self, re_extract=False):
-            # Existing code for get_lfps
+            """Initiate LFP extraction or retrieve LFP arrays from HDF5"""
+            pass
 
         def separate_laser_lfp(self):
-            # Existing code for separate_laser_lfp
+            """Separate LFP arrays into laser on and off conditions"""
+            pass
 
     class LaserConditionHandling:
         def separate_laser_data(self):
