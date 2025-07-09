@@ -158,13 +158,16 @@ class ephys_data():
 
     class LaserConditionHandling:
         def separate_laser_data(self):
-            # Existing code for separate_laser_data
+            """Separate data into laser on and off conditions"""
+            pass
 
         def check_laser(self):
-            # Existing code for check_laser
+            """Check for the presence of laser trials"""
+            pass
 
         def separate_laser_firing(self):
-            # Existing code for separate_laser_firing
+            """Separate firing rates into laser on and off conditions"""
+            pass
 
     class RegionBasedAnalysis:
         def get_region_electrodes(self):
