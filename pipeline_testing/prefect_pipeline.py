@@ -513,7 +513,6 @@ def test_ephys_data(data_dir):
     print("Ephys data tests complete!")
     print("Test results:")
     print(ephys_test_df)
-
     print("Ephys data testing complete!")
 
     # If any tests fail, raise an error
@@ -574,6 +573,8 @@ def run_spike_test(data_dir):
     run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
     run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
     run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
+
+    # Run ephys_data tests as part of spike testing
     test_ephys_data(data_dir)
 
 
