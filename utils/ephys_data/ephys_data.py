@@ -613,10 +613,10 @@ class ephys_data():
             self.lfp_params = self.default_lfp_params
         self.lfp_params.update({'dig_in_list': taste_dig_ins})
         lfp_processing.extract_lfps(
-                self.data_dir, 
-                **self.lfp_params,
-                trial_info_frame = self.trial_info_frame
-                )
+            self.data_dir,
+            **self.lfp_params,
+            trial_info_frame=self.trial_info_frame
+        )
 
     def get_lfp_channels(self):
         """

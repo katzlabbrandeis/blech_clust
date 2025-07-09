@@ -834,6 +834,7 @@ def spike_only_test():
                 upload_test_results(data_dir, "spike",
                                     file_type, data_type=data_type)
 
+
 @flow(log_prints=True)
 def ephys_data_only_flow():
     for file_type in file_types:
@@ -848,6 +849,7 @@ def ephys_data_only_flow():
     #
     # make_arrays(data_dir)
     # # Run ephys_data tests
+
 
 @flow(log_prints=True)
 def spike_emg_test():

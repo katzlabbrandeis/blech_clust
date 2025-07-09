@@ -315,8 +315,8 @@ def extract_lfps(dir_name,
     trial_info_frame['dig_in_ind'] = trial_info_frame['dig_in_num_taste'].rank(
         method='dense') - 1
     change_points_fin = [
-            np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_ind')
-            ]
+        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_ind')
+    ]
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
                          for this_dig_in_markers in change_points_fin]
