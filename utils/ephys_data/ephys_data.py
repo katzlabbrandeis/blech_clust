@@ -185,9 +185,9 @@ class ephys_data():
         def get_lfp_electrodes(self):
             # Existing code for get_lfp_electrodes
 
-    ######################
-    # Define static methods
-    #####################
+            ######################
+            # Define static methods
+            #####################
 
     @staticmethod
     def calc_stft(
