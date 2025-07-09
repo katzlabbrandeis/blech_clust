@@ -279,10 +279,68 @@ Installation:
 
 
 class ephys_data():
+    class SpikeProcessing:
+        def get_spikes(self):
+            """Extract spike arrays from specified HD5 files"""
+            pass
 
-    ######################
-    # Define static methods
-    #####################
+        def separate_laser_spikes(self):
+            """Separate spike arrays into laser on and off conditions"""
+            pass
+
+        def get_sequestered_spikes(self):
+            """Sequester spikes into different categories"""
+            pass
+
+    class LFPProcessing:
+        def extract_lfps(self):
+            """Extract LFPs from raw data files and save to HDF5"""
+            pass
+
+        def get_lfp_channels(self):
+            """Extract parsed LFP channels"""
+            pass
+
+        def get_lfps(self, re_extract=False):
+            """Initiate LFP extraction or retrieve LFP arrays from HDF5"""
+            pass
+
+        def separate_laser_lfp(self):
+            """Separate LFP arrays into laser on and off conditions"""
+            pass
+
+    class LaserConditionHandling:
+        def separate_laser_data(self):
+            """Separate data into laser on and off conditions"""
+            pass
+
+        def check_laser(self):
+            """Check for the presence of laser trials"""
+            pass
+
+        def separate_laser_firing(self):
+            """Separate firing rates into laser on and off conditions"""
+            pass
+
+    class RegionBasedAnalysis:
+        def get_region_electrodes(self):
+            # Existing code for get_region_electrodes
+
+        def get_region_units(self):
+            # Existing code for get_region_units
+
+        def return_region_spikes(self, region_name='all'):
+            # Existing code for return_region_spikes
+
+        def get_region_firing(self, region_name='all'):
+            # Existing code for get_region_firing
+
+        def get_lfp_electrodes(self):
+            # Existing code for get_lfp_electrodes
+
+            ######################
+            # Define static methods
+            #####################
 
     @staticmethod
     def calc_stft(
