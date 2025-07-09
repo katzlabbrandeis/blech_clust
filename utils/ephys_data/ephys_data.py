@@ -128,13 +128,16 @@ Installation:
 class ephys_data():
     class SpikeProcessing:
         def get_spikes(self):
-            # Existing code for get_spikes
+            """Extract spike arrays from specified HD5 files"""
+            pass
 
         def separate_laser_spikes(self):
-            # Existing code for separate_laser_spikes
+            """Separate spike arrays into laser on and off conditions"""
+            pass
 
         def get_sequestered_spikes(self):
-            # Existing code for get_sequestered_spikes
+            """Sequester spikes into different categories"""
+            pass
 
     class LFPProcessing:
         def extract_lfps(self):
