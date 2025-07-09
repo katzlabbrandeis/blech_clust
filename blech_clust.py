@@ -49,12 +49,12 @@ args = parser.parse_args()
 force_run = args.force_run
 
 # Necessary blech_clust modules
-from utils.importrhdutilities import read_header  # noqa
-from utils.blech_process_utils import path_handler  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
-from utils.qa_utils import channel_corr  # noqa
-from utils import read_file  # noqa
-from utils.blech_channel_profile import plot_channels  # noqa
+from .utils.importrhdutilities import read_header  # noqa
+from .utils.blech_process_utils import path_handler  # noqa
+from .utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from .utils.qa_utils import channel_corr  # noqa
+from .utils import read_file  # noqa
+from .utils.blech_channel_profile import plot_channels  # noqa
 # Necessary python modules
 from ast import literal_eval  # noqa
 import pylab as plt  # noqa
