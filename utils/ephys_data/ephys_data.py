@@ -329,6 +329,9 @@ class ephys_data():
                                 calculation
         sampling_rate :: params :: In ms, To calculate total number of bins
         spike_array :: params :: N-D array with time as last dimension
+        Returns:
+            firing_rate: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in ms)
         """
 
         if np.sum([step_size % dt, window_size % dt]) > 1e-14:
@@ -352,13 +355,25 @@ class ephys_data():
             firing_rate[..., bin_inds[0]//fin_step_size] = \
                 np.sum(spike_array[..., bin_inds[0]:bin_inds[1]], axis=-1)
 
-        return firing_rate
+        # Calculate time vector relative to stimulus delivery
+        # Center of each bin in milliseconds
+        time_vector = np.array([x[0] for x in bin_list]) * dt + \
+            (fin_window_size//2) * dt
+
+        return firing_rate, time_vector
 
     @staticmethod
     def _calc_baks_rate(resolution, dt, spike_array):
         """
         resolution : resolution of output firing rate (sec)
         dt : resolution of input spike trains (sec)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0956f49 ([pre-commit.ci] auto fixes from pre-commit.com hooks)
+        Returns:
+            firing_rate_array: Calculated firing rates
+            time_vector: Time vector relative to stimulus delivery (in sec)
         """
         t = np.arange(0, spike_array.shape[-1]*dt, resolution)
         array_inds = list(np.ndindex((spike_array.shape[:-1])))
@@ -372,7 +387,11 @@ class ephys_data():
         firing_rate_array = np.zeros((*spike_array.shape[:-1], len(t)))
         for this_inds, this_firing in zip(array_inds, firing_rates):
             firing_rate_array[this_inds] = this_firing
-        return firing_rate_array
+
+        # Time vector is already calculated as t (in seconds)
+        time_vector = t
+
+        return firing_rate_array, time_vector
 
     @staticmethod
     def get_hdf5_path(data_dir):
@@ -703,25 +722,25 @@ class ephys_data():
 
             # If all good, define the function to be used
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_conv_rates(
                         step_size=self.firing_rate_params['step_size'],
                         window_size=self.firing_rate_params['window_size'],
                         dt=self.firing_rate_params['dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         if params['type'] == 'baks':
             param_name_list = ['baks_resolution', 'baks_dt']
             check_firing_rate_params(params, param_name_list)
 
             def calc_firing_func(data):
-                firing_rate = \
+                firing_rate, time_vector = \
                     self._calc_baks_rate(
                         resolution=self.firing_rate_params['baks_resolution'],
                         dt=self.firing_rate_params['baks_dt'],
                         spike_array=data)
-                return firing_rate
+                return firing_rate, time_vector
 
         return calc_firing_func
 
@@ -740,6 +759,7 @@ class ephys_data():
             - normalized_firing : 4D array of normalized firing rates
             - all_firing_array : 3D array of all firing rates
             - all_normalized_firing : 3D array of all normalized firing rates
+            - time_vector : 1D array of time points relative to stimulus delivery
         """
 
         if 'spikes' not in dir(self):
@@ -752,15 +772,18 @@ class ephys_data():
             pp(self.default_firing_params)
             print('If you want specific firing params, set them manually')
             self.firing_rate_params = self.default_firing_params
+        if 'sorting_params_dict' not in dir(self):
+            print('No sorting params found, getting info dict ...')
+            self.get_sorting_params_dict()
+        spike_train_lims = self.sorting_params_dict['spike_array_durations']
 
         calc_firing_func = self.firing_rate_method_selector()
-        self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
+        results = [calc_firing_func(spikes) for spikes in self.spikes]
+        self.firing_list = [result[0] for result in results]
+        # Store the time vector from the first result (they should all be the same)
+        # Adjust time relative to stimulus delivery
+        raw_time_vector = results[0][1] - spike_train_lims[0]
+        self.time_vector = np.array(raw_time_vector)
 
         if np.sum([self.firing_list[0].shape == x.shape
                    for x in self.firing_list]) == len(self.firing_list):
@@ -797,164 +820,7 @@ class ephys_data():
                 swapaxes(0, 1)
 
         else:
-            # raise Exception('Cannot currently handle different'\
-            #         'numbers of trials')
             print('Uneven numbers of trials...not stacking into firing rates array')
-
-        """
-        EXAMPLE WORKFLOWS:
-
-        This class provides a comprehensive interface for analyzing electrophysiology data.
-        Below are examples of common analysis workflows:
-
-        Workflow 1: Basic Data Loading and Processing
-        -----------------------------------------------------
-        from utils.ephys_data.ephys_data import ephys_data
-
-        # Initialize with data directory
-        data = ephys_data(data_dir='/path/to/data')
-
-        # Load and process data
-        data.get_unit_descriptors()  # Get unit information
-        data.get_spikes()            # Extract spike data
-        data.get_firing_rates()      # Calculate firing rates
-        data.get_lfps()              # Extract LFP data
-
-        # Access processed data
-        spikes = data.spikes         # Access spike data
-        firing = data.firing_array   # Access firing rate data
-        lfps = data.lfp_array        # Access LFP data
-
-        Workflow 2: Region-Based Analysis
-        -----------------------------------------------------
-        from utils.ephys_data.ephys_data import ephys_data
-        import matplotlib.pyplot as plt
-
-        # Initialize and load data
-        data = ephys_data(data_dir='/path/to/data')
-        data.extract_and_process()   # Extract and process all data
-
-        # Get region information
-        data.get_region_units()      # Get units by brain region
-
-        # Analyze specific brain regions
-        for region in data.region_names:
-            # Get spikes for this region
-            region_spikes = data.return_region_spikes(region)
-
-            # Get firing rates for this region
-            region_firing = data.get_region_firing(region)
-
-            # Get LFPs for this region
-            region_lfps, _ = data.return_region_lfps()
-
-            # Example: Plot mean firing rate for this region
-            if region_firing is not None:
-                plt.figure(figsize=(10, 6))
-                plt.plot(np.mean(region_firing, axis=(0, 1)))
-                plt.title(f'Mean Firing Rate - {region}')
-                plt.xlabel('Time (bins)')
-                plt.ylabel('Firing Rate (Hz)')
-                plt.show()
-
-        Workflow 3: Laser Condition Analysis
-        -----------------------------------------------------
-        from utils.ephys_data.ephys_data import ephys_data
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        # Initialize and load data
-        data = ephys_data(data_dir='/path/to/data')
-        data.extract_and_process()   # Extract and process all data
-
-        # Check if laser trials exist
-        data.check_laser()
-
-        if data.laser_exists:
-            # Separate data by laser condition
-            data.separate_laser_data()
-
-            # Compare firing rates between laser conditions
-            on_firing = data.all_on_firing   # Laser on trials
-            off_firing = data.all_off_firing # Laser off trials
-
-            # Example: Plot mean firing rate comparison
-            plt.figure(figsize=(12, 6))
-
-            # Calculate mean across trials and neurons
-            mean_on = np.mean(on_firing, axis=(0, 1))
-            mean_off = np.mean(off_firing, axis=(0, 1))
-
-            plt.plot(mean_on, 'r-', label='Laser On')
-            plt.plot(mean_off, 'b-', label='Laser Off')
-            plt.title('Mean Firing Rate Comparison')
-            plt.xlabel('Time (bins)')
-            plt.ylabel('Firing Rate (Hz)')
-            plt.legend()
-            plt.show()
-
-        Workflow 4: Palatability Analysis
-        -----------------------------------------------------
-        from utils.ephys_data.ephys_data import ephys_data
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        # Initialize and load data
-        data = ephys_data(data_dir='/path/to/data')
-        data.extract_and_process()   # Extract and process all data
-
-        # Calculate palatability correlation
-        data.calc_palatability()
-
-        # Plot palatability correlation over time
-        plt.figure(figsize=(10, 6))
-        plt.imshow(data.pal_array, aspect='auto', cmap='viridis')
-        plt.colorbar(label='|Palatability Correlation|')
-        plt.xlabel('Time (bins)')
-        plt.ylabel('Neuron')
-        plt.title('Palatability Correlation Over Time')
-        plt.show()
-
-        # Find neurons with strong palatability coding
-        strong_pal_neurons = np.where(np.max(data.pal_array, axis=1) > 0.7)[0]
-        print(f"Neurons with strong palatability coding: {strong_pal_neurons}")
-
-        Workflow 5: Time-Frequency Analysis
-        -----------------------------------------------------
-        from utils.ephys_data.ephys_data import ephys_data
-        import matplotlib.pyplot as plt
-
-        # Initialize and load data
-        data = ephys_data(data_dir='/path/to/data')
-        data.get_lfps()  # Extract LFP data
-
-        # Set STFT parameters
-        data.stft_params = {
-            'Fs': 1000,
-            'signal_window': 500,
-            'window_overlap': 499,
-            'max_freq': 100,
-            'time_range_tuple': (0, 5)
-        }
-
-        # Calculate STFT
-        data.get_stft(recalculate=True, dat_type=['amplitude', 'phase'])
-
-        # Plot STFT amplitude for a specific channel and trial
-        taste = 0
-        channel = 0
-        trial = 0
-
-        plt.figure(figsize=(12, 8))
-        plt.pcolormesh(data.time_vec, data.freq_vec,
-                      data.amplitude_array[taste, channel, trial],
-                      shading='gouraud', cmap='viridis')
-        plt.colorbar(label='Power')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Frequency (Hz)')
-        plt.title(f'STFT Amplitude - Taste {taste}, Channel {channel}, Trial {trial}')
-        plt.show()
-        """
 
     def calc_palatability(self):
         """
@@ -1057,6 +923,17 @@ class ephys_data():
         json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             self.info_dict = json_dict = json.load(open(json_path, 'r'))
+        else:
+            raise Exception('No info file found')
+
+    def get_sorting_params_dict(self):
+        """
+        Extract sorting parameters from the info file
+        """
+        json_path = glob.glob(os.path.join(self.data_dir, "**.params"))[0]
+        if os.path.exists(json_path):
+            json_dict = json.load(open(json_path, 'r'))
+            self.sorting_params_dict = json_dict['sorting_params']
         else:
             raise Exception('No info file found')
 
