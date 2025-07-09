@@ -836,6 +836,22 @@ def spike_only_test():
 
 
 @flow(log_prints=True)
+def ephys_data_only_flow():
+    for file_type in file_types:
+        data_dir = data_dirs_dict[file_type]
+        test_ephys_data(data_dir)
+    #     prep_data_flow(file_type, data_type='emg_spike')
+    #     os.chdir(blech_clust_dir)
+    #     reset_blech_clust(data_dir)
+    #     run_clean_slate(data_dir)
+    # mark_exp_info_success(data_dir)
+    # run_blech_clust(data_dir)
+    #
+    # make_arrays(data_dir)
+    # # Run ephys_data tests
+
+
+@flow(log_prints=True)
 def spike_emg_test():
     if break_bool:
         for file_type in file_types:
@@ -1041,4 +1057,4 @@ elif args.dummy_upload:
     dummy_upload_test_results()
 elif args.ephys_data:
     print('Running ephys_data class tests only')
-    ephys_data_test(return_state=True)
+    ephys_data_only_flow(return_state=True)

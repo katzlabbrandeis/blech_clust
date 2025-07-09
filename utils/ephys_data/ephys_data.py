@@ -525,33 +525,54 @@ class ephys_data():
             self.unit_descriptors = hf5_file.root.unit_descriptor[:]
 
     def check_laser(self):
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            dig_in_list = \
-                [x for x in hf5.list_nodes('/spike_trains')
-                 if 'dig_in' in x.__str__()]
+        """
+        Check if laser trials exist in the data
 
-            # Mark whether laser exists or not
-            self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
-                                               for dig_in in dig_in_list]) > 0
+        Generates:
+            - laser_exists : bool
+                True if laser trials exist, False otherwise
+            - laser_durations : np.array
+                Array of laser durations if they exist, otherwise None
+        """
+        if 'trial_info_frame' not in dir(self):
+            print('Trial info frame not found...Loading')
+            self.get_trial_info_frame()
 
-            # If it does, pull out laser durations
-            if self.laser_durations_exists:
-                self.laser_durations = np.array([dig_in.laser_durations[:]
-                                                 for dig_in in dig_in_list])
+        laser_durations = [x['laser_duration_ms'].values for _,
+                           x in self.trial_info_frame.groupby('dig_in_num_taste')]
+        if any([np.any(x > 0) for x in laser_durations]):
+            self.laser_exists = True
+        else:
+            self.laser_exists = False
+        self.laser_durations = laser_durations
 
-                non_zero_laser_durations = np.any(
-                    np.sum(self.laser_durations, axis=0) > 0)
-
-            # If laser_durations exists, only non_zero durations
-            # will indicate laser
-            # If it doesn't exist, then mark laser as absent
-            if self.laser_durations_exists:
-                if non_zero_laser_durations:
-                    self.laser_exists = True
-                else:
-                    self.laser_exists = False
-            else:
-                self.laser_exists = False
+        # with tables.open_file(self.hdf5_path, 'r+') as hf5:
+        #     dig_in_list = \
+        #         [x for x in hf5.list_nodes('/spike_trains')
+        #          if 'dig_in' in x.__str__()]
+        #
+        #     # Mark whether laser exists or not
+        #     self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
+        #                                        for dig_in in dig_in_list]) > 0
+        #
+        #     # If it does, pull out laser durations
+        #     if self.laser_durations_exists:
+        #         self.laser_durations = np.array([dig_in.laser_durations[:]
+        #                                          for dig_in in dig_in_list])
+        #
+        #         non_zero_laser_durations = np.any(
+        #             np.sum(self.laser_durations, axis=0) > 0)
+        #
+        #     # If laser_durations exists, only non_zero durations
+        #     # will indicate laser
+        #     # If it doesn't exist, then mark laser as absent
+        #     if self.laser_durations_exists:
+        #         if non_zero_laser_durations:
+        #             self.laser_exists = True
+        #         else:
+        #             self.laser_exists = False
+        #     else:
+        #         self.laser_exists = False
 
     def get_spikes(self):
         """
@@ -600,18 +621,23 @@ class ephys_data():
         Wrapper function to extract LFPs from raw data files and save to HDF5
         Loads relevant information for .info file
         """
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_in_nums']
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
+        if 'info_dict' not in dir(self):
+            print('Info dict not found...Loading')
+            self.get_info_dict()
+        if 'trial_info_frame' not in dir(self):
+            print('Trial info frame not found...Loading')
+            self.get_trial_info_frame()
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
         # Add final argument to argument list
         if None in self.lfp_params.values():
             print('No LFP params found...using default LFP params')
             self.lfp_params = self.default_lfp_params
         self.lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
+        lfp_processing.extract_lfps(
+            self.data_dir,
+            **self.lfp_params,
+            trial_info_frame=self.trial_info_frame
+        )
 
     def get_lfp_channels(self):
         """
@@ -632,12 +658,30 @@ class ephys_data():
             self.parsed_lfp_channels = \
                 hf5.root.Parsed_LFP_channels[:]
 
+    def check_file_type(self):
+        if 'info_dict' not in dir(self):
+            print('Info dict not found...Loading')
+            self.get_info_dict()
+
+        if self.info_dict['file_type'] == 'traditional':
+            # raise Exception('This method is not yet compatible with traditional data files. ')
+            print('LFP Processing is not yet compatible with traditional data files. ')
+            return False
+        else:
+            return True
+
     def get_lfps(self, re_extract=False):
         """
         Wrapper function to either
         - initiate LFP extraction, or
         - pull LFP arrays from HDF5 file
+
+        TODO: Add handling of LFPs for traditional data files
         """
+
+        if not self.check_file_type():
+            return
+
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
 
             if ('/Parsed_LFP' not in hf5) or (re_extract == True):
@@ -950,6 +994,10 @@ class ephys_data():
         if os.path.exists(json_path):
             json_dict = json.load(open(json_path, 'r'))
             self.region_electrode_dict = json_dict["electrode_layout"]
+            # Drop 'emg' or 'none' regions
+            self.region_electrode_dict = {k: v for k, v in
+                                          self.region_electrode_dict.items()
+                                          if 'emg' not in k and 'none' not in k}
             self.region_names = [x for x in self.region_electrode_dict.keys()
                                  if 'emg' not in x]
         else:
@@ -1030,6 +1078,13 @@ class ephys_data():
             self.get_region_units()
         if 'firing_array' not in dir(self):
             self.get_firing_rates()
+        # If firing_array is still not generated, that means firing cannot be stack (uneven trials)
+        if 'firing_array' not in dir(self):
+            firing_obj = self.firing_list
+            uneven_trials = True
+        else:
+            firing_obj = self.firing_array
+            uneven_trials = False
 
         if not region_name == 'all':
             region_ind = [num for num, x in enumerate(self.region_names)
@@ -1041,15 +1096,26 @@ class ephys_data():
             else:
                 this_region_units = self.region_units[region_ind[0]]
                 region_firing = [x[this_region_units]
-                                 for x in self.firing_array]
-                return np.array(region_firing)
+                                 for x in firing_obj]
+                if uneven_trials:
+                    # If firing cannot be stacked, return list of arrays
+                    return region_firing
+                else:
+                    return np.array(region_firing)
         else:
-            return np.array(self.firing_array)
+            if uneven_trials:
+                # If firing cannot be stacked, return list of arrays
+                return firing_obj
+            else:
+                return np.array(self.firing_array)
 
     def get_lfp_electrodes(self):
         """
         Extracts indices of lfp_electrodes according to region
         """
+        if not self.check_file_type():
+            return
+
         if 'parsed_lfp_channels' not in dir(self):
             self.get_lfp_channels()
         if 'region_electrode_dict' not in dir(self):
@@ -1081,6 +1147,9 @@ class ephys_data():
             dat_type: list of strings, options are 'raw', 'amplitude', 'phase'
             write_out: bool, if True then write out STFT to HDF5 file
         """
+
+        if not self.check_file_type():
+            return
 
         # Check if STFT in HDF5
         # If present, only load what user has asked for
@@ -1186,6 +1255,9 @@ class ephys_data():
         """
         Return list containing LFPs for each region and region names
         """
+        if not self.check_file_type():
+            return
+
         if 'lfp_array' not in dir(self):
             self.get_lfps()
         if 'lfp_region_electrodes' not in dir(self):
@@ -1198,8 +1270,14 @@ class ephys_data():
         """
         Return one electrode per region that is closest to the mean
         """
+        if not self.check_file_type():
+            return
         # Region lfps shape : (n_tastes, n_channels, n_trials, n_timepoints)
         region_lfps, region_names = self.return_region_lfps()
+        # Drop 'none' if in region_names
+        keep_inds = [i for i, x in enumerate(region_names) if x != 'none']
+        region_lfps = [region_lfps[i] for i in keep_inds]
+        region_names = [region_names[i] for i in keep_inds]
 
         # Sort by region_names to make sure order is always same
         sort_inds = np.argsort(region_names)
@@ -1223,6 +1301,8 @@ class ephys_data():
         return wanted_channel_inds, wanted_lfp_electrodes, region_names
 
     def get_mean_stft_amplitude(self):
+        if not self.check_file_type():
+            return
         if 'amplitude_array' not in dir(self):
             self.get_stft()
         if 'lfp_region_electrodes' not in dir(self):

@@ -215,12 +215,16 @@ def extract_lfps(dir_name,
                  taste_signal_choice,
                  fin_sampling_rate,
                  dig_in_list,
-                 trial_durations):
+                 trial_durations,
+                 trial_info_frame,
+                 ):
 
     if taste_signal_choice == 'Start':
-        diff_val = 1
+        # diff_val = 1
+        dig_col = 'start_taste_ms'
     elif taste_signal_choice == 'End':
-        diff_val = -1
+        # diff_val = -1
+        dig_col = 'end_taste_ms'
 
     # ==============================
     # Open HDF5 File
@@ -287,26 +291,6 @@ def extract_lfps(dir_name,
         hf5.flush()
         del data, data_down, filt_el_down
 
-    # Grab the names of the arrays containing digital inputs,
-    # and pull the data into a numpy array
-    dig_in_nodes = hf5.list_nodes('/digital_in')
-    dig_in = []
-    dig_in_pathname = []
-    for node in dig_in_nodes:
-        dig_in_pathname.append(node._v_pathname)
-        # exec("dig_in.append(hf5.root.digital_in.%s[:])" \
-        #            % dig_in_pathname[-1].split('/')[-1])
-        dig_in.append(node[:])
-    dig_in = np.array(dig_in)
-
-    # The tail end of the pulse generates a negative value when passed through diff
-    # This method removes the need for a "for" loop
-
-    diff_points = list(np.where(np.diff(dig_in) == diff_val))
-    diff_points[1] = diff_points[1]//new_intersample_interval
-    change_points = [diff_points[1][diff_points[0] == this_dig_in]
-                     for this_dig_in in range(len(dig_in))]
-
     # ==============================
     # Write-Out Extracted LFP
     # ==============================
@@ -327,20 +311,22 @@ def extract_lfps(dir_name,
     hf5.create_array('/', 'Parsed_LFP_channels', electrodegroup)
     hf5.flush()
 
-    # Remove dig_ins which are not relevant
-    change_points_fin = [change_points[x] for x in range(len(change_points))
-                         if x in dig_in_list]
-
     # Make markers to slice trials for every dig_on
+    trial_info_frame['dig_in_ind'] = trial_info_frame['dig_in_num_taste'].rank(
+        method='dense') - 1
+    change_points_fin = [
+        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_ind')
+    ]
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
                          for this_dig_in_markers in change_points_fin]
 
     # Cut off dig-inds by lowest number of trials
     trial_counts = [x.shape[0] for x in change_points_fin]
-    min_trial_counts = np.min(trial_counts)
-    all_trial_markers = [np.array(x)[:min_trial_counts, :]
-                         for x in all_trial_markers]
+    # min_trial_counts = np.min(trial_counts)
+    max_trial_counts = np.max(trial_counts)
+    # all_trial_markers = [np.array(x)[:min_trial_counts, :]
+    #                      for x in all_trial_markers]
 
     # Extract trials for every channel for every dig_in
     print('Parsing LFPs')
