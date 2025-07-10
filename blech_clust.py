@@ -47,6 +47,8 @@ parser.add_argument('--force_run', action='store_true',
                     help='Force run the script without asking user')
 parser.add_argument('--overwrite_params', action='store_true',
                     help='Overwrite existing params file with a new one')
+parser.add_argument('--overwrite_params', action='store_true',
+                    help='Overwrite existing params file with a new one')
 args = parser.parse_args()
 force_run = args.force_run
 
@@ -368,6 +370,11 @@ params_template = json.load(open(params_template_path, 'r'))
 # Info on taste digins and laser should be in exp_info file
 all_params_dict = params_template.copy()
 all_params_dict['sampling_rate'] = sampling_rate
+
+# Delete any existing *.params files in the data directory if overwrite_params is specified
+if args.overwrite_params:
+    for file in glob.glob('*.params'):
+        os.remove(file)
 
 params_out_path = hdf5_name.split('.')[0] + '.params'
 if not os.path.exists(params_out_path) or args.overwrite_params:
