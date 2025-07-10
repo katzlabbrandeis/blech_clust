@@ -172,18 +172,23 @@ class ephys_data():
     class RegionBasedAnalysis:
         def get_region_electrodes(self):
             # Existing code for get_region_electrodes
+            pass
 
         def get_region_units(self):
             # Existing code for get_region_units
+            pass
 
         def return_region_spikes(self, region_name='all'):
             # Existing code for return_region_spikes
+            pass
 
         def get_region_firing(self, region_name='all'):
             # Existing code for get_region_firing
+            pass
 
         def get_lfp_electrodes(self):
             # Existing code for get_lfp_electrodes
+            pass
 
             ######################
             # Define static methods
