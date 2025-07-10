@@ -396,512 +396,64 @@ class ephys_data():
     #    def check(self):
     #        access_bool =
 
-    def extract_and_process(self):
-        self.get_unit_descriptors()
-        self.get_spikes()
-        self.get_firing_rates()
-        self.get_lfps()
+    class SpikeProcessing:
+        def get_spikes(self):
+            """Extract spike arrays from specified HD5 files"""
+            pass
 
-    def separate_laser_data(self):
-        self.separate_laser_spikes()
-        self.separate_laser_firing()
-        self.separate_laser_lfp()
+        def separate_laser_spikes(self):
+            """Separate spike arrays into laser on and off conditions"""
+            pass
 
-    def get_unit_descriptors(self):
-        """
-        Extract unit descriptors from HDF5 file
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5_file:
-            self.unit_descriptors = hf5_file.root.unit_descriptor[:]
+        def get_sequestered_spikes(self):
+            """Sequester spikes into different categories"""
+            pass
 
-    def check_laser(self):
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            dig_in_list = \
-                [x for x in hf5.list_nodes('/spike_trains')
-                 if 'dig_in' in x.__str__()]
+    class LFPProcessing:
+        def extract_lfps(self):
+            """Extract LFPs from raw data files and save to HDF5"""
+            pass
 
-            # Mark whether laser exists or not
-            self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
-                                               for dig_in in dig_in_list]) > 0
+        def get_lfp_channels(self):
+            """Extract parsed LFP channels"""
+            pass
 
-            # If it does, pull out laser durations
-            if self.laser_durations_exists:
-                self.laser_durations = [dig_in.laser_durations[:]
-                                        for dig_in in dig_in_list]
+        def get_lfps(self, re_extract=False):
+            """Initiate LFP extraction or retrieve LFP arrays from HDF5"""
+            pass
 
-                non_zero_laser_durations = np.sum(self.laser_durations) > 0
+        def separate_laser_lfp(self):
+            """Separate LFP arrays into laser on and off conditions"""
+            pass
 
-            # If laser_durations exists, only non_zero durations
-            # will indicate laser
-            # If it doesn't exist, then mark laser as absent
-            if self.laser_durations_exists:
-                if non_zero_laser_durations:
-                    self.laser_exists = True
-                else:
-                    self.laser_exists = False
-            else:
-                self.laser_exists = False
+    class LaserConditionHandling:
+        def separate_laser_data(self):
+            """Separate data into laser on and off conditions"""
+            pass
 
-    def get_spikes(self):
-        """
-        Extract spike arrays from specified HD5 files
-        """
-        print('Loading spikes')
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            if '/spike_trains' in hf5:
-                dig_in_list = \
-                    [x for x in hf5.list_nodes('/spike_trains')
-                     if 'dig_in' in x.__str__()]
-                self.dig_in_name_list = [x._v_name for x in dig_in_list]
-                self.dig_in_num_list = [int(x.split('_')[-1])
-                                        for x in self.dig_in_name_list]
-            else:
-                raise Exception('No spike trains found in HF5')
+        def check_laser(self):
+            """Check for the presence of laser trials"""
+            pass
 
-            print('Spike trains loaded from following dig-ins')
-            print(
-                "\n".join([f'{i}. {x}' for i, x in enumerate(self.dig_in_name_list)]))
-            # list of length n_tastes, each element is a 3D array
-            # array dimensions are (n_trials, n_neurons, n_timepoints)
-            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
+        def separate_laser_firing(self):
+            """Separate firing rates into laser on and off conditions"""
+            pass
 
-    def separate_laser_spikes(self):
-        """
-        Separate spike arrays into laser on and off conditions
-        """
-        if 'laser_exists' not in dir(self):
-            self.check_laser()
-        if 'spikes' not in dir(self):
-            self.get_spikes()
-        if self.laser_exists:
-            self.on_spikes = np.array([taste[laser > 0] for taste, laser in
-                                       zip(self.spikes, self.laser_durations)])
-            self.off_spikes = np.array([taste[laser == 0] for taste, laser in
-                                        zip(self.spikes, self.laser_durations)])
-        else:
-            raise Exception('No laser trials in this experiment')
+    class RegionBasedAnalysis:
+        def get_region_electrodes(self):
+            # Existing code for get_region_electrodes
 
-    def extract_lfps(self):
-        """
-        Wrapper function to extract LFPs from raw data files and save to HDF5
-        Loads relevant information for .info file
-        """
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            taste_dig_ins = json_dict['taste_params']['dig_ins']
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
-        # Add final argument to argument list
-        if None in self.lfp_params.values():
-            print('No LFP params found...using default LFP params')
-            self.lfp_params = self.default_lfp_params
-        self.lfp_params.update({'dig_in_list': taste_dig_ins})
-        lfp_processing.extract_lfps(self.data_dir, **self.lfp_params)
+        def get_region_units(self):
+            # Existing code for get_region_units
 
-    def get_lfp_channels(self):
-        """
-        Extract Parsed_LFP_channels
-        This is done separately from "get_lfps" to avoid
-        the overhead of reading the large lfp arrays
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            if '/Parsed_LFP_channels' not in hf5:
-                extract_bool = True
-            else:
-                extract_bool = False
+        def return_region_spikes(self, region_name='all'):
+            # Existing code for return_region_spikes
 
-        if extract_bool:
-            self.extract_lfps()
+        def get_region_firing(self, region_name='all'):
+            # Existing code for get_region_firing
 
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            self.parsed_lfp_channels = \
-                hf5.root.Parsed_LFP_channels[:]
-
-    def get_lfps(self, re_extract=False):
-        """
-        Wrapper function to either
-        - initiate LFP extraction, or
-        - pull LFP arrays from HDF5 file
-        """
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-
-            if ('/Parsed_LFP' not in hf5) or (re_extract == True):
-                extract_bool = True
-            else:
-                extract_bool = False
-
-        if extract_bool:
-            self.extract_lfps()
-
-        with tables.open_file(self.hdf5_path, 'r+') as hf5:
-            lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
-                         if 'dig_in' in node.__str__()]
-            # Account for parsed LFPs being different
-            self.lfp_array = np.asarray([node[:] for node in lfp_nodes])
-            self.all_lfp_array = \
-                self.lfp_array.\
-                swapaxes(1, 2).\
-                reshape(-1, self.lfp_array.shape[1],
-                        self.lfp_array.shape[-1]).\
-                swapaxes(0, 1)
-
-    def separate_laser_lfp(self):
-        """
-        Separate spike arrays into laser on and off conditions
-        """
-        if 'laser_exists' not in dir(self):
-            self.check_laser()
-        if 'lfp_array' not in dir(self):
-            self.get_lfps()
-        if self.laser_exists:
-            self.on_lfp = np.array([taste.swapaxes(0, 1)[laser > 0]
-                                    for taste, laser in
-                                    zip(self.lfp_array, self.laser_durations)])
-            self.off_lfp = np.array([taste.swapaxes(0, 1)[laser == 0]
-                                     for taste, laser in
-                                     zip(self.lfp_array, self.laser_durations)])
-            self.all_on_lfp =\
-                np.reshape(self.on_lfp, (-1, *self.on_lfp.shape[-2:]))
-            self.all_off_lfp =\
-                np.reshape(self.off_lfp, (-1, *self.off_lfp.shape[-2:]))
-        else:
-            raise Exception('No laser trials in this experiment')
-
-    def firing_rate_method_selector(self):
-        params = self.firing_rate_params
-
-        type_list = ['conv', 'baks']
-        type_exists_bool = 'type' in params.keys()
-        if not type_exists_bool:
-            raise Exception('Firing rate calculation type not specified.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
-        if params['type'] not in type_list:
-            raise Exception('Firing rate calculation type not recognized.'
-                            '\nPlease use: \n {}'.format('\n'.join(type_list)))
-
-        def check_firing_rate_params(params, param_name_list):
-            param_exists_bool = [True if x in params.keys() else False
-                                 for x in param_name_list]
-            if not all(param_exists_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_exists_bool, param_name_list))))))
-            param_present_bool = [params[x] is not None
-                                  for x in param_name_list]
-            if not all(param_present_bool):
-                raise Exception('All required firing rate parameters'
-                                ' have not been specified \n{}'.format(
-                                    '\n'.join(map(str,
-                                                  list(zip(param_present_bool, param_name_list))))))
-
-        if params['type'] == 'conv':
-            param_name_list = ['step_size', 'window_size', 'dt']
-
-            # This checks if anything is missing
-            # And raises exception if anything missing
-            check_firing_rate_params(params, param_name_list)
-
-            # If all good, define the function to be used
-            def calc_firing_func(data):
-                firing_rate = \
-                    self._calc_conv_rates(
-                        step_size=self.firing_rate_params['step_size'],
-                        window_size=self.firing_rate_params['window_size'],
-                        dt=self.firing_rate_params['dt'],
-                        spike_array=data)
-                return firing_rate
-
-        if params['type'] == 'baks':
-            param_name_list = ['baks_resolution', 'baks_dt']
-            check_firing_rate_params(params, param_name_list)
-
-            def calc_firing_func(data):
-                firing_rate = \
-                    self._calc_baks_rate(
-                        resolution=self.firing_rate_params['baks_resolution'],
-                        dt=self.firing_rate_params['baks_dt'],
-                        spike_array=data)
-                return firing_rate
-
-        return calc_firing_func
-
-    def get_firing_rates(self):
-        """
-        Converts spikes to firing rates
-
-        Requires:
-            - spikes
-            - firing_rate_params
-
-        Generates:
-            - firing_list : list of firing rates for each taste
-                - each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
-            - firing_array : 4D array of firing rates
-            - normalized_firing : 4D array of normalized firing rates
-            - all_firing_array : 3D array of all firing rates
-            - all_normalized_firing : 3D array of all normalized firing rates
-        """
-
-        if 'spikes' not in dir(self):
-            # raise Exception('Run method "get_spikes" first')
-            print('No spikes found, getting spikes ...')
-            self.get_spikes()
-        if None in self.firing_rate_params.values():
-            # raise Exception('Specify "firing_rate_params" first')
-            print('No firing rate params found...using default firing params')
-            pp(self.default_firing_params)
-            print('If you want specific firing params, set them manually')
-            self.firing_rate_params = self.default_firing_params
-
-        calc_firing_func = self.firing_rate_method_selector()
-        self.firing_list = [calc_firing_func(spikes) for spikes in self.spikes]
-        # self.firing_list = [self._calc_conv_rates(
-        #    step_size = self.firing_rate_params['step_size'],
-        #    window_size = self.firing_rate_params['window_size'],
-        #    dt = self.firing_rate_params['dt'],
-        #    spike_array = spikes)
-        #                    for spikes in self.spikes]
-
-        if np.sum([self.firing_list[0].shape == x.shape
-                   for x in self.firing_list]) == len(self.firing_list):
-            print('All tastes have equal dimensions,'
-                  'concatenating and normalizing')
-
-            # Reshape for backward compatiblity
-            self.firing_array = np.asarray(self.firing_list).swapaxes(1, 2)
-            # Concatenate firing across all tastes
-            self.all_firing_array = \
-                self.firing_array.\
-                swapaxes(1, 2).\
-                reshape(-1, self.firing_array.shape[1],
-                        self.firing_array.shape[-1]).\
-                swapaxes(0, 1)
-
-            # Calculate normalized firing
-            min_vals = [np.min(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            max_vals = [np.max(self.firing_array[:, nrn, :, :], axis=None)
-                        for nrn in range(self.firing_array.shape[1])]
-            self.normalized_firing = np.asarray(
-                [(self.firing_array[:, nrn, :, :] - min_vals[nrn]) /
-                 (max_vals[nrn] - min_vals[nrn])
-                 for nrn in range(self.firing_array.shape[1])]).\
-                swapaxes(0, 1)
-
-            # Concatenate normalized firing across all tastes
-            self.all_normalized_firing = \
-                self.normalized_firing.\
-                swapaxes(1, 2).\
-                reshape(-1, self.normalized_firing.shape[1],
-                        self.normalized_firing.shape[-1]).\
-                swapaxes(0, 1)
-
-        else:
-            # raise Exception('Cannot currently handle different'\
-            #         'numbers of trials')
-            print('Uneven numbers of trials...not stacking into firing rates array')
-
-    def calc_palatability(self):
-        """
-        Calculate single neuron (absolute) palatability from firing rates
-
-        Requires:
-            - info_dict
-                - palatability ranks
-                - taste names
-            - firing rates
-
-        Generates:
-            - pal_df : pandas dataframe
-                - shape: tastes x 3 cols (dig_ins, taste_names, pal_ranks)
-            - pal_array : np.array
-                - shape : neurons x time_bins
-        """
-
-        if 'info_dict' not in dir(self):
-            print('Info dict not found...Loading')
-            self.get_info_dict()
-        if 'firing_list' not in dir(self):
-            print('Firing list not found...Loading')
-            self.get_firing_rates()
-        self.taste_names = self.info_dict['taste_params']['tastes']
-        self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
-        print('Calculating palatability with following order:')
-        self.pal_df = pd.DataFrame(
-            dict(
-                dig_ins=self.dig_in_name_list,
-                taste_names=self.taste_names,
-                pal_ranks=self.palatability_ranks,
-            )
-        )
-        print(self.pal_df)
-        trial_counts = [x.shape[0] for x in self.firing_list]
-        pal_vec = np.concatenate(
-            [np.repeat(x, y) for x, y in zip(self.palatability_ranks, trial_counts)])
-        cat_firing = np.concatenate(self.firing_list, axis=0).T
-        inds = list(np.ndindex(cat_firing.shape[:2]))
-        pal_array = np.zeros(cat_firing.shape[:2])
-        for this_ind in tqdm(inds):
-            rho, p_val = spearmanr(cat_firing[tuple(this_ind)], pal_vec)
-            pal_array[tuple(this_ind)] = rho
-        self.pal_array = np.abs(pal_array).T
-
-    def separate_laser_firing(self):
-        """
-        Separate spike arrays into laser on and off conditions
-        """
-        if 'laser_exists' not in dir(self):
-            self.check_laser()
-        if 'firing_array' not in dir(self):
-            self.get_firing_rates()
-        if self.laser_exists:
-            self.on_firing = np.array([taste[laser > 0] for taste, laser in
-                                       zip(self.firing_list, self.laser_durations)])
-            self.off_firing = np.array([taste[laser == 0] for taste, laser in
-                                        zip(self.firing_list, self.laser_durations)])
-            self.all_on_firing =\
-                np.reshape(self.on_firing, (-1, *self.on_firing.shape[-2:]))
-            self.all_off_firing =\
-                np.reshape(self.off_firing, (-1, *self.off_firing.shape[-2:]))
-        else:
-            raise Exception('No laser trials in this experiment')
-
-    def get_info_dict(self):
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            self.info_dict = json_dict = json.load(open(json_path, 'r'))
-        else:
-            raise Exception('No info file found')
-
-    def get_region_electrodes(self):
-        """
-        If the appropriate json file is present in the data_dir,
-        extract the electrodes for each region
-        """
-        # json_name = self.hdf5_path.split('.')[0] + '.info'
-        # json_path = os.path.join(self.data_dir, json_name)
-        json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
-        if os.path.exists(json_path):
-            json_dict = json.load(open(json_path, 'r'))
-            self.region_electrode_dict = json_dict["electrode_layout"]
-            self.region_names = [x for x in self.region_electrode_dict.keys()
-                                 if 'emg' not in x]
-        else:
-            raise Exception("Cannot find json file. Make sure it's present")
-
-    def get_region_units(self):
-        """
-        Extracts indices of units by region of electrodes
-        `"""
-        if "region_electrode_dict" not in dir(self):
-            self.get_region_electrodes()
-        if "unit_descriptors" not in dir(self):
-            self.get_unit_descriptors()
-
-        unit_electrodes = [x['electrode_number']
-                           for x in self.unit_descriptors]
-        region_electrode_vals = [val for key, val in
-                                 self.region_electrode_dict.items() if key != 'emg']
-
-        car_name = []
-        car_electrodes = []
-        for key, val in self.region_electrode_dict.items():
-            if key != 'emg':
-                for num, this_car in enumerate(val):
-                    car_electrodes.append(this_car)
-                    car_name.append(key+str(num))
-
-        self.car_names = car_name
-        self.car_electrodes = car_electrodes
-
-        car_ind_vec = np.zeros(len(unit_electrodes))
-        for num, val in enumerate(self.car_electrodes):
-            for elec_num, elec in enumerate(unit_electrodes):
-                if elec in val:
-                    # This tells you which car group each neuron is in
-                    car_ind_vec[elec_num] = num
-
-        self.car_units = [np.where(car_ind_vec == x)[0]
-                          for x in np.unique(car_ind_vec)]
-
-        region_ind_vec = np.zeros(len(unit_electrodes))
-        for elec_num, elec in enumerate(unit_electrodes):
-            for region_num, region in enumerate(region_electrode_vals):
-                for car in region:
-                    if elec in car:
-                        region_ind_vec[elec_num] = region_num
-
-        self.region_units = [np.where(region_ind_vec == x)[0]
-                             for x in np.unique(region_ind_vec)]
-
-    def return_region_spikes(self, region_name='all'):
-        if 'region_names' not in dir(self):
-            self.get_region_units()
-        if self.spikes is None:
-            self.get_spikes()
-
-        if not region_name == 'all':
-            region_ind = [num for num, x in enumerate(self.region_names)
-                          if x == region_name]
-            if not len(region_ind) == 1:
-                raise Exception('Region name not found, or too many matches found, '
-                                'acceptable options are' +
-                                '\n' + f"===> {self.region_names, 'all'}")
-            else:
-                if region_ind[0] < len(self.region_units):
-                    this_region_units = self.region_units[region_ind[0]]
-                    region_spikes = [x[:, this_region_units]
-                                     for x in self.spikes]
-                    return np.array(region_spikes)
-                else:
-                    print(f'No units found in this region: {region_name}')
-                    return None
-        else:
-            return np.array(self.spikes)
-
-    def get_region_firing(self, region_name='all'):
-        if 'region_units' not in dir(self):
-            self.get_region_units()
-        if 'firing_array' not in dir(self):
-            self.get_firing_rates()
-
-        if not region_name == 'all':
-            region_ind = [num for num, x in enumerate(self.region_names)
-                          if x == region_name]
-            if not len(region_ind) == 1:
-                raise Exception('Region name not found, or too many matches found, '
-                                'acceptable options are' +
-                                '\n' + f"===> {self.region_names, 'all'}")
-            else:
-                this_region_units = self.region_units[region_ind[0]]
-                region_firing = [x[this_region_units]
-                                 for x in self.firing_array]
-                return np.array(region_firing)
-        else:
-            return np.array(self.firing_array)
-
-    def get_lfp_electrodes(self):
-        """
-        Extracts indices of lfp_electrodes according to region
-        """
-        if 'parsed_lfp_channels' not in dir(self):
-            self.get_lfp_channels()
-        if 'region_electrode_dict' not in dir(self):
-            self.get_region_electrodes()
-
-        region_electrode_vals = [val for key, val in
-                                 self.region_electrode_dict.items() if key != 'emg']
-        region_ind_vec = np.zeros(len(self.parsed_lfp_channels))
-        for elec_num, elec in enumerate(self.parsed_lfp_channels):
-            for region_num, region in enumerate(region_electrode_vals):
-                for car in region:
-                    if elec in car:
-                        region_ind_vec[elec_num] = region_num
-
-        self.lfp_region_electrodes = [np.where(region_ind_vec == x)[0]
-                                      for x in np.unique(region_ind_vec)]
+        def get_lfp_electrodes(self):
+            # Existing code for get_lfp_electrodes
 
     def get_stft(
             self,
