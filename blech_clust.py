@@ -45,6 +45,8 @@ parser.add_argument('dir_name', type=str,
                     help='Directory name with data files')
 parser.add_argument('--force_run', action='store_true',
                     help='Force run the script without asking user')
+parser.add_argument('--overwrite_params', action='store_true',
+                    help='Overwrite existing params file with a new one')
 args = parser.parse_args()
 force_run = args.force_run
 
@@ -368,8 +370,8 @@ all_params_dict = params_template.copy()
 all_params_dict['sampling_rate'] = sampling_rate
 
 params_out_path = hdf5_name.split('.')[0] + '.params'
-if not os.path.exists(params_out_path):
-    print('No params file found...Creating new params file')
+if not os.path.exists(params_out_path) or args.overwrite_params:
+    print('Creating new params file')
     with open(params_out_path, 'w') as params_file:
         json.dump(all_params_dict, params_file, indent=4)
 else:
