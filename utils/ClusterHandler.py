@@ -15,6 +15,7 @@ High-level implementation:
         - Methods to handle visualization of waveforms, spiketimes, latent space representation
 """
 
+
 class ElectrodeHandler:
     def __init__(self, electrode_data):
         # Initialize with electrode data
@@ -32,6 +33,7 @@ class ElectrodeHandler:
     def add_cluster(self, cluster):
         # Add a cluster to the electrode
         self.clusters.append(cluster)
+
 
 class ClusterHandler:
     def __init__(self, waveforms, spiketimes):
