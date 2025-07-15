@@ -288,12 +288,15 @@ def populate_field_with_defaults(
         if user_input.strip().lower() == "none":
             return []
         # Convert input if conversion function provided
-        if convert_func:
-            return convert_func(user_input)
-        return user_input
+        elif user_input.strip():
+            if convert_func:
+                return convert_func(user_input)
+            return user_input
+        else:
+            # Use default if input is empty
+            return default_value
     else:
-        # Use default if input is empty
-        return default_value
+        exit()
 
 
 def parse_laser_params(s):
