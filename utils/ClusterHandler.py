@@ -11,4 +11,6 @@ High-level implementation:
         - Container for waveforms and spiketimes of a single cluster
         - Attribute to be a `unit`
         - Methods to merge or split clusters
+            - Can overload `__add__` and `__div__` to merge or split clusters
+        - Methods to handle visualization of waveforms, spiketimes, latent space representation
 """
