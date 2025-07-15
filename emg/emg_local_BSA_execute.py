@@ -97,7 +97,8 @@ basar = importr('BaSAR')
 
 # Make the time array and assign it to t on R
 # Run BSA with parameters from JSON
-ro.r(f"r_local = BaSAR.local(x, {bsa_params['frequency_range'][0]}, {bsa_params['frequency_range'][1]}, {bsa_params['frequency_steps']}, t, 0, {bsa_params['window_size']})")
+ro.r(
+    f"r_local = BaSAR.local(x, {bsa_params['frequency_range'][0]}, {bsa_params['frequency_range'][1]}, {bsa_params['frequency_steps']}, t, 0, {bsa_params['window_size']})")
 
 # Run BSA on trial 'trial' of taste 'taste' and assign the results to p and omega.
 # input_data = emg_env[taste, trial, :]
