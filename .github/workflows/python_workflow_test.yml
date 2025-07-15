@@ -37,7 +37,7 @@ jobs:
   Install:
     runs-on: self-hosted
     needs: Preamble
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') && !contains(github.event.pull_request.labels.*.name, 'no-test') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
     # Only run installation when PR has 'install' label
     steps:
       - name: Clean install
@@ -76,7 +76,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') && !contains(github.event.pull_request.labels.*.name, 'no-test') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
@@ -113,7 +113,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') && !contains(github.event.pull_request.labels.*.name, 'no-test') }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
@@ -132,7 +132,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     # Test EMG analysis pipeline in isolation
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') && !contains(github.event.pull_request.labels.*.name, 'no-test') }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect EMG only test
         shell: bash
