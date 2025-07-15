@@ -207,25 +207,29 @@ np.save('flat_emg_env_data.npy', flat_emg_env_data)
 max_n_trials = emg_env_df.trial_inds.max() + 1
 n_dig_ins = emg_env_df.dig_in.nunique()
 
-emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
-                         dtype=np.float32)
-emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
-                          dtype=np.float32)
+for this_car, this_df in emg_env_df.groupby('car'):
 
-# Fill both with nans
-emg_env_array.fill(np.nan)
-emg_filt_array.fill(np.nan)
+    emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
+                             dtype=np.float32)
+    emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
+                              dtype=np.float32)
 
-# Fill the arrays with the data
-for i, this_row in emg_env_df.iterrows():
-    dig_in_ind = this_row['dig_in_ind']
-    trial_ind = this_row['trial_inds']
-    emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
-    emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
+    # Fill both with nans
+    emg_env_array.fill(np.nan)
+    emg_filt_array.fill(np.nan)
 
-# Save the arrays to numpy files
-np.save(os.path.join(emg_output_dir, 'emg_env.npy'), emg_env_array)
-np.save(os.path.join(emg_output_dir, 'emg_filt.npy'), emg_filt_array)
+    # Fill the arrays with the data
+    for i, this_row in this_df.iterrows():
+        dig_in_ind = this_row['dig_in_ind']
+        trial_ind = this_row['trial_inds']
+        emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
+        emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
+
+    # Save the arrays to numpy files
+    emg_car_output_dir = os.path.join(emg_output_dir, this_car)
+    os.makedirs(emg_car_output_dir, exist_ok=True)
+    np.save(os.path.join(emg_car_output_dir, 'emg_env.npy'), emg_env_array)
+    np.save(os.path.join(emg_car_output_dir, 'emg_filt.npy'), emg_filt_array)
 
 ############################################################
 
