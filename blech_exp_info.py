@@ -57,7 +57,7 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -1021,7 +1021,7 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
     laser_select_str = populate_field_with_defaults(
         field_name='dig_in_nums',
         nested_field='laser_params',
-        entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
+        entry_checker_msg='Laser dig_in INDEX, "none" for no laser digins',
         check_func=count_check,
         existing_info=existing_info,
         cache=cache,
