@@ -1015,7 +1015,10 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
     def convert_laser_digin(input_str):
         if input_str.lower() == "none":
             return []
-        return [int(input_str)]
+        elif len(input_str) == 0:
+            return []
+        else:
+            return [int(input_str)]
 
     # Use helper function with special handling for blank input
     laser_select_str = populate_field_with_defaults(
@@ -1035,6 +1038,8 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
     if isinstance(laser_select_str, str):
         if laser_select_str.lower() == "none":
             laser_digin_ind = []
+        elif len(laser_select_str) == 0:
+            laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
         else:
             laser_digin_ind = [int(laser_select_str)]
     else:
