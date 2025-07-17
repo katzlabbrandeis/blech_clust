@@ -1,3 +1,6 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 """
 Code to handle electrode and cluster handling operations
 
@@ -52,7 +55,14 @@ class ClusterHandler:
         self.unit = None
 
     def merge(self, other):
-        # Merge with another cluster
+        # Combine waveforms and spiketimes from both clusters
+        self.waveforms = np.concatenate((self.waveforms, other.waveforms))
+        self.spiketimes = np.concatenate((self.spiketimes, other.spiketimes))
+        # Optionally, update unit attribute or other metadata
+        self.unit = 'merged'
+
+    def split(self):
+        # Split the cluster
         # Use matplotlib or similar library to plot waveforms and spiketimes
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
@@ -62,10 +72,6 @@ class ClusterHandler:
         plt.hist(self.spiketimes, bins=50)
         plt.title('Spike Times')
         plt.show()
-
-    def split(self):
-        # Split the cluster
-        pass
 
     def visualize(self):
         # Visualize waveforms, spiketimes, and latent space representation
