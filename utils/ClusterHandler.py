@@ -34,8 +34,10 @@ class ElectrodeHandler:
         # Example logic to split based on waveform characteristics
         # This is a placeholder; actual logic will depend on specific criteria
         split_index = len(self.waveforms) // 2
-        cluster1 = ClusterHandler(self.waveforms[:split_index], self.spiketimes[:split_index])
-        cluster2 = ClusterHandler(self.waveforms[split_index:], self.spiketimes[split_index:])
+        cluster1 = ClusterHandler(
+            self.waveforms[:split_index], self.spiketimes[:split_index])
+        cluster2 = ClusterHandler(
+            self.waveforms[split_index:], self.spiketimes[split_index:])
         return cluster1, cluster2
 
     def add_cluster(self, cluster):
