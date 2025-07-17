@@ -24,11 +24,20 @@ class ElectrodeHandler:
 
     def load_data(self):
         # Load data for all putative waveforms for an electrode
-        pass
+        # Combine waveforms and spiketimes from both clusters
+        self.waveforms = np.concatenate((self.waveforms, other.waveforms))
+        self.spiketimes = np.concatenate((self.spiketimes, other.spiketimes))
+        # Optionally, update unit attribute or other metadata
+        self.unit = 'merged'
 
     def handle_io(self):
         # Handle I/O of all clusters present on the electrode
-        pass
+        # Example logic to split based on waveform characteristics
+        # This is a placeholder; actual logic will depend on specific criteria
+        split_index = len(self.waveforms) // 2
+        cluster1 = ClusterHandler(self.waveforms[:split_index], self.spiketimes[:split_index])
+        cluster2 = ClusterHandler(self.waveforms[split_index:], self.spiketimes[split_index:])
+        return cluster1, cluster2
 
     def add_cluster(self, cluster):
         # Add a cluster to the electrode
@@ -44,7 +53,15 @@ class ClusterHandler:
 
     def merge(self, other):
         # Merge with another cluster
-        pass
+        # Use matplotlib or similar library to plot waveforms and spiketimes
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.plot(self.waveforms.T)
+        plt.title('Waveforms')
+        plt.subplot(1, 2, 2)
+        plt.hist(self.spiketimes, bins=50)
+        plt.title('Spike Times')
+        plt.show()
 
     def split(self):
         # Split the cluster
