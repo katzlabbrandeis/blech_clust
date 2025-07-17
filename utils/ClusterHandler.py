@@ -27,11 +27,7 @@ class ElectrodeHandler:
 
     def load_data(self):
         # Load data for all putative waveforms for an electrode
-        # Combine waveforms and spiketimes from both clusters
-        self.waveforms = np.concatenate((self.waveforms, other.waveforms))
-        self.spiketimes = np.concatenate((self.spiketimes, other.spiketimes))
-        # Optionally, update unit attribute or other metadata
-        self.unit = 'merged'
+        pass
 
     def handle_io(self):
         # Handle I/O of all clusters present on the electrode
