@@ -33,7 +33,8 @@ class Logger(object):
         self.terminal = sys.stdout
         log_dir = os.path.join(os.path.dirname(log_file_path), "logs")
         os.makedirs(log_dir, exist_ok=True)
-        self.log = open(os.path.join(log_dir, os.path.basename(log_file_path)), "a")
+        self.log = open(os.path.join(
+            log_dir, os.path.basename(log_file_path)), "a")
 
     def append_time(self, message):
         now = str(datetime.datetime.now())
