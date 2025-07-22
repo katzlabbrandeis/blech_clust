@@ -92,7 +92,7 @@ incomplete = [e for e, data in process_log.items() if data['status'] == 'attempt
 
 if incomplete:
     print(f"Error: The following electrodes did not complete successfully: {incomplete}")
-    with open(pathlib.Path("$DIR") / 'warnings.txt', 'a') as warning_file:
+    with open(pathlib.Path("$DIR") / 'QA_output' / 'warnings.txt', 'a') as warning_file:
         warning_file.write(f"Warning: Incomplete electrodes detected: {incomplete}\\n")
     sys.exit(1)
 else:
