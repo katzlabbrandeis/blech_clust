@@ -92,6 +92,8 @@ incomplete = [e for e, data in process_log.items() if data['status'] != 'complet
 
 if incomplete:
     print(f"Error: The following electrodes did not complete successfully: {incomplete}")
+    with open(pathlib.Path("$DIR") / 'warnings.txt', 'a') as warning_file:
+        warning_file.write(f"Warning: Incomplete electrodes detected: {incomplete}\\n")
     sys.exit(1)
 else:
     print("All electrodes completed successfully")
