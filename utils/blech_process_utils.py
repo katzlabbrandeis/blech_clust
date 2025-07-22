@@ -240,6 +240,21 @@ class cluster_handler():
         self.labels = self.get_cluster_labels(self.spike_features)
         return self.labels
 
+    def gen_cluster_map(self, labels):
+        """
+        Generate a mapping of cluster labels to continuous integers
+        """
+        current_clusters = list(np.unique(labels))
+        if -1 in current_clusters:
+            current_clusters.remove(-1)
+        new_labels = np.arange(len(current_clusters))
+        cluster_map = dict(zip(current_clusters, new_labels))
+        # Add -1:-1 mapping
+        cluster_map[-1] = -1
+        print('Renaming Clusters')
+        print(f'Cluster map: {cluster_map}')
+        return cluster_map
+
     def ensure_continuous_labels(self):
         """
         Ensure cluster labels are continuous numbers
@@ -251,13 +266,7 @@ class cluster_handler():
         # This is not a problem for manual model
         # Rename all but label=-1
         if self.fit_type == 'auto':
-            current_clusters = list(np.unique(self.labels))
-            if -1 in current_clusters:
-                current_clusters.remove(-1)
-            new_labels = np.arange(len(current_clusters))
-            cluster_map = dict(zip(current_clusters, new_labels))
-            # Add -1:-1 mapping
-            cluster_map[-1] = -1
+            cluster_map = self.gen_cluster_map(self.labels)
             print('Renaming Cluters')
             print(f'Cluster map: {cluster_map}')
             self.labels = np.array([cluster_map[x] for x in self.labels])
