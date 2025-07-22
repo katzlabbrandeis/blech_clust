@@ -88,7 +88,7 @@ if not log_path.exists():
 with open(log_path) as f:
     process_log = json.load(f)
 
-incomplete = [e for e, data in process_log.items() if data['status'] == 'attempted']
+incomplete = [e for e, data in process_log.items() if data['status'] != 'completed']
 
 if incomplete:
     print(f"Error: The following electrodes did not complete successfully: {incomplete}")
