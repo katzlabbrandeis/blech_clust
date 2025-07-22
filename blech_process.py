@@ -48,8 +48,9 @@ from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 test_bool = False
 if test_bool:
     args = argparse.Namespace(
-        data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201215_115133/',
-        electrode_num=0
+        # data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201215_115133/',
+        data_dir='/media/storage/CM66_CTATest1_nacl_h2o_sac_250410_121034',
+        electrode_num=4
     )
 else:
     parser = argparse.ArgumentParser(
@@ -362,31 +363,41 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
-    cluster_handler.ensure_continuous_labels()
 
 # Log clustering completion
 update_process_log(log_path, electrode_num, 'clustering', 'completed')
 
-# At this point, cluster_handler has a trained GMM
-# If 'throw_out_noise', then get labels for all waveforms
+# At this point, cluster_handler has a trained GMM on only classified spikes
+# If 'throw_out_noise', then get labels for all waveforms for plotting
 # otherwise, use the labels from the GMM
 if throw_out_noise_bool:
     print('=== GMM trained using only classified spikes ===')
+    # In this prediction, it is possible that we get clusters not in the
+    # classified spikes, hence a new cluster_map is needed
     all_labels = cluster_handler.get_cluster_labels(
         all_features,
     )
+
+    cluster_map = cluster_handler.gen_cluster_map(all_labels)
     # Since GMM will return predictions using original labels,
     # if auto_clustering, will need to relabel
     if auto_cluster:
         all_labels = np.array(
-            [cluster_handler.cluster_map[label] for label in all_labels]
+            [cluster_map[label] for label in all_labels]
+        )
+        cluster_handler.labels = np.array(
+            [cluster_map[label] for label in cluster_handler.labels]
         )
 else:
+    # If not throwing out noise, then labels can be rectified using the internal set
+    cluster_handler.ensure_continuous_labels()
     all_labels = cluster_handler.labels
+
 cluster_handler.remove_outliers(params_dict)
 cluster_handler.calc_mahalanobis_distance_matrix()
 cluster_handler.save_cluster_labels()
 cluster_handler.create_output_plots(params_dict)
+
 # NOTE: Classifier plots will not have outliers removed
 if throw_out_noise_bool:
     print('=== Classifier plots will NOT have outliers removed ===')
@@ -407,7 +418,7 @@ print(f'Electrode {electrode_num} complete.')
 # Update processing log with completion
 update_process_log(log_path, electrode_num, 'end_time',
                    datetime.datetime.now().isoformat())
-update_process_log(log_path, electrode_num, 'status', 'complete')
+update_process_log(log_path, electrode_num, 'status', 'completed')
 
 # Write successful execution to log
 if not test_bool:
