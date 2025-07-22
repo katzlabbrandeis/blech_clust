@@ -16,5 +16,7 @@ dir_name = metadata_handler.dir_name
 this_pipeline_check = pipeline_graph_check(dir_name)
 
 # Write success to log
-this_pipeline_check.write_to_log(logging_script_path, 'attempted')
+log_dir = os.path.join(dir_name, 'logs')
+os.makedirs(log_dir, exist_ok=True)
+this_pipeline_check.write_to_log(os.path.join(log_dir, 'execution.log'), 'attempted')
 this_pipeline_check.write_to_log(logging_script_path, 'completed')

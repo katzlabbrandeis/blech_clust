@@ -31,7 +31,9 @@ from utils.blech_utils import pipeline_graph_check  # noqa: E402
 class Logger(object):
     def __init__(self, log_file_path):
         self.terminal = sys.stdout
-        self.log = open(log_file_path, "a")
+        log_dir = os.path.join(os.path.dirname(log_file_path), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        self.log = open(os.path.join(log_dir, os.path.basename(log_file_path)), "a")
 
     def append_time(self, message):
         now = str(datetime.datetime.now())

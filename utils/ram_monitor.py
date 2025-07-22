@@ -14,7 +14,9 @@ from datetime import datetime
 
 def monitor_ram(output_dir):
     """Monitor RAM usage and write to a log file"""
-    log_file = os.path.join(output_dir, "ram_usage.log")
+    log_dir = os.path.join(output_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "ram_usage.log")
 
     with open(log_file, 'a') as f:
         f.write("Timestamp,RAM_Used_GB,RAM_Total_GB,RAM_Percent\n")
