@@ -116,6 +116,9 @@ if log_path.exists():
     with open(log_path) as f:
         process_log = json.load(f)
 else:
+    # Create a new log file if it doesn't exist
+    with open(log_path, 'w') as f:
+        json.dump({}, f, indent=2)
     process_log = {}
 
 # Log processing start
