@@ -268,6 +268,13 @@ def load_and_update_config(args):
     return params_dict
 
 
+def load_and_update_config(args):
+    params_dict = load_config()
+    params_dict = update_config_from_args(params_dict, args)
+    pprint(params_dict)
+    return params_dict
+
+
 params_dict = load_and_update_config(args)
 
 ##############################
@@ -357,64 +364,34 @@ latent_out_list = []
 region_name_list = []
 taste_ind_list = []
 
-# Train model for each taste/region combination
-for (name, idx), spike_data in zip(processing_inds, processing_items):
-
+def process_region_taste_combination(name, idx, spike_data, params_dict, artifacts_dir, plots_dir):
+    # Encapsulate the logic for processing each region-taste combination
+    # This includes data preparation, model training, and plotting
     iden_str = f'{name}_taste_{idx}'
-    region_name_list.append(name)
-    taste_ind_list.append(idx)
-
     print(f'Processing region {name}, taste {idx}')
-    model_name = f'region_{name}_taste_{idx}_hidden_{hidden_size}_loss_{loss_name}'
+    model_name = f'region_{name}_taste_{idx}_hidden_{params_dict["hidden_size"]}_loss_mse'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
-    # taste_spikes = np.concatenate(spike_array)
-    # Cut taste_spikes to time limits
-    # Shape: (trials, neurons, time)
-    spike_data = spike_data[..., time_lims[0]:time_lims[1]]
+    spike_data = spike_data[..., params_dict['time_lims'][0]:params_dict['time_lims'][1]]
     print(f'Spike data shape: {spike_data.shape}')
 
     trial_num = np.arange(spike_data.shape[0])
+    binned_spikes = prepare_data(spike_data, params_dict['time_lims'], params_dict['bin_size'])
 
-    binned_spikes = prepare_data(spike_data, time_lims, bin_size)
-    binned_spikes_list.append(binned_spikes)
-
-    # ** The naming of inputs / labels throughouts is confusing as hell
-
-    # Reshape to (seq_len, batch, input_size)
-    # seq_len = time
-    # batch = trials
-    # input_size = neurons
     inputs = binned_spikes.copy()
     inputs = np.moveaxis(inputs, -1, 0)
 
-    ##############################
-    # Perform PCA on data
-    # If PCA is performed on raw data, higher firing neurons will dominate
-    # the latent space
-    # Therefore, perform PCA on zscored data
+    inputs, pca_obj = perform_pca(inputs, params_dict['use_pca'])
 
-    inputs, pca_obj = perform_pca(inputs, use_pca)
-
-    ##############################
-
-    # Add stim time as external input
-    # Shape: (time, trials, 1)
-    stim_time_val = 2000 - time_lims[0]
+    stim_time_val = 2000 - params_dict['time_lims'][0]
     if stim_time_val < 0:
         raise ValueError('Stim time is before time limits')
     stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
-    stim_time[stim_time_val//bin_size, :] = 1
-    # Don't use taste_num as external input
-    # Network tends to read too much into it
-    # stim_time[2000//bin_size, :] = taste_num / taste_num.max()
+    stim_time[stim_time_val//params_dict['bin_size'], :] = 1
 
-    # Also add trial number as external input
-    # Scale trial number to be between 0 and 1
     trial_num_scaled = trial_num / trial_num.max()
     trial_num_broad = np.broadcast_to(trial_num_scaled, inputs.shape[:2])
 
-    # Shape: (time, trials, pca_components + 1)
     inputs_plus_context = np.concatenate(
         [
             inputs,
@@ -429,8 +406,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     plt.savefig(os.path.join(plots_dir, 'input_stim_time.png'))
     plt.close()
 
-    # Plot inputs for sanity check
-    # vz.firing_overview(inputs.swapaxes(0,1).swapaxes(1,2),
     vz.firing_overview(inputs_plus_context.T,
                        figsize=(10, 10),
                        cmap='viridis',
@@ -441,9 +416,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     fig.savefig(os.path.join(plots_dir, f'inputs_{iden_str}.png'))
     plt.close(fig)
 
-    ############################################################
-    # Train model
-    ############################################################
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
         print("Running on the GPU")
@@ -452,25 +424,18 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         print("Running on the CPU")
 
     input_size = inputs_plus_context.shape[-1]
-    # We don't want to predict the stim time or trial number
     output_size = inputs_plus_context.shape[-1] - 2
 
-    # Instead of predicting activity in the SAME time-bin,
-    # predict activity in the NEXT time-bin
-    # Forcing the model to learn temporal dependencies
-    forecast_bins = int(forecast_time // bin_size)
+    forecast_bins = int(params_dict['forecast_time'] // params_dict['bin_size'])
     inputs_plus_context = inputs_plus_context[:-forecast_bins]
     inputs = inputs[forecast_bins:]
 
-    # (seq_len * batch, output_size)
     labels = torch.from_numpy(inputs).type(torch.float32)
-    # (seq_len, batch, input_size)
     inputs = torch.from_numpy(inputs_plus_context).type(torch.float)
 
-    # Split into train and test
     train_inds = np.random.choice(
         np.arange(inputs.shape[1]),
-        int(train_test_split * inputs.shape[1]),
+        int(params_dict['train_test_split'] * inputs.shape[1]),
         replace=False)
     test_inds = np.setdiff1d(np.arange(inputs.shape[1]), train_inds)
 
@@ -484,15 +449,10 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     test_inputs = test_inputs.to(device)
     test_labels = test_labels.to(device)
 
-    ##############################
-    # Train
-    ##############################
-    # Train the RNN model
     net, loss, cross_val_loss = train_rnn_model(
-        train_inputs, train_labels, params_dict['train_steps'], hidden_size, output_size, device
+        train_inputs, train_labels, params_dict['train_steps'], params_dict['hidden_size'], output_size, device
     )
 
-    # If final train loss > cross val loss, issue warning
     if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
         warning_file_path = os.path.join(artifacts_dir, 'warning.txt')
         warning_str = """
@@ -504,49 +464,24 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
             f.write(warning_str)
         print(warning_str)
 
-    ############################################################
-    # Reconstruction
     outs, latent_outs = net(inputs.to(device))
     outs = outs.cpu().detach().numpy()
     latent_outs = latent_outs.cpu().detach().numpy()
     pred_firing = np.moveaxis(outs, 0, -1)
 
-    latent_out_list.append(latent_outs)
-
-    ##############################
-    # Convert back into neuron space
-    # Shape: (trials, time, neurons)
     pred_firing = np.moveaxis(pred_firing, 0, -1).T
     pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
 
-    # If pca was performed, first reverse PCA, then reverse pca standard scaling
-    if use_pca:
-        # # Reverse NMF scaling
-        # pred_firing_long = nmf_scaler.inverse_transform(pred_firing_long)
-        # pred_firing_long = pca_scaler.inverse_transform(pred_firing_long)
-
-        # Reverse NMF transform
-        # pred_firing_long = nmf_obj.inverse_transform(pred_firing_long)
+    if params_dict['use_pca']:
         pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
 
-    # Reverse standard scaling
-    # Reverse standard scaling
     pred_firing_long = StandardScaler().inverse_transform(pred_firing_long)
 
     pred_firing = pred_firing_long.reshape((*pred_firing.shape[:2], -1))
-    # shape: (trials, neurons, time)
     pred_firing = np.moveaxis(pred_firing, 1, 2)
 
-    pred_firing_list.append(pred_firing)
-
-    ##############################
-
-    ############################################################
-
-    # Loss plot
     print('-- Plotting loss')
     fig, ax = plt.subplots()
-    # Plot the training and cross-validation loss
     ax.plot(np.vectorize(int)(list(enumerate(loss))), loss, label='Train Loss')
     ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
             cross_val_loss.values(), label='Test Loss')
@@ -558,7 +493,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
                 bbox_inches='tight')
     plt.close(fig)
 
-    # Firing rate plots
     print('-- Plotting firing rates')
     vz.firing_overview(pred_firing.swapaxes(0, 1))
     fig = plt.gcf()
@@ -572,7 +506,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         plots_dir, f'firing_binned_{iden_str}.png'))
     plt.close(fig)
 
-    # Latent factors
     print('-- Plotting latent factors')
     fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize=(5, 10),
                            sharex=True, sharey=True)
@@ -583,7 +516,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         plots_dir, f'latent_factors_{iden_str}.png'))
     plt.close(fig)
 
-    # Mean firing rates
     pred_firing_mean = pred_firing.mean(axis=0)
     binned_spikes_mean = binned_spikes.mean(axis=0)
 
@@ -595,7 +527,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     ax[1].set_title('True')
     fig.savefig(os.path.join(plots_dir, f'mean_firing_{iden_str}.png'))
     plt.close(fig)
-    # plt.show()
 
     print('-- Plotting zscored mean firing rates')
     fig, ax = plt.subplots(1, 2)
@@ -609,25 +540,20 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         plots_dir, f'mean_firing_zscored_{iden_str}.png'))
     plt.close(fig)
 
-    # For every neuron, plot 1) spike raster, 2) convolved firing rate ,
-    # 3) RNN predicted firing rate
     ind_plot_dir = os.path.join(plots_dir, 'individual_neurons')
     if not os.path.exists(ind_plot_dir):
         os.makedirs(ind_plot_dir)
 
-    binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
+    binned_x = np.arange(0, binned_spikes.shape[-1]*params_dict['bin_size'], params_dict['bin_size'])
     pred_x = np.arange(
-        0, pred_firing.shape[-1]*bin_size, bin_size) + forecast_time
-    pred_x_list.append(pred_x)
+        0, pred_firing.shape[-1]*params_dict['bin_size'], params_dict['bin_size']) + params_dict['forecast_time']
 
     conv_kern = np.ones(250) / 250
     conv_rate = np.apply_along_axis(
         lambda m: np.convolve(m, conv_kern, mode='valid'),
-        axis=-1, arr=spike_data)*bin_size
+        axis=-1, arr=spike_data)*params_dict['bin_size']
     conv_x = np.convolve(
         np.arange(spike_data.shape[-1]), conv_kern, mode='valid')
-    conv_rate_list.append(conv_rate)
-    conv_x_list.append(conv_x)
 
     print('-- Plotting individual neurons rates')
     for i in range(conv_rate.shape[1]):
@@ -635,12 +561,9 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
                                sharex=True, sharey=False)
         ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
         ax[1].plot(conv_x, conv_rate[:, i].T, c='k', alpha=0.1)
-        # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
         ax[2].plot(pred_x, pred_firing[:, i].T,
                    c='k', alpha=0.1)
-        # ax[2].sharey(ax[1])
         for this_ax in ax:
-            # this_ax.set_xlim([1500, 4000])
             this_ax.axvline(stim_time_val, c='r', linestyle='--')
         ax[1].set_title(
             f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
@@ -651,7 +574,6 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         )
         plt.close(fig)
 
-    # Plot single-trial latent factors
     trial_latent_dir = os.path.join(plots_dir, 'trial_latent')
     if not os.path.exists(trial_latent_dir):
         os.makedirs(trial_latent_dir)
@@ -665,6 +587,20 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         fig.savefig(os.path.join(trial_latent_dir,
                     f'{iden_str}_trial_{i}_latent.png'))
         plt.close(fig)
+
+    return pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes
+
+
+# Train model for each taste/region combination
+for (name, idx), spike_data in zip(processing_inds, processing_items):
+    pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes = process_region_taste_combination(
+        name, idx, spike_data, params_dict, artifacts_dir, plots_dir)
+    pred_firing_list.append(pred_firing)
+    latent_out_list.append(latent_outs)
+    pred_x_list.append(pred_x)
+    conv_rate_list.append(conv_rate)
+    conv_x_list.append(conv_x)
+    binned_spikes_list.append(binned_spikes)
 
 ############################################################
 ############################################################
