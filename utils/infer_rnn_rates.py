@@ -305,13 +305,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
 
     trial_num = np.arange(spike_data.shape[0])
 
-    # Bin spikes
-    # (tastes x trials, neurons, time)
-    # for example : (120, 35, 280)
-    if 'xarray' in str(type(spike_data)):
-        spike_data = spike_data.to_numpy()
-    binned_spikes = np.reshape(spike_data,
-                               (*spike_data.shape[:2], -1, bin_size)).sum(-1)
+    binned_spikes = prepare_data(spike_data, time_lims, bin_size)
     binned_spikes_list.append(binned_spikes)
 
     # ** The naming of inputs / labels throughouts is confusing as hell
@@ -329,32 +323,7 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     # the latent space
     # Therefore, perform PCA on zscored data
 
-    inputs_long = inputs.reshape(-1, inputs.shape[-1])
-
-    # Perform standard scaling
-    scaler = StandardScaler()
-    # scaler = MinMaxScaler()
-    inputs_long = scaler.fit_transform(inputs_long)
-
-    if use_pca:
-        print('Performing PCA')
-        # Perform PCA and get 95% explained variance
-        pca_obj = PCA(n_components=0.95)
-        inputs_pca = pca_obj.fit_transform(inputs_long)
-        n_components = inputs_pca.shape[-1]
-
-        # # Scale the PCA outputs
-        # pca_scaler = StandardScaler()
-        # inputs_pca = pca_scaler.fit_transform(inputs_pca)
-
-        inputs_trial_pca = inputs_pca.reshape(
-            inputs.shape[0], -1, n_components)
-
-        # shape: (time, trials, pca_components)
-        inputs = inputs_trial_pca.copy()
-    else:
-        inputs_trial_scaled = inputs_long.reshape(inputs.shape)
-        inputs = inputs_trial_scaled.copy()
+    inputs, pca_obj = perform_pca(inputs, use_pca)
 
     ##############################
 
@@ -447,58 +416,9 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     ##############################
     # Train
     ##############################
-    net = autoencoderRNN(
-        input_size=input_size,
-        hidden_size=hidden_size,
-        output_size=output_size,
-        rnn_layers=2,
-        dropout=0.2,
+    net, loss, cross_val_loss = train_rnn_model(
+        train_inputs, train_labels, train_steps, hidden_size, output_size, device
     )
-
-    # loss_path = os.path.join(artifacts_dir, f'loss_taste_{idx}.json')
-    loss_path = os.path.join(artifacts_dir, model_name + '_loss.json')
-    cross_val_loss_path = os.path.join(
-        artifacts_dir, model_name + '_cross_val_loss.json')
-    # artifacts_dir, f'cross_val_loss_taste_{idx}.json')
-    if (not os.path.exists(model_save_path)) or args.retrain:
-        if args.retrain:
-            print('Retraining model')
-        net.to(device)
-        net, loss, cross_val_loss = train_model(
-            net,
-            train_inputs,
-            train_labels,
-            output_size=output_size,
-            lr=0.001,
-            train_steps=train_steps,
-            criterion=MSELoss(),
-            test_inputs=test_inputs,
-            test_labels=test_labels,
-        )
-        # Save artifacts and plots
-        torch.save(net, model_save_path)
-        # np.save(loss_path, loss)
-        # np.save(cross_val_loss_path, cross_val_loss)
-        loss_dict = {i: x for i, x in enumerate(loss)}
-        with open(loss_path, 'w') as f:
-            json.dump(loss_dict, f, indent=4)
-        with open(cross_val_loss_path, 'w') as f:
-            json.dump(cross_val_loss, f, indent=4)
-        params_dict['loss_func'] = str(MSELoss)
-        with open(os.path.join(artifacts_dir, 'params.json'), 'w') as f:
-            json.dump(params_dict, f, indent=4)
-    else:
-        print('Model already exists. Loading model')
-        net = torch.load(model_save_path)
-        # loss = np.load(loss_path, allow_pickle = True)
-        # cross_val_loss = np.load(cross_val_loss_path, allow_pickle = True)
-        with open(loss_path, 'r') as f:
-            loss_dict = json.load(f)
-        loss = [loss_dict[i] for i in sorted(loss_dict.keys())]
-        with open(cross_val_loss_path, 'r') as f:
-            cross_val_loss = json.load(f)
-        with open(os.path.join(artifacts_dir, 'params.json'), 'r') as f:
-            params_dict = json.load(f)
 
     # If final train loss > cross val loss, issue warning
     if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
