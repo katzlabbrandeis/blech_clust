@@ -272,6 +272,7 @@ params_dict = load_and_update_config(args)
 loss_name = 'mse'
 
 def prepare_data(data_dir):
+    global data
     basename = os.path.basename(data_dir)
     data = ephys_data.ephys_data(data_dir)
     data.get_spikes()
@@ -294,7 +295,6 @@ def prepare_data(data_dir):
     ) for x in data.spikes]
     return spikes_xr
 
-basename = os.path.basename(data_dir)
 spikes_xr = prepare_data(data_dir)
 
 ############################################################
