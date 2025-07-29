@@ -798,7 +798,6 @@ for spike_array, region_name in zip(spike_arrays, region_names):
                 ind_plot_dir,
                 f'neuron_{i}_region_{region_name}_mean_raster_conv_pred.png'))
         plt.close(fig)
-                               sharex=True, sharey=False)
         # Get spikes from all tastes for this neuron
 
         ax[0] = vz.raster(ax[0], spike_array[:, i], marker='|', color='k')
