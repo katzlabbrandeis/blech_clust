@@ -188,7 +188,7 @@ def update_config_from_args(params_dict, args):
     return params_dict
 
 
-def parse_group_by(spikes_xr, group_by_list):
+def parse_group_by(spikes_xr, group_by_list, data):
     """
     Parse group_by_list to get the appropriate data for processing
 
@@ -294,6 +294,7 @@ def prepare_data(data_dir):
     ) for x in data.spikes]
     return spikes_xr
 
+basename = os.path.basename(data_dir)
 spikes_xr = prepare_data(data_dir)
 
 ############################################################
@@ -309,7 +310,7 @@ if args.separate_regions:
 
 
 processing_items, processing_inds, taste_inds, region_inds = parse_group_by(
-    spikes_xr, group_by_list)
+    spikes_xr, group_by_list, data)
 
 # Drop any items with 'none' in region_inds
 region_inds = [x.lower() for x in region_inds]
