@@ -372,20 +372,23 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
     # Data preparation
-    spike_data, inputs_plus_context, labels, device, stim_time_val, pca_obj = prepare_combination_data(spike_data, params_dict)
+    spike_data, inputs_plus_context, labels, device, stim_time_val, pca_obj = prepare_combination_data(
+        spike_data, params_dict)
 
     # Plotting inputs for sanity checks
     plot_inputs(inputs_plus_context, plots_dir, iden_str)
 
     # Model training
-    net, loss, cross_val_loss = train_combination_model(inputs_plus_context, labels, params_dict, device)
+    net, loss, cross_val_loss = train_combination_model(
+        inputs_plus_context, labels, params_dict, device)
 
     # Define convolution kernel
     conv_kern = np.ones(250) / 250
 
     # Define convolution kernel
     conv_kern = np.ones(250) / 250
-    plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern)
+    plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict,
+                             spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern)
 
     return pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes
 
@@ -701,12 +704,16 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
+
+
 def prepare_combination_data(spike_data, params_dict):
-    spike_data = spike_data[..., params_dict['time_lims'][0]:params_dict['time_lims'][1]]
+    spike_data = spike_data[..., params_dict['time_lims']
+                            [0]:params_dict['time_lims'][1]]
     print(f'Spike data shape: {spike_data.shape}')
 
     trial_num = np.arange(spike_data.shape[0])
-    binned_spikes = prepare_data(spike_data, params_dict['time_lims'], params_dict['bin_size'])
+    binned_spikes = prepare_data(
+        spike_data, params_dict['time_lims'], params_dict['bin_size'])
 
     inputs = binned_spikes.copy()
     inputs = np.moveaxis(inputs, -1, 0)
@@ -737,7 +744,8 @@ def prepare_combination_data(spike_data, params_dict):
         device = torch.device("cpu")
         print("Running on the CPU")
 
-    forecast_bins = int(params_dict['forecast_time'] // params_dict['bin_size'])
+    forecast_bins = int(
+        params_dict['forecast_time'] // params_dict['bin_size'])
     inputs_plus_context = inputs_plus_context[:-forecast_bins]
     inputs = inputs[forecast_bins:]
 
@@ -754,7 +762,8 @@ def plot_inputs(inputs_plus_context, plots_dir, iden_str):
     plt.savefig(os.path.join(plots_dir, 'input_stim_time.png'))
     plt.close()
 
-    vz.firing_overview(inputs_plus_context.T, figsize=(10, 10), cmap='viridis', backend='imshow', zscore_bool=False)
+    vz.firing_overview(inputs_plus_context.T, figsize=(
+        10, 10), cmap='viridis', backend='imshow', zscore_bool=False)
     fig = plt.gcf()
     plt.suptitle('RNN Inputs')
     fig.savefig(os.path.join(plots_dir, f'inputs_{iden_str}.png'))
@@ -769,7 +778,8 @@ def train_combination_model(inputs_plus_context, labels, params_dict, device):
         np.arange(inputs_plus_context.shape[1]),
         int(params_dict['train_test_split'] * inputs_plus_context.shape[1]),
         replace=False)
-    test_inds = np.setdiff1d(np.arange(inputs_plus_context.shape[1]), train_inds)
+    test_inds = np.setdiff1d(
+        np.arange(inputs_plus_context.shape[1]), train_inds)
 
     train_inputs = inputs_plus_context[:, train_inds]
     train_labels = labels[:, train_inds]
