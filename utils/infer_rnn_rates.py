@@ -366,232 +366,22 @@ taste_ind_list = []
 
 
 def process_region_taste_combination(name, idx, spike_data, params_dict, artifacts_dir, plots_dir):
-    # Encapsulate the logic for processing each region-taste combination
-    # This includes data preparation, model training, and plotting
     iden_str = f'{name}_taste_{idx}'
     print(f'Processing region {name}, taste {idx}')
     model_name = f'region_{name}_taste_{idx}_hidden_{params_dict["hidden_size"]}_loss_mse'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
-    spike_data = spike_data[..., params_dict['time_lims']
-                            [0]:params_dict['time_lims'][1]]
-    print(f'Spike data shape: {spike_data.shape}')
+    # Data preparation
+    spike_data, inputs_plus_context, labels, device = prepare_combination_data(spike_data, params_dict)
 
-    trial_num = np.arange(spike_data.shape[0])
-    binned_spikes = prepare_data(
-        spike_data, params_dict['time_lims'], params_dict['bin_size'])
+    # Plotting inputs for sanity checks
+    plot_inputs(inputs_plus_context, plots_dir, iden_str)
 
-    inputs = binned_spikes.copy()
-    inputs = np.moveaxis(inputs, -1, 0)
+    # Model training
+    net, loss, cross_val_loss = train_combination_model(inputs_plus_context, labels, params_dict, device)
 
-    inputs, pca_obj = perform_pca(inputs, params_dict['use_pca'])
-
-    stim_time_val = 2000 - params_dict['time_lims'][0]
-    if stim_time_val < 0:
-        raise ValueError('Stim time is before time limits')
-    stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
-    stim_time[stim_time_val//params_dict['bin_size'], :] = 1
-
-    trial_num_scaled = trial_num / trial_num.max()
-    trial_num_broad = np.broadcast_to(trial_num_scaled, inputs.shape[:2])
-
-    inputs_plus_context = np.concatenate(
-        [
-            inputs,
-            stim_time[:, :, None],
-            trial_num_broad[:, :, None]
-        ],
-        axis=-1)
-
-    stim_t_input = inputs_plus_context[..., -2]
-    plt.imshow(stim_t_input.T, aspect='auto')
-    plt.title('Stim Time Input')
-    plt.savefig(os.path.join(plots_dir, 'input_stim_time.png'))
-    plt.close()
-
-    vz.firing_overview(inputs_plus_context.T,
-                       figsize=(10, 10),
-                       cmap='viridis',
-                       backend='imshow',
-                       zscore_bool=False,)
-    fig = plt.gcf()
-    plt.suptitle('RNN Inputs')
-    fig.savefig(os.path.join(plots_dir, f'inputs_{iden_str}.png'))
-    plt.close(fig)
-
-    if torch.cuda.is_available():
-        device = torch.device("cuda:0")
-        print("Running on the GPU")
-    else:
-        device = torch.device("cpu")
-        print("Running on the CPU")
-
-    input_size = inputs_plus_context.shape[-1]
-    output_size = inputs_plus_context.shape[-1] - 2
-
-    forecast_bins = int(
-        params_dict['forecast_time'] // params_dict['bin_size'])
-    inputs_plus_context = inputs_plus_context[:-forecast_bins]
-    inputs = inputs[forecast_bins:]
-
-    labels = torch.from_numpy(inputs).type(torch.float32)
-    inputs = torch.from_numpy(inputs_plus_context).type(torch.float)
-
-    train_inds = np.random.choice(
-        np.arange(inputs.shape[1]),
-        int(params_dict['train_test_split'] * inputs.shape[1]),
-        replace=False)
-    test_inds = np.setdiff1d(np.arange(inputs.shape[1]), train_inds)
-
-    train_inputs = inputs[:, train_inds]
-    train_labels = labels[:, train_inds]
-    test_inputs = inputs[:, test_inds]
-    test_labels = labels[:, test_inds]
-
-    train_inputs = train_inputs.to(device)
-    train_labels = train_labels.to(device)
-    test_inputs = test_inputs.to(device)
-    test_labels = test_labels.to(device)
-
-    net, loss, cross_val_loss = train_rnn_model(
-        train_inputs, train_labels, params_dict['train_steps'], params_dict['hidden_size'], output_size, device
-    )
-
-    if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
-        warning_file_path = os.path.join(artifacts_dir, 'warning.txt')
-        warning_str = """
-        Final training loss is greater than cross validation loss.
-        This indicates something weird is going on (maybe with train-test split or PCA).
-        Try retraining the model (to get a new train-test split) or using the --no-pca flag.
-        """
-        with open(warning_file_path, 'w') as f:
-            f.write(warning_str)
-        print(warning_str)
-
-    outs, latent_outs = net(inputs.to(device))
-    outs = outs.cpu().detach().numpy()
-    latent_outs = latent_outs.cpu().detach().numpy()
-    pred_firing = np.moveaxis(outs, 0, -1)
-
-    pred_firing = np.moveaxis(pred_firing, 0, -1).T
-    pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
-
-    if params_dict['use_pca']:
-        pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
-
-    pred_firing_long = StandardScaler().inverse_transform(pred_firing_long)
-
-    pred_firing = pred_firing_long.reshape((*pred_firing.shape[:2], -1))
-    pred_firing = np.moveaxis(pred_firing, 1, 2)
-
-    print('-- Plotting loss')
-    fig, ax = plt.subplots()
-    ax.plot(np.vectorize(int)(list(enumerate(loss))), loss, label='Train Loss')
-    ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
-            cross_val_loss.values(), label='Test Loss')
-    ax.legend(
-        bbox_to_anchor=(1.05, 1),
-        loc='upper left', borderaxespad=0.)
-    ax.set_title(f'Losses')
-    fig.savefig(os.path.join(plots_dir, f'run_loss_{iden_str}.png'),
-                bbox_inches='tight')
-    plt.close(fig)
-
-    print('-- Plotting firing rates')
-    vz.firing_overview(pred_firing.swapaxes(0, 1))
-    fig = plt.gcf()
-    plt.suptitle('RNN Predicted Firing Rates')
-    fig.savefig(os.path.join(plots_dir, f'firing_pred_{iden_str}.png'))
-    plt.close(fig)
-    vz.firing_overview(binned_spikes.swapaxes(0, 1))
-    fig = plt.gcf()
-    plt.suptitle('Binned Firing Rates')
-    fig.savefig(os.path.join(
-        plots_dir, f'firing_binned_{iden_str}.png'))
-    plt.close(fig)
-
-    print('-- Plotting latent factors')
-    fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize=(5, 10),
-                           sharex=True, sharey=True)
-    for i in range(latent_outs.shape[-1]):
-        ax[i].imshow(latent_outs[..., i].T, aspect='auto')
-    plt.suptitle('Latent Factors')
-    fig.savefig(os.path.join(
-        plots_dir, f'latent_factors_{iden_str}.png'))
-    plt.close(fig)
-
-    pred_firing_mean = pred_firing.mean(axis=0)
-    binned_spikes_mean = binned_spikes.mean(axis=0)
-
-    print('-- Plotting mean firing rates')
-    fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(pred_firing_mean, aspect='auto', interpolation='none')
-    ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
-    ax[0].set_title('Pred')
-    ax[1].set_title('True')
-    fig.savefig(os.path.join(plots_dir, f'mean_firing_{iden_str}.png'))
-    plt.close(fig)
-
-    print('-- Plotting zscored mean firing rates')
-    fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(zscore(pred_firing_mean, axis=-1),
-                 aspect='auto', interpolation='none')
-    ax[1].imshow(zscore(binned_spikes_mean, axis=-1),
-                 aspect='auto', interpolation='none')
-    ax[0].set_title('Pred')
-    ax[1].set_title('True')
-    fig.savefig(os.path.join(
-        plots_dir, f'mean_firing_zscored_{iden_str}.png'))
-    plt.close(fig)
-
-    ind_plot_dir = os.path.join(plots_dir, 'individual_neurons')
-    if not os.path.exists(ind_plot_dir):
-        os.makedirs(ind_plot_dir)
-
-    binned_x = np.arange(
-        0, binned_spikes.shape[-1]*params_dict['bin_size'], params_dict['bin_size'])
-    pred_x = np.arange(
-        0, pred_firing.shape[-1]*params_dict['bin_size'], params_dict['bin_size']) + params_dict['forecast_time']
-
-    conv_kern = np.ones(250) / 250
-    conv_rate = np.apply_along_axis(
-        lambda m: np.convolve(m, conv_kern, mode='valid'),
-        axis=-1, arr=spike_data)*params_dict['bin_size']
-    conv_x = np.convolve(
-        np.arange(spike_data.shape[-1]), conv_kern, mode='valid')
-
-    print('-- Plotting individual neurons rates')
-    for i in range(conv_rate.shape[1]):
-        fig, ax = plt.subplots(3, 1, figsize=(10, 10),
-                               sharex=True, sharey=False)
-        ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
-        ax[1].plot(conv_x, conv_rate[:, i].T, c='k', alpha=0.1)
-        ax[2].plot(pred_x, pred_firing[:, i].T,
-                   c='k', alpha=0.1)
-        for this_ax in ax:
-            this_ax.axvline(stim_time_val, c='r', linestyle='--')
-        ax[1].set_title(
-            f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
-        ax[2].set_title('RNN Predicted Firing Rate')
-        fig.savefig(
-            os.path.join(ind_plot_dir,
-                         f'neuron_{i}_{iden_str}_raster_conv_pred.png')
-        )
-        plt.close(fig)
-
-    trial_latent_dir = os.path.join(plots_dir, 'trial_latent')
-    if not os.path.exists(trial_latent_dir):
-        os.makedirs(trial_latent_dir)
-
-    print('-- Plotting single trial latent factors')
-    for i in range(latent_outs.shape[1]):
-        fig, ax = plt.subplots(2, 1)
-        ax[0].plot(latent_outs[1:, i], alpha=0.5)
-        ax[0].set_title(f'Latent factors for trial {i}')
-        ax[1].plot(zscore(latent_outs[1:, i], axis=0), alpha=0.5)
-        fig.savefig(os.path.join(trial_latent_dir,
-                    f'{iden_str}_trial_{i}_latent.png'))
-        plt.close(fig)
+    # Plotting results
+    plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data)
 
     return pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes
 
@@ -907,3 +697,226 @@ with tables.open_file(hdf5_path, 'r+') as hf5:
 
 # Write successful execution to log
 this_pipeline_check.write_to_log(script_path, 'completed')
+def prepare_combination_data(spike_data, params_dict):
+    spike_data = spike_data[..., params_dict['time_lims'][0]:params_dict['time_lims'][1]]
+    print(f'Spike data shape: {spike_data.shape}')
+
+    trial_num = np.arange(spike_data.shape[0])
+    binned_spikes = prepare_data(spike_data, params_dict['time_lims'], params_dict['bin_size'])
+
+    inputs = binned_spikes.copy()
+    inputs = np.moveaxis(inputs, -1, 0)
+
+    inputs, pca_obj = perform_pca(inputs, params_dict['use_pca'])
+
+    stim_time_val = 2000 - params_dict['time_lims'][0]
+    if stim_time_val < 0:
+        raise ValueError('Stim time is before time limits')
+    stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
+    stim_time[stim_time_val//params_dict['bin_size'], :] = 1
+
+    trial_num_scaled = trial_num / trial_num.max()
+    trial_num_broad = np.broadcast_to(trial_num_scaled, inputs.shape[:2])
+
+    inputs_plus_context = np.concatenate(
+        [
+            inputs,
+            stim_time[:, :, None],
+            trial_num_broad[:, :, None]
+        ],
+        axis=-1)
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda:0")
+        print("Running on the GPU")
+    else:
+        device = torch.device("cpu")
+        print("Running on the CPU")
+
+    forecast_bins = int(params_dict['forecast_time'] // params_dict['bin_size'])
+    inputs_plus_context = inputs_plus_context[:-forecast_bins]
+    inputs = inputs[forecast_bins:]
+
+    labels = torch.from_numpy(inputs).type(torch.float32)
+    inputs = torch.from_numpy(inputs_plus_context).type(torch.float)
+
+    return spike_data, inputs_plus_context, labels, device
+
+
+def plot_inputs(inputs_plus_context, plots_dir, iden_str):
+    stim_t_input = inputs_plus_context[..., -2]
+    plt.imshow(stim_t_input.T, aspect='auto')
+    plt.title('Stim Time Input')
+    plt.savefig(os.path.join(plots_dir, 'input_stim_time.png'))
+    plt.close()
+
+    vz.firing_overview(inputs_plus_context.T, figsize=(10, 10), cmap='viridis', backend='imshow', zscore_bool=False)
+    fig = plt.gcf()
+    plt.suptitle('RNN Inputs')
+    fig.savefig(os.path.join(plots_dir, f'inputs_{iden_str}.png'))
+    plt.close(fig)
+
+
+def train_combination_model(inputs_plus_context, labels, params_dict, device):
+    input_size = inputs_plus_context.shape[-1]
+    output_size = inputs_plus_context.shape[-1] - 2
+
+    train_inds = np.random.choice(
+        np.arange(inputs_plus_context.shape[1]),
+        int(params_dict['train_test_split'] * inputs_plus_context.shape[1]),
+        replace=False)
+    test_inds = np.setdiff1d(np.arange(inputs_plus_context.shape[1]), train_inds)
+
+    train_inputs = inputs_plus_context[:, train_inds]
+    train_labels = labels[:, train_inds]
+    test_inputs = inputs_plus_context[:, test_inds]
+    test_labels = labels[:, test_inds]
+
+    train_inputs = train_inputs.to(device)
+    train_labels = train_labels.to(device)
+    test_inputs = test_inputs.to(device)
+    test_labels = test_labels.to(device)
+
+    net, loss, cross_val_loss = train_rnn_model(
+        train_inputs, train_labels, params_dict['train_steps'], params_dict['hidden_size'], output_size, device
+    )
+
+    if loss[-1] > cross_val_loss[max(cross_val_loss.keys())]:
+        warning_file_path = os.path.join(artifacts_dir, 'warning.txt')
+        warning_str = """
+        Final training loss is greater than cross validation loss.
+        This indicates something weird is going on (maybe with train-test split or PCA).
+        Try retraining the model (to get a new train-test split) or using the --no-pca flag.
+        """
+        with open(warning_file_path, 'w') as f:
+            f.write(warning_str)
+        print(warning_str)
+
+    return net, loss, cross_val_loss
+
+
+def plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data):
+    outs, latent_outs = net(inputs_plus_context.to(device))
+    outs = outs.cpu().detach().numpy()
+    latent_outs = latent_outs.cpu().detach().numpy()
+    pred_firing = np.moveaxis(outs, 0, -1)
+
+    pred_firing = np.moveaxis(pred_firing, 0, -1).T
+    pred_firing_long = pred_firing.reshape(-1, pred_firing.shape[-1])
+
+    if params_dict['use_pca']:
+        pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
+
+    pred_firing_long = StandardScaler().inverse_transform(pred_firing_long)
+
+    pred_firing = pred_firing_long.reshape((*pred_firing.shape[:2], -1))
+    pred_firing = np.moveaxis(pred_firing, 1, 2)
+
+    print('-- Plotting loss')
+    fig, ax = plt.subplots()
+    ax.plot(np.vectorize(int)(list(enumerate(loss))), loss, label='Train Loss')
+    ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
+            cross_val_loss.values(), label='Test Loss')
+    ax.legend(
+        bbox_to_anchor=(1.05, 1),
+        loc='upper left', borderaxespad=0.)
+    ax.set_title(f'Losses')
+    fig.savefig(os.path.join(plots_dir, f'run_loss_{iden_str}.png'),
+                bbox_inches='tight')
+    plt.close(fig)
+
+    print('-- Plotting firing rates')
+    vz.firing_overview(pred_firing.swapaxes(0, 1))
+    fig = plt.gcf()
+    plt.suptitle('RNN Predicted Firing Rates')
+    fig.savefig(os.path.join(plots_dir, f'firing_pred_{iden_str}.png'))
+    plt.close(fig)
+    vz.firing_overview(binned_spikes.swapaxes(0, 1))
+    fig = plt.gcf()
+    plt.suptitle('Binned Firing Rates')
+    fig.savefig(os.path.join(
+        plots_dir, f'firing_binned_{iden_str}.png'))
+    plt.close(fig)
+
+    print('-- Plotting latent factors')
+    fig, ax = plt.subplots(latent_outs.shape[-1], 1, figsize=(5, 10),
+                           sharex=True, sharey=True)
+    for i in range(latent_outs.shape[-1]):
+        ax[i].imshow(latent_outs[..., i].T, aspect='auto')
+    plt.suptitle('Latent Factors')
+    fig.savefig(os.path.join(
+        plots_dir, f'latent_factors_{iden_str}.png'))
+    plt.close(fig)
+
+    pred_firing_mean = pred_firing.mean(axis=0)
+    binned_spikes_mean = binned_spikes.mean(axis=0)
+
+    print('-- Plotting mean firing rates')
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(pred_firing_mean, aspect='auto', interpolation='none')
+    ax[1].imshow(binned_spikes_mean, aspect='auto', interpolation='none')
+    ax[0].set_title('Pred')
+    ax[1].set_title('True')
+    fig.savefig(os.path.join(plots_dir, f'mean_firing_{iden_str}.png'))
+    plt.close(fig)
+
+    print('-- Plotting zscored mean firing rates')
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(zscore(pred_firing_mean, axis=-1),
+                 aspect='auto', interpolation='none')
+    ax[1].imshow(zscore(binned_spikes_mean, axis=-1),
+                 aspect='auto', interpolation='none')
+    ax[0].set_title('Pred')
+    ax[1].set_title('True')
+    fig.savefig(os.path.join(
+        plots_dir, f'mean_firing_zscored_{iden_str}.png'))
+    plt.close(fig)
+
+    ind_plot_dir = os.path.join(plots_dir, 'individual_neurons')
+    if not os.path.exists(ind_plot_dir):
+        os.makedirs(ind_plot_dir)
+
+    binned_x = np.arange(
+        0, binned_spikes.shape[-1]*params_dict['bin_size'], params_dict['bin_size'])
+    pred_x = np.arange(
+        0, pred_firing.shape[-1]*params_dict['bin_size'], params_dict['bin_size']) + params_dict['forecast_time']
+
+    conv_kern = np.ones(250) / 250
+    conv_rate = np.apply_along_axis(
+        lambda m: np.convolve(m, conv_kern, mode='valid'),
+        axis=-1, arr=spike_data)*params_dict['bin_size']
+    conv_x = np.convolve(
+        np.arange(spike_data.shape[-1]), conv_kern, mode='valid')
+
+    print('-- Plotting individual neurons rates')
+    for i in range(conv_rate.shape[1]):
+        fig, ax = plt.subplots(3, 1, figsize=(10, 10),
+                               sharex=True, sharey=False)
+        ax[0] = vz.raster(ax[0], spike_data[:, i], marker='|')
+        ax[1].plot(conv_x, conv_rate[:, i].T, c='k', alpha=0.1)
+        ax[2].plot(pred_x, pred_firing[:, i].T,
+                   c='k', alpha=0.1)
+        for this_ax in ax:
+            this_ax.axvline(stim_time_val, c='r', linestyle='--')
+        ax[1].set_title(
+            f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
+        ax[2].set_title('RNN Predicted Firing Rate')
+        fig.savefig(
+            os.path.join(ind_plot_dir,
+                         f'neuron_{i}_{iden_str}_raster_conv_pred.png')
+        )
+        plt.close(fig)
+
+    trial_latent_dir = os.path.join(plots_dir, 'trial_latent')
+    if not os.path.exists(trial_latent_dir):
+        os.makedirs(trial_latent_dir)
+
+    print('-- Plotting single trial latent factors')
+    for i in range(latent_outs.shape[1]):
+        fig, ax = plt.subplots(2, 1)
+        ax[0].plot(latent_outs[1:, i], alpha=0.5)
+        ax[0].set_title(f'Latent factors for trial {i}')
+        ax[1].plot(zscore(latent_outs[1:, i], axis=0), alpha=0.5)
+        fig.savefig(os.path.join(trial_latent_dir,
+                    f'{iden_str}_trial_{i}_latent.png'))
+        plt.close(fig)
