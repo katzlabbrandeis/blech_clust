@@ -271,27 +271,30 @@ params_dict = load_and_update_config(args)
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
-basename = os.path.basename(data_dir)
-data = ephys_data.ephys_data(data_dir)
-data.get_spikes()
-data.get_region_units()
+def prepare_data(data_dir):
+    basename = os.path.basename(data_dir)
+    data = ephys_data.ephys_data(data_dir)
+    data.get_spikes()
+    data.get_region_units()
 
-region_dict = dict(zip(data.region_names, data.region_units))
-region_vec = np.zeros(len(np.concatenate(data.region_units)), dtype=object)
-for region_name, unit_list in region_dict.items():
-    region_vec[unit_list] = region_name
+    region_dict = dict(zip(data.region_names, data.region_units))
+    region_vec = np.zeros(len(np.concatenate(data.region_units)), dtype=object)
+    for region_name, unit_list in region_dict.items():
+        region_vec[unit_list] = region_name
 
-# Create xr dataset with each array in dataset corresponding to a taste
-spikes_xr = [xr.DataArray(
-    x,
-    dims=['trials', 'neurons', 'time'],
-    coords={
-        'trials': np.arange(x.shape[0]),
-        'neurons': np.arange(x.shape[1]),
-        'time': np.arange(x.shape[2]),
-        'region': (['neurons'], region_vec)
-    }
-) for x in data.spikes]
+    spikes_xr = [xr.DataArray(
+        x,
+        dims=['trials', 'neurons', 'time'],
+        coords={
+            'trials': np.arange(x.shape[0]),
+            'neurons': np.arange(x.shape[1]),
+            'time': np.arange(x.shape[2]),
+            'region': (['neurons'], region_vec)
+        }
+    ) for x in data.spikes]
+    return spikes_xr
+
+spikes_xr = prepare_data(data_dir)
 
 ############################################################
 
