@@ -693,6 +693,7 @@ binned_x = np.arange(0, binned_spikes.shape[-1]*bin_size, bin_size)
 taste_pred_frame['binned_x'] = [binned_x] * len(taste_pred_frame)
 
 print('-- Plotting mean neuron firing rates')
+basename = os.path.basename(data_dir)
 for this_region in region_names:
     region_taste_binned = taste_pred_frame.loc[
         taste_pred_frame.region_name == this_region, 'binned_spikes'].to_list()
@@ -733,6 +734,10 @@ else:
     spike_arrays = [cat_spikes]
 
 print('-- Plotting individual neurons rates')
+ind_plot_dir = os.path.join(plots_dir, 'individual_neurons')
+if not os.path.exists(ind_plot_dir):
+    os.makedirs(ind_plot_dir)
+
 for spike_array, region_name in zip(spike_arrays, region_names):
     region_nrn_count = spike_array.shape[1]
     region_conv_rate_list = pred_frame.loc[pred_frame.region_name ==
@@ -750,6 +755,49 @@ for spike_array, region_name in zip(spike_arrays, region_names):
     # Iterate over neurons
     for i in range(region_nrn_count):
         fig, ax = plt.subplots(3, 1, figsize=(10, 10),
+                               sharex=True, sharey=False)
+        ax[0] = vz.raster(ax[0], spike_array[:, i], marker='|', color='k')
+        # Plot colors behind raster traces
+        for j in range(len(cum_trial_counts)-1):
+            ax[0].axhspan(cum_trial_counts[j], cum_trial_counts[j+1],
+                          color=cmap(j), alpha=0.1, zorder=0)
+
+        mean_conv_rate = np.stack([x[:, i].mean(axis=0)
+                                  for x in region_conv_rate_list])
+        mean_pred_firing = np.stack([x[:, i].mean(axis=0)
+                                    for x in region_pred_firing_list])
+        sd_conv_rate = np.stack([x[:, i].std(axis=0)
+                                for x in region_conv_rate_list])
+        sd_pred_firing = np.stack([x[:, i].std(axis=0)
+                                  for x in region_pred_firing_list])
+        for j in range(mean_conv_rate.shape[0]):
+            ax[1].plot(conv_x, mean_conv_rate[j].T, c=cmap(j),
+                       linewidth=2)
+            ax[1].fill_between(
+                conv_x,
+                mean_conv_rate[j] - sd_conv_rate[j],
+                mean_conv_rate[j] + sd_conv_rate[j],
+                color=cmap(j), alpha=0.1)
+            # ax[2].plot(binned_x, binned_spikes[:,i].T, label = 'True')
+            ax[2].plot(pred_x, mean_pred_firing[j].T,
+                       c=cmap(j), linewidth=2)
+            ax[2].fill_between(
+                pred_x,
+                mean_pred_firing[j] - sd_pred_firing[j],
+                mean_pred_firing[j] + sd_pred_firing[j],
+                color=cmap(j), alpha=0.1)
+            # ax[2].sharey(ax[1])
+        for this_ax in ax:
+            # this_ax.set_xlim([1500, 4000])
+            this_ax.axvline(stim_time_val, c='r', linestyle='--')
+        ax[1].set_title(
+            f'Convolved Firing Rate : Kernel Size {len(conv_kern)}')
+        ax[2].set_title('RNN Predicted Firing Rate')
+        fig.savefig(
+            os.path.join(
+                ind_plot_dir,
+                f'neuron_{i}_region_{region_name}_mean_raster_conv_pred.png'))
+        plt.close(fig)
                                sharex=True, sharey=False)
         # Get spikes from all tastes for this neuron
 
