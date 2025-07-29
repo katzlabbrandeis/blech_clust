@@ -84,12 +84,15 @@ import sys  # noqa
 from pprint import pprint  # noqa
 import json  # noqa
 
+
 def prepare_data(spike_data, time_lims, bin_size):
     # Cut taste_spikes to time limits
     spike_data = spike_data[..., time_lims[0]:time_lims[1]]
     # Bin spikes
-    binned_spikes = np.reshape(spike_data, (*spike_data.shape[:2], -1, bin_size)).sum(-1)
+    binned_spikes = np.reshape(
+        spike_data, (*spike_data.shape[:2], -1, bin_size)).sum(-1)
     return binned_spikes
+
 
 def perform_pca(inputs, use_pca):
     inputs_long = inputs.reshape(-1, inputs.shape[-1])
@@ -98,9 +101,11 @@ def perform_pca(inputs, use_pca):
     if use_pca:
         pca_obj = PCA(n_components=0.95)
         inputs_pca = pca_obj.fit_transform(inputs_long)
-        inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, inputs_pca.shape[-1])
+        inputs_trial_pca = inputs_pca.reshape(
+            inputs.shape[0], -1, inputs_pca.shape[-1])
         return inputs_trial_pca, pca_obj
     return inputs_long, None
+
 
 def train_rnn_model(inputs, labels, train_steps, hidden_size, output_size, device):
     net = autoencoderRNN(
@@ -121,6 +126,8 @@ def train_rnn_model(inputs, labels, train_steps, hidden_size, output_size, devic
         criterion=MSELoss(),
     )
     return net, loss, cross_val_loss
+
+
 from itertools import product  # noqa
 import pandas as pd  # noqa
 import xarray as xr  # noqa
