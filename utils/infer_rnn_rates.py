@@ -381,8 +381,10 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     net, loss, cross_val_loss = train_combination_model(inputs_plus_context, labels, params_dict, device)
 
     # Define convolution kernel
+    conv_kern = np.ones(250) / 250
 
-    # Plotting results
+    # Define convolution kernel
+    conv_kern = np.ones(250) / 250
     plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern)
 
     return pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes
