@@ -372,7 +372,7 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
     # Data preparation
-    spike_data, inputs_plus_context, labels, device = prepare_combination_data(spike_data, params_dict)
+    spike_data, inputs_plus_context, labels, device, stim_time_val, pca_obj = prepare_combination_data(spike_data, params_dict)
 
     # Plotting inputs for sanity checks
     plot_inputs(inputs_plus_context, plots_dir, iden_str)
@@ -381,7 +381,7 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     net, loss, cross_val_loss = train_combination_model(inputs_plus_context, labels, params_dict, device)
 
     # Plotting results
-    plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data)
+    plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern)
 
     return pred_firing, latent_outs, pred_x, conv_rate, conv_x, binned_spikes
 
@@ -740,7 +740,7 @@ def prepare_combination_data(spike_data, params_dict):
     labels = torch.from_numpy(inputs).type(torch.float32)
     inputs = torch.from_numpy(inputs_plus_context).type(torch.float)
 
-    return spike_data, inputs_plus_context, labels, device
+    return spike_data, inputs_plus_context, labels, device, stim_time_val, pca_obj
 
 
 def plot_inputs(inputs_plus_context, plots_dir, iden_str):
@@ -795,7 +795,7 @@ def train_combination_model(inputs_plus_context, labels, params_dict, device):
     return net, loss, cross_val_loss
 
 
-def plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data):
+def plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern):
     outs, latent_outs = net(inputs_plus_context.to(device))
     outs = outs.cpu().detach().numpy()
     latent_outs = latent_outs.cpu().detach().numpy()
