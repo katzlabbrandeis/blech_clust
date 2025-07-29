@@ -364,6 +364,7 @@ latent_out_list = []
 region_name_list = []
 taste_ind_list = []
 
+
 def process_region_taste_combination(name, idx, spike_data, params_dict, artifacts_dir, plots_dir):
     # Encapsulate the logic for processing each region-taste combination
     # This includes data preparation, model training, and plotting
@@ -372,11 +373,13 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     model_name = f'region_{name}_taste_{idx}_hidden_{params_dict["hidden_size"]}_loss_mse'
     model_save_path = os.path.join(artifacts_dir, f'{model_name}.pt')
 
-    spike_data = spike_data[..., params_dict['time_lims'][0]:params_dict['time_lims'][1]]
+    spike_data = spike_data[..., params_dict['time_lims']
+                            [0]:params_dict['time_lims'][1]]
     print(f'Spike data shape: {spike_data.shape}')
 
     trial_num = np.arange(spike_data.shape[0])
-    binned_spikes = prepare_data(spike_data, params_dict['time_lims'], params_dict['bin_size'])
+    binned_spikes = prepare_data(
+        spike_data, params_dict['time_lims'], params_dict['bin_size'])
 
     inputs = binned_spikes.copy()
     inputs = np.moveaxis(inputs, -1, 0)
@@ -426,7 +429,8 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     input_size = inputs_plus_context.shape[-1]
     output_size = inputs_plus_context.shape[-1] - 2
 
-    forecast_bins = int(params_dict['forecast_time'] // params_dict['bin_size'])
+    forecast_bins = int(
+        params_dict['forecast_time'] // params_dict['bin_size'])
     inputs_plus_context = inputs_plus_context[:-forecast_bins]
     inputs = inputs[forecast_bins:]
 
@@ -544,7 +548,8 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     if not os.path.exists(ind_plot_dir):
         os.makedirs(ind_plot_dir)
 
-    binned_x = np.arange(0, binned_spikes.shape[-1]*params_dict['bin_size'], params_dict['bin_size'])
+    binned_x = np.arange(
+        0, binned_spikes.shape[-1]*params_dict['bin_size'], params_dict['bin_size'])
     pred_x = np.arange(
         0, pred_firing.shape[-1]*params_dict['bin_size'], params_dict['bin_size']) + params_dict['forecast_time']
 
