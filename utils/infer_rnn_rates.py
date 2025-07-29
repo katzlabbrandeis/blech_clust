@@ -380,6 +380,8 @@ def process_region_taste_combination(name, idx, spike_data, params_dict, artifac
     # Model training
     net, loss, cross_val_loss = train_combination_model(inputs_plus_context, labels, params_dict, device)
 
+    # Define convolution kernel
+
     # Plotting results
     plot_combination_results(net, inputs_plus_context, plots_dir, iden_str, params_dict, spike_data, device, pca_obj, loss, cross_val_loss, stim_time_val, conv_kern)
 
