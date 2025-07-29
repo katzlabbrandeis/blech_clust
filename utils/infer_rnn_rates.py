@@ -275,7 +275,16 @@ pprint(processing_str)
 ############################################################
 ############################################################
 # Set all keys in params_dict to variables
+# Update local variables with parameters from the configuration
 locals().update(params_dict)
+
+# Ensure all necessary parameters are defined
+hidden_size = params_dict.get('hidden_size', 8)
+time_lims = params_dict.get('time_lims', [1500, 4000])
+bin_size = params_dict.get('bin_size', 25)
+forecast_time = params_dict.get('forecast_time', 25)
+train_test_split = params_dict.get('train_test_split', 0.9)
+use_pca = params_dict.get('use_pca', True)
 
 pred_firing_list = []
 pred_x_list = []
@@ -416,8 +425,9 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     ##############################
     # Train
     ##############################
+    # Train the RNN model
     net, loss, cross_val_loss = train_rnn_model(
-        train_inputs, train_labels, train_steps, hidden_size, output_size, device
+        train_inputs, train_labels, params_dict['train_steps'], hidden_size, output_size, device
     )
 
     # If final train loss > cross val loss, issue warning
@@ -458,7 +468,8 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
         pred_firing_long = pca_obj.inverse_transform(pred_firing_long)
 
     # Reverse standard scaling
-    pred_firing_long = scaler.inverse_transform(pred_firing_long)
+    # Reverse standard scaling
+    pred_firing_long = StandardScaler().inverse_transform(pred_firing_long)
 
     pred_firing = pred_firing_long.reshape((*pred_firing.shape[:2], -1))
     # shape: (trials, neurons, time)
@@ -473,8 +484,8 @@ for (name, idx), spike_data in zip(processing_inds, processing_items):
     # Loss plot
     print('-- Plotting loss')
     fig, ax = plt.subplots()
-    ax.plot(np.vectorize(int)(list(loss_dict.keys())),
-            loss_dict.values(), label='Train Loss')
+    # Plot the training and cross-validation loss
+    ax.plot(np.vectorize(int)(list(enumerate(loss))), loss, label='Train Loss')
     ax.plot(np.vectorize(int)(list(cross_val_loss.keys())),
             cross_val_loss.values(), label='Test Loss')
     ax.legend(
