@@ -249,14 +249,17 @@ output_path = os.path.join(data_dir, 'rnn_output')
 artifacts_dir = os.path.join(output_path, 'artifacts')
 plots_dir = os.path.join(output_path, 'plots')
 
+
 def create_directories(directories):
     for dir_path in directories:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+
 create_directories([output_path, artifacts_dir, plots_dir])
 
 print(f'Processing data from {data_dir}')
+
 
 def load_and_update_config(args):
     params_dict = load_config()
@@ -264,12 +267,14 @@ def load_and_update_config(args):
     pprint(params_dict)
     return params_dict
 
+
 params_dict = load_and_update_config(args)
 
 ##############################
 
 # mse loss performs better than poisson loss
 loss_name = 'mse'
+
 
 def prepare_data(data_dir):
     global data
@@ -294,6 +299,7 @@ def prepare_data(data_dir):
         }
     ) for x in data.spikes]
     return spikes_xr
+
 
 spikes_xr = prepare_data(data_dir)
 
