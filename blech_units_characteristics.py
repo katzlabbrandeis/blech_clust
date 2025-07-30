@@ -11,6 +11,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
+import shutil
 from tqdm import tqdm
 import pingouin as pg
 import matplotlib.pyplot as plt
@@ -51,8 +52,6 @@ else:
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
-
-import shutil
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
 if os.path.exists(plot_dir):
