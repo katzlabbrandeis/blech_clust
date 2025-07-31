@@ -6,7 +6,7 @@ Thank you for considering contributing to blech_clust! We welcome contributions 
 
 - **Reporting Issues:** If you encounter any issues, please report them using the GitHub issue tracker. Provide as much detail as possible to help us understand and resolve the issue.
 
-- **Submitting Pull Requests:** 
+- **Submitting Pull Requests:**
   1. Fork the repository and create your branch from `master`.
   2. If you've added code that should be tested, add tests.
   3. Ensure the test suite passes.
