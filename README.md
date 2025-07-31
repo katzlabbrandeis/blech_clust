@@ -166,6 +166,26 @@ The project uses GitHub Actions for automated testing on pull requests:
 - blech_clust_pre.sh : Runs steps 2-5
 - blech_clust_post.sh : Runs steps 7-14
 
+### blech_autosort.sh Script
+
+The `blech_autosort.sh` script is designed to automate the process of clustering and post-processing electrophysiology data. It ensures that the necessary parameters are set correctly and executes the pre-processing, clustering, and post-processing steps in sequence.
+
+**Usage:**
+```bash
+bash blech_autosort.sh <data_directory> [--force]
+```
+
+- `<data_directory>`: Path to the directory containing the raw data files.
+- `--force`: Optional flag to force re-processing even if previous results exist.
+
+**Functionality:**
+- Checks for the existence of required parameter files and verifies that specific settings are enabled.
+- Executes the `blech_clust_pre.sh` script to perform initial processing.
+- Runs `blech_post_process.py` to add sorted units to the HDF5 file.
+- Completes the workflow with `blech_clust_post.sh` for further processing.
+
+Ensure that the parameter files `sorting_params_template.json` and `waveform_classifier_params.json` are correctly configured before running this script.
+
 ### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
 
