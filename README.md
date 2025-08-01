@@ -88,6 +88,10 @@ These tools help standardize quality assessment across datasets and identify rec
 
 For more insights and updates, visit our [Blog Page](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html).
 
+### Contributing
+
+We welcome contributions to the blech_clust project! If you're interested in contributing, please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to get started. Whether it's reporting issues, submitting pull requests, or improving documentation, your help is appreciated.
+
 ### Acknowledgments
 
 This work used ACCESS-allocated resources at Brandeis University through allocation BIO230103 from the [Advanced Cyberinfrastructure Coordination Ecosystem: Services & Support](https://access-ci.org/) (ACCESS) program, which is supported by U.S. National Science Foundation grants #2138259, #2138286, #2138307, #2137603, and #2138296.
