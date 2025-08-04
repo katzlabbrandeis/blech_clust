@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Redirect both stdout and stderr to output.log and display in terminal
+exec > >(tee -i output.log) 2>&1
+
 # Function to show folder selection dialog using zenity
 choose_folder() {
     zenity --file-selection --directory --title="Select data folder" 2>/dev/null
