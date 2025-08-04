@@ -98,6 +98,7 @@ class unit_descriptor(tables.IsDescription):
     single_unit = tables.Int32Col()
     regular_spiking = tables.Int32Col()
     fast_spiking = tables.Int32Col()
+    snr = tables.Float32Col()  # Add SNR column
 
 
 # Go through the dig_in_channel_nums and make an array of spike trains of dimensions (# trials x # units x trial duration (ms)) - use end of digital input pulse as the time of taste delivery

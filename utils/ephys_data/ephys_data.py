@@ -523,6 +523,9 @@ class ephys_data():
         """
         with tables.open_file(self.hdf5_path, 'r+') as hf5_file:
             self.unit_descriptors = hf5_file.root.unit_descriptor[:]
+            # Round SNR to 1 decimal place
+            for descriptor in self.unit_descriptors:
+                descriptor['snr'] = round(descriptor['snr'], 1)
 
     def check_laser(self):
         """
