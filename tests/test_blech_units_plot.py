@@ -138,14 +138,14 @@ class TestBlechUnitsPlot:
         """Test the plot_unit_summary function"""
         # Setup mock figure and axes
         mock_fig = MagicMock()
-        mock_ax = [[MagicMock(), MagicMock()], [MagicMock(), MagicMock()]]
+        mock_ax = np.array([[MagicMock(), MagicMock()], [MagicMock(), MagicMock()]])
         mock_subplots.return_value = (mock_fig, mock_ax)
 
         # Setup mock waveforms_datashader
-        mock_waveforms_datashader.return_value = (mock_fig, mock_ax[0][0])
+        mock_waveforms_datashader.return_value = (mock_fig, mock_ax[0, 0])
 
         # Setup mock gen_isi_hist
-        mock_gen_isi_hist.return_value = (mock_fig, mock_ax[1][0])
+        mock_gen_isi_hist.return_value = (mock_fig, mock_ax[1, 0])
 
         # Create test data
         unit_data = MagicMock()
@@ -257,10 +257,15 @@ class TestBlechUnitsPlot:
         mock_prepare_output_directory.assert_called_once()
         mock_load_units_data.assert_called_once_with(
             mock_metadata_handler.hdf5_name)
-        mock_process_all_units.assert_called_once_with(
-            mock_units, mock_hf5, pd.DataFrame(
-            ), {"sampling_rate": 30000}, 0, 10000
-        )
+        # Get the actual DataFrame that was passed to the function
+        call_args = mock_process_all_units.call_args[0]
+        assert len(call_args) == 6
+        assert call_args[0] == mock_units
+        assert call_args[1] == mock_hf5
+        assert isinstance(call_args[2], pd.DataFrame)
+        assert call_args[3] == {"sampling_rate": 30000}
+        assert call_args[4] == 0
+        assert call_args[5] == 10000
         mock_save_individual_plots.assert_called_once_with(mock_units)
 
         # Check that hf5.close was called
