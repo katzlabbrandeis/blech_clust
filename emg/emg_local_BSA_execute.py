@@ -51,17 +51,15 @@ class Logger(object):
 
 ############################################################
 # Load BSA parameters from JSON
-with open(os.path.join(blech_clust_dir, 'params/_templates/emg_params.json'), 'r') as f:
+emg_params_path = os.path.join(blech_clust_dir, 'params/emg_params.json')
+if not os.path.exists(emg_params_path):
+    print(f'No emg_params.json found at {emg_params_path}.' +
+          'Please copy the template from {os.path.join(blech_clust_dir, "params/_templates/emg_params.json")} and fill it in.'
+          )
+with open(emg_params_path, 'r') as f:
     emg_params = json.load(f)
 bsa_params = emg_params['bsa_params']
 
-# Create time array using pre and post-stimulus durations
-pre_stim_duration = 0.5  # Example value, replace with actual value from sorting params
-post_stim_duration = 6.5  # Example value, replace with actual value from sorting params
-T = np.arange(pre_stim_duration, post_stim_duration, 0.001)
-t_r = ro.r.matrix(T, nrow=1, ncol=len(T))
-ro.r.assign('t_r', t_r)
-ro.r('t = c(t_r)')
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
 
@@ -85,6 +83,13 @@ task = int(sys.argv[1])
 # print(f'Processing taste {taste}, trial {trial}')
 print(f'Processing Trial {task}')
 
+# Create time array using pre and post-stimulus durations
+dat_len = emg_env.shape[-1]
+T = (np.arange(dat_len) + 1) / 1000.0  # Convert to seconds
+t_r = ro.r.matrix(T, nrow=1, ncol=len(T))
+ro.r.assign('t_r', t_r)
+ro.r('t = c(t_r)')
+
 # Import R related stuff - use rpy2 for Python->R and pandas for R->Python
 # Needed for the next line to work on Anaconda.
 # Also needed to do conda install -c r rpy2 at the command line
@@ -94,11 +99,6 @@ rpy2.robjects.numpy2ri.activate()
 
 # Fire up BaSAR on R
 basar = importr('BaSAR')
-
-# Make the time array and assign it to t on R
-# Run BSA with parameters from JSON
-ro.r(
-    f"r_local = BaSAR.local(x, {bsa_params['frequency_range'][0]}, {bsa_params['frequency_range'][1]}, {bsa_params['frequency_steps']}, t, 0, {bsa_params['window_size']})")
 
 # Run BSA on trial 'trial' of taste 'taste' and assign the results to p and omega.
 # input_data = emg_env[taste, trial, :]
