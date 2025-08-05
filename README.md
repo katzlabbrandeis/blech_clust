@@ -68,7 +68,7 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
 ### Dataset Quality Assessment
-
+<details>
 The pipeline includes tools for assessing and grading dataset quality:
 
 1. **Data Summary Generation** (`utils/blech_data_summary.py`):
@@ -83,6 +83,8 @@ The pipeline includes tools for assessing and grading dataset quality:
    - Outputs grades to `QA_output/grading.json`
 
 These tools help standardize quality assessment across datasets and identify recordings that meet experimental quality standards.
+
+</details>
 
 ### Blog
 
@@ -125,6 +127,7 @@ make clean
 - Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
 
 ### Testing
+<details>
 
 #### Local Testing with Prefect
 The project uses Prefect for orchestrating test pipelines locally. To run tests:
@@ -165,6 +168,7 @@ The project uses GitHub Actions for automated testing on pull requests:
 - Test results are reported in the PR checks interface
 - The workflow configuration is in `.github/workflows/python_workflow_test.yml`
 
+</details>
 
 ### Convenience scripts
 - blech_clust_pre.sh : Runs steps 2-5
@@ -199,6 +203,8 @@ blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
 ```
 
 ### Workflow Walkthrough
+<details>
+    
 *This section is being expanded, in progress.*
 
 Open a terminal, and run:
@@ -239,8 +245,11 @@ bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP
 python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)
 bash blech_clust_post.sh       # Perform steps up to PSTH generation
 ```
+</details>
 
 ### Utilities
+<details>
+    
 #### utils/infer_rnn_rates.py
 
 This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
@@ -275,14 +284,15 @@ optional arguments:
                         Time limits inferred firing rates (default: [1500,
                         4500])
 ```
-
+</details>
+    
 ### Test Dataset
 We are grateful to Brandeis University Google Filestream for hosting this dataset <br>
 Data to test workflow available at:<br>
 https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sharing
 
 ### Dependency Graph (for use with https://www.nomnoml.com/)
-
+<details>
 - **Spike Sorting**
 - - [blech_exp_info] -> [blech_clust]
 - - [blech_clust] -> [blech_common_average_reference]
@@ -307,6 +317,7 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 
 - **QDA (Jenn Li)**
 - - [emg_freq_setup] -> [get_gapes_Li]
+</details>
 
 ### Citation
 If you use this code in your research, please cite the following paper:
