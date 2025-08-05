@@ -83,13 +83,6 @@ task = int(sys.argv[1])
 # print(f'Processing taste {taste}, trial {trial}')
 print(f'Processing Trial {task}')
 
-# Create time array using pre and post-stimulus durations
-dat_len = emg_env.shape[-1]
-T = (np.arange(dat_len) + 1) / 1000.0  # Convert to seconds
-t_r = ro.r.matrix(T, nrow=1, ncol=len(T))
-ro.r.assign('t_r', t_r)
-ro.r('t = c(t_r)')
-
 # Import R related stuff - use rpy2 for Python->R and pandas for R->Python
 # Needed for the next line to work on Anaconda.
 # Also needed to do conda install -c r rpy2 at the command line
@@ -99,6 +92,13 @@ rpy2.robjects.numpy2ri.activate()
 
 # Fire up BaSAR on R
 basar = importr('BaSAR')
+
+# Create time array using pre and post-stimulus durations
+dat_len = emg_env.shape[-1]
+T = (np.arange(dat_len) + 1) / 1000.0  # Convert to seconds
+t_r = ro.r.matrix(T, nrow=1, ncol=len(T))
+ro.r.assign('t_r', t_r)
+ro.r('t = c(t_r)')
 
 # Run BSA on trial 'trial' of taste 'taste' and assign the results to p and omega.
 # input_data = emg_env[taste, trial, :]
