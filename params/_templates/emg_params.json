@@ -12,11 +12,11 @@
     },
     "use_BSA": true,
     "bsa_params": {
-        "frequency_range": [
+        "period_range": [
             0.1,
-            1.0
+            1
         ],
-        "frequency_steps": 20,
+        "period_steps": 20,
         "window_size": 300
     }
 }

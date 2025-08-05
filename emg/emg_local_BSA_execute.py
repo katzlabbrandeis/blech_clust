@@ -114,7 +114,12 @@ if not any(np.isnan(input_data)):
     # we scan periods from 0.1s (10 Hz) to 1s (1 Hz) in 20 steps.
     # Window size is 300ms.
     # There are no background functions (=0)
-    ro.r('r_local = BaSAR.local(x, 0.1, 1, 20, t, 0, 300)')
+    period_min = bsa_params['period_range'][0]
+    period_max = bsa_params['period_range'][1]
+    period_steps = bsa_params['period_steps']
+    window_size = bsa_params['window_size']
+    ro.r(
+        f'r_local = BaSAR.local(x, {period_min}, {period_max}, {period_steps}, t, 0, {window_size})')
     p_r = r['r_local']
     # r_local is returned as a length 2 object,
     # with the first element being omega and the second being the
