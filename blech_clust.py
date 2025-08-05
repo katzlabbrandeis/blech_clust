@@ -288,8 +288,13 @@ if file_type != 'traditional':
         print("\tOne file per SIGNAL Detected")
 
     # Use info file for port list calculation
-    info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
-    sampling_rate = int(info_file[2])
+    info_file_path = os.path.join(dir_name, 'info.rhd')
+    if os.path.exists(info_file_path):
+        info_file = np.fromfile(info_file_path, dtype=np.dtype('float32'))
+        sampling_rate = int(info_file[2])
+    else:
+        print("info.rhd file not found. Please enter the sampling rate manually:")
+        sampling_rate = int(input("Sampling rate (Hz): "))
 
     # Read the time.dat file for use in separating out
     # the one file per signal type data
