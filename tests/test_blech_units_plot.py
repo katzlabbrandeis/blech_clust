@@ -28,7 +28,7 @@ class TestBlechUnitsPlot:
             "sampling_rate": 30000
         }
         mock.layout = pd.DataFrame({
-            'electrode_num': [1, 2, 3],
+            'electrode_ind': [1, 2, 3],
             'threshold': [100, 150, 200]
         })
         mock.hdf5_name = "test.h5"
@@ -138,14 +138,15 @@ class TestBlechUnitsPlot:
         """Test the plot_unit_summary function"""
         # Setup mock figure and axes
         mock_fig = MagicMock()
-        mock_ax = [[MagicMock(), MagicMock()], [MagicMock(), MagicMock()]]
+        mock_ax = np.array([[MagicMock(), MagicMock()],
+                           [MagicMock(), MagicMock()]])
         mock_subplots.return_value = (mock_fig, mock_ax)
 
         # Setup mock waveforms_datashader
-        mock_waveforms_datashader.return_value = (mock_fig, mock_ax[0][0])
+        mock_waveforms_datashader.return_value = (mock_fig, mock_ax[0, 0])
 
         # Setup mock gen_isi_hist
-        mock_gen_isi_hist.return_value = (mock_fig, mock_ax[1][0])
+        mock_gen_isi_hist.return_value = (mock_fig, mock_ax[1, 0])
 
         # Create test data
         unit_data = MagicMock()
@@ -161,7 +162,7 @@ class TestBlechUnitsPlot:
         }
 
         layout_frame = pd.DataFrame({
-            'electrode_num': [1, 2, 3],
+            'electrode_ind': [1, 2, 3],
             'threshold': [100, 150, 200]
         })
 
@@ -170,8 +171,14 @@ class TestBlechUnitsPlot:
         # Call the function
         with patch('matplotlib.pyplot.savefig'):
             blech_units_plot.plot_unit_summary(
-                0, unit_data, unit_descriptor, layout_frame,
-                params_dict, 0, 10000, "test_output_dir"
+                unit_data=unit_data,
+                min_time=0,
+                max_time=10000,
+                unit_index=0,
+                unit_descriptor=unit_descriptor,
+                layout_frame=layout_frame,
+                params_dict=params_dict,
+                output_dir="test_output_dir"
             )
 
         # Check that the plotting functions were called
@@ -224,6 +231,7 @@ class TestBlechUnitsPlot:
     @patch('blech_units_plot.load_units_data')
     @patch('blech_units_plot.process_all_units')
     @patch('blech_units_plot.save_individual_plots')
+    @patch('sys.argv', ['script.py'])
     def test_main(self, mock_save_individual_plots, mock_process_all_units,
                   mock_load_units_data, mock_prepare_output_directory,
                   mock_setup_environment, mock_metadata_handler, mock_pipeline_check):
@@ -246,14 +254,19 @@ class TestBlechUnitsPlot:
         blech_units_plot.main()
 
         # Check that all the functions were called
-        mock_setup_environment.assert_called_once()
+        mock_setup_environment.assert_called_once_with(['script.py'])
         mock_prepare_output_directory.assert_called_once()
         mock_load_units_data.assert_called_once_with(
             mock_metadata_handler.hdf5_name)
-        mock_process_all_units.assert_called_once_with(
-            mock_units, mock_hf5, pd.DataFrame(
-            ), {"sampling_rate": 30000}, 0, 10000
-        )
+        # Get the actual DataFrame that was passed to the function
+        call_args = mock_process_all_units.call_args[0]
+        assert len(call_args) == 6
+        assert call_args[0] == mock_units
+        assert call_args[1] == mock_hf5
+        assert isinstance(call_args[2], pd.DataFrame)
+        assert call_args[3] == {"sampling_rate": 30000}
+        assert call_args[4] == 0
+        assert call_args[5] == 10000
         mock_save_individual_plots.assert_called_once_with(mock_units)
 
         # Check that hf5.close was called
