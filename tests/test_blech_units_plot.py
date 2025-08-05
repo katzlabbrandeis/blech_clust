@@ -138,7 +138,8 @@ class TestBlechUnitsPlot:
         """Test the plot_unit_summary function"""
         # Setup mock figure and axes
         mock_fig = MagicMock()
-        mock_ax = np.array([[MagicMock(), MagicMock()], [MagicMock(), MagicMock()]])
+        mock_ax = np.array([[MagicMock(), MagicMock()],
+                           [MagicMock(), MagicMock()]])
         mock_subplots.return_value = (mock_fig, mock_ax)
 
         # Setup mock waveforms_datashader
