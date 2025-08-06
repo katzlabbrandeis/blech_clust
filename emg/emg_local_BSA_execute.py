@@ -106,7 +106,7 @@ input_data = emg_env[task]
 # Check that trial is non-zero, if it isn't, don't try to run BSA
 if not any(np.isnan(input_data)):
 
-    Br = ro.r.matrix(input_data, nrow=1, ncol=7000)
+    Br = ro.r.matrix(input_data, nrow=1, ncol=dat_len)
     ro.r.assign('B', Br)
     ro.r('x = c(B[1,])')
 
