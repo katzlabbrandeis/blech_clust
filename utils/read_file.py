@@ -27,6 +27,7 @@ import pandas as pd
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from utils.importrhdutilities import load_file, read_header
+import utils.clustering as clust
 
 
 class DigInHandler:

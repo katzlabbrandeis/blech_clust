@@ -31,6 +31,7 @@ import time
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+import utils.read_file as read_file
 
 test_bool = False
 if test_bool:
