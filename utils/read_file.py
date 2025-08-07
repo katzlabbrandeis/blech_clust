@@ -387,6 +387,8 @@ def read_electrode_emg_channels_single_file(
             exec(
                 f"hf5.root.raw_emg.emg{channel_ind:02}.append(amp_reshape[num,:])")
     hf5.close()
+
+
 def filter_electrode(raw_el, params_dict):
     """
     Apply frequency filtering to electrode data.
