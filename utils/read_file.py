@@ -27,6 +27,7 @@ import pandas as pd
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from utils.importrhdutilities import load_file, read_header
+import utils.clustering as clust
 
 
 class DigInHandler:
@@ -386,3 +387,21 @@ def read_electrode_emg_channels_single_file(
             exec(
                 f"hf5.root.raw_emg.emg{channel_ind:02}.append(amp_reshape[num,:])")
     hf5.close()
+
+
+def filter_electrode(raw_el, params_dict):
+    """
+    Apply frequency filtering to electrode data.
+
+    Args:
+        raw_el: Raw electrode data.
+        params_dict: Dictionary containing filter parameters.
+
+    Returns:
+        Filtered electrode data.
+    """
+    return clust.get_filtered_electrode(
+        raw_el,
+        freq=[params_dict['bandpass_lower_cutoff'],
+              params_dict['bandpass_upper_cutoff']],
+        sampling_rate=params_dict['sampling_rate'])

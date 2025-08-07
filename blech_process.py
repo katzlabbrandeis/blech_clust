@@ -31,6 +31,7 @@ import time
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+import utils.read_file as read_file
 
 test_bool = False
 if test_bool:
@@ -137,8 +138,8 @@ electrode = bpu.electrode_handler(
     electrode_num,
     params_dict)
 
-# Run complete preprocessing pipeline
-filtered_data = electrode.preprocess_electrode()
+# Apply frequency filtering
+filtered_data = read_file.filter_electrode(electrode.raw_el, params_dict)
 
 #############################################################
 # Process Spikes
