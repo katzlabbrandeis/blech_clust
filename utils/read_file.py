@@ -262,11 +262,13 @@ class IntanDataHandler:
             for i, this_amp in enumerate(this_file_data['amplifier_data']):
                 if 'emg' in self.electrode_layout_frame.loc[i].CAR_group.lower():
                     array_name = f'emg{i:02}'
-                    hf5_el_array = self._create_earray('/raw_emg', array_name, atom)
+                    hf5_el_array = self._create_earray(
+                        '/raw_emg', array_name, atom)
                     hf5_el_array.append(this_amp)
                 elif self.electrode_layout_frame.loc[i].CAR_group.lower() not in ['none', 'na']:
                     array_name = f'electrode{i:02}'
-                    hf5_el_array = self._create_earray('/raw', array_name, atom)
+                    hf5_el_array = self._create_earray(
+                        '/raw', array_name, atom)
                     hf5_el_array.append(this_amp)
                 hf5.flush()
             pbar.update(1)
@@ -281,7 +283,8 @@ class IntanDataHandler:
                 print(f'Reading : {row.filename, row.CAR_group}')
                 data = self._read_data_from_file(row.filename)
                 array_name = f'emg{row.electrode_ind:02}'
-                hf5_el_array = self._create_earray('/raw_emg', array_name, atom)
+                hf5_el_array = self._create_earray(
+                    '/raw_emg', array_name, atom)
                 hf5_el_array.append(data)
                 hf5.flush()
         hf5.close()
@@ -306,16 +309,21 @@ class IntanDataHandler:
         atom = tables.IntAtom()
         amplifier_data = self._read_data_from_file(electrodes_list[0])
         num_electrodes = int(len(amplifier_data) / num_recorded_samples)
-        amp_reshape = np.reshape(amplifier_data, (int(len(amplifier_data) / num_electrodes), num_electrodes)).T
+        amp_reshape = np.reshape(amplifier_data, (int(
+            len(amplifier_data) / num_electrodes), num_electrodes)).T
         for num, row in tqdm(self.electrode_layout_frame.iterrows()):
             emg_bool = 'emg' not in row.CAR_group.lower()
             none_bool = row.CAR_group.lower() not in ['none', 'na']
             if emg_bool and none_bool:
                 print(f'Reading : {row.filename, row.CAR_group}')
-                el = self._create_earray('/raw', f'electrode{row.electrode_ind:02}', atom)
-                exec(f"hf5.root.raw.electrode{row.electrode_ind:02}.append(amp_reshape[num,:])")
+                el = self._create_earray(
+                    '/raw', f'electrode{row.electrode_ind:02}', atom)
+                exec(
+                    f"hf5.root.raw.electrode{row.electrode_ind:02}.append(amp_reshape[num,:])")
                 hf5.flush()
             elif not emg_bool and none_bool:
-                el = self._create_earray('/raw_emg', f'emg{row.electrode_ind:02}', atom)
-                exec(f"hf5.root.raw_emg.emg{row.electrode_ind:02}.append(amp_reshape[num,:])")
+                el = self._create_earray(
+                    '/raw_emg', f'emg{row.electrode_ind:02}', atom)
+                exec(
+                    f"hf5.root.raw_emg.emg{row.electrode_ind:02}.append(amp_reshape[num,:])")
         hf5.close()
