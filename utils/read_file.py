@@ -24,6 +24,7 @@ import pandas as pd
 
 from utils.importrhdutilities import load_file, read_header
 
+
 class IntanDataHandler:
     def __init__(self, hdf5_name, electrode_layout_frame):
         self.hdf5_name = hdf5_name

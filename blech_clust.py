@@ -347,7 +347,8 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 # Read data files, and append to electrode arrays
 if reload_data_str in ['y', 'yes']:
-    intan_handler = read_file.IntanDataHandler(hdf5_name, electrode_layout_frame)
+    intan_handler = read_file.IntanDataHandler(
+        hdf5_name, electrode_layout_frame)
     if file_type == 'one file per channel':
         intan_handler.read_electrode_channels()
         if len(emg_channels) > 0:
