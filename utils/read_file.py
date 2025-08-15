@@ -16,17 +16,105 @@ This module provides functionality for handling digital inputs and reading data 
 
 - `read_electrode_emg_channels_single_file`: Reads both electrode and EMG data from a single file and saves it to an HDF5 file, organizing data by channel index.
 """
-# Import stuff!
 import tables
 import os
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
 
-# Code for loading traditional intan format from
-# https://github.com/Intan-Technologies/load-rhd-notebook-python
-
 from utils.importrhdutilities import load_file, read_header
+
+class IntanDataHandler:
+    def __init__(self, hdf5_name, electrode_layout_frame):
+        self.hdf5_name = hdf5_name
+        self.electrode_layout_frame = electrode_layout_frame
+
+    def _read_data_from_file(self, filename):
+        return np.fromfile(filename, dtype=np.dtype('int16'))
+
+    def _create_earray(self, group, array_name, atom):
+        hf5 = tables.open_file(self.hdf5_name, 'r+')
+        if os.path.join(group, array_name) not in hf5:
+            return hf5.create_earray(group, array_name, atom, (0,))
+        else:
+            return hf5.get_node(group, array_name)
+
+    def read_traditional_intan(self, file_list):
+        atom = tables.IntAtom()
+        hf5 = tables.open_file(self.hdf5_name, 'r+')
+
+        pbar = tqdm(total=len(file_list))
+        for this_file in file_list:
+            pbar.set_description(os.path.basename(this_file))
+            this_file_data, data_present = load_file(this_file)
+            for i, this_amp in enumerate(this_file_data['amplifier_data']):
+                if 'emg' in self.electrode_layout_frame.loc[i].CAR_group.lower():
+                    array_name = f'emg{i:02}'
+                    hf5_el_array = self._create_earray(
+                        '/raw_emg', array_name, atom)
+                    hf5_el_array.append(this_amp)
+                elif self.electrode_layout_frame.loc[i].CAR_group.lower() not in ['none', 'na']:
+                    array_name = f'electrode{i:02}'
+                    hf5_el_array = self._create_earray(
+                        '/raw', array_name, atom)
+                    hf5_el_array.append(this_amp)
+                hf5.flush()
+            pbar.update(1)
+        pbar.close()
+        hf5.close()
+
+    def read_emg_channels(self):
+        atom = tables.IntAtom()
+        hf5 = tables.open_file(self.hdf5_name, 'r+')
+        for num, row in tqdm(self.electrode_layout_frame.iterrows()):
+            if 'emg' in row.CAR_group.lower():
+                print(f'Reading : {row.filename, row.CAR_group}')
+                data = self._read_data_from_file(row.filename)
+                array_name = f'emg{row.electrode_ind:02}'
+                hf5_el_array = self._create_earray(
+                    '/raw_emg', array_name, atom)
+                hf5_el_array.append(data)
+                hf5.flush()
+        hf5.close()
+
+    def read_electrode_channels(self):
+        atom = tables.IntAtom()
+        hf5 = tables.open_file(self.hdf5_name, 'r+')
+        for num, row in tqdm(self.electrode_layout_frame.iterrows()):
+            emg_bool = 'emg' not in row.CAR_group.lower()
+            none_bool = row.CAR_group.lower() not in ['none', 'na']
+            if emg_bool and none_bool:
+                print(f'Reading : {row.filename, row.CAR_group}')
+                data = self._read_data_from_file(row.filename)
+                array_name = f'electrode{row.electrode_ind:02}'
+                hf5_el_array = self._create_earray('/raw', array_name, atom)
+                hf5_el_array.append(data)
+                hf5.flush()
+        hf5.close()
+
+    def read_electrode_emg_channels_single_file(self, electrodes_list, num_recorded_samples, emg_channels):
+        hf5 = tables.open_file(self.hdf5_name, 'r+')
+        atom = tables.IntAtom()
+        amplifier_data = self._read_data_from_file(electrodes_list[0])
+        num_electrodes = int(len(amplifier_data) / num_recorded_samples)
+        amp_reshape = np.reshape(amplifier_data, (int(
+            len(amplifier_data) / num_electrodes), num_electrodes)).T
+        for num, row in tqdm(self.electrode_layout_frame.iterrows()):
+            emg_bool = 'emg' not in row.CAR_group.lower()
+            none_bool = row.CAR_group.lower() not in ['none', 'na']
+            if emg_bool and none_bool:
+                print(f'Reading : {row.filename, row.CAR_group}')
+                el = self._create_earray(
+                    '/raw', f'electrode{row.electrode_ind:02}', atom)
+                exec(
+                    f"hf5.root.raw.electrode{row.electrode_ind:02}.append(amp_reshape[num,:])")
+                hf5.flush()
+            elif not emg_bool and none_bool:
+                el = self._create_earray(
+                    '/raw_emg', f'emg{row.electrode_ind:02}', atom)
+                exec(
+                    f"hf5.root.raw_emg.emg{row.electrode_ind:02}.append(amp_reshape[num,:])")
+        hf5.close()
 
 
 class DigInHandler:
