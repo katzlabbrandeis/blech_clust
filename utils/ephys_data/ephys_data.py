@@ -1444,7 +1444,7 @@ class ephys_data():
         """
         if 'firing_list' not in dir(self):
             self.get_firing_rates()
-        
+
         self.psths = [np.mean(firing, axis=0) for firing in self.firing_list]
         """
         Load drift check results from a CSV file and mark units as stable or unstable
