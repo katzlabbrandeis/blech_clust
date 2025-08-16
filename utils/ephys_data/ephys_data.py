@@ -1485,7 +1485,9 @@ class ephys_data():
         # Rename "trial_bin" column to "p_val"
         self.drift_results.rename(columns={'trial_bin': 'p_val'}, inplace=True)
 
-        # Mark stable
+        # Define p_val_threshold if not provided
+        if 'p_val_threshold' not in dir(self):
+            p_val_threshold = 0.05  # Default value
         self.drift_results['stable'] = self.drift_results['p_val'] >= p_val_threshold
 
         # Get the indices of stable and unstable units

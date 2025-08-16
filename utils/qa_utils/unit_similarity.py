@@ -19,7 +19,7 @@ import sys
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-# Get script path
+from utils.blech_utils import imp_metadata, pipeline_graph_check, parse_collision_mat  # noqa: E402
 script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
@@ -248,7 +248,9 @@ if __name__ == '__main__':
         all_spk_times = [x.times[:]/sampling_rate_ms for x in units]
         waveform_counts = [x.waveforms.shape[0] for x in units]
 
-    # Compute PSTH similarity
+    # Initialize ephys_data object
+    data = ephys_data(data_dir=dir_name)
+    data.extract_and_process()
     data.compute_psths()
     psth_similarity_matrix, thresholded_matrix = psth_similarity(data.psths, similarity_cutoff)
     
