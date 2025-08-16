@@ -102,7 +102,22 @@ def unit_similarity_NM(all_spk_times):
     return unit_distances
 
 
-def parse_collision_mat(unit_distances, similarity_cutoff):
+def psth_similarity(psths, threshold):
+    """
+    Calculate the Pearson correlation of concatenated PSTHs for all tastes.
+    
+    Args:
+        psths: List of PSTHs for each taste.
+        threshold: Threshold for similarity.
+    
+    Returns:
+        similarity_matrix: A matrix of Pearson correlation coefficients.
+        thresholded_matrix: A matrix with values above the threshold.
+    """
+    concatenated_psths = np.concatenate(psths, axis=1)
+    similarity_matrix = np.corrcoef(concatenated_psths)
+    thresholded_matrix = np.where(similarity_matrix > threshold, similarity_matrix, np.nan)
+    return similarity_matrix, thresholded_matrix
     """
     Parses the unit similarity matrix to find units that are too similar
 
@@ -233,7 +248,28 @@ if __name__ == '__main__':
         all_spk_times = [x.times[:]/sampling_rate_ms for x in units]
         waveform_counts = [x.waveforms.shape[0] for x in units]
 
-    # Open a file to write these unit distance violations to -
+    # Compute PSTH similarity
+    data.compute_psths()
+    psth_similarity_matrix, thresholded_matrix = psth_similarity(data.psths, similarity_cutoff)
+    
+    # Plotting PSTH similarity
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    im1 = ax1.matshow(psth_similarity_matrix, cmap='viridis')
+    plt.colorbar(im1, ax=ax1)
+    ax1.set_title('Raw PSTH Similarity Matrix')
+    
+    im2 = ax2.matshow(thresholded_matrix, cmap='hot')
+    plt.colorbar(im2, ax=ax2)
+    ax2.set_title(f'Thresholded PSTH Similarity Matrix (>{similarity_cutoff})')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'psth_similarity_matrix.png'))
+    plt.close()
+    
+    # Warnings for PSTH similarity
+    if np.any(thresholded_matrix > similarity_cutoff):
+        with open(warnings_file_path, 'a') as f:
+            print('PSTH similarity threshold exceeded.', file=f)
     # these units are likely the same and one of them
     # will need to be removed from the HDF5 file
 
