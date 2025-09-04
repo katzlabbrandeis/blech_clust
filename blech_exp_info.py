@@ -610,10 +610,11 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     save_to_cache(cache, cache_file_path)
 
     this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
-        nums = re.findall('[1-9]+', x)
-        if not nums:
-            return False
-        pal_nums = [int(n) for n in nums]
+
+    nums = re.findall('[1-9]+', x)
+    if not nums:
+        return False
+    pal_nums = [int(n) for n in nums]
         return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
 
     # Get palatability rankings
