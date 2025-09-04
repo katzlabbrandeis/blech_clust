@@ -611,13 +611,13 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
 
     this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
 
-    nums = re.findall('[1-9]+', x)
-    if not nums:
-        return False
-    pal_nums = [int(n) for n in nums]
-    return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
-
     # Get palatability rankings
+    def pal_check(x):
+        nums = re.findall('[1-9]+', x)
+        if not nums:
+            return False
+        pal_nums = [int(n) for n in nums]
+        return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
     def convert_pal_ranks(input_str):
         nums = re.findall('[1-9]+', input_str)
         return [int(x) for x in nums]
@@ -1353,6 +1353,9 @@ def main():
         )
     else:
         laser_digin_trials = []
+
+    # Ensure open_times is defined
+    open_times = cache['taste_params'].get('open_times', [])
 
     # Create final dictionary
     fin_dict = {
