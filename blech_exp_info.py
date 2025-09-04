@@ -110,6 +110,9 @@ def parse_arguments():
         parser.add_argument(
             '--palatability', help='Comma-separated palatability rankings')
 
+        # Programmatic mode parameters - Taste open-times
+        parser.add_argument('--open-times', help='Comma-separated open times for each taste dig-in')
+
         # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
         parser.add_argument(
@@ -428,6 +431,14 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     print_df = print_df[print_df.taste_bool]
     print(print_df)
 
+    # Process open-times
+    if args.open_times:
+        open_times = parse_csv(args.open_times, float)
+    else:
+        raise ValueError('Open-times not provided, use --open-times')
+
+    this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
+
     # Process palatability rankings
     if args.palatability:
         pal_ranks = parse_csv(args.palatability, int)
@@ -578,7 +589,27 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     print_df = print_df[print_df.taste_bool]
     print(print_df)
 
-    def pal_check(x):
+    def open_time_check(x):
+        return len(x.split(',')) == len(taste_dig_inds)
+
+    # Get open-times
+    open_time_str = populate_field_with_defaults(
+        field_name='open_times',
+        nested_field='taste_params',
+        entry_checker_msg='Corresponding open times (in seconds, IN ORDER, COMMA separated)',
+        check_func=open_time_check,
+        existing_info=existing_info,
+        cache=cache,
+        convert_func=convert_concs,
+        fail_response=f'Please enter as many ({len(taste_dig_inds)}) open times as digins',
+        force_default=args.auto_defaults
+    )
+
+    open_times = convert_concs(open_time_str) if isinstance(open_time_str, str) else open_time_str
+    cache['taste_params']['open_times'] = open_times
+    save_to_cache(cache, cache_file_path)
+
+    this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
         nums = re.findall('[1-9]+', x)
         if not nums:
             return False
@@ -1344,7 +1375,8 @@ def main():
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
-            'pal_rankings': pal_ranks
+            'pal_rankings': pal_ranks,
+            'open_times': open_times
         },
         'laser_params': {
             'dig_in_nums': laser_digin_nums,
