@@ -111,7 +111,8 @@ def parse_arguments():
             '--palatability', help='Comma-separated palatability rankings')
 
         # Programmatic mode parameters - Taste open-times
-        parser.add_argument('--open-times', help='Comma-separated open times for each taste dig-in')
+        parser.add_argument(
+            '--open-times', help='Comma-separated open times for each taste dig-in')
 
         # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
@@ -605,7 +606,8 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         force_default=args.auto_defaults
     )
 
-    open_times = convert_concs(open_time_str) if isinstance(open_time_str, str) else open_time_str
+    open_times = convert_concs(open_time_str) if isinstance(
+        open_time_str, str) else open_time_str
     cache['taste_params']['open_times'] = open_times
     save_to_cache(cache, cache_file_path)
 
@@ -618,6 +620,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
             return False
         pal_nums = [int(n) for n in nums]
         return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
+
     def convert_pal_ranks(input_str):
         nums = re.findall('[1-9]+', input_str)
         return [int(x) for x in nums]
