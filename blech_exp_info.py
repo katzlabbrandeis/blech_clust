@@ -615,7 +615,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     if not nums:
         return False
     pal_nums = [int(n) for n in nums]
-        return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
+    return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
 
     # Get palatability rankings
     def convert_pal_ranks(input_str):
