@@ -407,6 +407,53 @@ class TestRawDataViewerApp(unittest.TestCase):
         # Clean up
         app.cleanup()
 
+    @patch('matplotlib.pyplot.show')
+    def test_enhanced_plotter_features(self, mock_show):
+        """Test the new enhanced features of the interactive plotter."""
+        loader = RawDataLoader(self.hdf5_path)
+        plotter = InteractivePlotter(
+            data_loader=loader,
+            initial_channel='electrode00',
+            initial_group='raw',
+            window_duration=5.0
+        )
+
+        # Test enhanced properties
+        self.assertEqual(plotter.data_conversion_factor, 0.6745)
+        self.assertEqual(plotter.lowpass_freq, 3000.0)
+        self.assertEqual(plotter.highpass_freq, 300.0)
+        self.assertIsNone(plotter.manual_ylims)
+
+        # Test frequency controls
+        plotter._on_lowpass_change('2000')
+        self.assertEqual(plotter.lowpass_freq, 2000.0)
+
+        plotter._on_highpass_change('500')
+        self.assertEqual(plotter.highpass_freq, 500.0)
+
+        # Test manual y-limits
+        plotter.ymin_box.set_val('-100')
+        plotter.ymax_box.set_val('100')
+        plotter._on_ylim_change('')  # Trigger the callback
+        self.assertEqual(plotter.manual_ylims, (-100.0, 100.0))
+        self.assertFalse(plotter.auto_scale)
+
+        # Test auto-scale reset
+        plotter._on_autoscale_click(None)
+        self.assertTrue(plotter.auto_scale)
+        self.assertIsNone(plotter.manual_ylims)
+
+        # Test data conversion factor is applied in get_current_data
+        data, _ = plotter.get_current_data()
+        self.assertIsInstance(data, np.ndarray)
+        
+        # Verify conversion factor is applied by checking if data values are reasonable for microvolts
+        # (original data is in int16 range, converted should be much smaller)
+        self.assertTrue(np.abs(data).max() < 1000)  # Should be in microvolt range
+
+        # Clean up
+        plotter.close()
+
 
 if __name__ == '__main__':
     # Set up test environment

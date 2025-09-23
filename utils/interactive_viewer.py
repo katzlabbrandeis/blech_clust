@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, TextBox, CheckButtons
 from matplotlib.patches import Rectangle
 import matplotlib.patches as mpatches
+from matplotlib.widgets import RadioButtons
 from typing import Optional, Callable, Dict, Any, Tuple, List
 import warnings
 
@@ -74,6 +75,10 @@ class InteractivePlotter:
         self.show_threshold = False
         self.auto_scale = True
         self.y_scale_factor = 1.0
+        self.manual_ylims = None
+        self.lowpass_freq = 3000.0
+        self.highpass_freq = 300.0
+        self.data_conversion_factor = 0.6745  # Convert to microvolts
 
         # Get total duration
         self.total_duration = self.data_loader.get_channel_duration(
@@ -94,10 +99,10 @@ class InteractivePlotter:
     def _create_plot(self):
         """Create the main plot and figure."""
         # Create figure with subplots for plot and controls
-        self.fig = plt.figure(figsize=(14, 10))
+        self.fig = plt.figure(figsize=(16, 12))
 
-        # Main plot area
-        self.ax_main = plt.subplot2grid((4, 4), (0, 0), colspan=4, rowspan=3)
+        # Main plot area - make it larger to accommodate more controls
+        self.ax_main = plt.subplot2grid((6, 6), (0, 0), colspan=6, rowspan=4)
         self.ax_main.set_xlabel('Time (s)')
         self.ax_main.set_ylabel('Amplitude (µV)')
         self.ax_main.grid(True, alpha=0.3)
@@ -123,7 +128,7 @@ class InteractivePlotter:
     def _create_controls(self):
         """Create control widgets."""
         # Time navigation slider
-        ax_time = plt.subplot2grid((4, 4), (3, 0), colspan=2)
+        ax_time = plt.subplot2grid((6, 6), (4, 0), colspan=3)
         self.time_slider = Slider(
             ax_time, 'Time (s)', 0, max(
                 0, self.total_duration - self.window_duration),
@@ -132,30 +137,55 @@ class InteractivePlotter:
         self.time_slider.on_changed(self._on_time_change)
 
         # Window duration control
-        ax_window = plt.subplot2grid((4, 4), (3, 2))
+        ax_window = plt.subplot2grid((6, 6), (4, 3))
         self.window_box = TextBox(
             ax_window, 'Window (s)', initial=str(self.window_duration))
         self.window_box.on_submit(self._on_window_change)
 
         # Threshold control
-        ax_threshold = plt.subplot2grid((4, 4), (3, 3))
+        ax_threshold = plt.subplot2grid((6, 6), (4, 4))
         self.threshold_box = TextBox(ax_threshold, 'Threshold', initial='')
         self.threshold_box.on_submit(self._on_threshold_change)
+
+        # Channel dropdown (simplified as radio buttons for now)
+        ax_channel_select = plt.subplot2grid((6, 6), (4, 5))
+        # Show first few channels in radio buttons
+        visible_channels = self.available_channels[:min(5, len(self.available_channels))]
+        self.channel_radio = RadioButtons(ax_channel_select, visible_channels)
+        self.channel_radio.on_clicked(self._on_channel_radio_change)
+
+        # Filter frequency controls - Row 5
+        ax_lowpass = plt.subplot2grid((6, 6), (5, 0))
+        self.lowpass_box = TextBox(ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
+        self.lowpass_box.on_submit(self._on_lowpass_change)
+
+        ax_highpass = plt.subplot2grid((6, 6), (5, 1))
+        self.highpass_box = TextBox(ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
+        self.highpass_box.on_submit(self._on_highpass_change)
+
+        # Y-limits controls
+        ax_ymin = plt.subplot2grid((6, 6), (5, 2))
+        self.ymin_box = TextBox(ax_ymin, 'Y Min', initial='')
+        self.ymin_box.on_submit(self._on_ylim_change)
+
+        ax_ymax = plt.subplot2grid((6, 6), (5, 3))
+        self.ymax_box = TextBox(ax_ymax, 'Y Max', initial='')
+        self.ymax_box.on_submit(self._on_ylim_change)
 
         # Add control buttons (will be created in separate method)
         self._create_buttons()
 
     def _create_buttons(self):
         """Create control buttons."""
-        # Create button axes
-        button_height = 0.04
-        button_width = 0.08
-        button_spacing = 0.02
+        # Create button axes - positioned at bottom
+        button_height = 0.03
+        button_width = 0.06
+        y_pos = 0.01
 
         # Navigation buttons
-        ax_prev = plt.axes([0.02, 0.02, button_width, button_height])
-        ax_next = plt.axes([0.12, 0.02, button_width, button_height])
-        ax_jump = plt.axes([0.22, 0.02, button_width, button_height])
+        ax_prev = plt.axes([0.02, y_pos, button_width, button_height])
+        ax_next = plt.axes([0.09, y_pos, button_width, button_height])
+        ax_jump = plt.axes([0.16, y_pos, button_width, button_height])
 
         self.btn_prev = Button(ax_prev, '← Prev')
         self.btn_next = Button(ax_next, 'Next →')
@@ -166,22 +196,22 @@ class InteractivePlotter:
         self.btn_jump.on_clicked(self._on_jump_click)
 
         # Filter and display buttons
-        ax_filter = plt.axes([0.35, 0.02, button_width, button_height])
-        ax_reset = plt.axes([0.45, 0.02, button_width, button_height])
-        ax_autoscale = plt.axes([0.55, 0.02, button_width, button_height])
+        ax_filter = plt.axes([0.25, y_pos, button_width, button_height])
+        ax_reset = plt.axes([0.32, y_pos, button_width, button_height])
+        ax_autoscale = plt.axes([0.39, y_pos, button_width, button_height])
 
-        self.btn_filter = Button(ax_filter, 'Filter')
+        self.btn_filter = Button(ax_filter, 'Apply Filter')
         self.btn_reset = Button(ax_reset, 'Reset')
-        self.btn_autoscale = Button(ax_autoscale, 'Auto Scale')
+        self.btn_autoscale = Button(ax_autoscale, 'Auto Y')
 
         self.btn_filter.on_clicked(self._on_filter_click)
         self.btn_reset.on_clicked(self._on_reset_click)
         self.btn_autoscale.on_clicked(self._on_autoscale_click)
 
-        # Channel selection (simplified - in full implementation would be dropdown)
-        ax_channel = plt.axes([0.68, 0.02, button_width * 1.5, button_height])
-        self.btn_channel = Button(ax_channel, f'Ch: {self.current_channel}')
-        self.btn_channel.on_clicked(self._on_channel_click)
+        # Additional control buttons
+        ax_all_channels = plt.axes([0.46, y_pos, button_width * 1.2, button_height])
+        self.btn_all_channels = Button(ax_all_channels, 'All Channels')
+        self.btn_all_channels.on_clicked(self._on_all_channels_click)
 
     def _update_display(self):
         """Update the main display with current data."""
@@ -199,6 +229,9 @@ class InteractivePlotter:
                 end_time=end_time
             )
 
+            # Apply conversion factor to convert to microvolts
+            data = data * self.data_conversion_factor
+
             # Apply filtering if enabled
             if self.signal_filter.filter_type != 'none':
                 data = self.signal_filter.filter_data(data)
@@ -209,7 +242,10 @@ class InteractivePlotter:
             # Update plot limits
             self.ax_main.set_xlim(start_time, end_time)
 
-            if self.auto_scale:
+            if self.manual_ylims is not None:
+                # Use manual y-limits
+                self.ax_main.set_ylim(self.manual_ylims[0], self.manual_ylims[1])
+            elif self.auto_scale:
                 if len(data) > 0:
                     data_range = np.ptp(data)
                     data_center = np.mean(data)
@@ -276,6 +312,81 @@ class InteractivePlotter:
             self._update_display()
         except ValueError:
             pass
+
+    def _on_channel_radio_change(self, label):
+        """Handle channel radio button change."""
+        if label in self.available_channels:
+            self.current_channel = label
+            # Update total duration for new channel
+            self.total_duration = self.data_loader.get_channel_duration(
+                self.current_channel, self.current_group
+            )
+            self.time_slider.valmax = max(
+                0, self.total_duration - self.window_duration)
+            self._update_display()
+
+    def _on_lowpass_change(self, text):
+        """Handle lowpass frequency change."""
+        try:
+            freq = float(text)
+            if freq > 0:
+                self.lowpass_freq = freq
+                self._update_filter_from_frequencies()
+        except ValueError:
+            pass
+
+    def _on_highpass_change(self, text):
+        """Handle highpass frequency change."""
+        try:
+            freq = float(text)
+            if freq > 0:
+                self.highpass_freq = freq
+                self._update_filter_from_frequencies()
+        except ValueError:
+            pass
+
+    def _on_ylim_change(self, text):
+        """Handle y-limit changes."""
+        try:
+            ymin_text = self.ymin_box.text.strip()
+            ymax_text = self.ymax_box.text.strip()
+            
+            if ymin_text and ymax_text:
+                ymin = float(ymin_text)
+                ymax = float(ymax_text)
+                if ymin < ymax:
+                    self.manual_ylims = (ymin, ymax)
+                    self.auto_scale = False
+                    self._update_display()
+            elif not ymin_text and not ymax_text:
+                self.manual_ylims = None
+                self.auto_scale = True
+                self._update_display()
+        except ValueError:
+            pass
+
+    def _update_filter_from_frequencies(self):
+        """Update filter based on current frequency settings."""
+        if self.highpass_freq > 0 and self.lowpass_freq > self.highpass_freq:
+            self.signal_filter.update_parameters(
+                filter_type='bandpass',
+                low_freq=self.highpass_freq,
+                high_freq=self.lowpass_freq
+            )
+        elif self.highpass_freq > 0:
+            self.signal_filter.update_parameters(
+                filter_type='highpass',
+                low_freq=self.highpass_freq
+            )
+        elif self.lowpass_freq > 0:
+            self.signal_filter.update_parameters(
+                filter_type='lowpass',
+                high_freq=self.lowpass_freq
+            )
+        else:
+            self.signal_filter.update_parameters(filter_type='none')
+        
+        self._update_display()
 
     def _on_scroll(self, event):
         """Handle mouse scroll for time navigation."""
@@ -361,28 +472,7 @@ class InteractivePlotter:
         self.current_time = max(0, middle_time)
         self.time_slider.set_val(self.current_time)
 
-    def _on_filter_click(self, event):
-        """Handle filter button click."""
-        # Toggle between common filter types
-        if self.signal_filter.filter_type == 'none':
-            # Switch to spike filter
-            self.signal_filter.update_parameters(
-                filter_type='bandpass',
-                low_freq=300,
-                high_freq=3000
-            )
-        elif self.signal_filter.filter_type == 'bandpass' and self.signal_filter.low_freq == 300:
-            # Switch to LFP filter
-            self.signal_filter.update_parameters(
-                filter_type='bandpass',
-                low_freq=1,
-                high_freq=300
-            )
-        else:
-            # Switch to no filter
-            self.signal_filter.update_parameters(filter_type='none')
 
-        self._update_display()
 
     def _on_reset_click(self, event):
         """Handle reset button click."""
@@ -393,14 +483,26 @@ class InteractivePlotter:
 
     def _on_autoscale_click(self, event):
         """Handle autoscale button click."""
-        self.auto_scale = not self.auto_scale
-        if self.auto_scale:
-            self._update_display()
+        self.auto_scale = True
+        self.manual_ylims = None
+        # Clear y-limit text boxes
+        self.ymin_box.set_val('')
+        self.ymax_box.set_val('')
+        self._update_display()
 
     def _on_channel_click(self, event):
         """Handle channel button click."""
         # Cycle through channels
         self._change_channel(1)
+
+    def _on_all_channels_click(self, event):
+        """Handle all channels button click - cycle through available channels."""
+        # This could open a dialog with all channels, for now just cycle
+        self._change_channel(1)
+
+    def _on_filter_click(self, event):
+        """Handle filter button click - apply current frequency settings."""
+        self._update_filter_from_frequencies()
 
     def set_filter(self, filter_obj: SignalFilter):
         """Set the signal filter."""
@@ -456,6 +558,9 @@ class InteractivePlotter:
             start_time=start_time,
             end_time=end_time
         )
+
+        # Apply conversion factor
+        data = data * self.data_conversion_factor
 
         if self.signal_filter.filter_type != 'none':
             data = self.signal_filter.filter_data(data)
