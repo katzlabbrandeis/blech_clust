@@ -316,7 +316,7 @@ with RawDataLoader('data.h5') as loader:
     spike_filter = FilterBank.create_spike_filter(loader.sampling_rate)
     raw_data, _ = loader.load_channel_data('electrode00', 'raw')
     spike_data = spike_filter.filter_data(raw_data)
-    
+
     # Detect spikes, run analysis, etc.
 ```
 

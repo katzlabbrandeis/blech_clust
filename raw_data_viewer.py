@@ -48,35 +48,36 @@ class RawDataViewerApp:
     """
     Main application class for the raw data viewer.
     """
-    
+
     def __init__(self, config: Dict[str, Any]):
         """
         Initialize the raw data viewer application.
-        
+
         Args:
             config: Configuration dictionary with viewer parameters
         """
         self.config = config
         self.data_loader = None
         self.plotter = None
-        
+
         # Initialize data loader
         self._initialize_data_loader()
-        
+
         # Initialize plotter
         self._initialize_plotter()
-    
+
     def _initialize_data_loader(self):
         """Initialize the data loader."""
         hdf5_path = self.config['hdf5_path']
         sampling_rate = self.config.get('sampling_rate')
-        
+
         print(f"Loading data from: {hdf5_path}")
-        
+
         try:
             self.data_loader = RawDataLoader(hdf5_path, sampling_rate)
-            print(f"Data loaded successfully. Sampling rate: {self.data_loader.sampling_rate} Hz")
-            
+            print(
+                f"Data loaded successfully. Sampling rate: {self.data_loader.sampling_rate} Hz")
+
             # Print available channels
             channel_info = self.data_loader.get_available_channels()
             for group, channels in channel_info.items():
@@ -84,36 +85,39 @@ class RawDataViewerApp:
                 if len(channels) <= 10:
                     print(f"  Channels: {list(channels.keys())}")
                 else:
-                    print(f"  Channels: {list(channels.keys())[:5]} ... {list(channels.keys())[-5:]}")
-            
+                    print(
+                        f"  Channels: {list(channels.keys())[:5]} ... {list(channels.keys())[-5:]}")
+
         except Exception as e:
             print(f"Error loading data: {e}")
             sys.exit(1)
-    
+
     def _initialize_plotter(self):
         """Initialize the interactive plotter."""
         # Determine initial channel and group
         initial_group = self.config.get('group', 'raw')
         initial_channel = self.config.get('channel')
-        
+
         # Validate group
         available_channels = self.data_loader.get_available_channels()
         if initial_group not in available_channels:
             available_groups = list(available_channels.keys())
-            print(f"Group '{initial_group}' not found. Available groups: {available_groups}")
+            print(
+                f"Group '{initial_group}' not found. Available groups: {available_groups}")
             initial_group = available_groups[0]
             print(f"Using group: {initial_group}")
-        
+
         # Validate channel
         group_channels = list(available_channels[initial_group].keys())
         if initial_channel and initial_channel not in group_channels:
-            print(f"Channel '{initial_channel}' not found in group '{initial_group}'")
+            print(
+                f"Channel '{initial_channel}' not found in group '{initial_group}'")
             initial_channel = None
-        
+
         if not initial_channel:
             initial_channel = group_channels[0]
             print(f"Using channel: {initial_channel}")
-        
+
         # Create plotter
         try:
             self.plotter = InteractivePlotter(
@@ -123,27 +127,27 @@ class RawDataViewerApp:
                 window_duration=self.config.get('window_duration', 10.0),
                 update_callback=self._on_plotter_update
             )
-            
+
             # Set initial filter if specified
             filter_type = self.config.get('filter_type')
             if filter_type:
                 self._set_initial_filter(filter_type)
-            
+
             # Set initial threshold if specified
             threshold = self.config.get('threshold')
             if threshold is not None:
                 self.plotter.set_threshold(threshold)
-            
+
             print("Interactive plotter initialized successfully")
-            
+
         except Exception as e:
             print(f"Error initializing plotter: {e}")
             sys.exit(1)
-    
+
     def _set_initial_filter(self, filter_type: str):
         """Set initial filter based on type."""
         sampling_rate = self.data_loader.sampling_rate
-        
+
         if filter_type.lower() == 'spike':
             signal_filter = FilterBank.create_spike_filter(sampling_rate)
         elif filter_type.lower() == 'lfp':
@@ -168,17 +172,18 @@ class RawDataViewerApp:
                     raise ValueError("Invalid filter format")
             except:
                 print(f"Invalid filter type: {filter_type}")
-                print("Valid options: spike, lfp, emg, none, or 'low-high' (e.g., '300-3000')")
+                print(
+                    "Valid options: spike, lfp, emg, none, or 'low-high' (e.g., '300-3000')")
                 signal_filter = SignalFilter(sampling_rate, filter_type='none')
-        
+
         self.plotter.set_filter(signal_filter)
         print(f"Filter set: {signal_filter}")
-    
+
     def _on_plotter_update(self, plotter):
         """Callback for plotter updates."""
         # This could be used for logging, saving state, etc.
         pass
-    
+
     def run(self):
         """Run the interactive viewer."""
         print("\n" + "="*60)
@@ -193,7 +198,7 @@ class RawDataViewerApp:
         print("  'r' key: Reset view")
         print("  Use GUI controls for precise adjustments")
         print("="*60)
-        
+
         try:
             self.plotter.show()
         except KeyboardInterrupt:
@@ -202,7 +207,7 @@ class RawDataViewerApp:
             print(f"Error running viewer: {e}")
         finally:
             self.cleanup()
-    
+
     def cleanup(self):
         """Clean up resources."""
         if self.plotter:
@@ -213,16 +218,16 @@ class RawDataViewerApp:
 def find_hdf5_file(data_path: str) -> str:
     """
     Find HDF5 file in the given path.
-    
+
     Args:
         data_path: Path to directory or HDF5 file
-        
+
     Returns:
         Path to HDF5 file
     """
     if os.path.isfile(data_path) and data_path.endswith('.h5'):
         return data_path
-    
+
     if os.path.isdir(data_path):
         # Look for HDF5 files in directory
         h5_files = glob.glob(os.path.join(data_path, '*.h5'))
@@ -235,17 +240,17 @@ def find_hdf5_file(data_path: str) -> str:
         else:
             print(f"No HDF5 files found in {data_path}")
             sys.exit(1)
-    
+
     raise FileNotFoundError(f"Invalid path: {data_path}")
 
 
 def load_config_file(config_path: str) -> Dict[str, Any]:
     """
     Load configuration from JSON file.
-    
+
     Args:
         config_path: Path to configuration file
-        
+
     Returns:
         Configuration dictionary
     """
@@ -282,49 +287,49 @@ Examples:
   %(prog)s /path/to/data/ --config viewer_config.json
         """
     )
-    
-    parser.add_argument('data_path', 
-                       help='Path to data directory or HDF5 file')
-    
+
+    parser.add_argument('data_path',
+                        help='Path to data directory or HDF5 file')
+
     parser.add_argument('--channel', '-c',
-                       help='Initial channel to display')
-    
-    parser.add_argument('--group', '-g', 
-                       default='raw',
-                       help='Data group to use (default: raw)')
-    
+                        help='Initial channel to display')
+
+    parser.add_argument('--group', '-g',
+                        default='raw',
+                        help='Data group to use (default: raw)')
+
     parser.add_argument('--window', '-w',
-                       type=float, default=10.0,
-                       help='Window duration in seconds (default: 10.0)')
-    
+                        type=float, default=10.0,
+                        help='Window duration in seconds (default: 10.0)')
+
     parser.add_argument('--filter', '-f',
-                       help='Filter type: spike, lfp, emg, none, or "low-high" (e.g., "300-3000")')
-    
+                        help='Filter type: spike, lfp, emg, none, or "low-high" (e.g., "300-3000")')
+
     parser.add_argument('--threshold', '-t',
-                       type=float,
-                       help='Threshold value to display')
-    
+                        type=float,
+                        help='Threshold value to display')
+
     parser.add_argument('--sampling-rate', '-s',
-                       type=float,
-                       help='Sampling rate in Hz (auto-detect if not specified)')
-    
+                        type=float,
+                        help='Sampling rate in Hz (auto-detect if not specified)')
+
     parser.add_argument('--config',
-                       help='Path to JSON configuration file')
-    
+                        help='Path to JSON configuration file')
+
     parser.add_argument('--save-config',
-                       help='Save current configuration to file and exit')
-    
+                        help='Save current configuration to file and exit')
+
     args = parser.parse_args()
-    
+
     # Load base configuration
     if args.config:
         config = load_config_file(args.config)
     else:
         config = create_default_config()
-    
+
     # Override with command line arguments
     config['hdf5_path'] = find_hdf5_file(args.data_path)
-    
+
     if args.channel:
         config['channel'] = args.channel
     if args.group:
@@ -337,7 +342,7 @@ Examples:
         config['threshold'] = args.threshold
     if args.sampling_rate:
         config['sampling_rate'] = args.sampling_rate
-    
+
     # Save configuration if requested
     if args.save_config:
         try:
@@ -348,7 +353,7 @@ Examples:
         except Exception as e:
             print(f"Error saving configuration: {e}")
             sys.exit(1)
-    
+
     # Create and run the application
     try:
         app = RawDataViewerApp(config)
