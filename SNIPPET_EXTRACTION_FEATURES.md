@@ -75,7 +75,7 @@ if show_snippets and threshold_set:
 ### Control Elements
 
 1. **Before (ms)**: Text box for pre-threshold time
-2. **After (ms)**: Text box for post-threshold time  
+2. **After (ms)**: Text box for post-threshold time
 3. **Max Snippets**: Text box for display limit
 4. **Show Snippets**: Checkbox to enable/disable extraction
 

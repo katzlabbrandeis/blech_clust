@@ -233,7 +233,7 @@ DEFAULT_SETTINGS = {
     'conversion_factor': 0.6745,  # ADC to microvolts
     'auto_scale': True,          # Y-axis auto-scaling
     'manual_ylims': None,        # Manual Y-limits (disabled)
-    
+
     # Snippet extraction settings
     'show_snippets': False,      # Snippet extraction disabled by default
     'snippet_before_ms': 0.5,    # Time before threshold crossing (ms)
