@@ -204,7 +204,7 @@ blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
 
 ### Workflow Walkthrough
 <details>
-    
+
 *This section is being expanded, in progress.*
 
 Open a terminal, and run:
@@ -249,7 +249,7 @@ bash blech_clust_post.sh       # Perform steps up to PSTH generation
 
 ### Utilities
 <details>
-    
+
 #### utils/infer_rnn_rates.py
 
 This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
@@ -285,7 +285,7 @@ optional arguments:
                         4500])
 ```
 </details>
-    
+
 ### Test Dataset
 We are grateful to Brandeis University Google Filestream for hosting this dataset <br>
 Data to test workflow available at:<br>
