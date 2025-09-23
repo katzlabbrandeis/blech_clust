@@ -82,8 +82,7 @@ class InteractivePlotter:
 
         # Snippet extraction parameters
         self.show_snippets = False
-        self.snippet_before_ms = 0.5  # ms before threshold crossing
-        self.snippet_after_ms = 1.0   # ms after threshold crossing
+        self.snippet_window_ratio = 0.2  # snippet window as fraction of main window (1/5)
         self.max_snippets = 50        # maximum snippets to display
         self.current_snippets = []    # extracted snippet waveforms
         self.snippet_times = []       # times of snippet peaks
@@ -110,18 +109,18 @@ class InteractivePlotter:
         # Create figure with subplots for plot and controls
         self.fig = plt.figure(figsize=(16, 14))
 
-        # Main plot area - adjust for snippet subplot
-        self.ax_main = plt.subplot2grid((8, 6), (0, 0), colspan=6, rowspan=3)
+        # Main plot area - takes up 5/6 of the width
+        self.ax_main = plt.subplot2grid((8, 6), (0, 0), colspan=5, rowspan=3)
         self.ax_main.set_xlabel('Time (s)')
         self.ax_main.set_ylabel('Amplitude (µV)')
         self.ax_main.grid(True, alpha=0.3)
 
-        # Snippet plot area
+        # Snippet plot area - 1/6 width of total (1/5 of main plot width)
         self.ax_snippets = plt.subplot2grid(
-            (8, 6), (3, 0), colspan=6, rowspan=2)
+            (8, 6), (0, 5), colspan=1, rowspan=3)
         self.ax_snippets.set_xlabel('Time (ms)')
         self.ax_snippets.set_ylabel('Amplitude (µV)')
-        self.ax_snippets.set_title('Extracted Waveform Snippets')
+        self.ax_snippets.set_title('Snippets')
         self.ax_snippets.grid(True, alpha=0.3)
         self.ax_snippets.set_visible(False)  # Initially hidden
 
@@ -145,8 +144,8 @@ class InteractivePlotter:
 
     def _create_controls(self):
         """Create control widgets."""
-        # Time navigation slider - Row 5
-        ax_time = plt.subplot2grid((8, 6), (5, 0), colspan=3)
+        # Time navigation slider - Row 4 (moved up since snippet plot is now on the side)
+        ax_time = plt.subplot2grid((8, 6), (4, 0), colspan=3)
         self.time_slider = Slider(
             ax_time, 'Time (s)', 0, max(
                 0, self.total_duration - self.window_duration),
@@ -155,62 +154,57 @@ class InteractivePlotter:
         self.time_slider.on_changed(self._on_time_change)
 
         # Window duration control
-        ax_window = plt.subplot2grid((8, 6), (5, 3))
+        ax_window = plt.subplot2grid((8, 6), (4, 3))
         self.window_box = TextBox(
             ax_window, 'Window (s)', initial=str(self.window_duration))
         self.window_box.on_submit(self._on_window_change)
 
         # Threshold control
-        ax_threshold = plt.subplot2grid((8, 6), (5, 4))
+        ax_threshold = plt.subplot2grid((8, 6), (4, 4))
         self.threshold_box = TextBox(ax_threshold, 'Threshold', initial='')
         self.threshold_box.on_submit(self._on_threshold_change)
 
         # Channel dropdown (simplified as radio buttons for now)
-        ax_channel_select = plt.subplot2grid((8, 6), (5, 5))
+        ax_channel_select = plt.subplot2grid((8, 6), (4, 5))
         # Show first few channels in radio buttons
         visible_channels = self.available_channels[:min(
             5, len(self.available_channels))]
         self.channel_radio = RadioButtons(ax_channel_select, visible_channels)
         self.channel_radio.on_clicked(self._on_channel_radio_change)
 
-        # Filter frequency controls - Row 6
-        ax_lowpass = plt.subplot2grid((8, 6), (6, 0))
+        # Filter frequency controls - Row 5
+        ax_lowpass = plt.subplot2grid((8, 6), (5, 0))
         self.lowpass_box = TextBox(
             ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
         self.lowpass_box.on_submit(self._on_lowpass_change)
 
-        ax_highpass = plt.subplot2grid((8, 6), (6, 1))
+        ax_highpass = plt.subplot2grid((8, 6), (5, 1))
         self.highpass_box = TextBox(
             ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
         self.highpass_box.on_submit(self._on_highpass_change)
 
         # Y-limits controls
-        ax_ymin = plt.subplot2grid((8, 6), (6, 2))
+        ax_ymin = plt.subplot2grid((8, 6), (5, 2))
         self.ymin_box = TextBox(ax_ymin, 'Y Min', initial='')
         self.ymin_box.on_submit(self._on_ylim_change)
 
-        ax_ymax = plt.subplot2grid((8, 6), (6, 3))
+        ax_ymax = plt.subplot2grid((8, 6), (5, 3))
         self.ymax_box = TextBox(ax_ymax, 'Y Max', initial='')
         self.ymax_box.on_submit(self._on_ylim_change)
 
-        # Snippet controls - Row 7
-        ax_snippet_before = plt.subplot2grid((8, 6), (7, 0))
-        self.snippet_before_box = TextBox(
-            ax_snippet_before, 'Before (ms)', initial=str(self.snippet_before_ms))
-        self.snippet_before_box.on_submit(self._on_snippet_before_change)
+        # Snippet controls - Row 6
+        ax_snippet_ratio = plt.subplot2grid((8, 6), (6, 0))
+        self.snippet_ratio_box = TextBox(
+            ax_snippet_ratio, 'Snippet Ratio', initial=str(self.snippet_window_ratio))
+        self.snippet_ratio_box.on_submit(self._on_snippet_ratio_change)
 
-        ax_snippet_after = plt.subplot2grid((8, 6), (7, 1))
-        self.snippet_after_box = TextBox(
-            ax_snippet_after, 'After (ms)', initial=str(self.snippet_after_ms))
-        self.snippet_after_box.on_submit(self._on_snippet_after_change)
-
-        ax_max_snippets = plt.subplot2grid((8, 6), (7, 2))
+        ax_max_snippets = plt.subplot2grid((8, 6), (6, 1))
         self.max_snippets_box = TextBox(
             ax_max_snippets, 'Max Snippets', initial=str(self.max_snippets))
         self.max_snippets_box.on_submit(self._on_max_snippets_change)
 
         # Show snippets checkbox
-        ax_show_snippets = plt.subplot2grid((8, 6), (7, 3))
+        ax_show_snippets = plt.subplot2grid((8, 6), (6, 2))
         self.show_snippets_check = CheckButtons(
             ax_show_snippets, ['Show Snippets'], [self.show_snippets])
         self.show_snippets_check.on_clicked(self._on_show_snippets_change)
@@ -257,23 +251,12 @@ class InteractivePlotter:
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
 
-    def _on_snippet_before_change(self, text):
-        """Handle snippet before time change."""
+    def _on_snippet_ratio_change(self, text):
+        """Handle snippet window ratio change."""
         try:
-            time_ms = float(text)
-            if time_ms > 0:
-                self.snippet_before_ms = time_ms
-                if self.show_snippets:
-                    self._update_display()
-        except ValueError:
-            pass
-
-    def _on_snippet_after_change(self, text):
-        """Handle snippet after time change."""
-        try:
-            time_ms = float(text)
-            if time_ms > 0:
-                self.snippet_after_ms = time_ms
+            ratio = float(text)
+            if 0 < ratio <= 1.0:  # Ratio should be between 0 and 1
+                self.snippet_window_ratio = ratio
                 if self.show_snippets:
                     self._update_display()
         except ValueError:
@@ -300,7 +283,7 @@ class InteractivePlotter:
             self.ax_snippets.clear()
             self.ax_snippets.set_xlabel('Time (ms)')
             self.ax_snippets.set_ylabel('Amplitude (µV)')
-            self.ax_snippets.set_title('Extracted Waveform Snippets')
+            self.ax_snippets.set_title('Snippets')
             self.ax_snippets.grid(True, alpha=0.3)
         self.fig.canvas.draw()
 
@@ -315,9 +298,13 @@ class InteractivePlotter:
 
         sampling_rate = self.data_loader.sampling_rate
 
-        # Convert snippet times from ms to samples
-        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
-        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
+        # Calculate snippet window based on ratio of main window
+        snippet_duration_s = self.window_duration * self.snippet_window_ratio
+        snippet_samples = int(snippet_duration_s * sampling_rate)
+        
+        # Split snippet window symmetrically around threshold crossing
+        before_samples = snippet_samples // 2
+        after_samples = snippet_samples - before_samples
 
         # Find mean for threshold detection
         mean_val = np.mean(data)
@@ -394,13 +381,16 @@ class InteractivePlotter:
 
         # Create time axis for snippets (in ms)
         sampling_rate = self.data_loader.sampling_rate
-        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
-        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
+        snippet_duration_s = self.window_duration * self.snippet_window_ratio
+        snippet_samples = int(snippet_duration_s * sampling_rate)
+        before_samples = snippet_samples // 2
+        after_samples = snippet_samples - before_samples
         total_samples = before_samples + after_samples
 
         # Time axis in ms, centered at 0 (threshold crossing)
-        snippet_time_ms = np.linspace(-self.snippet_before_ms,
-                                      self.snippet_after_ms, total_samples)
+        before_time_ms = (before_samples / sampling_rate) * 1000
+        after_time_ms = (after_samples / sampling_rate) * 1000
+        snippet_time_ms = np.linspace(-before_time_ms, after_time_ms, total_samples)
 
         # Plot snippets with different colors for positive/negative
         neg_snippets = []
@@ -435,12 +425,12 @@ class InteractivePlotter:
             x=0, color='k', linestyle=':', alpha=0.5, label='Peak time')
 
         # Formatting
-        self.ax_snippets.set_xlabel('Time (ms)')
-        self.ax_snippets.set_ylabel('Amplitude (µV)')
-        self.ax_snippets.set_title(
-            f'Extracted Waveform Snippets (n={len(self.current_snippets)})')
+        self.ax_snippets.set_xlabel('Time (ms)', fontsize='small')
+        self.ax_snippets.set_ylabel('Amplitude (µV)', fontsize='small')
+        self.ax_snippets.set_title(f'Snippets (n={len(self.current_snippets)})', fontsize='small')
         self.ax_snippets.grid(True, alpha=0.3)
-        self.ax_snippets.legend(loc='upper right')
+        self.ax_snippets.legend(loc='upper right', fontsize='x-small')
+        self.ax_snippets.tick_params(axis='both', which='major', labelsize='x-small')
 
     def _update_display(self):
         """Update the main display with current data."""
