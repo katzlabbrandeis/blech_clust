@@ -79,6 +79,15 @@ class InteractivePlotter:
         self.lowpass_freq = 3000.0
         self.highpass_freq = 300.0
         self.data_conversion_factor = 0.6745  # Convert to microvolts
+        
+        # Snippet extraction parameters
+        self.show_snippets = False
+        self.snippet_before_ms = 0.5  # ms before threshold crossing
+        self.snippet_after_ms = 1.0   # ms after threshold crossing
+        self.max_snippets = 50        # maximum snippets to display
+        self.current_snippets = []    # extracted snippet waveforms
+        self.snippet_times = []       # times of snippet peaks
+        self.snippet_polarities = []  # polarity of each snippet
 
         # Get total duration
         self.total_duration = self.data_loader.get_channel_duration(
@@ -99,13 +108,21 @@ class InteractivePlotter:
     def _create_plot(self):
         """Create the main plot and figure."""
         # Create figure with subplots for plot and controls
-        self.fig = plt.figure(figsize=(16, 12))
+        self.fig = plt.figure(figsize=(16, 14))
 
-        # Main plot area - make it larger to accommodate more controls
-        self.ax_main = plt.subplot2grid((6, 6), (0, 0), colspan=6, rowspan=4)
+        # Main plot area - adjust for snippet subplot
+        self.ax_main = plt.subplot2grid((8, 6), (0, 0), colspan=6, rowspan=3)
         self.ax_main.set_xlabel('Time (s)')
         self.ax_main.set_ylabel('Amplitude (µV)')
         self.ax_main.grid(True, alpha=0.3)
+        
+        # Snippet plot area
+        self.ax_snippets = plt.subplot2grid((8, 6), (3, 0), colspan=6, rowspan=2)
+        self.ax_snippets.set_xlabel('Time (ms)')
+        self.ax_snippets.set_ylabel('Amplitude (µV)')
+        self.ax_snippets.set_title('Extracted Waveform Snippets')
+        self.ax_snippets.grid(True, alpha=0.3)
+        self.ax_snippets.set_visible(False)  # Initially hidden
 
         # Initialize empty line objects
         self.data_line, = self.ax_main.plot(
@@ -127,8 +144,8 @@ class InteractivePlotter:
 
     def _create_controls(self):
         """Create control widgets."""
-        # Time navigation slider
-        ax_time = plt.subplot2grid((6, 6), (4, 0), colspan=3)
+        # Time navigation slider - Row 5
+        ax_time = plt.subplot2grid((8, 6), (5, 0), colspan=3)
         self.time_slider = Slider(
             ax_time, 'Time (s)', 0, max(
                 0, self.total_duration - self.window_duration),
@@ -137,43 +154,61 @@ class InteractivePlotter:
         self.time_slider.on_changed(self._on_time_change)
 
         # Window duration control
-        ax_window = plt.subplot2grid((6, 6), (4, 3))
+        ax_window = plt.subplot2grid((8, 6), (5, 3))
         self.window_box = TextBox(
             ax_window, 'Window (s)', initial=str(self.window_duration))
         self.window_box.on_submit(self._on_window_change)
 
         # Threshold control
-        ax_threshold = plt.subplot2grid((6, 6), (4, 4))
+        ax_threshold = plt.subplot2grid((8, 6), (5, 4))
         self.threshold_box = TextBox(ax_threshold, 'Threshold', initial='')
         self.threshold_box.on_submit(self._on_threshold_change)
 
         # Channel dropdown (simplified as radio buttons for now)
-        ax_channel_select = plt.subplot2grid((6, 6), (4, 5))
+        ax_channel_select = plt.subplot2grid((8, 6), (5, 5))
         # Show first few channels in radio buttons
         visible_channels = self.available_channels[:min(
             5, len(self.available_channels))]
         self.channel_radio = RadioButtons(ax_channel_select, visible_channels)
         self.channel_radio.on_clicked(self._on_channel_radio_change)
 
-        # Filter frequency controls - Row 5
-        ax_lowpass = plt.subplot2grid((6, 6), (5, 0))
+        # Filter frequency controls - Row 6
+        ax_lowpass = plt.subplot2grid((8, 6), (6, 0))
         self.lowpass_box = TextBox(
             ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
         self.lowpass_box.on_submit(self._on_lowpass_change)
 
-        ax_highpass = plt.subplot2grid((6, 6), (5, 1))
+        ax_highpass = plt.subplot2grid((8, 6), (6, 1))
         self.highpass_box = TextBox(
             ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
         self.highpass_box.on_submit(self._on_highpass_change)
 
         # Y-limits controls
-        ax_ymin = plt.subplot2grid((6, 6), (5, 2))
+        ax_ymin = plt.subplot2grid((8, 6), (6, 2))
         self.ymin_box = TextBox(ax_ymin, 'Y Min', initial='')
         self.ymin_box.on_submit(self._on_ylim_change)
 
-        ax_ymax = plt.subplot2grid((6, 6), (5, 3))
+        ax_ymax = plt.subplot2grid((8, 6), (6, 3))
         self.ymax_box = TextBox(ax_ymax, 'Y Max', initial='')
         self.ymax_box.on_submit(self._on_ylim_change)
+
+        # Snippet controls - Row 7
+        ax_snippet_before = plt.subplot2grid((8, 6), (7, 0))
+        self.snippet_before_box = TextBox(ax_snippet_before, 'Before (ms)', initial=str(self.snippet_before_ms))
+        self.snippet_before_box.on_submit(self._on_snippet_before_change)
+
+        ax_snippet_after = plt.subplot2grid((8, 6), (7, 1))
+        self.snippet_after_box = TextBox(ax_snippet_after, 'After (ms)', initial=str(self.snippet_after_ms))
+        self.snippet_after_box.on_submit(self._on_snippet_after_change)
+
+        ax_max_snippets = plt.subplot2grid((8, 6), (7, 2))
+        self.max_snippets_box = TextBox(ax_max_snippets, 'Max Snippets', initial=str(self.max_snippets))
+        self.max_snippets_box.on_submit(self._on_max_snippets_change)
+
+        # Show snippets checkbox
+        ax_show_snippets = plt.subplot2grid((8, 6), (7, 3))
+        self.show_snippets_check = CheckButtons(ax_show_snippets, ['Show Snippets'], [self.show_snippets])
+        self.show_snippets_check.on_clicked(self._on_show_snippets_change)
 
         # Add control buttons (will be created in separate method)
         self._create_buttons()
@@ -216,6 +251,179 @@ class InteractivePlotter:
             [0.46, y_pos, button_width * 1.2, button_height])
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
+
+    def _on_snippet_before_change(self, text):
+        """Handle snippet before time change."""
+        try:
+            time_ms = float(text)
+            if time_ms > 0:
+                self.snippet_before_ms = time_ms
+                if self.show_snippets:
+                    self._update_display()
+        except ValueError:
+            pass
+
+    def _on_snippet_after_change(self, text):
+        """Handle snippet after time change."""
+        try:
+            time_ms = float(text)
+            if time_ms > 0:
+                self.snippet_after_ms = time_ms
+                if self.show_snippets:
+                    self._update_display()
+        except ValueError:
+            pass
+
+    def _on_max_snippets_change(self, text):
+        """Handle max snippets change."""
+        try:
+            max_count = int(text)
+            if max_count > 0:
+                self.max_snippets = max_count
+                if self.show_snippets:
+                    self._update_display()
+        except ValueError:
+            pass
+
+    def _on_show_snippets_change(self, label):
+        """Handle show snippets checkbox change."""
+        self.show_snippets = not self.show_snippets
+        self.ax_snippets.set_visible(self.show_snippets)
+        if self.show_snippets:
+            self._update_display()
+        else:
+            self.ax_snippets.clear()
+            self.ax_snippets.set_xlabel('Time (ms)')
+            self.ax_snippets.set_ylabel('Amplitude (µV)')
+            self.ax_snippets.set_title('Extracted Waveform Snippets')
+            self.ax_snippets.grid(True, alpha=0.3)
+        self.fig.canvas.draw()
+
+    def _extract_snippets(self, data, time_array, threshold):
+        """
+        Extract waveform snippets that cross the threshold.
+        
+        Based on extract_waveforms_abu from utils/clustering.py
+        """
+        if threshold is None or len(data) == 0:
+            return [], [], []
+
+        sampling_rate = self.data_loader.sampling_rate
+        
+        # Convert snippet times from ms to samples
+        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
+        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
+        
+        # Find mean for threshold detection
+        mean_val = np.mean(data)
+        
+        # Find threshold crossings
+        negative_crossings = np.where(data <= mean_val - threshold)[0]
+        positive_crossings = np.where(data >= mean_val + threshold)[0]
+        
+        # Find breaks in threshold crossings (separate events)
+        def find_crossing_events(crossings):
+            if len(crossings) == 0:
+                return []
+            changes = np.concatenate(([0], np.where(np.diff(crossings) > 1)[0] + 1))
+            events = [(crossings[changes[i]], crossings[changes[i+1]-1] if i+1 < len(changes) else crossings[-1])
+                     for i in range(len(changes)-1)]
+            if len(changes) > 0:
+                events.append((crossings[changes[-1]], crossings[-1]))
+            return events
+        
+        neg_events = find_crossing_events(negative_crossings)
+        pos_events = find_crossing_events(positive_crossings)
+        
+        # Find extrema for each event
+        minima = [np.argmin(data[start:end+1]) + start for start, end in neg_events]
+        maxima = [np.argmax(data[start:end+1]) + start for start, end in pos_events]
+        
+        # Combine and sort by time
+        spike_indices = np.array(minima + maxima)
+        polarities = np.array([-1] * len(minima) + [1] * len(maxima))
+        
+        if len(spike_indices) == 0:
+            return [], [], []
+        
+        # Sort by time
+        sort_order = np.argsort(spike_indices)
+        spike_indices = spike_indices[sort_order]
+        polarities = polarities[sort_order]
+        
+        # Extract snippets
+        snippets = []
+        snippet_times = []
+        snippet_polarities = []
+        
+        for i, (spike_idx, polarity) in enumerate(zip(spike_indices, polarities)):
+            # Check if we have enough data around the spike
+            start_idx = spike_idx - before_samples
+            end_idx = spike_idx + after_samples
+            
+            if start_idx >= 0 and end_idx < len(data):
+                snippet = data[start_idx:end_idx]
+                snippets.append(snippet)
+                
+                # Convert spike time to relative time in current window
+                spike_time = time_array[spike_idx] if spike_idx < len(time_array) else time_array[-1]
+                snippet_times.append(spike_time)
+                snippet_polarities.append(polarity)
+                
+                # Limit number of snippets
+                if len(snippets) >= self.max_snippets:
+                    break
+        
+        return snippets, snippet_times, snippet_polarities
+
+    def _plot_snippets(self):
+        """Plot extracted waveform snippets."""
+        if not self.show_snippets or len(self.current_snippets) == 0:
+            return
+        
+        self.ax_snippets.clear()
+        
+        # Create time axis for snippets (in ms)
+        sampling_rate = self.data_loader.sampling_rate
+        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
+        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
+        total_samples = before_samples + after_samples
+        
+        # Time axis in ms, centered at 0 (threshold crossing)
+        snippet_time_ms = np.linspace(-self.snippet_before_ms, self.snippet_after_ms, total_samples)
+        
+        # Plot snippets with different colors for positive/negative
+        neg_snippets = []
+        pos_snippets = []
+        
+        for snippet, polarity in zip(self.current_snippets, self.snippet_polarities):
+            if len(snippet) == total_samples:  # Ensure correct length
+                if polarity == -1:
+                    neg_snippets.append(snippet)
+                    self.ax_snippets.plot(snippet_time_ms, snippet, 'b-', alpha=0.3, linewidth=0.5)
+                else:
+                    pos_snippets.append(snippet)
+                    self.ax_snippets.plot(snippet_time_ms, snippet, 'r-', alpha=0.3, linewidth=0.5)
+        
+        # Plot average waveforms
+        if neg_snippets:
+            neg_avg = np.mean(neg_snippets, axis=0)
+            self.ax_snippets.plot(snippet_time_ms, neg_avg, 'b-', linewidth=2, label=f'Negative avg (n={len(neg_snippets)})')
+        
+        if pos_snippets:
+            pos_avg = np.mean(pos_snippets, axis=0)
+            self.ax_snippets.plot(snippet_time_ms, pos_avg, 'r-', linewidth=2, label=f'Positive avg (n={len(pos_snippets)})')
+        
+        # Add threshold line at y=0 (relative to mean)
+        self.ax_snippets.axhline(y=0, color='k', linestyle='--', alpha=0.5, label='Threshold crossing')
+        self.ax_snippets.axvline(x=0, color='k', linestyle=':', alpha=0.5, label='Peak time')
+        
+        # Formatting
+        self.ax_snippets.set_xlabel('Time (ms)')
+        self.ax_snippets.set_ylabel('Amplitude (µV)')
+        self.ax_snippets.set_title(f'Extracted Waveform Snippets (n={len(self.current_snippets)})')
+        self.ax_snippets.grid(True, alpha=0.3)
+        self.ax_snippets.legend(loc='upper right')
 
     def _update_display(self):
         """Update the main display with current data."""
@@ -267,6 +475,12 @@ class InteractivePlotter:
                 self.threshold_line.set_visible(True)
             else:
                 self.threshold_line.set_visible(False)
+
+            # Extract and plot snippets if enabled
+            if self.show_snippets and self.show_threshold and self.threshold_value is not None:
+                self.current_snippets, self.snippet_times, self.snippet_polarities = \
+                    self._extract_snippets(data, time_array, self.threshold_value)
+                self._plot_snippets()
 
             # Update title
             filter_info = f" | Filter: {self.signal_filter.filter_type}" if self.signal_filter.filter_type != 'none' else ""
