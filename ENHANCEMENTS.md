@@ -102,7 +102,7 @@ self.data_conversion_factor = 0.6745
 ```python
 # In the GUI:
 # 1. Enter "500" in Highpass box
-# 2. Enter "2000" in Lowpass box  
+# 2. Enter "2000" in Lowpass box
 # 3. Click "Apply Filter"
 # Result: 500-2000 Hz bandpass filter applied
 ```

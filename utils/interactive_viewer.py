@@ -150,17 +150,20 @@ class InteractivePlotter:
         # Channel dropdown (simplified as radio buttons for now)
         ax_channel_select = plt.subplot2grid((6, 6), (4, 5))
         # Show first few channels in radio buttons
-        visible_channels = self.available_channels[:min(5, len(self.available_channels))]
+        visible_channels = self.available_channels[:min(
+            5, len(self.available_channels))]
         self.channel_radio = RadioButtons(ax_channel_select, visible_channels)
         self.channel_radio.on_clicked(self._on_channel_radio_change)
 
         # Filter frequency controls - Row 5
         ax_lowpass = plt.subplot2grid((6, 6), (5, 0))
-        self.lowpass_box = TextBox(ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
+        self.lowpass_box = TextBox(
+            ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
         self.lowpass_box.on_submit(self._on_lowpass_change)
 
         ax_highpass = plt.subplot2grid((6, 6), (5, 1))
-        self.highpass_box = TextBox(ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
+        self.highpass_box = TextBox(
+            ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
         self.highpass_box.on_submit(self._on_highpass_change)
 
         # Y-limits controls
@@ -209,7 +212,8 @@ class InteractivePlotter:
         self.btn_autoscale.on_clicked(self._on_autoscale_click)
 
         # Additional control buttons
-        ax_all_channels = plt.axes([0.46, y_pos, button_width * 1.2, button_height])
+        ax_all_channels = plt.axes(
+            [0.46, y_pos, button_width * 1.2, button_height])
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
 
@@ -244,7 +248,8 @@ class InteractivePlotter:
 
             if self.manual_ylims is not None:
                 # Use manual y-limits
-                self.ax_main.set_ylim(self.manual_ylims[0], self.manual_ylims[1])
+                self.ax_main.set_ylim(
+                    self.manual_ylims[0], self.manual_ylims[1])
             elif self.auto_scale:
                 if len(data) > 0:
                     data_range = np.ptp(data)
@@ -350,7 +355,7 @@ class InteractivePlotter:
         try:
             ymin_text = self.ymin_box.text.strip()
             ymax_text = self.ymax_box.text.strip()
-            
+
             if ymin_text and ymax_text:
                 ymin = float(ymin_text)
                 ymax = float(ymax_text)
@@ -385,7 +390,7 @@ class InteractivePlotter:
             )
         else:
             self.signal_filter.update_parameters(filter_type='none')
-        
+
         self._update_display()
 
     def _on_scroll(self, event):
@@ -471,8 +476,6 @@ class InteractivePlotter:
         middle_time = self.total_duration / 2 - self.window_duration / 2
         self.current_time = max(0, middle_time)
         self.time_slider.set_val(self.current_time)
-
-
 
     def _on_reset_click(self, event):
         """Handle reset button click."""

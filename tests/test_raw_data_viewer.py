@@ -446,10 +446,11 @@ class TestRawDataViewerApp(unittest.TestCase):
         # Test data conversion factor is applied in get_current_data
         data, _ = plotter.get_current_data()
         self.assertIsInstance(data, np.ndarray)
-        
+
         # Verify conversion factor is applied by checking if data values are reasonable for microvolts
         # (original data is in int16 range, converted should be much smaller)
-        self.assertTrue(np.abs(data).max() < 1000)  # Should be in microvolt range
+        # Should be in microvolt range
+        self.assertTrue(np.abs(data).max() < 1000)
 
         # Clean up
         plotter.close()
