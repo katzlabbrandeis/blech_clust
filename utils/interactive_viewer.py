@@ -82,7 +82,8 @@ class InteractivePlotter:
 
         # Snippet extraction parameters
         self.show_snippets = False
-        self.snippet_window_ratio = 0.2  # snippet window as fraction of main window (1/5)
+        # snippet window as fraction of main window (1/5)
+        self.snippet_window_ratio = 0.2
         self.max_snippets = 50        # maximum snippets to display
         self.current_snippets = []    # extracted snippet waveforms
         self.snippet_times = []       # times of snippet peaks
@@ -301,7 +302,7 @@ class InteractivePlotter:
         # Calculate snippet window based on ratio of main window
         snippet_duration_s = self.window_duration * self.snippet_window_ratio
         snippet_samples = int(snippet_duration_s * sampling_rate)
-        
+
         # Split snippet window symmetrically around threshold crossing
         before_samples = snippet_samples // 2
         after_samples = snippet_samples - before_samples
@@ -390,7 +391,8 @@ class InteractivePlotter:
         # Time axis in ms, centered at 0 (threshold crossing)
         before_time_ms = (before_samples / sampling_rate) * 1000
         after_time_ms = (after_samples / sampling_rate) * 1000
-        snippet_time_ms = np.linspace(-before_time_ms, after_time_ms, total_samples)
+        snippet_time_ms = np.linspace(-before_time_ms,
+                                      after_time_ms, total_samples)
 
         # Plot snippets with different colors for positive/negative
         neg_snippets = []
@@ -427,10 +429,12 @@ class InteractivePlotter:
         # Formatting
         self.ax_snippets.set_xlabel('Time (ms)', fontsize='small')
         self.ax_snippets.set_ylabel('Amplitude (µV)', fontsize='small')
-        self.ax_snippets.set_title(f'Snippets (n={len(self.current_snippets)})', fontsize='small')
+        self.ax_snippets.set_title(
+            f'Snippets (n={len(self.current_snippets)})', fontsize='small')
         self.ax_snippets.grid(True, alpha=0.3)
         self.ax_snippets.legend(loc='upper right', fontsize='x-small')
-        self.ax_snippets.tick_params(axis='both', which='major', labelsize='x-small')
+        self.ax_snippets.tick_params(
+            axis='both', which='major', labelsize='x-small')
 
     def _update_display(self):
         """Update the main display with current data."""
