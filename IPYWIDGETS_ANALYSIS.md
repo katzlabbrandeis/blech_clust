@@ -17,11 +17,11 @@ class MatplotlibDropdown:
         self.callback = callback
         self.current_value = initial_value
         self.is_open = False
-        
+
         # Main button
         self.button = Button(ax, initial_value)
         self.button.on_clicked(self._toggle_dropdown)
-        
+
         # Dropdown items (initially hidden)
         self.dropdown_items = []
         self._create_dropdown_items()

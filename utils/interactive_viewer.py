@@ -173,7 +173,8 @@ class InteractivePlotter:
 
         # Channel selection dropdown
         ax_channel_select = plt.subplot2grid((8, 6), (4, 5))
-        self.channel_dropdown = self._create_channel_dropdown(ax_channel_select)
+        self.channel_dropdown = self._create_channel_dropdown(
+            ax_channel_select)
 
         # Filter frequency controls - Row 5
         ax_max_freq = plt.subplot2grid((8, 6), (5, 0))
@@ -223,21 +224,21 @@ class InteractivePlotter:
     def _create_channel_dropdown(self, ax):
         """Create a custom dropdown for channel selection."""
         from matplotlib.patches import Rectangle
-        
+
         # Create a simple dropdown using matplotlib primitives
         # For now, use a button that shows current channel and cycles through options
         current_idx = self.available_channels.index(self.current_channel)
         channel_label = f'{self.current_channel}'
-        
+
         # Create the main button
         channel_button = Button(ax, channel_label)
         channel_button.on_clicked(self._on_channel_dropdown_click)
-        
+
         # Store dropdown state
         self.channel_dropdown_open = False
         self.channel_dropdown_buttons = []
         self.channel_dropdown_axes = []
-        
+
         return channel_button
 
     def _create_buttons(self):
@@ -641,96 +642,100 @@ class InteractivePlotter:
             self._close_channel_dropdown()
         else:
             self._open_channel_dropdown()
-    
+
     def _open_channel_dropdown(self):
         """Open the channel dropdown menu."""
         if self.channel_dropdown_open or not self.available_channels:
             return
-            
+
         try:
             self.channel_dropdown_open = True
-            
+
             # Get position of the dropdown button
             ax_pos = self.channel_dropdown.ax.get_position()
-            
+
             # Limit number of visible options to prevent overflow
             max_visible = min(10, len(self.available_channels))
-            
+
             # Create dropdown items
             for i, channel in enumerate(self.available_channels[:max_visible]):
                 # Position each dropdown item below the main button
                 item_y = ax_pos.y0 - (i + 1) * 0.03
                 if item_y < 0:  # Don't go below the figure
                     break
-                    
-                item_ax = self.fig.add_axes([ax_pos.x0, item_y, ax_pos.width, 0.025])
-                
+
+                item_ax = self.fig.add_axes(
+                    [ax_pos.x0, item_y, ax_pos.width, 0.025])
+
                 # Create button for this channel
                 item_button = Button(item_ax, channel)
-                item_button.on_clicked(lambda event, ch=channel: self._select_channel_from_dropdown(ch))
-                
+                item_button.on_clicked(
+                    lambda event, ch=channel: self._select_channel_from_dropdown(ch))
+
                 # Highlight current selection
                 if channel == self.current_channel:
                     item_button.color = 'lightblue'
                 else:
                     item_button.color = 'white'
-                    
+
                 self.channel_dropdown_axes.append(item_ax)
                 self.channel_dropdown_buttons.append(item_button)
-            
+
             # Add "More..." option if there are more channels
             if len(self.available_channels) > max_visible:
                 item_y = ax_pos.y0 - (max_visible + 1) * 0.03
                 if item_y >= 0:
-                    item_ax = self.fig.add_axes([ax_pos.x0, item_y, ax_pos.width, 0.025])
-                    more_button = Button(item_ax, f'... ({len(self.available_channels) - max_visible} more)')
+                    item_ax = self.fig.add_axes(
+                        [ax_pos.x0, item_y, ax_pos.width, 0.025])
+                    more_button = Button(
+                        item_ax, f'... ({len(self.available_channels) - max_visible} more)')
                     more_button.on_clicked(self._show_more_channels)
                     more_button.color = 'lightgray'
                     self.channel_dropdown_axes.append(item_ax)
                     self.channel_dropdown_buttons.append(more_button)
-            
+
             # Redraw the figure
             self.fig.canvas.draw()
-            
+
         except Exception as e:
             # If dropdown creation fails, close it and continue
             warnings.warn(f"Error opening channel dropdown: {e}")
             self._close_channel_dropdown()
-    
+
     def _close_channel_dropdown(self):
         """Close the channel dropdown menu."""
         if not self.channel_dropdown_open:
             return
-            
+
         try:
             self.channel_dropdown_open = False
-            
+
             # Remove dropdown items safely
             for ax in self.channel_dropdown_axes:
                 try:
                     ax.remove()
                 except:
                     pass  # Ignore errors if axes already removed
-            
+
             self.channel_dropdown_axes.clear()
             self.channel_dropdown_buttons.clear()
-            
+
             # Redraw the figure
             self.fig.canvas.draw()
-            
+
         except Exception as e:
             # Ensure state is reset even if cleanup fails
             self.channel_dropdown_open = False
             self.channel_dropdown_axes.clear()
             self.channel_dropdown_buttons.clear()
             warnings.warn(f"Error closing channel dropdown: {e}")
-    
+
     def _select_channel_from_dropdown(self, channel):
         """Handle channel selection from dropdown."""
         self.current_channel = channel
         self.channel_dropdown.label.set_text(channel)
         self._close_channel_dropdown()
-        
+
         # Update total duration for new channel
         self.total_duration = self.data_loader.get_channel_duration(
             self.current_channel, self.current_group
@@ -738,7 +743,7 @@ class InteractivePlotter:
         self.time_slider.valmax = max(
             0, self.total_duration - self.window_duration)
         self._update_display()
-    
+
     def _show_more_channels(self, event):
         """Show more channels (cycling through pages)."""
         # For now, just close dropdown and cycle to next channel
@@ -815,10 +820,10 @@ class InteractivePlotter:
         # Check if click is outside dropdown to close it
         if self.channel_dropdown_open:
             # Check if click is not on dropdown or its items
-            if (event.inaxes != self.channel_dropdown.ax and 
-                event.inaxes not in self.channel_dropdown_axes):
+            if (event.inaxes != self.channel_dropdown.ax and
+                    event.inaxes not in self.channel_dropdown_axes):
                 self._close_channel_dropdown()
-        
+
         if event.inaxes == self.ax_main and event.dblclick:
             # Double-click to jump to time
             if event.xdata is not None:
@@ -843,7 +848,7 @@ class InteractivePlotter:
         current_idx = self.available_channels.index(self.current_channel)
         new_idx = (current_idx + direction) % len(self.available_channels)
         self.current_channel = self.available_channels[new_idx]
-        
+
         # Update channel dropdown label
         self.channel_dropdown.label.set_text(self.current_channel)
 
