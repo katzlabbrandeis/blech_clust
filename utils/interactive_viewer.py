@@ -261,9 +261,11 @@ class InteractivePlotter:
         ax_apply = plt.axes([0.46, y_pos, button_width * 1.2, button_height])
         self.btn_apply = Button(ax_apply, 'Apply Changes')
         self.btn_apply.on_clicked(self._on_apply_changes)
-        
-        ax_auto_update = plt.axes([0.60, y_pos, button_width * 1.2, button_height])
-        self.auto_update_check = CheckButtons(ax_auto_update, ['Auto Update'], [self.auto_update])
+
+        ax_auto_update = plt.axes(
+            [0.60, y_pos, button_width * 1.2, button_height])
+        self.auto_update_check = CheckButtons(
+            ax_auto_update, ['Auto Update'], [self.auto_update])
         self.auto_update_check.on_clicked(self._on_auto_update_change)
 
         # Additional control buttons

@@ -42,7 +42,7 @@ class InteractivePlotter:
     def __init__(self):
         self.auto_update = True  # Default to current behavior
         self.pending_changes = False  # Track if changes need applying
-        
+
     def _defer_update_if_needed(self):
         """Call _update_display() only if auto_update is enabled."""
         if self.auto_update:
@@ -50,7 +50,7 @@ class InteractivePlotter:
         else:
             self.pending_changes = True
             self._update_apply_button_state()
-    
+
     def _on_apply_changes(self, event):
         """Apply all pending changes."""
         self._update_display()
