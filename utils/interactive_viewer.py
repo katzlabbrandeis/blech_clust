@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, TextBox, CheckButtons
 from matplotlib.patches import Rectangle
 import matplotlib.patches as mpatches
-from matplotlib.widgets import RadioButtons
+
 from typing import Optional, Callable, Dict, Any, Tuple, List
 import warnings
 
@@ -171,13 +171,13 @@ class InteractivePlotter:
         self.threshold_box = TextBox(ax_threshold, 'Threshold', initial='')
         self.threshold_box.on_submit(self._on_threshold_change)
 
-        # Channel dropdown (simplified as radio buttons for now)
+        # Channel selection button (cycles through all channels)
+        # Left click: next channel, Right click: previous channel
         ax_channel_select = plt.subplot2grid((8, 6), (4, 5))
-        # Show first few channels in radio buttons
-        visible_channels = self.available_channels[:min(
-            5, len(self.available_channels))]
-        self.channel_radio = RadioButtons(ax_channel_select, visible_channels)
-        self.channel_radio.on_clicked(self._on_channel_radio_change)
+        current_idx = self.available_channels.index(self.current_channel)
+        channel_label = f'Ch: {self.current_channel} ({current_idx+1}/{len(self.available_channels)})'
+        self.channel_button = Button(ax_channel_select, channel_label)
+        self.channel_button.on_clicked(self._on_channel_button_click)
 
         # Filter frequency controls - Row 5
         ax_max_freq = plt.subplot2grid((8, 6), (5, 0))
@@ -619,17 +619,29 @@ class InteractivePlotter:
         except ValueError:
             pass
 
-    def _on_channel_radio_change(self, label):
-        """Handle channel radio button change."""
-        if label in self.available_channels:
-            self.current_channel = label
-            # Update total duration for new channel
-            self.total_duration = self.data_loader.get_channel_duration(
-                self.current_channel, self.current_group
-            )
-            self.time_slider.valmax = max(
-                0, self.total_duration - self.window_duration)
-            self._update_display()
+    def _on_channel_button_click(self, event):
+        """Handle channel button click - cycle through channels."""
+        current_idx = self.available_channels.index(self.current_channel)
+        
+        # Left click: next channel, Right click: previous channel
+        if hasattr(event, 'button') and event.button == 3:  # Right click
+            next_idx = (current_idx - 1) % len(self.available_channels)
+        else:  # Left click or any other
+            next_idx = (current_idx + 1) % len(self.available_channels)
+            
+        self.current_channel = self.available_channels[next_idx]
+        
+        # Update button label
+        channel_label = f'Ch: {self.current_channel} ({next_idx+1}/{len(self.available_channels)})'
+        self.channel_button.label.set_text(channel_label)
+        
+        # Update total duration for new channel
+        self.total_duration = self.data_loader.get_channel_duration(
+            self.current_channel, self.current_group
+        )
+        self.time_slider.valmax = max(
+            0, self.total_duration - self.window_duration)
+        self._update_display()
 
     def _on_max_freq_change(self, text):
         """Handle maximum frequency change."""
@@ -720,7 +732,10 @@ class InteractivePlotter:
         current_idx = self.available_channels.index(self.current_channel)
         new_idx = (current_idx + direction) % len(self.available_channels)
         self.current_channel = self.available_channels[new_idx]
-        self.btn_channel.label.set_text(f'Ch: {self.current_channel}')
+        
+        # Update channel button label
+        channel_label = f'Ch: {self.current_channel} ({new_idx+1}/{len(self.available_channels)})'
+        self.channel_button.label.set_text(channel_label)
 
         # Update total duration for new channel
         self.total_duration = self.data_loader.get_channel_duration(
@@ -729,7 +744,7 @@ class InteractivePlotter:
         self.time_slider.valmax = max(
             0, self.total_duration - self.window_duration)
 
-        self._defer_update_if_needed()
+        self._update_display()
 
     def _on_prev_click(self, event):
         """Handle previous button click."""
@@ -790,7 +805,9 @@ class InteractivePlotter:
 
         if channel in self.available_channels:
             self.current_channel = channel
-            self.btn_channel.label.set_text(f'Ch: {self.current_channel}')
+            current_idx = self.available_channels.index(self.current_channel)
+            channel_label = f'Ch: {self.current_channel} ({current_idx+1}/{len(self.available_channels)})'
+            self.channel_button.label.set_text(channel_label)
 
             # Update total duration for new channel
             self.total_duration = self.data_loader.get_channel_duration(
