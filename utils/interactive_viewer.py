@@ -496,15 +496,17 @@ class InteractivePlotter:
                 # Calculate mean for threshold positioning
                 mean_val = np.mean(data) if len(data) > 0 else 0
                 abs_threshold = abs(self.threshold_value)
-                
+
                 # Set positive threshold line
                 pos_threshold = mean_val + abs_threshold
-                self.threshold_line_pos.set_ydata([pos_threshold, pos_threshold])
+                self.threshold_line_pos.set_ydata(
+                    [pos_threshold, pos_threshold])
                 self.threshold_line_pos.set_visible(True)
-                
+
                 # Set negative threshold line
                 neg_threshold = mean_val - abs_threshold
-                self.threshold_line_neg.set_ydata([neg_threshold, neg_threshold])
+                self.threshold_line_neg.set_ydata(
+                    [neg_threshold, neg_threshold])
                 self.threshold_line_neg.set_visible(True)
             else:
                 self.threshold_line_pos.set_visible(False)
