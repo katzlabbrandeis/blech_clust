@@ -12,9 +12,10 @@ The raw data viewer has been enhanced with comprehensive waveform snippet extrac
 - **Real-time Processing**: Extracts snippets from current viewing window only
 - **Configurable Sensitivity**: User-adjustable threshold values
 
-### 2. Configurable Snippet Windows
-- **Before Time**: Adjustable time before threshold crossing (default: 0.5ms)
-- **After Time**: Adjustable time after threshold crossing (default: 1.0ms)
+### 2. Fixed Time Window Extraction
+- **Before Time**: Fixed time before threshold crossing (default: 0.5ms)
+- **After Time**: Fixed time after threshold crossing (default: 1.0ms)
+- **Independent Scaling**: Snippet windows are independent of main plot window duration
 - **Sample Precision**: Automatically converts milliseconds to samples based on sampling rate
 - **Boundary Handling**: Ensures snippets don't exceed data boundaries
 
@@ -74,10 +75,12 @@ if show_snippets and threshold_set:
 
 ### Control Elements
 
-1. **Before (ms)**: Text box for pre-threshold time
-2. **After (ms)**: Text box for post-threshold time
-3. **Max Snippets**: Text box for display limit
+1. **Before (ms)**: Text box for pre-threshold time (default: 0.5ms)
+2. **After (ms)**: Text box for post-threshold time (default: 1.0ms)
+3. **Max Snippets**: Text box for display limit (default: 50)
 4. **Show Snippets**: Checkbox to enable/disable extraction
+
+**Note**: Snippet window durations are fixed time values independent of the main plot window duration.
 
 ### Display Elements
 

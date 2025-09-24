@@ -82,8 +82,8 @@ class InteractivePlotter:
 
         # Snippet extraction parameters
         self.show_snippets = False
-        # snippet window as fraction of main window (1/5)
-        self.snippet_window_ratio = 0.2
+        self.snippet_before_ms = 0.5  # time before threshold crossing (ms)
+        self.snippet_after_ms = 1.0   # time after threshold crossing (ms)
         self.max_snippets = 50        # maximum snippets to display
         self.current_snippets = []    # extracted snippet waveforms
         self.snippet_times = []       # times of snippet peaks
@@ -194,18 +194,23 @@ class InteractivePlotter:
         self.ymax_box.on_submit(self._on_ylim_change)
 
         # Snippet controls - Row 6
-        ax_snippet_ratio = plt.subplot2grid((8, 6), (6, 0))
-        self.snippet_ratio_box = TextBox(
-            ax_snippet_ratio, 'Snippet Ratio', initial=str(self.snippet_window_ratio))
-        self.snippet_ratio_box.on_submit(self._on_snippet_ratio_change)
+        ax_snippet_before = plt.subplot2grid((8, 6), (6, 0))
+        self.snippet_before_box = TextBox(
+            ax_snippet_before, 'Before (ms)', initial=str(self.snippet_before_ms))
+        self.snippet_before_box.on_submit(self._on_snippet_before_change)
 
-        ax_max_snippets = plt.subplot2grid((8, 6), (6, 1))
+        ax_snippet_after = plt.subplot2grid((8, 6), (6, 1))
+        self.snippet_after_box = TextBox(
+            ax_snippet_after, 'After (ms)', initial=str(self.snippet_after_ms))
+        self.snippet_after_box.on_submit(self._on_snippet_after_change)
+
+        ax_max_snippets = plt.subplot2grid((8, 6), (6, 2))
         self.max_snippets_box = TextBox(
             ax_max_snippets, 'Max Snippets', initial=str(self.max_snippets))
         self.max_snippets_box.on_submit(self._on_max_snippets_change)
 
         # Show snippets checkbox
-        ax_show_snippets = plt.subplot2grid((8, 6), (6, 2))
+        ax_show_snippets = plt.subplot2grid((8, 6), (6, 3))
         self.show_snippets_check = CheckButtons(
             ax_show_snippets, ['Show Snippets'], [self.show_snippets])
         self.show_snippets_check.on_clicked(self._on_show_snippets_change)
@@ -252,12 +257,23 @@ class InteractivePlotter:
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
 
-    def _on_snippet_ratio_change(self, text):
-        """Handle snippet window ratio change."""
+    def _on_snippet_before_change(self, text):
+        """Handle snippet before time change."""
         try:
-            ratio = float(text)
-            if 0 < ratio <= 1.0:  # Ratio should be between 0 and 1
-                self.snippet_window_ratio = ratio
+            before_ms = float(text)
+            if before_ms > 0:  # Must be positive
+                self.snippet_before_ms = before_ms
+                if self.show_snippets:
+                    self._update_display()
+        except ValueError:
+            pass
+
+    def _on_snippet_after_change(self, text):
+        """Handle snippet after time change."""
+        try:
+            after_ms = float(text)
+            if after_ms > 0:  # Must be positive
+                self.snippet_after_ms = after_ms
                 if self.show_snippets:
                     self._update_display()
         except ValueError:
@@ -299,13 +315,9 @@ class InteractivePlotter:
 
         sampling_rate = self.data_loader.sampling_rate
 
-        # Calculate snippet window based on ratio of main window
-        snippet_duration_s = self.window_duration * self.snippet_window_ratio
-        snippet_samples = int(snippet_duration_s * sampling_rate)
-
-        # Split snippet window symmetrically around threshold crossing
-        before_samples = snippet_samples // 2
-        after_samples = snippet_samples - before_samples
+        # Calculate snippet window based on fixed time windows
+        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
+        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
 
         # Find mean for threshold detection
         mean_val = np.mean(data)
@@ -382,17 +394,13 @@ class InteractivePlotter:
 
         # Create time axis for snippets (in ms)
         sampling_rate = self.data_loader.sampling_rate
-        snippet_duration_s = self.window_duration * self.snippet_window_ratio
-        snippet_samples = int(snippet_duration_s * sampling_rate)
-        before_samples = snippet_samples // 2
-        after_samples = snippet_samples - before_samples
+        before_samples = int((self.snippet_before_ms / 1000.0) * sampling_rate)
+        after_samples = int((self.snippet_after_ms / 1000.0) * sampling_rate)
         total_samples = before_samples + after_samples
 
         # Time axis in ms, centered at 0 (threshold crossing)
-        before_time_ms = (before_samples / sampling_rate) * 1000
-        after_time_ms = (after_samples / sampling_rate) * 1000
-        snippet_time_ms = np.linspace(-before_time_ms,
-                                      after_time_ms, total_samples)
+        snippet_time_ms = np.linspace(-self.snippet_before_ms,
+                                      self.snippet_after_ms, total_samples)
 
         # Plot snippets with different colors for positive/negative
         neg_snippets = []

@@ -106,10 +106,10 @@ self.snippet_polarities = []
 3. **Channel Selection** (Row 5 of control grid):
    - Radio buttons for channel selection
 
-4. **Snippet Controls** (Row 7 of control grid):
-   - Before (ms) text box for pre-threshold time
-   - After (ms) text box for post-threshold time
-   - Max Snippets text box for display limit
+4. **Snippet Controls** (Row 6 of control grid):
+   - Before (ms) text box for pre-threshold time (default: 0.5ms)
+   - After (ms) text box for post-threshold time (default: 1.0ms)
+   - Max Snippets text box for display limit (default: 50)
    - Show Snippets checkbox to enable/disable extraction
 
 5. **Snippet Display**:
@@ -179,9 +179,10 @@ self.snippet_polarities = []
 # In the GUI:
 # 1. Set threshold value (e.g., "50")
 # 2. Check "Show Snippets" checkbox
-# 3. Adjust "Before (ms)" to "0.8" and "After (ms)" to "1.2"
-# 4. Set "Max Snippets" to "30"
+# 3. Adjust "Before (ms)" to "0.8" and "After (ms)" to "1.2" (defaults: 0.5ms before, 1.0ms after)
+# 4. Set "Max Snippets" to "30" (default: 50)
 # Result: Extracts up to 30 waveform snippets with 0.8ms before and 1.2ms after threshold crossings
+# Note: Snippet window sizes are independent of main plot window duration
 ```
 
 ## Testing
