@@ -625,8 +625,6 @@ class InteractivePlotter:
 
         self._update_display()
 
-
-
     def _on_click(self, event):
         """Handle mouse click events."""
         if event.inaxes == self.ax_main and event.dblclick:
@@ -638,8 +636,6 @@ class InteractivePlotter:
                 ))
                 self.current_time = new_time
                 self.time_slider.set_val(self.current_time)
-
-
 
     def _navigate_time(self, delta):
         """Navigate time by delta seconds."""
