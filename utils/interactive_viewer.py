@@ -128,9 +128,12 @@ class InteractivePlotter:
         # Initialize empty line objects
         self.data_line, = self.ax_main.plot(
             [], [], 'b-', linewidth=0.8, label='Raw Data')
-        self.threshold_line = self.ax_main.axhline(y=0, color='r', linestyle='--',
-                                                   linewidth=2, alpha=0.7, visible=False,
-                                                   label='Threshold')
+        self.threshold_line_pos = self.ax_main.axhline(y=0, color='r', linestyle='--',
+                                                       linewidth=2, alpha=0.7, visible=False,
+                                                       label='+Threshold')
+        self.threshold_line_neg = self.ax_main.axhline(y=0, color='r', linestyle='--',
+                                                       linewidth=2, alpha=0.7, visible=False,
+                                                       label='-Threshold')
 
         # Add legend
         self.ax_main.legend(loc='upper right')
@@ -320,9 +323,12 @@ class InteractivePlotter:
         # Find mean for threshold detection
         mean_val = np.mean(data)
 
-        # Find threshold crossings
-        negative_crossings = np.where(data <= mean_val - threshold)[0]
-        positive_crossings = np.where(data >= mean_val + threshold)[0]
+        # Use absolute threshold value for both positive and negative crossings
+        abs_threshold = abs(threshold)
+
+        # Find threshold crossings for both positive and negative directions
+        negative_crossings = np.where(data <= mean_val - abs_threshold)[0]
+        positive_crossings = np.where(data >= mean_val + abs_threshold)[0]
 
         # Find breaks in threshold crossings (separate events)
         def find_crossing_events(crossings):
@@ -485,13 +491,24 @@ class InteractivePlotter:
                         data_center + data_range/2 + margin
                     )
 
-            # Update threshold line
+            # Update threshold lines (both positive and negative)
             if self.show_threshold and self.threshold_value is not None:
-                self.threshold_line.set_ydata(
-                    [self.threshold_value, self.threshold_value])
-                self.threshold_line.set_visible(True)
+                # Calculate mean for threshold positioning
+                mean_val = np.mean(data) if len(data) > 0 else 0
+                abs_threshold = abs(self.threshold_value)
+                
+                # Set positive threshold line
+                pos_threshold = mean_val + abs_threshold
+                self.threshold_line_pos.set_ydata([pos_threshold, pos_threshold])
+                self.threshold_line_pos.set_visible(True)
+                
+                # Set negative threshold line
+                neg_threshold = mean_val - abs_threshold
+                self.threshold_line_neg.set_ydata([neg_threshold, neg_threshold])
+                self.threshold_line_neg.set_visible(True)
             else:
-                self.threshold_line.set_visible(False)
+                self.threshold_line_pos.set_visible(False)
+                self.threshold_line_neg.set_visible(False)
 
             # Extract and plot snippets if enabled
             if self.show_snippets and self.show_threshold and self.threshold_value is not None:
