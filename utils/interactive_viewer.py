@@ -45,7 +45,8 @@ class InteractivePlotter:
                  initial_channel: str = None,
                  initial_group: str = 'raw',
                  window_duration: float = 10.0,
-                 update_callback: Optional[Callable] = None):
+                 update_callback: Optional[Callable] = None,
+                 loading_strategy: str = None):
         """
         Initialize the interactive plotter.
 
@@ -55,11 +56,16 @@ class InteractivePlotter:
             initial_group: Initial data group
             window_duration: Initial window duration in seconds
             update_callback: Optional callback function for updates
+            loading_strategy: Override data loader's loading strategy ('streaming' or 'memory')
         """
         self.data_loader = data_loader
         self.current_group = initial_group
         self.window_duration = window_duration
         self.update_callback = update_callback
+        
+        # Override loading strategy if specified
+        if loading_strategy is not None:
+            self.data_loader.switch_loading_strategy(loading_strategy)
 
         # Get available channels
         self.available_channels = self.data_loader.get_channel_list(
@@ -196,6 +202,18 @@ class InteractivePlotter:
         self.ymax_box = TextBox(ax_ymax, 'Y Max', initial='')
         self.ymax_box.on_submit(self._on_ylim_change)
 
+        # Loading strategy control
+        ax_loading_strategy = plt.subplot2grid((8, 6), (5, 4))
+        current_strategy = self.data_loader.loading_strategy
+        self.loading_strategy_check = CheckButtons(
+            ax_loading_strategy, ['Memory Mode'], [current_strategy == 'memory'])
+        self.loading_strategy_check.on_clicked(self._on_loading_strategy_change)
+
+        # Memory management controls
+        ax_clear_cache = plt.subplot2grid((8, 6), (5, 5))
+        self.btn_clear_cache = Button(ax_clear_cache, 'Clear Cache')
+        self.btn_clear_cache.on_clicked(self._on_clear_cache_click)
+
         # Snippet controls - Row 6
         ax_snippet_before = plt.subplot2grid((8, 6), (6, 0))
         self.snippet_before_box = TextBox(
@@ -290,6 +308,14 @@ class InteractivePlotter:
             [0.76, y_pos, button_width * 1.2, button_height])
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
+
+        # Status display for loading mode
+        ax_status = plt.axes([0.02, y_pos + button_height + 0.005, 0.3, 0.02])
+        ax_status.set_xlim(0, 1)
+        ax_status.set_ylim(0, 1)
+        ax_status.axis('off')
+        self.status_text = ax_status.text(0, 0.5, self._get_status_text(), 
+                                         fontsize=8, va='center')
 
     def _on_apply_changes(self, event):
         """Apply all pending parameter changes."""
@@ -859,6 +885,13 @@ class InteractivePlotter:
         self.time_slider.valmax = max(
             0, self.total_duration - self.window_duration)
 
+        # If in memory mode, preload the new channel
+        if self.data_loader.loading_strategy == 'memory':
+            cache_key = (self.current_group, self.current_channel)
+            if cache_key not in self.data_loader._memory_cache:
+                self.data_loader.preload_channels([self.current_channel], self.current_group)
+                self._update_status_display()
+
         self._update_display()
 
     def _on_prev_click(self, event):
@@ -907,6 +940,127 @@ class InteractivePlotter:
         """Handle filter button click - apply current frequency settings."""
         self._update_filter_from_frequencies()
 
+    def _on_loading_strategy_change(self, label):
+        """Handle loading strategy checkbox change."""
+        is_memory_mode = self.loading_strategy_check.get_status()[0]
+        new_strategy = 'memory' if is_memory_mode else 'streaming'
+        
+        # Switch strategy
+        self.data_loader.switch_loading_strategy(new_strategy)
+        
+        # If switching to memory mode, preload current channel
+        if new_strategy == 'memory':
+            self.data_loader.preload_channels([self.current_channel], self.current_group)
+        
+        # Update status display
+        self._update_status_display()
+        
+        # Update display to reflect any performance changes
+        self._defer_update_if_needed()
+
+    def _get_status_text(self) -> str:
+        """Generate status text showing loading mode and memory usage."""
+        strategy = self.data_loader.loading_strategy
+        status_parts = [f"Mode: {strategy.title()}"]
+        
+        if strategy == 'memory':
+            memory_info = self.data_loader.get_memory_usage()
+            if memory_info['cached_channels'] > 0:
+                status_parts.append(f"Cached: {memory_info['cached_channels']} channels")
+                status_parts.append(f"Memory: {memory_info['total_memory_mb']:.1f} MB")
+            else:
+                status_parts.append("No channels cached")
+        
+        return " | ".join(status_parts)
+
+    def _update_status_display(self):
+        """Update the status display text."""
+        if hasattr(self, 'status_text'):
+            self.status_text.set_text(self._get_status_text())
+            self.fig.canvas.draw_idle()
+
+    def _on_clear_cache_click(self, event):
+        """Handle clear cache button click."""
+        if self.data_loader.loading_strategy == 'memory':
+            self.data_loader.clear_memory_cache()
+            self._update_status_display()
+            print("Memory cache cleared")
+        else:
+            print("Cache clearing only available in memory mode")
+
+    def set_memory_limit(self, limit_mb: float):
+        """
+        Set memory limit for the data loader.
+        
+        Args:
+            limit_mb: Memory limit in megabytes
+        """
+        if hasattr(self.data_loader, 'set_memory_limit'):
+            self.data_loader.set_memory_limit(limit_mb)
+            self._update_status_display()
+            print(f"Memory limit set to {limit_mb:.1f} MB")
+
+    def get_performance_stats(self) -> dict:
+        """
+        Get performance statistics for the viewer.
+        
+        Returns:
+            Dictionary with performance metrics
+        """
+        stats = {
+            'loading_strategy': self.data_loader.loading_strategy,
+            'current_channel': self.current_channel,
+            'window_duration': self.window_duration,
+            'total_duration': self.total_duration
+        }
+        
+        if self.data_loader.loading_strategy == 'memory':
+            if hasattr(self.data_loader, 'get_cache_efficiency_stats'):
+                cache_stats = self.data_loader.get_cache_efficiency_stats()
+                stats.update(cache_stats)
+            
+            memory_usage = self.data_loader.get_memory_usage()
+            stats['memory_usage'] = memory_usage
+        
+        return stats
+
+    def optimize_for_workflow(self, workflow_type: str = 'sequential'):
+        """
+        Optimize viewer settings for specific workflows.
+        
+        Args:
+            workflow_type: 'sequential', 'random', or 'channel_switching'
+        """
+        if workflow_type == 'sequential':
+            # Optimize for sequential time navigation
+            if hasattr(self.data_loader, 'optimize_for_sequential_access'):
+                self.data_loader.optimize_for_sequential_access(True)
+            
+            # Use memory mode for better performance
+            if self.data_loader.loading_strategy != 'memory':
+                self.data_loader.switch_loading_strategy('memory')
+                self.loading_strategy_check.set_active(0)
+                
+        elif workflow_type == 'channel_switching':
+            # Optimize for frequent channel switching
+            if self.data_loader.loading_strategy != 'memory':
+                self.data_loader.switch_loading_strategy('memory')
+                self.loading_strategy_check.set_active(0)
+            
+            # Preload all channels
+            all_channels = self.data_loader.get_channel_list(self.current_group)
+            print(f"Preloading {len(all_channels)} channels for channel switching workflow...")
+            self.data_loader.preload_channels(all_channels, self.current_group)
+            
+        elif workflow_type == 'random':
+            # Use streaming mode for random access to save memory
+            if self.data_loader.loading_strategy != 'streaming':
+                self.data_loader.switch_loading_strategy('streaming')
+                self.loading_strategy_check.set_active(0)
+        
+        self._update_status_display()
+        print(f"Optimized for {workflow_type} workflow")
+
     def set_filter(self, filter_obj: SignalFilter):
         """Set the signal filter."""
         self.signal_filter = filter_obj
@@ -928,6 +1082,13 @@ class InteractivePlotter:
             )
             self.time_slider.valmax = max(
                 0, self.total_duration - self.window_duration)
+
+            # If in memory mode, preload the new channel
+            if self.data_loader.loading_strategy == 'memory':
+                cache_key = (self.current_group, self.current_channel)
+                if cache_key not in self.data_loader._memory_cache:
+                    self.data_loader.preload_channels([self.current_channel], self.current_group)
+                    self._update_status_display()
 
             self._defer_update_if_needed()
         else:
