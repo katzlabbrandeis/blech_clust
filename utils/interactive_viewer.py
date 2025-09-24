@@ -33,7 +33,7 @@ class InteractivePlotter:
 
     Features:
     - Real-time plotting of single or multiple channels
-    - Time navigation (scrolling and jumping)
+    - Time navigation via GUI controls
     - Configurable time window display
     - Threshold line overlay
     - Zoom and pan functionality
@@ -139,9 +139,7 @@ class InteractivePlotter:
         self.ax_main.set_xlim(0, self.window_duration)
 
         # Connect mouse events
-        self.fig.canvas.mpl_connect('scroll_event', self._on_scroll)
         self.fig.canvas.mpl_connect('button_press_event', self._on_click)
-        self.fig.canvas.mpl_connect('key_press_event', self._on_key_press)
 
     def _create_controls(self):
         """Create control widgets."""
@@ -627,21 +625,7 @@ class InteractivePlotter:
 
         self._update_display()
 
-    def _on_scroll(self, event):
-        """Handle mouse scroll for time navigation."""
-        if event.inaxes == self.ax_main:
-            # Scroll through time
-            scroll_amount = self.window_duration * 0.1
-            if event.button == 'up':
-                new_time = max(0, self.current_time - scroll_amount)
-            else:
-                new_time = min(
-                    self.total_duration - self.window_duration,
-                    self.current_time + scroll_amount
-                )
 
-            self.current_time = new_time
-            self.time_slider.set_val(self.current_time)
 
     def _on_click(self, event):
         """Handle mouse click events."""
@@ -655,20 +639,7 @@ class InteractivePlotter:
                 self.current_time = new_time
                 self.time_slider.set_val(self.current_time)
 
-    def _on_key_press(self, event):
-        """Handle keyboard shortcuts."""
-        if event.key == 'left':
-            self._navigate_time(-self.window_duration * 0.5)
-        elif event.key == 'right':
-            self._navigate_time(self.window_duration * 0.5)
-        elif event.key == 'up':
-            self._change_channel(-1)
-        elif event.key == 'down':
-            self._change_channel(1)
-        elif event.key == 'r':
-            self._on_reset_click(None)
-        elif event.key == 'f':
-            self._on_filter_click(None)
+
 
     def _navigate_time(self, delta):
         """Navigate time by delta seconds."""
