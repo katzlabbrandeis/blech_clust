@@ -24,7 +24,7 @@ class RawDataLoader:
     2. Memory mode: Load full channel into memory for faster window extraction
     """
 
-    def __init__(self, hdf5_path: str, sampling_rate: Optional[float] = None, 
+    def __init__(self, hdf5_path: str, sampling_rate: Optional[float] = None,
                  loading_strategy: str = 'streaming'):
         """
         Initialize the raw data loader.
@@ -40,14 +40,15 @@ class RawDataLoader:
         self._hdf5_file = None
         self._channel_info = {}
         self._data_groups = ['raw', 'raw_emg']
-        
+
         # Memory mode storage
         self._memory_cache = {}  # {(group, channel): (data_array, time_array)}
         self._cached_channels = set()  # Track which channels are cached
 
         # Validate inputs
         if loading_strategy not in ['streaming', 'memory']:
-            raise ValueError("loading_strategy must be 'streaming' or 'memory'")
+            raise ValueError(
+                "loading_strategy must be 'streaming' or 'memory'")
 
         # Validate file exists
         if not os.path.exists(hdf5_path):
@@ -187,13 +188,14 @@ class RawDataLoader:
         else:
             return self._load_channel_data_streaming(
                 channel, group, start_time, end_time, start_sample, end_sample)
+
     def _load_channel_data_streaming(self,
-                                   channel: str,
-                                   group: str = 'raw',
-                                   start_time: Optional[float] = None,
-                                   end_time: Optional[float] = None,
-                                   start_sample: Optional[int] = None,
-                                   end_sample: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
+                                     channel: str,
+                                     group: str = 'raw',
+                                     start_time: Optional[float] = None,
+                                     end_time: Optional[float] = None,
+                                     start_sample: Optional[int] = None,
+                                     end_sample: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Load data using streaming strategy (original implementation).
         """
@@ -250,12 +252,12 @@ class RawDataLoader:
         return data, time_array
 
     def _load_channel_data_memory(self,
-                                channel: str,
-                                group: str = 'raw',
-                                start_time: Optional[float] = None,
-                                end_time: Optional[float] = None,
-                                start_sample: Optional[int] = None,
-                                end_sample: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
+                                  channel: str,
+                                  group: str = 'raw',
+                                  start_time: Optional[float] = None,
+                                  end_time: Optional[float] = None,
+                                  start_sample: Optional[int] = None,
+                                  end_sample: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Load data using memory strategy (cache full channel, extract windows).
         """
@@ -263,7 +265,7 @@ class RawDataLoader:
         if not hasattr(self, '_total_requests'):
             self._total_requests = 0
         self._total_requests += 1
-        
+
         # Validate inputs
         if group not in self._channel_info:
             raise ValueError(
@@ -287,7 +289,7 @@ class RawDataLoader:
         if cache_key not in self._memory_cache:
             # Channel was evicted due to memory limits, reload it
             self._cache_full_channel(channel, group)
-        
+
         full_data, full_time = self._memory_cache[cache_key]
 
         # Convert time to samples if needed
@@ -331,52 +333,54 @@ class RawDataLoader:
     def _cache_full_channel(self, channel: str, group: str = 'raw'):
         """
         Cache full channel data in memory.
-        
+
         Args:
             channel: Channel name
             group: Data group name
         """
         cache_key = (group, channel)
-        
+
         if cache_key in self._memory_cache:
             # Update cache hit statistics
             if hasattr(self, '_cache_hits'):
                 self._cache_hits += 1
             return  # Already cached
-            
+
         # Update cache miss statistics
         if not hasattr(self, '_cache_hits'):
             self._cache_hits = 0
             self._cache_misses = 0
             self._total_requests = 0
         self._cache_misses += 1
-        
-        print(f"Loading full channel {channel} from group {group} into memory...")
-        
+
+        print(
+            f"Loading full channel {channel} from group {group} into memory...")
+
         # Check memory limit before caching
         if hasattr(self, '_memory_limit_mb'):
             channel_size_mb = self._channel_info[group][channel]['size_mb']
-            current_usage = sum(data.nbytes for data, _ in self._memory_cache.values()) / (1024 * 1024)
-            
+            current_usage = sum(
+                data.nbytes for data, _ in self._memory_cache.values()) / (1024 * 1024)
+
             if current_usage + channel_size_mb > self._memory_limit_mb:
                 print(f"Would exceed memory limit ({self._memory_limit_mb:.1f} MB), "
                       f"clearing cache first...")
                 self._enforce_memory_limit()
-        
+
         # Load full channel using streaming method
         data, time_array = self._load_channel_data_streaming(
-            channel, group, start_sample=0, 
+            channel, group, start_sample=0,
             end_sample=self._channel_info[group][channel]['shape'][0]
         )
-        
+
         # Store in cache
         self._memory_cache[cache_key] = (data, time_array)
         self._cached_channels.add(cache_key)
-        
+
         # Enforce memory limit after caching
         if hasattr(self, '_memory_limit_mb'):
             self._enforce_memory_limit()
-        
+
         # Report memory usage
         size_mb = data.nbytes / (1024 * 1024)
         print(f"Cached {channel} ({size_mb:.1f} MB) in memory")
@@ -384,13 +388,13 @@ class RawDataLoader:
     def clear_memory_cache(self, channel: Optional[str] = None, group: Optional[str] = None):
         """
         Clear memory cache for specific channel or all channels.
-        
+
         Args:
             channel: Specific channel to clear (None for all)
             group: Specific group to clear (None for all)
         """
         freed_memory = 0
-        
+
         if channel is not None and group is not None:
             # Clear specific channel
             cache_key = (group, channel)
@@ -399,7 +403,8 @@ class RawDataLoader:
                 freed_memory = data.nbytes / (1024 * 1024)
                 del self._memory_cache[cache_key]
                 self._cached_channels.discard(cache_key)
-                print(f"Cleared cache for {channel} in group {group} (freed {freed_memory:.1f} MB)")
+                print(
+                    f"Cleared cache for {channel} in group {group} (freed {freed_memory:.1f} MB)")
         else:
             # Clear all or by group
             keys_to_remove = []
@@ -407,19 +412,20 @@ class RawDataLoader:
                 cached_group, cached_channel = cache_key
                 if group is None or cached_group == group:
                     keys_to_remove.append(cache_key)
-            
+
             for key in keys_to_remove:
                 data, _ = self._memory_cache[key]
                 freed_memory += data.nbytes / (1024 * 1024)
                 del self._memory_cache[key]
                 self._cached_channels.discard(key)
-            
-            print(f"Cleared {len(keys_to_remove)} cached channels (freed {freed_memory:.1f} MB)")
+
+            print(
+                f"Cleared {len(keys_to_remove)} cached channels (freed {freed_memory:.1f} MB)")
 
     def get_cache_efficiency_stats(self) -> dict:
         """
         Get cache efficiency statistics.
-        
+
         Returns:
             Dictionary with cache performance metrics
         """
@@ -427,9 +433,9 @@ class RawDataLoader:
             self._cache_hits = 0
             self._cache_misses = 0
             self._total_requests = 0
-        
+
         hit_rate = self._cache_hits / max(1, self._total_requests)
-        
+
         return {
             'cache_hits': self._cache_hits,
             'cache_misses': self._cache_misses,
@@ -442,7 +448,7 @@ class RawDataLoader:
     def set_memory_limit(self, limit_mb: float):
         """
         Set memory limit for cache and enforce it.
-        
+
         Args:
             limit_mb: Memory limit in megabytes
         """
@@ -455,28 +461,29 @@ class RawDataLoader:
         """
         if not hasattr(self, '_memory_limit_mb'):
             return
-            
-        current_usage = sum(data.nbytes for data, _ in self._memory_cache.values()) / (1024 * 1024)
-        
+
+        current_usage = sum(data.nbytes for data,
+                            _ in self._memory_cache.values()) / (1024 * 1024)
+
         if current_usage <= self._memory_limit_mb:
             return
-            
+
         # Sort by access time (if we had it) or just remove oldest entries
         # For now, remove channels until under limit
         channels_to_remove = []
         freed_memory = 0
-        
+
         for cache_key, (data, _) in self._memory_cache.items():
             channels_to_remove.append(cache_key)
             freed_memory += data.nbytes / (1024 * 1024)
-            
+
             if current_usage - freed_memory <= self._memory_limit_mb:
                 break
-        
+
         for key in channels_to_remove:
             del self._memory_cache[key]
             self._cached_channels.discard(key)
-        
+
         if channels_to_remove:
             print(f"Enforced memory limit: removed {len(channels_to_remove)} channels "
                   f"(freed {freed_memory:.1f} MB)")
@@ -484,7 +491,7 @@ class RawDataLoader:
     def optimize_for_sequential_access(self, enable: bool = True):
         """
         Optimize loading for sequential time window access patterns.
-        
+
         Args:
             enable: Whether to enable sequential access optimization
         """
@@ -497,7 +504,7 @@ class RawDataLoader:
     def get_memory_usage(self) -> dict:
         """
         Get current memory usage information.
-        
+
         Returns:
             Dictionary with memory usage details
         """
@@ -506,12 +513,12 @@ class RawDataLoader:
             'total_memory_mb': 0,
             'channels': {}
         }
-        
+
         for (group, channel), (data, _) in self._memory_cache.items():
             size_mb = data.nbytes / (1024 * 1024)
             usage['total_memory_mb'] += size_mb
             usage['channels'][f"{group}/{channel}"] = size_mb
-            
+
         return usage
 
     def load_multiple_channels(self,
@@ -565,21 +572,23 @@ class RawDataLoader:
     def switch_loading_strategy(self, new_strategy: str):
         """
         Switch between loading strategies.
-        
+
         Args:
             new_strategy: 'streaming' or 'memory'
         """
         if new_strategy not in ['streaming', 'memory']:
-            raise ValueError("loading_strategy must be 'streaming' or 'memory'")
-            
+            raise ValueError(
+                "loading_strategy must be 'streaming' or 'memory'")
+
         if new_strategy == self.loading_strategy:
             return  # No change needed
-            
+
         old_strategy = self.loading_strategy
         self.loading_strategy = new_strategy
-        
-        print(f"Switched loading strategy from {old_strategy} to {new_strategy}")
-        
+
+        print(
+            f"Switched loading strategy from {old_strategy} to {new_strategy}")
+
         # If switching away from memory mode, optionally clear cache
         if old_strategy == 'memory' and new_strategy == 'streaming':
             print("Consider calling clear_memory_cache() to free memory")
@@ -587,14 +596,14 @@ class RawDataLoader:
     def preload_channels(self, channels: List[str], group: str = 'raw'):
         """
         Preload channels into memory (only works in memory mode).
-        
+
         Args:
             channels: List of channel names to preload
             group: Data group name
         """
         if self.loading_strategy != 'memory':
             raise ValueError("Preloading only available in memory mode")
-            
+
         for channel in channels:
             self._cache_full_channel(channel, group)
 
