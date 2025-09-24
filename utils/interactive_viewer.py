@@ -89,6 +89,10 @@ class InteractivePlotter:
         self.snippet_times = []       # times of snippet peaks
         self.snippet_polarities = []  # polarity of each snippet
 
+        # Apply changes system
+        self.auto_update = True       # Enable immediate updates by default
+        self.pending_changes = False  # Track if changes need applying
+
         # Get total duration
         self.total_duration = self.data_loader.get_channel_duration(
             self.current_channel, self.current_group
@@ -103,7 +107,8 @@ class InteractivePlotter:
         # Create the plot
         self._create_plot()
         self._create_controls()
-        self._update_display()
+        self._update_apply_button_state()  # Initialize button state
+        self._update_display()  # Initial display
 
     def _create_plot(self):
         """Create the main plot and figure."""
@@ -252,11 +257,35 @@ class InteractivePlotter:
         self.btn_reset.on_clicked(self._on_reset_click)
         self.btn_autoscale.on_clicked(self._on_autoscale_click)
 
+        # Apply changes and auto-update controls
+        ax_apply = plt.axes([0.46, y_pos, button_width * 1.2, button_height])
+        self.btn_apply = Button(ax_apply, 'Apply Changes')
+        self.btn_apply.on_clicked(self._on_apply_changes)
+        
+        ax_auto_update = plt.axes([0.60, y_pos, button_width * 1.2, button_height])
+        self.auto_update_check = CheckButtons(ax_auto_update, ['Auto Update'], [self.auto_update])
+        self.auto_update_check.on_clicked(self._on_auto_update_change)
+
         # Additional control buttons
         ax_all_channels = plt.axes(
-            [0.46, y_pos, button_width * 1.2, button_height])
+            [0.76, y_pos, button_width * 1.2, button_height])
         self.btn_all_channels = Button(ax_all_channels, 'All Channels')
         self.btn_all_channels.on_clicked(self._on_all_channels_click)
+
+    def _on_apply_changes(self, event):
+        """Apply all pending parameter changes."""
+        self._update_display()
+        self.pending_changes = False
+        self._update_apply_button_state()
+
+    def _on_auto_update_change(self, label):
+        """Handle auto-update checkbox change."""
+        self.auto_update = not self.auto_update
+        if self.auto_update and self.pending_changes:
+            # If switching to auto-update and there are pending changes, apply them
+            self._update_display()
+            self.pending_changes = False
+        self._update_apply_button_state()
 
     def _on_snippet_before_change(self, text):
         """Handle snippet before time change."""
@@ -265,7 +294,7 @@ class InteractivePlotter:
             if before_ms > 0:  # Must be positive
                 self.snippet_before_ms = before_ms
                 if self.show_snippets:
-                    self._update_display()
+                    self._defer_update_if_needed()
         except ValueError:
             pass
 
@@ -276,7 +305,7 @@ class InteractivePlotter:
             if after_ms > 0:  # Must be positive
                 self.snippet_after_ms = after_ms
                 if self.show_snippets:
-                    self._update_display()
+                    self._defer_update_if_needed()
         except ValueError:
             pass
 
@@ -287,7 +316,7 @@ class InteractivePlotter:
             if max_count > 0:
                 self.max_snippets = max_count
                 if self.show_snippets:
-                    self._update_display()
+                    self._defer_update_if_needed()
         except ValueError:
             pass
 
@@ -296,7 +325,7 @@ class InteractivePlotter:
         self.show_snippets = not self.show_snippets
         self.ax_snippets.set_visible(self.show_snippets)
         if self.show_snippets:
-            self._update_display()
+            self._defer_update_if_needed()
         else:
             self.ax_snippets.clear()
             self.ax_snippets.set_xlabel('Time (ms)')
@@ -304,6 +333,25 @@ class InteractivePlotter:
             self.ax_snippets.set_title('Snippets')
             self.ax_snippets.grid(True, alpha=0.3)
         self.fig.canvas.draw()
+
+    def _defer_update_if_needed(self):
+        """Call _update_display() only if auto_update is enabled."""
+        if self.auto_update:
+            self._update_display()
+        else:
+            self.pending_changes = True
+            self._update_apply_button_state()
+
+    def _update_apply_button_state(self):
+        """Update the apply button appearance based on pending changes."""
+        if hasattr(self, 'btn_apply'):
+            if self.pending_changes:
+                self.btn_apply.label.set_text('Apply Changes*')
+                self.btn_apply.color = 'lightcoral'
+            else:
+                self.btn_apply.label.set_text('Apply Changes')
+                self.btn_apply.color = 'lightgray'
+            self.fig.canvas.draw_idle()
 
     def _extract_snippets(self, data, time_array, threshold):
         """
@@ -565,7 +613,7 @@ class InteractivePlotter:
                 self.show_threshold = True
             else:
                 self.show_threshold = False
-            self._update_display()
+            self._defer_update_if_needed()
         except ValueError:
             pass
 
@@ -613,11 +661,11 @@ class InteractivePlotter:
                 if ymin < ymax:
                     self.manual_ylims = (ymin, ymax)
                     self.auto_scale = False
-                    self._update_display()
+                    self._defer_update_if_needed()
             elif not ymin_text and not ymax_text:
                 self.manual_ylims = None
                 self.auto_scale = True
-                self._update_display()
+                self._defer_update_if_needed()
         except ValueError:
             pass
 
@@ -642,7 +690,7 @@ class InteractivePlotter:
         else:
             self.signal_filter.update_parameters(filter_type='none')
 
-        self._update_display()
+        self._defer_update_if_needed()
 
     def _on_click(self, event):
         """Handle mouse click events."""
@@ -679,7 +727,7 @@ class InteractivePlotter:
         self.time_slider.valmax = max(
             0, self.total_duration - self.window_duration)
 
-        self._update_display()
+        self._defer_update_if_needed()
 
     def _on_prev_click(self, event):
         """Handle previous button click."""
@@ -702,7 +750,7 @@ class InteractivePlotter:
         self.current_time = 0.0
         self.time_slider.set_val(0.0)
         self.auto_scale = True
-        self._update_display()
+        self._defer_update_if_needed()
 
     def _on_autoscale_click(self, event):
         """Handle autoscale button click."""
@@ -711,7 +759,7 @@ class InteractivePlotter:
         # Clear y-limit text boxes
         self.ymin_box.set_val('')
         self.ymax_box.set_val('')
-        self._update_display()
+        self._defer_update_if_needed()
 
     def _on_channel_click(self, event):
         """Handle channel button click."""
@@ -730,7 +778,7 @@ class InteractivePlotter:
     def set_filter(self, filter_obj: SignalFilter):
         """Set the signal filter."""
         self.signal_filter = filter_obj
-        self._update_display()
+        self._defer_update_if_needed()
 
     def set_channel(self, channel: str, group: str = None):
         """Set the current channel and optionally group."""
@@ -749,7 +797,7 @@ class InteractivePlotter:
             self.time_slider.valmax = max(
                 0, self.total_duration - self.window_duration)
 
-            self._update_display()
+            self._defer_update_if_needed()
         else:
             raise ValueError(
                 f"Channel '{channel}' not found in group '{self.current_group}'")
@@ -767,7 +815,7 @@ class InteractivePlotter:
         """Set threshold value."""
         self.threshold_value = threshold
         self.show_threshold = threshold is not None
-        self._update_display()
+        self._defer_update_if_needed()
 
     def get_current_data(self) -> Tuple[np.ndarray, np.ndarray]:
         """Get currently displayed data."""
