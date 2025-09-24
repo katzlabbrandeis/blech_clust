@@ -76,8 +76,8 @@ class InteractivePlotter:
         self.auto_scale = True
         self.y_scale_factor = 1.0
         self.manual_ylims = None
-        self.lowpass_freq = 3000.0
-        self.highpass_freq = 300.0
+        self.max_freq = 3000.0  # Maximum frequency (lowpass cutoff)
+        self.min_freq = 300.0   # Minimum frequency (highpass cutoff)
         self.data_conversion_factor = 0.6745  # Convert to microvolts
 
         # Snippet extraction parameters
@@ -180,15 +180,15 @@ class InteractivePlotter:
         self.channel_radio.on_clicked(self._on_channel_radio_change)
 
         # Filter frequency controls - Row 5
-        ax_lowpass = plt.subplot2grid((8, 6), (5, 0))
-        self.lowpass_box = TextBox(
-            ax_lowpass, 'Lowpass (Hz)', initial=str(self.lowpass_freq))
-        self.lowpass_box.on_submit(self._on_lowpass_change)
+        ax_max_freq = plt.subplot2grid((8, 6), (5, 0))
+        self.max_freq_box = TextBox(
+            ax_max_freq, 'Max Freq (Hz)', initial=str(self.max_freq))
+        self.max_freq_box.on_submit(self._on_max_freq_change)
 
-        ax_highpass = plt.subplot2grid((8, 6), (5, 1))
-        self.highpass_box = TextBox(
-            ax_highpass, 'Highpass (Hz)', initial=str(self.highpass_freq))
-        self.highpass_box.on_submit(self._on_highpass_change)
+        ax_min_freq = plt.subplot2grid((8, 6), (5, 1))
+        self.min_freq_box = TextBox(
+            ax_min_freq, 'Min Freq (Hz)', initial=str(self.min_freq))
+        self.min_freq_box.on_submit(self._on_min_freq_change)
 
         # Y-limits controls
         ax_ymin = plt.subplot2grid((8, 6), (5, 2))
@@ -631,22 +631,22 @@ class InteractivePlotter:
                 0, self.total_duration - self.window_duration)
             self._update_display()
 
-    def _on_lowpass_change(self, text):
-        """Handle lowpass frequency change."""
+    def _on_max_freq_change(self, text):
+        """Handle maximum frequency change."""
         try:
             freq = float(text)
             if freq > 0:
-                self.lowpass_freq = freq
+                self.max_freq = freq
                 self._update_filter_from_frequencies()
         except ValueError:
             pass
 
-    def _on_highpass_change(self, text):
-        """Handle highpass frequency change."""
+    def _on_min_freq_change(self, text):
+        """Handle minimum frequency change."""
         try:
             freq = float(text)
             if freq > 0:
-                self.highpass_freq = freq
+                self.min_freq = freq
                 self._update_filter_from_frequencies()
         except ValueError:
             pass
@@ -673,21 +673,21 @@ class InteractivePlotter:
 
     def _update_filter_from_frequencies(self):
         """Update filter based on current frequency settings."""
-        if self.highpass_freq > 0 and self.lowpass_freq > self.highpass_freq:
+        if self.min_freq > 0 and self.max_freq > self.min_freq:
             self.signal_filter.update_parameters(
                 filter_type='bandpass',
-                low_freq=self.highpass_freq,
-                high_freq=self.lowpass_freq
+                low_freq=self.min_freq,
+                high_freq=self.max_freq
             )
-        elif self.highpass_freq > 0:
+        elif self.min_freq > 0:
             self.signal_filter.update_parameters(
                 filter_type='highpass',
-                low_freq=self.highpass_freq
+                low_freq=self.min_freq
             )
-        elif self.lowpass_freq > 0:
+        elif self.max_freq > 0:
             self.signal_filter.update_parameters(
                 filter_type='lowpass',
-                high_freq=self.lowpass_freq
+                high_freq=self.max_freq
             )
         else:
             self.signal_filter.update_parameters(filter_type='none')
