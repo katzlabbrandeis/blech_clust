@@ -622,19 +622,19 @@ class InteractivePlotter:
     def _on_channel_button_click(self, event):
         """Handle channel button click - cycle through channels."""
         current_idx = self.available_channels.index(self.current_channel)
-        
+
         # Left click: next channel, Right click: previous channel
         if hasattr(event, 'button') and event.button == 3:  # Right click
             next_idx = (current_idx - 1) % len(self.available_channels)
         else:  # Left click or any other
             next_idx = (current_idx + 1) % len(self.available_channels)
-            
+
         self.current_channel = self.available_channels[next_idx]
-        
+
         # Update button label
         channel_label = f'Ch: {self.current_channel} ({next_idx+1}/{len(self.available_channels)})'
         self.channel_button.label.set_text(channel_label)
-        
+
         # Update total duration for new channel
         self.total_duration = self.data_loader.get_channel_duration(
             self.current_channel, self.current_group
@@ -732,7 +732,7 @@ class InteractivePlotter:
         current_idx = self.available_channels.index(self.current_channel)
         new_idx = (current_idx + direction) % len(self.available_channels)
         self.current_channel = self.available_channels[new_idx]
-        
+
         # Update channel button label
         channel_label = f'Ch: {self.current_channel} ({new_idx+1}/{len(self.available_channels)})'
         self.channel_button.label.set_text(channel_label)

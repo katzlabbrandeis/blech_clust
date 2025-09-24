@@ -64,27 +64,27 @@ class DropdownChannelSelector:
         self.current_channel = current_channel
         self.callback = callback
         self.dropdown_open = False
-        
+
         # Main button
         self.button = Button(ax, f'Ch: {current_channel}')
         self.button.on_clicked(self._toggle_dropdown)
-        
+
         # Dropdown menu (initially hidden)
         self.dropdown_items = []
         self._create_dropdown_items()
-    
+
     def _toggle_dropdown(self, event):
         if self.dropdown_open:
             self._close_dropdown()
         else:
             self._open_dropdown()
-    
+
     def _open_dropdown(self):
         # Show dropdown items
         for item in self.dropdown_items:
             item.set_visible(True)
         self.dropdown_open = True
-        
+
     def _close_dropdown(self):
         # Hide dropdown items
         for item in self.dropdown_items:
