@@ -10,7 +10,7 @@ This PR consolidates the installation process to use pip for all Python packages
 2. **Pip-Only Installation**: All Python packages are now installed via pip instead of mixing conda and pip
 3. **Removed Unused Packages**: Removed packages that are not actually used in the codebase:
    - `bokeh==1.4.0` - No usage found in codebase
-   - `dask==2021.10.0` - No usage found in codebase  
+   - `dask==2021.10.0` - No usage found in codebase
    - `fastcluster` - No usage found in codebase
 4. **Simplified Makefile**: Updated the `base` target to use only pip for Python packages
 5. **Consolidated psutil**: Unified psutil version requirement to `>=6.1.0`
@@ -35,7 +35,7 @@ No action required - existing `make` commands continue to work:
 
 ```bash
 make all      # Install everything
-make base     # Install base environment  
+make base     # Install base environment
 make emg      # Install EMG requirements
 make clean    # Clean environment
 ```
