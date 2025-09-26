@@ -1,10 +1,6 @@
 .PHONY: all base emg neurec blechrnn clean params patch
 
-# Store sudo password
-# define get_sudo_password
-# $(eval SUDO_PASS := $(shell bash -c 'read -s -p "Enter sudo password: " pwd; echo $$pwd'))
-# @echo
-# endef
+# Consolidated pip-based installation - no sudo required for base packages
 
 SCRIPT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))# This will return blech_clust base dir
 INSTALL_PATH = $(SCRIPT_DIR)/requirements/BaSAR_1.3.tar.gz
@@ -15,17 +11,18 @@ all: base emg neurec blechrnn prefect patch
 
 # Create and setup base environment
 base: params
-	$(call get_sudo_password)
 	conda deactivate || true
 	conda update -n base -c conda-forge conda -y
 	conda clean --all -y
 	conda create --name blech_clust python=3.8 -y
-	conda run -n blech_clust conda install -c conda-forge -y --file requirements/conda_requirements_base.txt
-	# bash requirements/install_gnu_parallel.sh "$(SUDO_PASS)"
-	conda run -n blech_clust pip install --no-cache-dir -r requirements/pip_requirements_base.txt
+	# Install all dependencies via pip from consolidated requirements file
+	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements.txt
+	# Install GNU parallel separately as it's a system package
+	@echo "Note: GNU parallel should be installed system-wide if needed"
 
 # Install EMG (BSA) requirements
 emg:
+	# R packages still need conda as they're not available via pip
 	conda run -n blech_clust conda config --set channel_priority strict
 	conda run -n blech_clust conda install -c conda-forge r-base=3.6 r-polynom r-orthopolynom -y
 	# rpy2 has to be built against current R...caching messes with that
