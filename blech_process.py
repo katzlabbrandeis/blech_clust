@@ -28,6 +28,19 @@ This module processes single electrode waveforms for spike detection and cluster
 # Imports
 ############################################################
 import time
+
+
+def update_process_log(log_path, electrode_num, key, value):
+    """Update the process log for a specific electrode."""
+    with open(log_path) as f:
+        process_log = json.load(f)
+    if str(electrode_num) not in process_log:
+        process_log[str(electrode_num)] = {}
+    process_log[str(electrode_num)][key] = value
+    with open(log_path, 'w') as f:
+        json.dump(process_log, f, indent=2)
+
+
 import argparse  # noqa
 import os  # noqa
 from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
@@ -103,15 +116,15 @@ if log_path.exists():
     with open(log_path) as f:
         process_log = json.load(f)
 else:
+    # Create a new log file if it doesn't exist
+    with open(log_path, 'w') as f:
+        json.dump({}, f, indent=2)
     process_log = {}
 
 # Log processing start
-process_log[str(electrode_num)] = {
-    'start_time': datetime.datetime.now().isoformat(),
-    'status': 'attempted'
-}
-with open(log_path, 'w') as f:
-    json.dump(process_log, f, indent=2)
+update_process_log(log_path, electrode_num, 'start_time',
+                   datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'status', 'attempted')
 
 params_dict = metadata_handler.params_dict
 auto_params = params_dict['clustering_params']['auto_params']
@@ -137,12 +150,21 @@ electrode = bpu.electrode_handler(
     electrode_num,
     params_dict)
 
+# Log preprocessing start
+update_process_log(log_path, electrode_num, 'preprocessing', 'started')
+
 # Run complete preprocessing pipeline
 filtered_data = electrode.preprocess_electrode()
+
+# Log preprocessing completion
+update_process_log(log_path, electrode_num, 'preprocessing', 'completed')
 
 #############################################################
 # Process Spikes
 #############################################################
+
+# Log spike processing start
+update_process_log(log_path, electrode_num, 'spike_processing', 'started')
 
 # Extract and process spikes from filtered data
 spike_set = bpu.spike_handler(filtered_data,
@@ -154,6 +176,9 @@ spike_set = bpu.spike_handler(filtered_data,
     mean_val,
     MAD_val,
 ) = spike_set.process_spikes()
+
+# Log spike processing completion
+update_process_log(log_path, electrode_num, 'spike_processing', 'completed')
 
 # Write MAD_val and threshold to electrode_layout_frame
 # Reload layout to make sure we have the latest version
@@ -318,6 +343,9 @@ else:
         (max_clusters, 'auto')
     ]
 
+# Log clustering start
+update_process_log(log_path, electrode_num, 'clustering', 'started')
+
 for cluster_num, fit_type in iters:
     # Pass specific data instead of the whole spike_set
     cluster_handler = bpu.cluster_handler(
@@ -336,51 +364,50 @@ for cluster_num, fit_type in iters:
     cluster_handler.perform_clustering()
     cluster_handler.ensure_continuous_labels()
 
-    # At this point, cluster_handler has a trained GMM
-    # If 'throw_out_noise', then get labels for all waveforms
-    # otherwise, use the labels from the GMM
-    if throw_out_noise_bool:
-        print('=== GMM trained using only classified spikes ===')
-        all_labels = cluster_handler.get_cluster_labels(
-            all_features,
+# Log clustering completion
+update_process_log(log_path, electrode_num, 'clustering', 'completed')
+
+# At this point, cluster_handler has a trained GMM
+# If 'throw_out_noise', then get labels for all waveforms
+# otherwise, use the labels from the GMM
+if throw_out_noise_bool:
+    print('=== GMM trained using only classified spikes ===')
+    all_labels = cluster_handler.get_cluster_labels(
+        all_features,
+    )
+    # Since GMM will return predictions using original labels,
+    # if auto_clustering, will need to relabel
+    if auto_cluster:
+        all_labels = np.array(
+            [cluster_handler.cluster_map[label] for label in all_labels]
         )
-        # Since GMM will return predictions using original labels,
-        # if auto_clustering, will need to relabel
-        if auto_cluster:
-            all_labels = np.array(
-                [cluster_handler.cluster_map[label] for label in all_labels]
-            )
-    else:
-        all_labels = cluster_handler.labels
-    cluster_handler.remove_outliers(params_dict)
-    cluster_handler.calc_mahalanobis_distance_matrix()
-    cluster_handler.save_cluster_labels()
-    cluster_handler.create_output_plots(params_dict)
-    # NOTE: Classifier plots will not have outliers removed
-    if throw_out_noise_bool:
-        print('=== Classifier plots will NOT have outliers removed ===')
-    if classifier_params['use_classifier'] and \
-            classifier_params['use_neuRecommend']:
-        cluster_handler.create_classifier_plots(
-            # classifier_handler
-            classifier_pred=clf_prob_og > classifier_handler.clf_threshold,
-            classifier_prob=clf_prob_og,
-            clf_threshold=classifier_handler.clf_threshold,
-            all_waveforms=slices_og,
-            all_times=times_og,
-            labels=all_labels,
-        )
+else:
+    all_labels = cluster_handler.labels
+cluster_handler.remove_outliers(params_dict)
+cluster_handler.calc_mahalanobis_distance_matrix()
+cluster_handler.save_cluster_labels()
+cluster_handler.create_output_plots(params_dict)
+# NOTE: Classifier plots will not have outliers removed
+if throw_out_noise_bool:
+    print('=== Classifier plots will NOT have outliers removed ===')
+if classifier_params['use_classifier'] and \
+        classifier_params['use_neuRecommend']:
+    cluster_handler.create_classifier_plots(
+        # classifier_handler
+        classifier_pred=clf_prob_og > classifier_handler.clf_threshold,
+        classifier_prob=clf_prob_og,
+        clf_threshold=classifier_handler.clf_threshold,
+        all_waveforms=slices_og,
+        all_times=times_og,
+        labels=all_labels,
+    )
 
 print(f'Electrode {electrode_num} complete.')
 
 # Update processing log with completion
-with open(log_path) as f:
-    process_log = json.load(f)
-process_log[str(electrode_num)
-            ]['end_time'] = datetime.datetime.now().isoformat()
-process_log[str(electrode_num)]['status'] = 'complete'
-with open(log_path, 'w') as f:
-    json.dump(process_log, f, indent=2)
+update_process_log(log_path, electrode_num, 'end_time',
+                   datetime.datetime.now().isoformat())
+update_process_log(log_path, electrode_num, 'status', 'complete')
 
 # Write successful execution to log
 if not test_bool:
