@@ -347,22 +347,17 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 # Read data files, and append to electrode arrays
 if reload_data_str in ['y', 'yes']:
+    intan_handler = read_file.IntanDataHandler(
+        hdf5_name, electrode_layout_frame)
     if file_type == 'one file per channel':
-        # read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
-        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+        intan_handler.read_electrode_channels()
         if len(emg_channels) > 0:
-            read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+            intan_handler.read_emg_channels()
     elif file_type == 'one file per signal type':
-        # read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
-        # This next line takes care of both electrodes and emgs
-        read_file.read_electrode_emg_channels_single_file(
-            hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+        intan_handler.read_electrode_emg_channels_single_file(
+            electrodes_list, num_recorded_samples, emg_channels)
     elif file_type == 'traditional':
-        read_file.read_traditional_intan(
-            hdf5_name,
-            rhd_file_list,
-            electrode_layout_frame,
-        )
+        intan_handler.read_traditional_intan(rhd_file_list)
 else:
     print('Data already present...Not reloading data')
 
