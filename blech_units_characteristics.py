@@ -10,8 +10,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Aggregate Plot Generation**: Creates summary plots showing the significance of responsiveness, discriminability, palatability, and dynamicity for each condition.
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
-
-import shutil
+#%% Import Modules
 from tqdm import tqdm
 import pingouin as pg
 import matplotlib.pyplot as plt
@@ -30,38 +29,28 @@ from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from utils.ephys_data import ephys_data
 from utils.ephys_data import visualize as vz
 import pandas as pd
-from ast import literal_eval
 pd.options.mode.chained_assignment = None
 tqdm.pandas()
 
+#%% Housekeeping
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-test_bool = False
-
-if test_bool:
-    # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
-    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-    metadata_handler = imp_metadata([[], data_dir])
-    dir_name = metadata_handler.dir_name
-else:
-    metadata_handler = imp_metadata(sys.argv)
-    dir_name = metadata_handler.dir_name
-    # Perform pipeline graph check
-    script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name)
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
-
+metadata_handler = imp_metadata(sys.argv)
+dir_name = metadata_handler.dir_name
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
-if os.path.exists(plot_dir):
-    shutil.rmtree(plot_dir)
-os.makedirs(plot_dir)
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)
 
 agg_plot_dir = os.path.join(plot_dir, 'aggregated')
-if os.path.exists(agg_plot_dir):
-    shutil.rmtree(agg_plot_dir)
-os.makedirs(agg_plot_dir)
+if not os.path.exists(agg_plot_dir):
+    os.makedirs(agg_plot_dir)
+
+# Perform pipeline graph check
+script_path = os.path.realpath(__file__)
+this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check.check_previous(script_path)
+this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 
@@ -100,26 +89,8 @@ mean_seq_firing['time_val'] = [firing_t_vec[x]
                                for x in mean_seq_firing.time_num]
 mean_seq_firing['taste'] = [taste_names[x] for x in mean_seq_firing.taste_num]
 
-# Cut by psth_params['durations']
-mean_seq_firing = mean_seq_firing.loc[
-    (mean_seq_firing.time_val >= -psth_params['durations'][0]) &
-    (mean_seq_firing.time_val <= psth_params['durations'][1])
-]
-sequestered_spikes_frame = this_dat.sequestered_spikes_frame.copy()
-sequestered_spikes_frame['time_num'] -= stim_time
-sequestered_spikes_frame = sequestered_spikes_frame.loc[
-    (sequestered_spikes_frame.time_num >= -psth_params['durations'][0]) &
-    (sequestered_spikes_frame.time_num <= psth_params['durations'][1])
-]
-
-# Convert laser_tuple to tuple
-mean_seq_firing['laser_tuple'] = [literal_eval(x) for x in
-                                  mean_seq_firing.laser_tuple]
-sequestered_spikes_frame['laser_tuple'] = [
-    literal_eval(x) for x in sequestered_spikes_frame.laser_tuple]
-
 # Plot firing rates
-laser_conditions = np.sort(mean_seq_firing.laser_tuple.unique())
+laser_conditions = mean_seq_firing.laser_tuple.unique()
 n_laser_conditions = len(laser_conditions)
 
 # List of len = n_tastes
@@ -128,67 +99,80 @@ waveform_dir = os.path.join(dir_name, 'unit_waveforms_plots', 'waveforms_only')
 spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
-print('=== Creating overlay PSTH plots ===')
+#%%Plotting Loop
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     n_rows = np.max([n_laser_conditions, 2])
-    fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
-                           # sharex=True, sharey='col')
-                           )
-    # Remove axis for lower row if only one laser condition
-    if n_laser_conditions == 1:
-        for this_ax in ax[-1]:
-            this_ax.axis('off')
+    if n_laser_conditions > 1:
+        fig, ax = plt.subplots(n_rows, 3, figsize=(15, 5*n_laser_conditions),
+                        # sharex=True, sharey='col')
+                        )
+        ax_img1 = ax[0, -1]
+        ax_img2 = ax[1, -1]
+
+    else:
+        fig = plt.figure(figsize=(15, 5))
+        gs = fig.add_gridspec(2, 3, width_ratios=[2, 2, 1])  # 2 rows, 3 cols
+
+        # These now span both rows:
+        ax_line = fig.add_subplot(gs[:, 0])
+        ax_scatter = fig.add_subplot(gs[:, 1])
+
+        # These are individual image panels
+        ax_img1 = fig.add_subplot(gs[0, 2])
+        ax_img2 = fig.add_subplot(gs[1, 2])
+
     for i, laser_cond in enumerate(laser_conditions):
         this_firing = mean_seq_firing.loc[
             (mean_seq_firing.neuron_num == nrn_ind) &
             (mean_seq_firing.laser_tuple == laser_cond)
         ]
-        this_spikes = sequestered_spikes_frame.loc[
-            (sequestered_spikes_frame.neuron_num == nrn_ind) &
-            (sequestered_spikes_frame.laser_tuple == laser_cond)
+        this_spikes = this_dat.sequestered_spikes_frame.loc[
+            (this_dat.sequestered_spikes_frame.neuron_num == nrn_ind) &
+            (this_dat.sequestered_spikes_frame.laser_tuple == laser_cond)
         ]
         this_spikes.sort_values(['taste_num', 'trial_num'], inplace=True)
-        this_spikes['cum_trial_num'] = \
-            this_spikes['taste_num'] * \
-            (this_spikes['trial_num'].max()+1) + this_spikes['trial_num']
-        this_spikes['cum_trial_num'] += 0.5
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
+        trialNs = this_spikes.groupby('taste_num').trial_num.size()
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
+        cumTrialN = np.concatenate([[taste_blocks[stimN]] * trialNs[stimN] for stimN in range(len(trial_lens))])
+        this_spikes['cum_trial_num'] = cumTrialN + this_spikes['trial_num'] + 0.5
+        this_spikes['time_num'] -= stim_time
+        lineAx = ax_line if n_laser_conditions == 1 else ax[i,0]
         sns.lineplot(
             data=this_firing,
             x='time_val',
             y='firing',
             hue='taste',
-            ax=ax[i, 0],
+            ax=lineAx
         )
-        # Plot laser condition
-        if laser_cond != (0, 0):
-            ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
-                             color='y', label='Laser condition')
-        # Put legend to left of plot
-        ax[i, 0].legend(title='Taste', bbox_to_anchor=(1.05, 1),
-                        loc='upper left')
-        ax[i, 0].legend()
+        lineAx.set_ylabel('Mean Firing Rate')
+        lineAx.set_xlabel('Time (ms)')
+        titleTemp = 'Peristimulus Time Histogram' if n_laser_conditions == 1 else f'Laser condition {laser_cond}'
+        lineAx.set_title(titleTemp)
+        lineAx.legend()
+        lineAx.axvline(0, color='r', linestyle='--', linewidth=2)
+
+        scatterAx = ax_scatter if n_laser_conditions == 1 else ax[i,1]
         sns.scatterplot(
             data=this_spikes,
             x='time_num',
             y='cum_trial_num',
             color='k',
-            marker='s',
-            ax=ax[i, 1],
+            marker='|',
+            ax=scatterAx,
             legend=False,
-            s=10,
         )
+        scatterAx.set_ylabel('Cumulative Trial #')
+        scatterAx.set_xlabel('Time (ms)')
+        titleTemp = 'Peristimulus Spike Raster' if n_laser_conditions == 1 else f'Laser condition {laser_cond}'
+        scatterAx.set_title(titleTemp)
         for block_i in range(len(taste_blocks)-1):
             block_start = taste_blocks[block_i]
             block_end = taste_blocks[block_i+1]
-            ax[i, 1].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
+            scatterAx.axhspan(block_start, block_end, alpha=0.2, zorder=-1,
                              color=colors[block_i])
-        for this_ax in ax[i, :-1]:
-            if i == len(ax)-1:
-                this_ax.set_xlabel('Time (ms)')
-            this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
-            this_ax.set_title(f'Laser condition {laser_cond}')
+        scatterAx.axvline(0, color='r', linestyle='--', linewidth=2)
+
         # Plot waveforms
         datashader_img_path = os.path.join(
             waveform_dir, f'Unit{nrn_ind}_datashader.png')
@@ -196,19 +180,23 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             waveform_dir, f'Unit{nrn_ind}_mean_sd.png')
         datashader_img = plt.imread(datashader_img_path)
         mean_sd_img = plt.imread(mean_sd_img_path)
-        ax[0, -1].imshow(datashader_img)
-        ax[1, -1].imshow(mean_sd_img)
-        for this_ax in ax[:, -1]:
-            this_ax.axis('off')
+        ax_img1.imshow(datashader_img)
+        ax_img2.imshow(mean_sd_img)
+        if n_laser_conditions > 1:
+            for this_ax in ax[:, -1]:
+                this_ax.axis('off')
+        else:
+            ax_img1.axis('off')
+            ax_img2.axis('off')
     # g.set_title(f'Neuron {nrn_ind}')
     fig.suptitle(f'Neuron {nrn_ind}')
+#%%Figure Saving
     plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_firing_rate.png'),
                 bbox_inches='tight')
     plt.close()
 
 # If more than one laser condition, plot firing rates for each taste separately
 # with laser conditions as hue
-print('=== Creating overlay PSTH plots for each taste ===')
 if n_laser_conditions > 1:
     for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         this_firing = mean_seq_firing.loc[
@@ -286,7 +274,7 @@ seq_spikes_frame = seq_spikes_frame.loc[
 ]
 seq_spikes_frame['spikes'] = 1
 # mark pre and post stim periods
-seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= 0
+seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
 # NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE
 # OF EQUAL LENGTH
 seq_spike_counts = seq_spikes_frame.groupby(
@@ -323,7 +311,6 @@ group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
 group_frames = [x[1] for x in group_list]
-print('=== Calculating responsiveness ===')
 pval_list = []
 for this_frame in tqdm(group_frames):
     this_pval = ttest_rel(
@@ -448,7 +435,6 @@ seq_spike_counts.drop(columns=['time_num'], inplace=True)
 seq_spike_counts.fillna(0, inplace=True)
 
 # Make sure all inds are present
-print('=== Calculating discriminability ===')
 seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
 for this_ind in tqdm(firing_frame_group_inds):
     # Iterate of post_stim
@@ -467,7 +453,6 @@ seq_spike_counts.reset_index(inplace=True)
 
 # For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num
 # as factors
-print('=== Calculating taste-dynamics ANOVA ===')
 group_cols = ['neuron_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
@@ -774,6 +759,5 @@ out_frame.to_hdf(
     mode='a',
 )
 
-if not test_bool:
-    # Mark as completed
-    this_pipeline_check.write_to_log(script_path, 'completed')
+# Mark as completed
+this_pipeline_check.write_to_log(script_path, 'completed')
