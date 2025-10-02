@@ -1,0 +1,11 @@
+{
+    "auto_update_enabled": true,
+    "auto_update_silent": false,
+    "check_frequency_hours": 24,
+    "_comment": "Configuration file for blech_clust auto-update functionality",
+    "_instructions": {
+        "auto_update_enabled": "Set to false to disable automatic update checks",
+        "auto_update_silent": "Set to true to suppress update check messages",
+        "check_frequency_hours": "How often to check for updates (in hours)"
+    }
+}

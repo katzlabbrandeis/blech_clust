@@ -46,6 +46,11 @@ import time
 import boto3
 from typing import Dict, List
 import shutil
+try:
+    import git
+    GIT_AVAILABLE = True
+except ImportError:
+    GIT_AVAILABLE = False
 
 
 class Tee:
@@ -634,3 +639,248 @@ def ifisdir_rmdir(dir_name):
     """Remove directory if it exists"""
     if os.path.isdir(dir_name):
         shutil.rmtree(dir_name)
+
+
+class RepoUpdater:
+    """
+    Auto-update functionality for blech_clust repository using GitPython.
+    
+    Checks for updates from the remote repository and optionally updates
+    the local repository. Can be silenced via configuration.
+    """
+    
+    def __init__(self, repo_path=None, config_path=None):
+        """
+        Initialize the RepoUpdater.
+        
+        Args:
+            repo_path (str, optional): Path to the git repository. 
+                                     If None, uses the blech_clust directory.
+            config_path (str, optional): Path to configuration file.
+                                       If None, looks for config in standard locations.
+        """
+        self.repo_path = repo_path or self._get_blech_clust_dir()
+        self.config_path = config_path
+        self.config = self._load_config()
+        self.repo = None
+        
+        if GIT_AVAILABLE:
+            try:
+                self.repo = git.Repo(self.repo_path)
+            except (git.InvalidGitRepositoryError, git.NoSuchPathError):
+                print(f"Warning: {self.repo_path} is not a valid git repository")
+                self.repo = None
+        else:
+            print("Warning: GitPython not available. Auto-update functionality disabled.")
+    
+    def _get_blech_clust_dir(self):
+        """Get the blech_clust directory path."""
+        file_path = os.path.abspath(__file__)
+        return os.path.dirname(os.path.dirname(file_path))
+    
+    def _load_config(self):
+        """Load configuration settings."""
+        config = {
+            'auto_update_enabled': True,
+            'auto_update_silent': False,
+            'check_frequency_hours': 24
+        }
+        
+        # Look for config file in multiple locations
+        config_locations = []
+        if self.config_path:
+            config_locations.append(self.config_path)
+        
+        # Add standard config locations
+        config_locations.extend([
+            os.path.join(self.repo_path, 'config.json'),
+            os.path.join(self.repo_path, '.blech_config.json'),
+            os.path.join(os.path.expanduser('~'), '.blech_config.json')
+        ])
+        
+        for config_file in config_locations:
+            if os.path.exists(config_file):
+                try:
+                    with open(config_file, 'r') as f:
+                        user_config = json.load(f)
+                        config.update(user_config)
+                    break
+                except (json.JSONDecodeError, IOError) as e:
+                    print(f"Warning: Could not load config from {config_file}: {e}")
+        
+        return config
+    
+    def is_update_check_needed(self):
+        """
+        Check if an update check is needed based on frequency settings.
+        
+        Returns:
+            bool: True if update check is needed, False otherwise.
+        """
+        if not self.config.get('auto_update_enabled', True):
+            return False
+        
+        last_check_file = os.path.join(self.repo_path, '.last_update_check')
+        
+        if not os.path.exists(last_check_file):
+            return True
+        
+        try:
+            with open(last_check_file, 'r') as f:
+                last_check_time = float(f.read().strip())
+            
+            hours_since_check = (time.time() - last_check_time) / 3600
+            return hours_since_check >= self.config.get('check_frequency_hours', 24)
+        except (ValueError, IOError):
+            return True
+    
+    def _update_last_check_time(self):
+        """Update the last check time file."""
+        last_check_file = os.path.join(self.repo_path, '.last_update_check')
+        try:
+            with open(last_check_file, 'w') as f:
+                f.write(str(time.time()))
+        except IOError as e:
+            print(f"Warning: Could not update last check time: {e}")
+    
+    def check_for_updates(self):
+        """
+        Check if updates are available from the remote repository.
+        
+        Returns:
+            dict: Dictionary containing update information:
+                - 'updates_available': bool
+                - 'current_commit': str
+                - 'latest_commit': str
+                - 'commits_behind': int
+                - 'error': str (if any error occurred)
+        """
+        result = {
+            'updates_available': False,
+            'current_commit': None,
+            'latest_commit': None,
+            'commits_behind': 0,
+            'error': None
+        }
+        
+        if not self.repo:
+            result['error'] = "Repository not available or GitPython not installed"
+            return result
+        
+        try:
+            # Get current commit
+            current_commit = self.repo.head.commit.hexsha
+            result['current_commit'] = current_commit
+            
+            # Fetch latest changes from remote
+            origin = self.repo.remotes.origin
+            origin.fetch()
+            
+            # Get the latest commit from the remote branch
+            remote_branch = f"origin/{self.repo.active_branch.name}"
+            if remote_branch in [ref.name for ref in self.repo.refs]:
+                latest_commit = self.repo.refs[remote_branch].commit.hexsha
+                result['latest_commit'] = latest_commit
+                
+                # Count commits behind
+                commits_behind = list(self.repo.iter_commits(f'{current_commit}..{latest_commit}'))
+                result['commits_behind'] = len(commits_behind)
+                result['updates_available'] = len(commits_behind) > 0
+            else:
+                result['error'] = f"Remote branch {remote_branch} not found"
+        
+        except Exception as e:
+            result['error'] = str(e)
+        
+        self._update_last_check_time()
+        return result
+    
+    def update_repository(self, force=False):
+        """
+        Update the repository to the latest version.
+        
+        Args:
+            force (bool): If True, force update even if there are local changes.
+        
+        Returns:
+            dict: Dictionary containing update result:
+                - 'success': bool
+                - 'message': str
+                - 'error': str (if any error occurred)
+        """
+        result = {
+            'success': False,
+            'message': '',
+            'error': None
+        }
+        
+        if not self.repo:
+            result['error'] = "Repository not available or GitPython not installed"
+            return result
+        
+        try:
+            # Check for local changes
+            if self.repo.is_dirty() and not force:
+                result['error'] = "Repository has local changes. Use force=True to override."
+                return result
+            
+            # Get current branch
+            current_branch = self.repo.active_branch.name
+            
+            # Pull latest changes
+            origin = self.repo.remotes.origin
+            pull_info = origin.pull(current_branch)
+            
+            if pull_info:
+                result['success'] = True
+                result['message'] = f"Successfully updated to latest version. {len(pull_info)} changes pulled."
+            else:
+                result['success'] = True
+                result['message'] = "Repository is already up to date."
+        
+        except Exception as e:
+            result['error'] = str(e)
+        
+        return result
+    
+    def auto_update_check(self):
+        """
+        Perform automatic update check and optionally update.
+        This is the main method to be called during initialization.
+        """
+        if not self.config.get('auto_update_enabled', True):
+            return
+        
+        if not self.is_update_check_needed():
+            return
+        
+        if not self.config.get('auto_update_silent', False):
+            print("Checking for blech_clust updates...")
+        
+        update_info = self.check_for_updates()
+        
+        if update_info.get('error'):
+            if not self.config.get('auto_update_silent', False):
+                print(f"Update check failed: {update_info['error']}")
+            return
+        
+        if update_info.get('updates_available'):
+            commits_behind = update_info.get('commits_behind', 0)
+            if not self.config.get('auto_update_silent', False):
+                print(f"Updates available! Your blech_clust is {commits_behind} commits behind.")
+                print("To update, run: git pull origin master")
+                print("Or disable auto-update checks by setting 'auto_update_enabled': false in your config.")
+        else:
+            if not self.config.get('auto_update_silent', False):
+                print("blech_clust is up to date.")
+
+
+def check_for_repo_updates(config_path=None):
+    """
+    Convenience function to check for repository updates.
+    
+    Args:
+        config_path (str, optional): Path to configuration file.
+    """
+    updater = RepoUpdater(config_path=config_path)
+    updater.auto_update_check()
