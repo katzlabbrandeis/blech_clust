@@ -9,3 +9,4 @@ psutil>=6.1.0
 fastcluster
 pymc
 boto3
+GitPython>=3.1.0
