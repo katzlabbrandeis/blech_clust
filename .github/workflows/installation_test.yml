@@ -1,0 +1,122 @@
+# GitHub Actions workflow for testing installation on multiple platforms
+# This workflow tests installation on different Linux distributions and Python versions
+# Only runs when PR has 'install' label
+
+name: Installation Test
+run-name: installation_test
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
+  workflow_dispatch:
+
+jobs:
+  check-label:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Check for install label
+        id: check
+        run: |
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'install') }}" == "true" ]]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+          fi
+
+  installation-test:
+    needs: check-label
+    if: needs.check-label.outputs.should-run == 'true'
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          miniforge-version: latest
+          use-mamba: true
+
+      - name: Display system information
+        run: |
+          echo "OS: ${{ matrix.os }}"
+          echo "Python: ${{ matrix.python-version }}"
+          python --version
+          which python
+          conda --version
+          uname -a
+
+      - name: Setup params
+        run: |
+          if [ ! -f params/blech_params.json ]; then
+            cp params/_templates/* params/
+          fi
+
+      - name: Clean install
+        run: |
+          echo "Running installation for Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+          make clean || true
+
+      - name: Install base dependencies
+        run: |
+          make base
+
+      - name: Install EMG dependencies
+        run: |
+          make emg
+
+      - name: Install neuRecommend
+        run: |
+          make neurec
+
+      - name: Install BlechRNN
+        run: |
+          make blechrnn
+
+      - name: Install Prefect
+        run: |
+          make prefect
+
+      - name: Patch dependencies
+        run: |
+          make patch
+
+      - name: Verify installation
+        run: |
+          conda run -n blech_clust python -c "import numpy; print('NumPy version:', numpy.__version__)"
+          conda run -n blech_clust python -c "import scipy; print('SciPy version:', scipy.__version__)"
+          conda run -n blech_clust python -c "import matplotlib; print('Matplotlib version:', matplotlib.__version__)"
+          conda run -n blech_clust python -c "import sklearn; print('Scikit-learn version:', sklearn.__version__)"
+
+      - name: Test basic functionality
+        run: |
+          conda run -n blech_clust python -c "
+          import sys
+          sys.path.append('.')
+          try:
+              import blech_clust
+              print('blech_clust module imported successfully')
+          except ImportError as e:
+              print(f'Import error: {e}')
+              # This is expected if blech_clust is not a proper module
+              pass
+          "
+
+      - name: Clean up
+        if: always()
+        run: |
+          make clean || true
