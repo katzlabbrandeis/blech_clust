@@ -1362,7 +1362,7 @@ def main():
 
     # Create final dictionary
     fin_dict = {
-        'version': '0.0.3',
+        'version': '0.0.4',
         **metadata_dict,
         'file_type': file_type,
         'regions': list(layout_dict.keys()),
