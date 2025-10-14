@@ -11,67 +11,92 @@ all: base emg neurec blechrnn prefect patch
 
 # Create and setup base environment
 base: params
+	@echo "Setting up base blech_clust environment..."
+	@echo "Deactivating any active conda environment..."
 	conda deactivate || true
+	@echo "Updating conda..."
 	conda update -n base -c conda-forge conda -y
+	@echo "Cleaning conda cache..."
 	conda clean --all -y
+	@echo "Creating blech_clust environment with Python 3.8..."
 	conda create --name blech_clust python=3.8 -y
-	# Install all dependencies via pip from consolidated requirements file
+	@echo "Installing Python dependencies from requirements.txt..."
 	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements.txt
-	# Install GNU parallel separately as it's a system package
+	@echo "Base environment setup complete!"
 	@echo "Note: GNU parallel should be installed system-wide if needed"
 
 # Install EMG (BSA) requirements
 emg:
-	# R packages still need conda as they're not available via pip
+	@echo "Installing EMG (BSA) requirements..."
+	@echo "Configuring conda channel priority..."
 	conda run -n blech_clust conda config --set channel_priority strict
+	@echo "Installing R and R packages..."
 	conda run -n blech_clust conda install -c conda-forge r-base=3.6 r-polynom r-orthopolynom -y
-	# rpy2 has to be built against current R...caching messes with that
+	@echo "Installing rpy2 (building against current R installation)..."
 	conda run -n blech_clust pip install rpy2 --no-cache-dir
-	# BaSAR is archived on CRAN, so we need to install it from a local file
+	@echo "Installing BaSAR from local archive..."
 	conda run -n blech_clust Rscript -e "${INSTALL_STR}"
+	@echo "EMG requirements installation complete!"
 
 # Install neuRecommend classifier
 neurec:
+	@echo "Installing neuRecommend classifier..."
 	@if [ ! -d ~/Desktop/neuRecommend ]; then \
+		echo "Cloning neuRecommend repository..."; \
 		cd ~/Desktop && \
 		git clone https://github.com/abuzarmahmood/neuRecommend.git; \
 	else \
-		echo "neuRecommend already exists"; \
+		echo "neuRecommend already exists, skipping clone"; \
 	fi
+	@echo "Installing neuRecommend dependencies..."
 	cd ~/Desktop && \
 	conda run -n blech_clust pip install --no-cache-dir -r neuRecommend/requirements.txt
+	@echo "neuRecommend installation complete!"
 
 # Install BlechRNN (optional)
 blechrnn:
+	@echo "Installing BlechRNN (optional)..."
 	@if [ ! -d ~/Desktop/blechRNN ]; then \
+		echo "Cloning blechRNN repository..."; \
 		cd ~/Desktop && \
 		git clone https://github.com/abuzarmahmood/blechRNN.git; \
 	else \
-		echo "blechRNN already exists"; \
+		echo "blechRNN already exists, skipping clone"; \
 	fi
+	@echo "Installing PyTorch dependencies for blechRNN..."
 	cd ~/Desktop && \
 	cd blechRNN && \
 	conda run -n blech_clust pip install --no-cache-dir $$(cat requirements.txt | egrep "torch")
+	@echo "BlechRNN installation complete!"
 
 # Patch dependencies
 patch:
+	@echo "Applying dependency patches..."
 	conda run -n blech_clust bash requirements/patch_dependencies.sh
+	@echo "Dependency patching complete!"
 
 # Copy parameter templates
 # If more than 1 json file exists in params, don't copy templates and print warning
 # This is to prevent overwriting existing parameter files
 # If no json files exist, copy templates
 params:
+	@echo "Checking parameter files..."
 	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
-		echo "Warning: Params files detected in params dir. Not copying templates."; \
+		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
 	elif [ $$(ls params/*.json 2>/dev/null | wc -l) -eq 1 ]; then \
-		echo "Copying parameter templates to params directory"; \
+		echo "Copying parameter templates to params directory..."; \
+	else \
+		echo "No parameter files found. Templates should be copied if available."; \
 	fi
 
 # Install Prefect
 prefect:
+	@echo "Installing Prefect workflow management..."
 	conda run -n blech_clust pip install --no-cache-dir -U prefect
+	@echo "Prefect installation complete!"
 
 # Clean up environments
 clean:
+	@echo "Cleaning up blech_clust environment..."
 	conda env remove -n blech_clust -y
+	@echo "Environment cleanup complete!"
