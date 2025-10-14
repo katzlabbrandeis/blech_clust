@@ -1,6 +1,7 @@
 """
 Tests for the blech_clust.py module.
 """
+import blech_clust
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-import blech_clust
 
 
 class TestBlechClust:
@@ -27,9 +26,10 @@ class TestBlechClust:
             with patch('blech_clust.tables.open_file') as mock_open:
                 mock_hf5 = MagicMock()
                 mock_open.return_value = mock_hf5
-                
-                handler = blech_clust.HDF5Handler(mock_dir_name, force_run=True)
-                
+
+                handler = blech_clust.HDF5Handler(
+                    mock_dir_name, force_run=True)
+
                 assert handler.dir_name == mock_dir_name
                 assert handler.force_run == True
                 assert 'raw' in handler.group_list
@@ -41,9 +41,9 @@ class TestBlechClust:
             with patch('blech_clust.tables.open_file') as mock_open:
                 mock_hf5 = MagicMock()
                 mock_open.return_value = mock_hf5
-                
+
                 handler = blech_clust.HDF5Handler(mock_dir_name)
-                
+
                 assert handler.hdf5_name == 'test.h5'
                 mock_open.assert_called_once_with('test.h5', 'r+')
 

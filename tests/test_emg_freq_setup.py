@@ -1,6 +1,7 @@
 """
 Tests for the emg/emg_freq_setup.py module.
 """
+from emg import emg_freq_setup
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-from emg import emg_freq_setup
 
 
 class TestEmgFreqSetup:

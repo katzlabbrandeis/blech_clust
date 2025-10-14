@@ -1,6 +1,7 @@
 """
 Tests for the blech_common_avg_reference.py module.
 """
+import blech_common_avg_reference
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-import blech_common_avg_reference
 
 
 class TestBlechCommonAvgReference:
@@ -46,7 +45,7 @@ class TestBlechCommonAvgReference:
     def test_hdf5_file_operations(self, mock_open_file, mock_hf5):
         """Test HDF5 file operations"""
         mock_open_file.return_value = mock_hf5
-        
+
         # Test that file can be opened
         hf5 = blech_common_avg_reference.tables.open_file("test.h5", 'r+')
         assert hf5 is not None

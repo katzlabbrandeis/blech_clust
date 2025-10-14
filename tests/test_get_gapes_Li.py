@@ -1,6 +1,7 @@
 """
 Tests for the emg/gape_QDA_classifier/get_gapes_Li.py module.
 """
+from emg.gape_QDA_classifier import get_gapes_Li
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-from emg.gape_QDA_classifier import get_gapes_Li
 
 
 class TestGetGapesLi:

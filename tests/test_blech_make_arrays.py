@@ -1,6 +1,7 @@
 """
 Tests for the blech_make_arrays.py module.
 """
+import blech_make_arrays
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-import blech_make_arrays
 
 
 class TestBlechMakeArrays:
@@ -41,13 +40,13 @@ class TestBlechMakeArrays:
         """Test that module has expected structure"""
         # Verify module can be imported and has main guard
         assert blech_make_arrays is not None
-        
+
     @patch('blech_make_arrays.imp_metadata')
     @patch('blech_make_arrays.os.chdir')
     def test_metadata_loading(self, mock_chdir, mock_imp_metadata, mock_metadata_handler):
         """Test metadata loading functionality"""
         mock_imp_metadata.return_value = mock_metadata_handler
-        
+
         # Test that metadata can be loaded
         metadata = mock_imp_metadata()
         assert metadata.dir_name == "/test/dir"

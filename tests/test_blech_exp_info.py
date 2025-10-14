@@ -1,6 +1,7 @@
 """
 Tests for the blech_exp_info.py module.
 """
+import blech_exp_info
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import pandas as pd
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-import blech_exp_info
 
 
 class TestBlechExpInfo:
@@ -30,7 +29,7 @@ class TestBlechExpInfo:
     def test_main_execution(self, mock_chdir, mock_imp_metadata, mock_metadata_handler):
         """Test that main function executes without errors"""
         mock_imp_metadata.return_value = mock_metadata_handler
-        
+
         with patch('blech_exp_info.sys.argv', ['blech_exp_info.py']):
             with patch('builtins.input', return_value='n'):
                 try:

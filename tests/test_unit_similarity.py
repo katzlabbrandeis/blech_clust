@@ -1,6 +1,7 @@
 """
 Tests for the utils/qa_utils/unit_similarity.py module.
 """
+from utils.qa_utils import unit_similarity
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-from utils.qa_utils import unit_similarity
 
 
 class TestUnitSimilarity:

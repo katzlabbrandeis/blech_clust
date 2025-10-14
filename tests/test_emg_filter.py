@@ -1,6 +1,7 @@
 """
 Tests for the emg/emg_filter.py module.
 """
+from emg import emg_filter
 import pytest
 import os
 import sys
@@ -9,8 +10,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-from emg import emg_filter
 
 
 class TestEmgFilter:
@@ -43,7 +42,7 @@ class TestEmgFilter:
     def test_metadata_loading(self, mock_chdir, mock_imp_metadata, mock_metadata_handler):
         """Test metadata loading functionality"""
         mock_imp_metadata.return_value = mock_metadata_handler
-        
+
         # Test that metadata can be loaded
         metadata = mock_imp_metadata()
         assert metadata.dir_name == "/test/dir"
