@@ -4,10 +4,10 @@ Run python scripts using subprocess as prefect tasks
 """
 
 ############################################################
+import traceback
 test_bool = False
 
 import argparse  # noqa
-import traceback
 import os  # noqa
 if test_bool:
     # Run this script as a test
