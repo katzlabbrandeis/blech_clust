@@ -569,10 +569,11 @@ def run_spike_test(data_dir):
     quality_assurance(data_dir)
     units_plot(data_dir)
     units_characteristics(data_dir)
-    run_rnn(data_dir, separate_regions=False,   separate_tastes=False)
-    run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
-    run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
-    run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
+    # Remove for now...needs pytorch installation which is optional
+    # run_rnn(data_dir, separate_regions=False,   separate_tastes=False)
+    # run_rnn(data_dir, separate_regions=True,    separate_tastes=False)
+    # run_rnn(data_dir, separate_regions=False,   separate_tastes=True)
+    # run_rnn(data_dir, separate_regions=True,    separate_tastes=True)
 
     # Run ephys_data tests as part of spike testing
     test_ephys_data(data_dir)
