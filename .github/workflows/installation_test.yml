@@ -62,9 +62,8 @@ jobs:
 
       - name: Setup params
         run: |
-          if [ ! -f params/blech_params.json ]; then
-            cp params/_templates/* params/
-          fi
+          echo "Setting up blech_clust parameters"
+          make params
 
       - name: Clean install
         run: |
@@ -92,9 +91,13 @@ jobs:
         run: |
           make prefect
 
-      - name: Patch dependencies
+      - name: Install dev requirements
         run: |
-          make patch
+          make dev
+
+      - name: Install optional dependencies
+        run: |
+          make optional
 
       - name: Verify installation
         run: |
