@@ -7,6 +7,7 @@ Run python scripts using subprocess as prefect tasks
 test_bool = False
 
 import argparse  # noqa
+import traceback
 import os  # noqa
 if test_bool:
     # Run this script as a test
@@ -501,6 +502,8 @@ def test_ephys_data(data_dir):
             result = 'Success'
         except Exception as e:
             print(f"Error in {method}: {str(e)}")
+            # Return full traceback
+            traceback.print_exc()
             result = 'Failed'
 
         # Append result to DataFrame
