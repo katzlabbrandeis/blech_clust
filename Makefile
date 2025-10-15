@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params dev optional prefect update make_env 
+.PHONY: all base emg neurec blechrnn clean params dev optional prefect update make_env
 
 # Consolidated pip-based installation - no sudo required for base packages
 
@@ -8,7 +8,7 @@ INSTALL_STR = install.packages('$(INSTALL_PATH)', repos=NULL)
 
 # Default target
 all: update make_env base emg neurec blechrnn prefect dev optional
-	@echo "All setup tasks completed successfully!" 
+	@echo "All setup tasks completed successfully!"
 
 # Create and setup base environment
 
