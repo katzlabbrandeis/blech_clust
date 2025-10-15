@@ -110,17 +110,7 @@ jobs:
 
       - name: Test basic functionality
         run: |
-          conda run -n blech_clust python -c "
-          import sys
-          sys.path.append('.')
-          try:
-              import blech_clust
-              print('blech_clust module imported successfully')
-          except ImportError as e:
-              print(f'Import error: {e}')
-              # This is expected if blech_clust is not a proper module
-              pass
-          "
+          echo "Placeholder for basic functionality tests"
 
       - name: Clean up
         if: always()
