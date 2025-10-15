@@ -12,6 +12,9 @@ on:
 jobs:
   check-label:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
     steps:
@@ -27,6 +30,9 @@ jobs:
   installation-test:
     needs: check-label
     if: needs.check-label.outputs.should-run == 'true'
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}-${{ matrix.python-version }}
+      cancel-in-progress: true
     strategy:
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
