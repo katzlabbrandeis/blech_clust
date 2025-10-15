@@ -24,7 +24,7 @@ make_env: params
 	@echo "Creating blech_clust environment with Python 3.8..."
 	conda create --name blech_clust python=3.8 -y
 
-base: 
+base:
 	@echo "Installing Python dependencies from requirements.txt..."
 	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements.txt
 	@echo "Base environment setup complete!"
