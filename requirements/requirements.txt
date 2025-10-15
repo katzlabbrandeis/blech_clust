@@ -3,26 +3,25 @@
 # Removed unused packages: bokeh, dask, fastcluster
 
 # Core scientific computing packages (previously from conda)
-datashader==0.13.0
-imageio==2.6.1
+# datashader==0.13.0
+datashader
+# imageio==2.6.1
 matplotlib==3.3.4
-numba==0.53.1
-numpy==1.19.5
-pandas==1.1.5
+# numba==0.53.1
+# numpy==1.19.5
+numpy
+pandas==1.3.2 # Will be installed as part of pingouin
 psutil>=6.1.0  # Consolidated psutil version requirement
-tables==3.6.1  # pytables -> tables for pip
-scikit-learn==0.22.1
+tables==3.8  # pytables -> tables for pip
+# scikit-learn==0.22.1
+scikit-learn
 
 # Additional packages (previously from pip)
 easygui==0.98.1
 joblib==1.0.0
 seaborn==0.11.2
-prefect==2.10.5
-pingouin==0.3
+pingouin==0.5
 tqdm
-gdown
-pymc
-boto3
 
 # System utilities
 # Note: GNU parallel will be handled separately as it's a system package
