@@ -93,12 +93,12 @@ params:
 
 dev:
 	@echo "Installing development dependencies from requirements-dev.txt..."
-	conda run -n blech_clust_dev pip install --no-cache-dir -r requirements/requirements_dev.txt
+	conda run -n blech_clust_dev pip install --no-cache-dir -r requirements/requirements-dev.txt
 	@echo "Development environment setup complete!"
 
 optional:
 	@echo "Installing optional dependencies from requirements-optional.txt..."
-	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements_optional.txt
+	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements-optional.txt
 	@echo "Optional dependencies installation complete!"
 
 # Install Prefect
