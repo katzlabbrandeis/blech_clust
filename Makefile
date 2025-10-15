@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params patch
+.PHONY: all base emg neurec blechrnn clean params dev optional prefect update make_env 
 
 # Consolidated pip-based installation - no sudo required for base packages
 
@@ -7,7 +7,8 @@ INSTALL_PATH = $(strip $(SCRIPT_DIR))/requirements/BaSAR_1.3.tar.gz
 INSTALL_STR = install.packages('$(INSTALL_PATH)', repos=NULL)
 
 # Default target
-all: update make_env base emg neurec blechrnn prefect patch
+all: update make_env base emg neurec blechrnn prefect dev optional
+	@echo "All setup tasks completed successfully!" 
 
 # Create and setup base environment
 
@@ -76,12 +77,6 @@ blechrnn:
 	conda run -n blech_clust pip install --no-cache-dir $$(cat requirements.txt | egrep "torch")
 	@echo "BlechRNN installation complete!"
 
-# Patch dependencies
-patch:
-	@echo "Applying dependency patches..."
-	conda run -n blech_clust bash requirements/patch_dependencies.sh
-	@echo "Dependency patching complete!"
-
 # Copy parameter templates
 # If more than 1 json file exists in params, don't copy templates and print warning
 # This is to prevent overwriting existing parameter files
@@ -95,6 +90,16 @@ params:
 	else \
 		echo "No parameter files found. Templates should be copied if available."; \
 	fi
+
+dev:
+	@echo "Installing development dependencies from requirements-dev.txt..."
+	conda run -n blech_clust_dev pip install --no-cache-dir -r requirements/requirements_dev.txt
+	@echo "Development environment setup complete!"
+
+optional:
+	@echo "Installing optional dependencies from requirements-optional.txt..."
+	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements_optional.txt
+	@echo "Optional dependencies installation complete!"
 
 # Install Prefect
 prefect:
