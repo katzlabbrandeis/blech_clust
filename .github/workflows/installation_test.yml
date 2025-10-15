@@ -83,10 +83,6 @@ jobs:
           mkdir ~/Desktop
           make neurec
 
-      - name: Install BlechRNN
-        run: |
-          make blechrnn
-
       - name: Install Prefect
         run: |
           make prefect
