@@ -81,6 +81,7 @@ jobs:
 
       - name: Install neuRecommend
         run: |
+          mkdir ~/Desktop
           make neurec
 
       - name: Install BlechRNN
