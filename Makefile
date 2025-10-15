@@ -7,19 +7,24 @@ INSTALL_PATH = $(SCRIPT_DIR)/requirements/BaSAR_1.3.tar.gz
 INSTALL_STR = install.packages(\"$(INSTALL_PATH)\", repos=NULL)
 
 # Default target
-all: base emg neurec blechrnn prefect patch
+all: update make_env base emg neurec blechrnn prefect patch
 
 # Create and setup base environment
-base: params
+
+update:
+	@echo "Updating conda..."
+	conda update -n base -c conda-forge conda -y
+
+make_env: params
 	@echo "Setting up base blech_clust environment..."
 	@echo "Deactivating any active conda environment..."
 	conda deactivate || true
-	@echo "Updating conda..."
-	conda update -n base -c conda-forge conda -y
 	@echo "Cleaning conda cache..."
 	conda clean --all -y
 	@echo "Creating blech_clust environment with Python 3.8..."
 	conda create --name blech_clust python=3.8 -y
+
+base: 
 	@echo "Installing Python dependencies from requirements.txt..."
 	conda run -n blech_clust pip install --no-cache-dir -r requirements/requirements.txt
 	@echo "Base environment setup complete!"
