@@ -425,7 +425,7 @@ pca_firing_list = [PCA(n_components=1, whiten=True).fit_transform(x)
 # plt.close()
 #
 # Plot PCA only
-fig, ax = plt.subplots(figsize(5,5))
+fig, ax = plt.subplots(figsize(5, 5))
 for i in range(len(pca_firing_list)):
     ax.plot(pca_firing_list[i], alpha=0.7)
     ax.set_title('PCA')
