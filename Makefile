@@ -3,8 +3,8 @@
 # Consolidated pip-based installation - no sudo required for base packages
 
 SCRIPT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) # This will return blech_clust base dir
-INSTALL_PATH = $(SCRIPT_DIR)/requirements/BaSAR_1.3.tar.gz
-INSTALL_STR = install.packages(\"$(INSTALL_PATH)\", repos=NULL)
+INSTALL_PATH = $(strip $(SCRIPT_DIR))/requirements/BaSAR_1.3.tar.gz
+INSTALL_STR = install.packages('$(INSTALL_PATH)', repos=NULL)
 
 # Default target
 all: update make_env base emg neurec blechrnn prefect patch
@@ -38,7 +38,7 @@ emg:
 	@echo "Installing R and R packages..."
 	conda run -n blech_clust conda install -c conda-forge r-base=3.6 r-polynom r-orthopolynom -y
 	@echo "Installing rpy2 (building against current R installation)..."
-	conda run -n blech_clust pip install rpy2 --no-cache-dir
+	conda run -n blech_clust pip install rpy2==3.5.12 --no-cache-dir
 	@echo "Installing BaSAR from local archive..."
 	conda run -n blech_clust Rscript -e "${INSTALL_STR}"
 	@echo "EMG requirements installation complete!"
