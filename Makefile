@@ -10,6 +10,9 @@ INSTALL_STR = install.packages('$(INSTALL_PATH)', repos=NULL)
 all: update make_env base emg neurec blechrnn prefect dev optional
 	@echo "All setup tasks completed successfully!"
 
+core: update make_env base emg neurec params
+	@echo "Core setup tasks completed successfully!"
+
 # Create and setup base environment
 
 update:
