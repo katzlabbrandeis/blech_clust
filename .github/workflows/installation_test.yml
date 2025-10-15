@@ -73,7 +73,7 @@ jobs:
 
       - name: Install base dependencies
         run: |
-          make base
+          make make_env base
 
       - name: Install EMG dependencies
         run: |
