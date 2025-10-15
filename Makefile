@@ -37,6 +37,8 @@ emg:
 	conda run -n blech_clust conda config --set channel_priority strict
 	@echo "Installing R and R packages..."
 	conda run -n blech_clust conda install -c conda-forge r-base=3.6 r-polynom r-orthopolynom -y
+	@echo "Installing libxcrypt (dependency for rpy2)..."
+	conda run -n blech_clust conda install --channel=conda-forge libxcrypt
 	@echo "Installing rpy2 (building against current R installation)..."
 	conda run -n blech_clust pip install rpy2==3.5.12 --no-cache-dir
 	@echo "Installing BaSAR from local archive..."
