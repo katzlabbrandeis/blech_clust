@@ -68,6 +68,9 @@ quartodoc:
   # Sidebar configuration
   sidebar: reference/_sidebar.yml
 
+  # Style
+  style: pkgdown
+
   # Parser
   parser: numpy
 
