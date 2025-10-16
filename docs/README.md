@@ -29,10 +29,10 @@ To build the documentation locally, you need:
    # On Ubuntu/Debian
    wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.6.39/quarto-1.6.39-linux-amd64.deb
    sudo dpkg -i quarto-1.6.39-linux-amd64.deb
-   
+
    # On macOS
    brew install quarto
-   
+
    # On Windows
    # Download installer from quarto.org
    ```
@@ -243,7 +243,7 @@ Error: Invalid YAML...
 
 **Problem:** Changes not showing in preview
 
-**Solution:** 
+**Solution:**
 - Hard refresh your browser (Ctrl+Shift+R or Cmd+Shift+R)
 - Restart `quarto preview`
 - Clear the `.quarto` cache directory
