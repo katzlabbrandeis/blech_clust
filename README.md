@@ -100,31 +100,97 @@ This work used ACCESS-allocated resources at Brandeis University through allocat
 
 The project titled "Computational Processing and Modeling of Neural Ensembles in Identifying the Nonlinear Dynamics of Taste Perception" was led by PI Abuzar Mahmood. The computational allocation was active from 2023-06-26 to 2024-06-25.
 
-### Setup
+### Installation
 
-The installation process is managed through a Makefile that handles all dependencies and environment setup.
+The installation process is managed through a Makefile that handles all dependencies and environment setup automatically.
 
-To install everything (recommended):
+#### Prerequisites
+
+- **Conda/Miniconda**: Required for environment management
+- **Git**: For cloning repositories
+- **System packages**: GNU parallel (optional, for parallel processing)
+
+#### Quick Start (Recommended)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/katzlabbrandeis/blech_clust.git
+   cd blech_clust
+   ```
+
+2. **Install everything:**
+   ```bash
+   make all
+   ```
+   This installs the base environment, EMG analysis tools, neuRecommend classifier, BlechRNN, and all optional dependencies.
+
+3. **Activate the environment:**
+   ```bash
+   conda activate blech_clust
+   ```
+
+#### Custom Installation
+
+For more control over what gets installed:
+
 ```bash
-make all
+# Core spike sorting functionality only
+make core
+
+# Or install components individually:
+make base      # Base environment and core dependencies (required)
+make emg       # EMG analysis requirements (BSA/STFT, QDA)
+make neurec    # neuRecommend waveform classifier
+make blechrnn  # BlechRNN for firing rate estimation
+make prefect   # Prefect workflow management (for testing)
+make dev       # Development dependencies
+make optional  # Optional analysis tools
 ```
 
-Or install components individually:
+#### Parameter Setup
+
+After installation, copy and configure parameter templates:
+
 ```bash
-make base      # Install base environment and dependencies
-make emg       # Install EMG analysis requirements (optional)
-make neurec    # Install neuRecommend classifier
-make blechrnn  # Install BlechRNN for firing rate estimation (optional)
+# Copy templates from _templates directory to params directory
+cp params/_templates/sorting_params_template.json params/
+cp params/_templates/waveform_classifier_params.json params/
+cp params/_templates/emg_params.json params/
+
+# Edit the parameter files according to your experimental setup
 ```
 
-**Note:** If you plan to use GPU with BlechRNN, you'll need to install CUDA separately.
-See: [Installing PyTorch with GPU Support](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266)
+See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter configuration.
 
-To remove the environment and start fresh:
-```bash
-make clean
-```
-- Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
+#### GPU Support (Optional)
+
+If you plan to use GPU acceleration with BlechRNN:
+
+1. Install CUDA toolkit separately (see [PyTorch GPU installation guide](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266))
+2. Reinstall PyTorch with GPU support:
+   ```bash
+   conda activate blech_clust
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   ```
+
+#### Troubleshooting
+
+- **Clean installation:** If you encounter issues, remove the environment and start fresh:
+  ```bash
+  make clean
+  make all
+  ```
+
+- **Partial installation:** If a component fails, you can retry individual components:
+  ```bash
+  make base    # Retry base installation
+  make emg     # Retry EMG components
+  ```
+
+- **Environment activation:** Always activate the environment before running scripts:
+  ```bash
+  conda activate blech_clust
+  ```
 
 ### Testing
 <details>
