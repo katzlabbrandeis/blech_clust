@@ -132,21 +132,21 @@ To update the auto-generated API documentation:
    def my_function(param1, param2):
        """
        Brief description of the function.
-       
+
        Longer description with more details about what the function does.
-       
+
        Parameters
        ----------
        param1 : type
            Description of param1
        param2 : type
            Description of param2
-       
+
        Returns
        -------
        type
            Description of return value
-       
+
        Examples
        --------
        >>> my_function(1, 2)

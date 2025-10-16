@@ -58,29 +58,29 @@ format:
 quartodoc:
   # Source directory relative to docs/
   source_dir: ../utils
-  
+
   # Package name (null for non-package structure)
   package: null
-  
+
   # Output directory for generated docs
   dir: reference/api
-  
+
   # Sidebar configuration
   sidebar: reference/_sidebar.yml
-  
+
   # Renderer and parser
   renderer:
     style: markdown
     show_signature_annotations: true
   parser: numpy
-  
+
   # Options applied to all content
   options:
     include_private: false
     include_imports: false
     include_empty: false
     signature_name: short
-  
+
   sections:
     - title: "Core Utilities"
       desc: "Essential utility functions and classes from blech_utils"
