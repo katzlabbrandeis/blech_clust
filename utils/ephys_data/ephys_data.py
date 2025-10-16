@@ -319,6 +319,15 @@ class ephys_data():
     # Calculate absolute and phase
     @staticmethod
     def parallelize(func, iterator):
+        """Execute function in parallel across iterator using joblib
+        
+        Args:
+            func: Function to apply to each element
+            iterator: Iterable to process in parallel
+            
+        Returns:
+            List of results from applying func to each element
+        """
         return Parallel(n_jobs=mp.cpu_count()-2)(delayed(func)(this_iter) for this_iter in tqdm(iterator))
 
     @staticmethod
@@ -413,6 +422,15 @@ class ephys_data():
     # Convert list to array
     @staticmethod
     def convert_to_array(iterator, iter_inds):
+        """Convert list of arrays to a single multi-dimensional array
+        
+        Args:
+            iterator: List of arrays to combine
+            iter_inds: List of index tuples indicating where each array should be placed
+            
+        Returns:
+            temp_array: Combined multi-dimensional numpy array
+        """
         temp_array =\
             np.empty(
                 tuple((*(np.max(np.array(iter_inds), axis=0) + 1),
@@ -424,6 +442,12 @@ class ephys_data():
 
     @staticmethod
     def remove_node(path_to_node, hf5):
+        """Remove a node from HDF5 file if it exists
+        
+        Args:
+            path_to_node: Full path to the node in HDF5 file
+            hf5: Open HDF5 file handle
+        """
         if path_to_node in hf5:
             hf5.remove_node(
                 os.path.dirname(path_to_node), os.path.basename(path_to_node))
@@ -507,12 +531,20 @@ class ephys_data():
     #        access_bool =
 
     def extract_and_process(self):
+        """Extract and process all data types (units, spikes, firing rates, LFPs)
+        
+        Convenience method that calls all extraction methods in sequence.
+        """
         self.get_unit_descriptors()
         self.get_spikes()
         self.get_firing_rates()
         self.get_lfps()
 
     def separate_laser_data(self):
+        """Separate all data types into laser on and off conditions
+        
+        Convenience method that separates spikes, firing rates, and LFPs by laser condition.
+        """
         self.separate_laser_spikes()
         self.separate_laser_firing()
         self.separate_laser_lfp()
@@ -659,6 +691,11 @@ class ephys_data():
                 hf5.root.Parsed_LFP_channels[:]
 
     def check_file_type(self):
+        """Check if file type is compatible with LFP processing
+        
+        Returns:
+            bool: True if file type is compatible, False if traditional format
+        """
         if 'info_dict' not in dir(self):
             print('Info dict not found...Loading')
             self.get_info_dict()
@@ -967,6 +1004,14 @@ class ephys_data():
             raise Exception('No laser trials in this experiment')
 
     def get_info_dict(self):
+        """Load experiment information from .info JSON file
+        
+        Loads the .info file containing experimental parameters and metadata.
+        Sets self.info_dict attribute.
+        
+        Raises:
+            Exception: If no .info file is found in data directory
+        """
         json_path = glob.glob(os.path.join(self.data_dir, "**.info"))[0]
         if os.path.exists(json_path):
             self.info_dict = json_dict = json.load(open(json_path, 'r'))
@@ -1301,6 +1346,14 @@ class ephys_data():
         return wanted_channel_inds, wanted_lfp_electrodes, region_names
 
     def get_mean_stft_amplitude(self):
+        """Calculate mean STFT amplitude for each brain region
+        
+        Computes the median STFT amplitude across tastes, trials, and channels
+        for each brain region.
+        
+        Returns:
+            np.array: Mean STFT amplitude per region, shape (n_regions, n_freqs, n_times)
+        """
         if not self.check_file_type():
             return
         if 'amplitude_array' not in dir(self):
@@ -1315,6 +1368,12 @@ class ephys_data():
         return np.array(aggregate_amplitude)
 
     def get_trial_info_frame(self):
+        """Load trial information from CSV file
+        
+        Loads trial_info_frame.csv containing trial metadata including
+        taste identities, laser conditions, and timing information.
+        Sets self.trial_info_frame attribute.
+        """
         self.trial_info_frame = pd.read_csv(
             os.path.join(self.data_dir, 'trial_info_frame.csv'))
 
