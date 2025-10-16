@@ -24,6 +24,10 @@ jobs:
           python --version
           which python
 
+      - name: Install blech_clust package
+        run: |
+          conda run -n blech_clust pip install -e .
+
       - name: Install pytest if needed
         run: |
           conda run -n blech_clust pip install pytest pytest-cov

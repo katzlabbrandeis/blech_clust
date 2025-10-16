@@ -101,12 +101,17 @@ jobs:
         run: |
           make optional
 
+      - name: Install blech_clust package
+        run: |
+          conda run -n blech_clust pip install -e .
+
       - name: Verify installation
         run: |
           conda run -n blech_clust python -c "import numpy; print('NumPy version:', numpy.__version__)"
           conda run -n blech_clust python -c "import scipy; print('SciPy version:', scipy.__version__)"
           conda run -n blech_clust python -c "import matplotlib; print('Matplotlib version:', matplotlib.__version__)"
           conda run -n blech_clust python -c "import sklearn; print('Scikit-learn version:', sklearn.__version__)"
+          conda run -n blech_clust python -c "import blech_clust; print('blech_clust package installed successfully')"
 
       - name: Test basic functionality
         run: |

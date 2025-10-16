@@ -33,6 +33,9 @@ jobs:
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
+      - name: Install blech_clust package
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: conda run -n blech_clust pip install -e .
 
   Spike-EMG:
     runs-on: self-hosted
