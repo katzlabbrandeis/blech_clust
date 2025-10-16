@@ -1,0 +1,56 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "blech_clust Documentation"
+  description: "Python and R based code for clustering and sorting electrophysiology data"
+  repo-url: https://github.com/katzlabbrandeis/blech_clust
+  repo-actions: [edit, issue]
+  
+  navbar:
+    background: primary
+    search: true
+    left:
+      - text: "Home"
+        file: index.qmd
+      - text: "Getting Started"
+        file: getting-started.qmd
+      - text: "API Reference"
+        file: reference/index.qmd
+      - text: "Tutorials"
+        file: tutorials.qmd
+    right:
+      - icon: github
+        href: https://github.com/katzlabbrandeis/blech_clust
+        aria-label: GitHub
+
+  sidebar:
+    - id: reference
+      title: "API Reference"
+      contents:
+        - reference/index.qmd
+        - section: "Core Pipeline"
+          contents:
+            - reference/core-pipeline.qmd
+        - section: "Utilities"
+          contents:
+            - reference/utilities.qmd
+        - section: "Ephys Data"
+          contents:
+            - reference/ephys-data.qmd
+        - section: "Quality Assurance"
+          contents:
+            - reference/qa-tools.qmd
+        - section: "EMG Analysis"
+          contents:
+            - reference/emg-analysis.qmd
+
+format:
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    toc: true
+    code-copy: true
+    code-overflow: wrap

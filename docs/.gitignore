@@ -1,0 +1,6 @@
+/_site/
+/.quarto/
+/reference/*.qmd
+/reference/**/*.qmd
+/reference/_sidebar.yml
+/reference/_styles-quartodoc.css
