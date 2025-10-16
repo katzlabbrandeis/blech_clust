@@ -68,10 +68,7 @@ quartodoc:
   # Sidebar configuration
   sidebar: reference/_sidebar.yml
 
-  # Renderer and parser
-  renderer:
-    style: markdown
-    show_signature_annotations: true
+  # Parser
   parser: numpy
 
   # Options applied to all content
