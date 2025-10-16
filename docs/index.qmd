@@ -78,6 +78,16 @@ For more detailed installation instructions, see the [Getting Started](getting-s
 
 We welcome contributions! Please read our [CONTRIBUTING.md](https://github.com/katzlabbrandeis/blech_clust/blob/master/CONTRIBUTING.md) file for guidelines.
 
+### Contributing to Documentation
+
+Help us improve the documentation:
+
+- **Report issues**: Found an error or unclear explanation? [Open an issue](https://github.com/katzlabbrandeis/blech_clust/issues)
+- **Suggest improvements**: Have ideas for better organization or content? We'd love to hear them
+- **Submit changes**: See [docs/README.md](https://github.com/katzlabbrandeis/blech_clust/blob/master/docs/README.md) for instructions on building and updating documentation
+
+The documentation is built with [Quarto](https://quarto.org/) and automatically deployed via GitHub Actions.
+
 ## Citation
 
 If you use this code in your research, please cite:
