@@ -1,6 +1,15 @@
 /_site/
 /.quarto/
-/reference/*.qmd
-/reference/**/*.qmd
+
+# Auto-generated API docs (don't commit these)
+/reference/api/
 /reference/_sidebar.yml
-/reference/_styles-quartodoc.css
+
+# Manual pages (DO commit these)
+!/reference/core-pipeline.qmd
+!/reference/utilities.qmd
+!/reference/ephys-data.qmd
+!/reference/qa-tools.qmd
+!/reference/emg-analysis.qmd
+!/reference/index.qmd
+!/reference/api-index.qmd

@@ -1,0 +1,56 @@
+---
+title: "Auto-Generated API Documentation"
+---
+
+This section contains automatically generated API documentation extracted from Python docstrings.
+
+## About Auto-Generated Docs
+
+The documentation in this section is automatically generated using [quartodoc](https://machow.github.io/quartodoc/) from the source code docstrings. This ensures the API reference stays in sync with the actual code.
+
+### How It Works
+
+1. **Docstrings** - Functions and classes have docstrings in NumPy format
+2. **quartodoc** - Extracts docstrings and generates Markdown
+3. **Quarto** - Renders the Markdown into HTML
+4. **GitHub Actions** - Automatically rebuilds when code changes
+
+### Organization
+
+The auto-generated documentation is organized by module:
+
+- **Core Utilities** - Essential utility functions and classes from `utils.blech_utils`
+- **Clustering** - Clustering algorithms from `utils.clustering`
+- **Ephys Data Analysis** - Electrophysiology analysis tools from `utils.ephys_data`
+- **Quality Assurance** - QA tools from `utils.qa_utils`
+
+### Complementary Documentation
+
+For higher-level overviews and tutorials, see the **Overview Guides** section:
+
+- [Core Pipeline](core-pipeline.qmd) - Complete pipeline walkthrough
+- [Utilities](utilities.qmd) - Utility modules overview
+- [Ephys Data](ephys-data.qmd) - Ephys analysis guide
+- [QA Tools](qa-tools.qmd) - Quality assurance guide
+- [EMG Analysis](emg-analysis.qmd) - EMG processing guide
+
+## Navigation
+
+Use the sidebar to browse the auto-generated API documentation. Each function and class has:
+
+- **Signature** - Function/class signature with parameters
+- **Parameters** - Detailed parameter descriptions
+- **Returns** - Return value descriptions
+- **Examples** - Usage examples (when available)
+- **See Also** - Related functions and classes
+
+## Contributing
+
+To improve the auto-generated documentation:
+
+1. **Update docstrings** in the source code (`.py` files)
+2. **Follow NumPy docstring format** - See [NumPy Style Guide](https://numpydoc.readthedocs.io/en/latest/format.html)
+3. **Rebuild docs** - Run `quartodoc build` in the `docs/` directory
+4. **Preview changes** - Run `quarto preview` to see the results
+
+See [docs/README.md](https://github.com/katzlabbrandeis/blech_clust/blob/master/docs/README.md) for detailed instructions.

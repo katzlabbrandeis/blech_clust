@@ -30,21 +30,21 @@ website:
       title: "API Reference"
       contents:
         - reference/index.qmd
-        - section: "Core Pipeline"
+        - section: "Overview Guides"
           contents:
             - reference/core-pipeline.qmd
-        - section: "Utilities"
-          contents:
             - reference/utilities.qmd
-        - section: "Ephys Data"
-          contents:
             - reference/ephys-data.qmd
-        - section: "Quality Assurance"
-          contents:
             - reference/qa-tools.qmd
-        - section: "EMG Analysis"
-          contents:
             - reference/emg-analysis.qmd
+        - text: "---"
+        - section: "Auto-Generated API"
+          contents:
+            - reference/api-index.qmd
+
+# tell quarto to read the generated sidebar
+metadata-files:
+  - reference/_sidebar.yml
 
 format:
   html:
@@ -54,3 +54,38 @@ format:
     toc: true
     code-copy: true
     code-overflow: wrap
+
+quartodoc:
+  # Source directory relative to docs/
+  source_dir: ../utils
+  
+  # Package name (null for non-package structure)
+  package: null
+  
+  # Output directory for generated docs
+  dir: reference/api
+  
+  # Sidebar configuration
+  sidebar: reference/_sidebar.yml
+  
+  # Renderer and parser
+  renderer:
+    style: markdown
+    show_signature_annotations: true
+  parser: numpy
+  
+  # Options applied to all content
+  options:
+    include_private: false
+    include_imports: false
+    include_empty: false
+    signature_name: short
+  
+  sections:
+    - title: "Core Utilities"
+      desc: "Essential utility functions and classes from blech_utils"
+      contents:
+        - name: blech_utils.Tee
+        - name: blech_utils.path_handler
+        - name: blech_utils.imp_metadata
+        - name: blech_utils.entry_checker
