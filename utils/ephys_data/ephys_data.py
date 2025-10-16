@@ -1071,7 +1071,7 @@ class ephys_data():
                     print(f'No units found in this region: {region_name}')
                     return None
         else:
-            return np.array(self.spikes)
+            return self.spikes
 
     def get_region_firing(self, region_name='all'):
         if 'region_units' not in dir(self):
