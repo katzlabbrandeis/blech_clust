@@ -54,7 +54,7 @@ jobs:
       - name: Build API documentation with quartodoc
         run: |
           cd docs
-          quartodoc build
+          python -m quartodoc build
 
       - name: Render documentation with Quarto
         run: |
