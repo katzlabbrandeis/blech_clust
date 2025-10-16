@@ -19,7 +19,7 @@ python blech_exp_info.py $DIR  # Generate metadata and electrode layout
 
 #### Configuring CAR Groups
 
-Once you've started running the script, it will ask you to "fill in car groups". Go to the Intan data folder, where you'll find a file named `[...]_electrode_layout.csv`. 
+Once you've started running the script, it will ask you to "fill in car groups". Go to the Intan data folder, where you'll find a file named `[...]_electrode_layout.csv`.
 
 1. Open this file in a spreadsheet editor
 2. Fill in the `CAR_group` column
@@ -178,13 +178,13 @@ python get_gapes_Li.py    # Detect gapes using QDA classifier
    ```bash
    # Run all tests
    python pipeline_testing/prefect_pipeline.py --all
-   
+
    # Run only spike sorting tests
    python pipeline_testing/prefect_pipeline.py -s
-   
+
    # Run only EMG analysis tests
    python pipeline_testing/prefect_pipeline.py -e
-   
+
    # Run spike sorting followed by EMG analysis
    python pipeline_testing/prefect_pipeline.py --spike-emg
    ```

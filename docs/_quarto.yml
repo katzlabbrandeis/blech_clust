@@ -7,7 +7,7 @@ website:
   description: "Python and R based code for clustering and sorting electrophysiology data"
   repo-url: https://github.com/katzlabbrandeis/blech_clust
   repo-actions: [edit, issue]
-  
+
   navbar:
     background: primary
     search: true
@@ -48,7 +48,7 @@ website:
 
 format:
   html:
-    theme: 
+    theme:
       light: flatly
       dark: darkly
     toc: true
