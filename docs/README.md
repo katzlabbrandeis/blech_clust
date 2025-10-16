@@ -192,7 +192,7 @@ Since auto-generation is disabled in CI, follow these steps to publish generated
 4. **Commit with a descriptive message**:
    ```bash
    git commit -m "Update auto-generated API documentation
-   
+
    - Regenerated from latest docstrings
    - Added documentation for [module/function names]"
    ```
