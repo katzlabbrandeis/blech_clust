@@ -294,7 +294,7 @@ class ephys_data():
         window_overlap
     ):
         """Compute Short-Time Fourier Transform (STFT) of a trial
-        
+
         Args:
             trial: 1D array of signal data
             max_freq: Maximum frequency to include in Hz (frequencies above are truncated)
@@ -302,7 +302,7 @@ class ephys_data():
             Fs: Sampling rate in Hz
             signal_window: Window size for spectrogram in samples
             window_overlap: Overlap between windows in samples
-            
+
         Returns:
             tuple: (fin_freq, fin_t, this_stft)
                 - fin_freq: Frequency vector (Hz) after truncation
@@ -340,18 +340,18 @@ class ephys_data():
     @staticmethod
     def _calc_conv_rates(step_size, window_size, dt, spike_array):
         """Calculate firing rates using convolution with moving window
-        
+
         Args:
             step_size: Step size in milliseconds for moving window
             window_size: Window size in milliseconds for firing rate calculation
             dt: Inter-sample interval in milliseconds
             spike_array: N-D array with time as last dimension, binary spike data
-            
+
         Returns:
             tuple: (firing_rate, time_vector)
                 - firing_rate: Calculated firing rates, shape (*spike_array.shape[:-1], n_bins)
                 - time_vector: Time vector in ms relative to stimulus delivery
-                
+
         Raises:
             Exception: If step_size or window_size are not integer multiples of dt
         """
@@ -387,12 +387,12 @@ class ephys_data():
     @staticmethod
     def _calc_baks_rate(resolution, dt, spike_array):
         """Calculate firing rates using Bayesian Adaptive Kernel Smoother (BAKS)
-        
+
         Args:
             resolution: Resolution of output firing rate in seconds
             dt: Resolution of input spike trains in seconds
             spike_array: N-D array with time as last dimension, binary spike data
-            
+
         Returns:
             tuple: (firing_rate_array, time_vector)
                 - firing_rate_array: Calculated firing rates, shape (*spike_array.shape[:-1], n_time_points)
@@ -419,13 +419,13 @@ class ephys_data():
     @staticmethod
     def get_hdf5_path(data_dir):
         """Find HDF5 file in the specified directory
-        
+
         Args:
             data_dir: Directory path to search for HDF5 file
-            
+
         Returns:
             str: Path to HDF5 file
-            
+
         Raises:
             Exception: If no HDF5 file found or if multiple files found (prompts user selection)
         """
@@ -485,11 +485,11 @@ class ephys_data():
     def __init__(self,
                  data_dir=None):
         """Initialize ephys_data object for electrophysiology data analysis
-        
+
         Args:
             data_dir: Directory path containing HDF5 file and data
                      If None, opens dialog for user to select directory
-                     
+
         Attributes Created:
             data_dir: Path to data directory
             hdf5_path: Full path to HDF5 file
@@ -572,7 +572,7 @@ class ephys_data():
         """Extract and process all data types (units, spikes, firing rates, LFPs)
 
         Convenience method that calls all extraction methods in sequence.
-        
+
         Side Effects:
             Sets attributes: unit_descriptors, spikes, firing_array, lfp_array
         """
@@ -585,7 +585,7 @@ class ephys_data():
         """Separate all data types into laser on and off conditions
 
         Convenience method that separates spikes, firing rates, and LFPs by laser condition.
-        
+
         Side Effects:
             Sets attributes: on_spikes, off_spikes, on_firing, off_firing, on_lfp, off_lfp
         """
@@ -595,7 +595,7 @@ class ephys_data():
 
     def get_unit_descriptors(self):
         """Extract unit descriptors from HDF5 file
-        
+
         Side Effects:
             Sets self.unit_descriptors: Array of unit descriptor records from HDF5
         """
@@ -654,13 +654,13 @@ class ephys_data():
 
     def get_spikes(self):
         """Extract spike arrays from HDF5 file
-        
+
         Side Effects:
             Sets attributes:
                 - spikes: List of spike arrays, one per taste/dig_in
                 - dig_in_name_list: List of digital input names
                 - dig_in_num_list: List of digital input numbers
-                
+
         Raises:
             Exception: If no spike trains found in HDF5 file
         """
@@ -688,12 +688,12 @@ class ephys_data():
 
     def separate_laser_spikes(self):
         """Separate spike arrays into laser on and off conditions
-        
+
         Side Effects:
             Sets attributes:
                 - on_spikes: Spike arrays for laser on trials
                 - off_spikes: Spike arrays for laser off trials
-                
+
         Raises:
             Exception: If no laser trials exist in the experiment
         """
@@ -711,10 +711,10 @@ class ephys_data():
 
     def extract_lfps(self):
         """Wrapper function to extract LFPs from raw data files and save to HDF5
-        
+
         Loads experiment information and calls lfp_processing.extract_lfps to
         process raw electrode data into LFP arrays.
-        
+
         Side Effects:
             - Loads info_dict and trial_info_frame if not present
             - Calls lfp_processing.extract_lfps which creates /Parsed_LFP node in HDF5
@@ -739,10 +739,10 @@ class ephys_data():
 
     def get_lfp_channels(self):
         """Extract Parsed_LFP_channels from HDF5 file
-        
+
         This is done separately from get_lfps to avoid the overhead of
         reading the large LFP arrays when only channel information is needed.
-        
+
         Side Effects:
             Sets self.parsed_lfp_channels: Array of electrode numbers used for LFP
         """
@@ -778,18 +778,18 @@ class ephys_data():
 
     def get_lfps(self, re_extract=False):
         """Extract or load LFP arrays from HDF5 file
-        
+
         Wrapper function to either initiate LFP extraction from raw data
         or load existing LFP arrays from HDF5 file.
-        
+
         Args:
             re_extract: If True, force re-extraction even if LFPs exist in HDF5
-            
+
         Side Effects:
             Sets attributes:
                 - lfp_array: LFP data, shape (n_tastes, n_channels, n_trials, n_timepoints)
                 - all_lfp_array: Reshaped LFP data with tastes concatenated
-                
+
         Note:
             Not compatible with traditional data files
         """
@@ -821,14 +821,14 @@ class ephys_data():
 
     def separate_laser_lfp(self):
         """Separate LFP arrays into laser on and off conditions
-        
+
         Side Effects:
             Sets attributes:
                 - on_lfp: LFP arrays for laser on trials
                 - off_lfp: LFP arrays for laser off trials
                 - all_on_lfp: Reshaped on_lfp with tastes concatenated
                 - all_off_lfp: Reshaped off_lfp with tastes concatenated
-                
+
         Raises:
             Exception: If no laser trials exist in the experiment
         """
@@ -933,10 +933,10 @@ class ephys_data():
 
     def get_firing_rates(self):
         """Convert spikes to firing rates using specified method
-        
+
         Uses firing_rate_params to determine calculation method (conv or baks)
         and computes firing rates for all spike data.
-        
+
         Side Effects:
             Sets attributes:
                 - firing_list: List of firing rate arrays, one per taste
@@ -1094,14 +1094,14 @@ class ephys_data():
 
     def separate_laser_firing(self):
         """Separate firing rate arrays into laser on and off conditions
-        
+
         Side Effects:
             Sets attributes:
                 - on_firing: Firing rates for laser on trials
                 - off_firing: Firing rates for laser off trials
                 - all_on_firing: Reshaped on_firing with tastes concatenated
                 - all_off_firing: Reshaped off_firing with tastes concatenated
-                
+
         Raises:
             Exception: If no laser trials exist in the experiment
         """
@@ -1138,10 +1138,10 @@ class ephys_data():
 
     def get_sorting_params_dict(self):
         """Extract sorting parameters from .params file
-        
+
         Side Effects:
             Sets self.sorting_params_dict: Dictionary of spike sorting parameters
-            
+
         Raises:
             Exception: If no .params file is found in data directory
         """
@@ -1153,12 +1153,12 @@ class ephys_data():
 
     def get_region_electrodes(self):
         """Extract electrode assignments for each brain region from .info file
-        
+
         Side Effects:
             Sets attributes:
                 - region_electrode_dict: Dictionary mapping region names to electrode lists
                 - region_names: List of region names (excludes 'emg' and 'none')
-                
+
         Raises:
             Exception: If .info file is not found
         """
@@ -1179,7 +1179,7 @@ class ephys_data():
 
     def get_region_units(self):
         """Extract unit indices organized by brain region and CAR group
-        
+
         Side Effects:
             Sets attributes:
                 - car_names: List of CAR (Common Average Reference) group names
@@ -1316,7 +1316,7 @@ class ephys_data():
 
     def get_lfp_electrodes(self):
         """Extract LFP electrode indices organized by brain region
-        
+
         Side Effects:
             Sets self.lfp_region_electrodes: List of electrode indices for each region
         """
@@ -1346,15 +1346,15 @@ class ephys_data():
             dat_type=['amplitude'],
             write_out=True):
         """Retrieve or calculate Short-Time Fourier Transform of LFP data
-        
+
         If STFT exists in HDF5, retrieves it. Otherwise calculates STFT
         for all LFP data and optionally saves to HDF5.
-        
+
         Args:
             recalculate: If True, force recalculation even if STFT exists
             dat_type: List of data types to load/calculate: 'raw', 'amplitude', 'phase'
             write_out: If True, write calculated STFT to HDF5 file
-            
+
         Side Effects:
             Sets attributes:
                 - freq_vec: Frequency vector for STFT
@@ -1550,10 +1550,10 @@ class ephys_data():
 
     def sequester_trial_inds(self):
         """Organize trial indices by taste and laser condition
-        
+
         Groups trials by taste identity and laser parameters, creating
         a DataFrame with trial indices for each unique combination.
-        
+
         Side Effects:
             Sets self.trial_inds_frame: DataFrame with columns:
                 - dig_in_num_taste: Digital input number
@@ -1587,10 +1587,10 @@ class ephys_data():
 
     def get_sequestered_spikes(self):
         """Organize spike data by taste and laser condition
-        
+
         Extracts spike data for each unique combination of taste and laser
         parameters, creating both array and DataFrame representations.
-        
+
         Side Effects:
             Sets attributes:
                 - sequestered_spikes: List of spike arrays for each group
@@ -1632,10 +1632,10 @@ class ephys_data():
 
     def get_sequestered_firing(self):
         """Organize firing rate data by taste and laser condition
-        
+
         Extracts firing rate data for each unique combination of taste and
         laser parameters, creating both array and DataFrame representations.
-        
+
         Side Effects:
             Sets attributes:
                 - sequestered_firing: List of firing rate arrays for each group
