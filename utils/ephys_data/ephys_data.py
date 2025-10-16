@@ -320,11 +320,11 @@ class ephys_data():
     @staticmethod
     def parallelize(func, iterator):
         """Execute function in parallel across iterator using joblib
-        
+
         Args:
             func: Function to apply to each element
             iterator: Iterable to process in parallel
-            
+
         Returns:
             List of results from applying func to each element
         """
@@ -423,11 +423,11 @@ class ephys_data():
     @staticmethod
     def convert_to_array(iterator, iter_inds):
         """Convert list of arrays to a single multi-dimensional array
-        
+
         Args:
             iterator: List of arrays to combine
             iter_inds: List of index tuples indicating where each array should be placed
-            
+
         Returns:
             temp_array: Combined multi-dimensional numpy array
         """
@@ -443,7 +443,7 @@ class ephys_data():
     @staticmethod
     def remove_node(path_to_node, hf5):
         """Remove a node from HDF5 file if it exists
-        
+
         Args:
             path_to_node: Full path to the node in HDF5 file
             hf5: Open HDF5 file handle
@@ -532,7 +532,7 @@ class ephys_data():
 
     def extract_and_process(self):
         """Extract and process all data types (units, spikes, firing rates, LFPs)
-        
+
         Convenience method that calls all extraction methods in sequence.
         """
         self.get_unit_descriptors()
@@ -542,7 +542,7 @@ class ephys_data():
 
     def separate_laser_data(self):
         """Separate all data types into laser on and off conditions
-        
+
         Convenience method that separates spikes, firing rates, and LFPs by laser condition.
         """
         self.separate_laser_spikes()
@@ -692,7 +692,7 @@ class ephys_data():
 
     def check_file_type(self):
         """Check if file type is compatible with LFP processing
-        
+
         Returns:
             bool: True if file type is compatible, False if traditional format
         """
@@ -1005,10 +1005,10 @@ class ephys_data():
 
     def get_info_dict(self):
         """Load experiment information from .info JSON file
-        
+
         Loads the .info file containing experimental parameters and metadata.
         Sets self.info_dict attribute.
-        
+
         Raises:
             Exception: If no .info file is found in data directory
         """
@@ -1347,10 +1347,10 @@ class ephys_data():
 
     def get_mean_stft_amplitude(self):
         """Calculate mean STFT amplitude for each brain region
-        
+
         Computes the median STFT amplitude across tastes, trials, and channels
         for each brain region.
-        
+
         Returns:
             np.array: Mean STFT amplitude per region, shape (n_regions, n_freqs, n_times)
         """
@@ -1369,7 +1369,7 @@ class ephys_data():
 
     def get_trial_info_frame(self):
         """Load trial information from CSV file
-        
+
         Loads trial_info_frame.csv containing trial metadata including
         taste identities, laser conditions, and timing information.
         Sets self.trial_info_frame attribute.

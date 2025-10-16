@@ -195,13 +195,13 @@ if try_again:
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
     """Apply bandpass filtering to electrode data
-    
+
     Args:
         data: Raw electrode data array
         low_pass: Low frequency cutoff in Hz
         high_pass: High frequency cutoff in Hz
         sampling_rate: Sampling rate of the data in Hz
-        
+
     Returns:
         filt_el: Bandpass filtered electrode data
     """
@@ -230,11 +230,11 @@ def extract_lfps(dir_name,
                  trial_info_frame,
                  ):
     """Extract and process LFP data from raw electrode recordings
-    
+
     Extracts LFP data from raw .dat files, applies bandpass filtering, downsamples,
     segments into trials based on digital inputs, and saves to HDF5 file. Also
     generates quality control plots for visual inspection of channels.
-    
+
     Args:
         dir_name: Directory containing data files and HDF5 file
         freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
@@ -244,7 +244,7 @@ def extract_lfps(dir_name,
         dig_in_list: List of digital input channel indices to process
         trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
         trial_info_frame: DataFrame containing trial timing information
-        
+
     Side Effects:
         - Creates /raw_LFP and /Parsed_LFP nodes in HDF5 file
         - Creates /Parsed_LFP_channels array in HDF5 file
