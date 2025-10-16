@@ -80,7 +80,8 @@ emg_merge_df_long = pd.concat(fin_frame_list, axis=0)
 # Melt gapes and licking into long format
 emg_merge_df_long = pd.melt(
     emg_merge_df_long,
-    id_vars=[x for x in emg_merge_df_long.columns if x not in ['gapes', 'licking']],
+    id_vars=[x for x in emg_merge_df_long.columns if x not in [
+        'gapes', 'licking']],
     value_vars=['gapes', 'licking'],
     var_name='emg_type',
     value_name='emg_value')
