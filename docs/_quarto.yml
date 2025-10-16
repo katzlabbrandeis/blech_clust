@@ -56,9 +56,6 @@ format:
     code-overflow: wrap
 
 quartodoc:
-  # Source directory relative to docs/
-  source_dir: ../utils
-
   # Package name (null for non-package structure)
   package: null
 
