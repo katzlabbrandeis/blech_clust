@@ -49,8 +49,8 @@ For comprehensive documentation, visit **[katzlabbrandeis.github.io/blech_clust]
 
 ### Spike Sorting
 ```
-blech_exp_info → blech_clust → blech_common_avg_reference → 
-blech_run_process → blech_post_process → blech_units_plot → 
+blech_exp_info → blech_clust → blech_common_avg_reference →
+blech_run_process → blech_post_process → blech_units_plot →
 blech_make_arrays → blech_run_QA → blech_unit_characteristics
 ```
 
