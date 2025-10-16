@@ -112,7 +112,104 @@ jobs:
         run: |
           echo "Placeholder for basic functionality tests"
 
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## Installation Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**OS:** ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Python:** ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Create a JSON file with test results
+          mkdir -p test-results
+          cat > test-results/result-${{ matrix.os }}-${{ matrix.python-version }}.json << EOF
+          {
+            "os": "${{ matrix.os }}",
+            "python_version": "${{ matrix.python-version }}",
+            "status": "${{ job.status }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}"
+          }
+          EOF
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-result-${{ matrix.os }}-${{ matrix.python-version }}
+          path: test-results/
+
       - name: Clean up
         if: always()
         run: |
           make clean || true
+
+  generate-summary:
+    needs: installation-test
+    if: always() && needs.check-label.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: test-results/
+          pattern: test-result-*
+          merge-multiple: true
+
+      - name: Generate installation summary
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          from datetime import datetime
+          from pathlib import Path
+          
+          # Collect all result files
+          results_dir = Path('test-results')
+          results = []
+          
+          for result_file in results_dir.glob('*.json'):
+              with open(result_file) as f:
+                  results.append(json.load(f))
+          
+          # Sort results by OS and Python version
+          results.sort(key=lambda x: (x['os'], x['python_version']))
+          
+          # Generate markdown summary
+          summary = []
+          summary.append('## Installation Test Results')
+          summary.append('')
+          summary.append(f'**Last Updated:** {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")}')
+          summary.append(f'**Workflow Run:** [#{results[0]["run_number"]}](https://github.com/${{{{ github.repository }}}}/actions/runs/{results[0]["run_id"]})')
+          summary.append('')
+          summary.append('| OS | Python Version | Status |')
+          summary.append('|---|---|---|')
+          
+          for result in results:
+              status_emoji = '✅' if result['status'] == 'success' else '❌'
+              summary.append(f'| {result["os"]} | {result["python_version"]} | {status_emoji} {result["status"]} |')
+          
+          summary.append('')
+          
+          # Write to file
+          with open('INSTALL_TEST_RESULTS.md', 'w') as f:
+              f.write('\n'.join(summary))
+          
+          print('\n'.join(summary))
+          EOF
+
+      - name: Create summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installation-summary
+          path: INSTALL_TEST_RESULTS.md
+
+      - name: Add summary to workflow
+        run: |
+          cat INSTALL_TEST_RESULTS.md >> $GITHUB_STEP_SUMMARY
