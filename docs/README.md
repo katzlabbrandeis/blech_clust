@@ -154,7 +154,7 @@ To update the auto-generated API documentation:
        """
        return param1 + param2
    ```
-3. **Regenerate API docs**:
+3. **Regenerate API docs locally**:
    ```bash
    cd docs
    quartodoc build
@@ -163,7 +163,52 @@ To update the auto-generated API documentation:
    ```bash
    quarto preview
    ```
-5. **Commit both** the source file changes and the generated docs
+5. **Commit the generated docs** (see "Publishing Auto-Generated Docs" below)
+
+**Note:** Auto-generation is currently disabled in CI due to version compatibility issues. You must generate and commit the docs locally.
+
+### Publishing Auto-Generated Docs to GitHub
+
+Since auto-generation is disabled in CI, follow these steps to publish generated docs:
+
+1. **Generate the docs locally**:
+   ```bash
+   cd docs
+   quartodoc build
+   ```
+
+2. **Verify the generated files**:
+   ```bash
+   ls reference/api/
+   # Should show .qmd files for each documented function/class
+   ```
+
+3. **Force-add the generated files** (they're gitignored by default):
+   ```bash
+   git add -f docs/reference/api/*.qmd
+   git add -f docs/reference/api/index.qmd
+   ```
+
+4. **Commit with a descriptive message**:
+   ```bash
+   git commit -m "Update auto-generated API documentation
+   
+   - Regenerated from latest docstrings
+   - Added documentation for [module/function names]"
+   ```
+
+5. **Push to GitHub**:
+   ```bash
+   git push origin your-branch-name
+   ```
+
+6. **Create a pull request** - The CI will build the complete site including your generated docs
+
+**Important Notes:**
+- The `docs/reference/api/` directory is gitignored to prevent accidental commits
+- Use `git add -f` to force-add generated files when you want to publish them
+- Only commit generated docs when you've made significant updates to docstrings
+- The manual documentation pages work without auto-generation
 
 ### Adding Modules to Auto-Generation
 

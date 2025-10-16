@@ -67,7 +67,24 @@ quarto preview
 quarto render
 ```
 
+**For auto-generated API docs:**
+
+```bash
+# Generate API docs from docstrings (optional)
+cd docs
+quartodoc build
+
+# Preview with generated docs
+quarto preview
+
+# Commit generated docs (use -f to override gitignore)
+git add -f docs/reference/api/*.qmd
+git commit -m "Update auto-generated API docs"
+```
+
 Documentation is automatically deployed to GitHub Pages when changes are merged to `master`.
+
+**Note:** Auto-generation is disabled in CI but works locally. If you update docstrings and want the API docs published, you must generate and commit them locally.
 
 ## Code of Conduct
 
