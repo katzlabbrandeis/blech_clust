@@ -149,13 +149,11 @@ make optional  # Optional analysis tools
 
 #### Parameter Setup
 
-After installation, copy and configure parameter templates:
+After installation, set up parameter templates:
 
 ```bash
-# Copy templates from _templates directory to params directory
-cp params/_templates/sorting_params_template.json params/
-cp params/_templates/waveform_classifier_params.json params/
-cp params/_templates/emg_params.json params/
+# Copy parameter templates (if none exist)
+make params
 
 # Edit the parameter files according to your experimental setup
 ```
