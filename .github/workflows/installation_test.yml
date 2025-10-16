@@ -101,10 +101,6 @@ jobs:
         run: |
           make optional
 
-      - name: Install blech_clust package
-        run: |
-          conda run -n blech_clust pip install -e .
-
       - name: Verify installation
         run: |
           conda run -n blech_clust python -c "import numpy; print('NumPy version:', numpy.__version__)"
