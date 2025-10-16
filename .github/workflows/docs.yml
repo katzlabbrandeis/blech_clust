@@ -50,7 +50,7 @@ jobs:
         run: |
           cd docs
           quarto render
-        
+
       # Note: quartodoc auto-generation is configured in _quarto.yml but not
       # run in CI due to version compatibility issues with the project structure.
       # The manual documentation pages provide comprehensive coverage.
