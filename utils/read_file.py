@@ -26,7 +26,7 @@ import pandas as pd
 # Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
-from utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.importrhdutilities import load_file, read_header
 
 
 class DigInHandler:

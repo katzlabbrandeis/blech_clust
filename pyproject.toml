@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blech_clust"
+version = "2.0.0"
+description = "Python and R based code for clustering and sorting electrophysiology data recorded using the Intan RHD2132 chips"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Katz Lab", email = "katzlab@brandeis.edu"}
+]
+keywords = ["neuroscience", "electrophysiology", "spike-sorting", "clustering", "intan"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "datashader",
+    "matplotlib==3.3.4",
+    "numpy",
+    "pandas==1.3.2",
+    "psutil>=6.1.0",
+    "tables==3.8",
+    "scikit-learn",
+    "easygui==0.98.1",
+    "joblib==1.0.0",
+    "seaborn==0.11.2",
+    "pingouin==0.5",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "flake8",
+    "black",
+    "pre-commit",
+]
+
+[project.urls]
+Homepage = "https://github.com/katzlabbrandeis/blech_clust"
+Repository = "https://github.com/katzlabbrandeis/blech_clust.git"
+Documentation = "https://github.com/katzlabbrandeis/blech_clust/blob/master/README.md"
+"Bug Tracker" = "https://github.com/katzlabbrandeis/blech_clust/issues"
+
+[tool.setuptools]
+package-dir = {"blech_clust" = "."}
+packages = [
+    "blech_clust",
+    "blech_clust.utils",
+    "blech_clust.utils.qa_utils",
+    "blech_clust.utils.ephys_data",
+    "blech_clust.utils.umap_plotting",
+    "blech_clust.emg",
+    "blech_clust.emg.gape_QDA_classifier",
+    "blech_clust.emg.utils",
+]
+
+[tool.setuptools.package-data]
+blech_clust = ["*.sh", "*.md", "params/*.json", "example_meta_files/*.json"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

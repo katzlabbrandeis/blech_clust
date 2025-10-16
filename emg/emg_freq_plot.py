@@ -25,7 +25,7 @@ import seaborn as sns
 from tqdm import tqdm, trange
 # Necessary blech_clust modules
 sys.path.append('..')
-from utils.blech_utils import imp_metadata  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
 
 ############################################################
 

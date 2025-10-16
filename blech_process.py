@@ -30,7 +30,7 @@ This module processes single electrode waveforms for spike detection and cluster
 import time
 import argparse  # noqa
 import os  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 test_bool = False
 if test_bool:
@@ -66,7 +66,7 @@ import numpy as np  # noqa
 import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
-import utils.blech_process_utils as bpu  # noqa
+import blech_clust.utils.blech_process_utils as bpu  # noqa
 from itertools import product  # noqa
 
 # Confirm sys.argv[1] is a path that exists

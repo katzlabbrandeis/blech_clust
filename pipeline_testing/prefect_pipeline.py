@@ -77,8 +77,8 @@ import pandas as pd  # noqa
 
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-import utils.blech_utils as bu  # noqa
-import utils.ephys_data.ephys_data as ephys_data  # noqa
+import blech_clust.utils.blech_utils as bu  # noqa
+import blech_clust.utils.ephys_data.ephys_data as ephys_data  # noqa
 
 # S3 configuration
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
