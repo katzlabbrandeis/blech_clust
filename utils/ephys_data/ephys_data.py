@@ -764,6 +764,17 @@ class ephys_data():
             raise Exception('No laser trials in this experiment')
 
     def firing_rate_method_selector(self):
+        """Select and configure firing rate calculation method
+        
+        Validates firing rate parameters and returns appropriate calculation function
+        based on the specified method type ('conv' or 'baks').
+        
+        Returns:
+            function: Configured firing rate calculation function
+            
+        Raises:
+            Exception: If required parameters are missing or invalid
+        """
         params = self.firing_rate_params
 
         type_list = ['conv', 'baks']
@@ -776,6 +787,15 @@ class ephys_data():
                             '\nPlease use: \n {}'.format('\n'.join(type_list)))
 
         def check_firing_rate_params(params, param_name_list):
+            """Validate that all required firing rate parameters are present and not None
+            
+            Args:
+                params: Dictionary of firing rate parameters
+                param_name_list: List of required parameter names
+                
+            Raises:
+                Exception: If any required parameters are missing or None
+            """
             param_exists_bool = [True if x in params.keys() else False
                                  for x in param_name_list]
             if not all(param_exists_bool):
@@ -800,6 +820,7 @@ class ephys_data():
 
             # If all good, define the function to be used
             def calc_firing_func(data):
+                """Calculate firing rates using convolution method"""
                 firing_rate, time_vector = \
                     self._calc_conv_rates(
                         step_size=self.firing_rate_params['step_size'],
@@ -813,6 +834,7 @@ class ephys_data():
             check_firing_rate_params(params, param_name_list)
 
             def calc_firing_func(data):
+                """Calculate firing rates using BAKS method"""
                 firing_rate, time_vector = \
                     self._calc_baks_rate(
                         resolution=self.firing_rate_params['baks_resolution'],
@@ -1094,6 +1116,18 @@ class ephys_data():
                              for x in np.unique(region_ind_vec)]
 
     def return_region_spikes(self, region_name='all'):
+        """Return spike data for a specific brain region
+        
+        Args:
+            region_name: Name of brain region to extract, or 'all' for all spikes
+            
+        Returns:
+            np.array: Spike data for specified region, shape (n_tastes, n_trials, n_neurons, n_timepoints)
+                     Returns None if no units found in region
+                     
+        Raises:
+            Exception: If region_name not found or multiple matches found
+        """
         if 'region_names' not in dir(self):
             self.get_region_units()
         if self.spikes is None:
@@ -1119,6 +1153,19 @@ class ephys_data():
             return self.spikes
 
     def get_region_firing(self, region_name='all'):
+        """Return firing rate data for a specific brain region
+        
+        Args:
+            region_name: Name of brain region to extract, or 'all' for all firing rates
+            
+        Returns:
+            np.array or list: Firing rate data for specified region
+                             Returns array if trials are even, list if uneven
+                             Shape: (n_tastes, n_neurons, n_trials, n_timepoints) for arrays
+                             
+        Raises:
+            Exception: If region_name not found or multiple matches found
+        """
         if 'region_units' not in dir(self):
             self.get_region_units()
         if 'firing_array' not in dir(self):
