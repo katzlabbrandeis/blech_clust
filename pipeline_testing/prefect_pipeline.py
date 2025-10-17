@@ -191,7 +191,8 @@ def prep_data_info(
         data_type (str): Type of data to prepare. Options are 'emg', 'spike', 'emg_spike'
     """
     if verbose:
-        print(f'[DEBUG] prep_data_info: Starting with file_type={file_type}, data_type={data_type}')
+        print(
+            f'[DEBUG] prep_data_info: Starting with file_type={file_type}, data_type={data_type}')
     if data_type == 'emg':
         # flag_str = '-emg'
         data_key = 'emg_only'
@@ -250,7 +251,8 @@ def run_clean_slate(data_dir):
 @task(log_prints=True)
 def mark_exp_info_success(data_dir):
     if verbose:
-        print(f'[DEBUG] mark_exp_info_success: Starting with data_dir={data_dir}')
+        print(
+            f'[DEBUG] mark_exp_info_success: Starting with data_dir={data_dir}')
     script_name = './pipeline_testing/mark_exp_info_success.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
@@ -298,7 +300,8 @@ def run_CAR(data_dir):
 @task(log_prints=True)
 def change_waveform_classifier(data_dir, use_classifier=1):
     if verbose:
-        print(f'[DEBUG] change_waveform_classifier: Starting with data_dir={data_dir}, use_classifier={use_classifier}')
+        print(
+            f'[DEBUG] change_waveform_classifier: Starting with data_dir={data_dir}, use_classifier={use_classifier}')
     script_name = 'pipeline_testing/change_waveform_classifier.py'
     process = Popen(["python", script_name, str(use_classifier)],
                     stdout=PIPE, stderr=PIPE)
@@ -309,7 +312,8 @@ def change_waveform_classifier(data_dir, use_classifier=1):
 @task(log_prints=True)
 def change_auto_params(data_dir, use_auto=1):
     if verbose:
-        print(f'[DEBUG] change_auto_params: Starting with data_dir={data_dir}, use_auto={use_auto}')
+        print(
+            f'[DEBUG] change_auto_params: Starting with data_dir={data_dir}, use_auto={use_auto}')
     script_name = 'pipeline_testing/change_auto_params.py'
     process = Popen(["python", script_name, data_dir, str(use_auto), str(use_auto)],
                     stdout=PIPE, stderr=PIPE)
@@ -342,7 +346,8 @@ def select_clusters(data_dir):
 @task(log_prints=True)
 def post_process(data_dir, use_file=True, keep_raw=False, delete_existing=False):
     if verbose:
-        print(f'[DEBUG] post_process: Starting with data_dir={data_dir}, use_file={use_file}, keep_raw={keep_raw}, delete_existing={delete_existing}')
+        print(
+            f'[DEBUG] post_process: Starting with data_dir={data_dir}, use_file={use_file}, keep_raw={keep_raw}, delete_existing={delete_existing}')
     script_name = 'blech_post_process.py'
     if use_file:
         sorted_units_path = glob(os.path.join(
@@ -386,7 +391,8 @@ def units_plot(data_dir):
 @task(log_prints=True)
 def units_characteristics(data_dir):
     if verbose:
-        print(f'[DEBUG] units_characteristics: Starting with data_dir={data_dir}')
+        print(
+            f'[DEBUG] units_characteristics: Starting with data_dir={data_dir}')
     script_name = 'blech_units_characteristics.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
@@ -401,7 +407,8 @@ def units_characteristics(data_dir):
 @task(log_prints=True)
 def change_emg_freq_method(data_dir, use_BSA=1):
     if verbose:
-        print(f'[DEBUG] change_emg_freq_method: Starting with data_dir={data_dir}, use_BSA={use_BSA}')
+        print(
+            f'[DEBUG] change_emg_freq_method: Starting with data_dir={data_dir}, use_BSA={use_BSA}')
     script_name = 'pipeline_testing/change_emg_freq_method.py'
     process = Popen(["python", script_name, str(use_BSA)],
                     stdout=PIPE, stderr=PIPE)
@@ -445,7 +452,8 @@ def emg_freq_setup(data_dir):
 @task(log_prints=True)
 def emg_jetstream_parallel(data_dir):
     if verbose:
-        print(f'[DEBUG] emg_jetstream_parallel: Starting with data_dir={data_dir}')
+        print(
+            f'[DEBUG] emg_jetstream_parallel: Starting with data_dir={data_dir}')
     script_name = 'bash blech_emg_jetstream_parallel.sh'
     full_str = script_name
     process = Popen(full_str, shell=True, stdout=PIPE, stderr=PIPE)
@@ -456,7 +464,8 @@ def emg_jetstream_parallel(data_dir):
 @task(log_prints=True)
 def emg_freq_post_process(data_dir):
     if verbose:
-        print(f'[DEBUG] emg_freq_post_process: Starting with data_dir={data_dir}')
+        print(
+            f'[DEBUG] emg_freq_post_process: Starting with data_dir={data_dir}')
     script_name = 'emg_freq_post_process.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
@@ -490,7 +499,8 @@ def run_gapes_Li(data_dir):
 def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
     """Run RNN firing rate inference"""
     if verbose:
-        print(f'[DEBUG] run_rnn: Starting with data_dir={data_dir}, separate_regions={separate_regions}, separate_tastes={separate_tastes}')
+        print(
+            f'[DEBUG] run_rnn: Starting with data_dir={data_dir}, separate_regions={separate_regions}, separate_tastes={separate_tastes}')
     script_name = 'utils/infer_rnn_rates.py'
     # Use 100 training steps for testing
     args = ["python", script_name, data_dir,
