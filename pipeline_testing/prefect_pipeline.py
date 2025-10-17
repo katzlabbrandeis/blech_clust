@@ -489,7 +489,7 @@ def emg_freq_plot(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -500,7 +500,7 @@ def run_gapes_Li(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -614,7 +614,7 @@ def fail_check_popen(data_dir):
     process = Popen(["python", '-c', 'raise Exception("Simulated failure popen")'], 
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 @task(log_prints=True)
 def fail_check_direct():
