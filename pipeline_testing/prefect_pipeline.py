@@ -93,7 +93,7 @@ S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 GITHUB_ACTIONS = os.environ.get('GITHUB_ACTIONS') == 'true'
 
 print(args.fail_fast)
-break_bool = args.fail_fast
+fail_fast = args.fail_fast
 
 # Set file_types to run
 if args.file_type == 'all':
@@ -109,7 +109,7 @@ else:
     data_type_list = [args.data_type]
 print(f'Running tests for data types: {data_type_list}')
 
-if break_bool:
+if fail_fast:
     print('====================')
     print('Stopping execution on error')
     print('====================')
@@ -122,7 +122,7 @@ if verbose:
     print('====================')
 
 
-def raise_error_if_error(data_dir, process, stderr, stdout, break_bool=True):
+def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
     # Print current data_type
     current_data_type_path = os.path.join(data_dir, 'current_data_type.txt')
     if os.path.exists(current_data_type_path):
@@ -135,9 +135,9 @@ def raise_error_if_error(data_dir, process, stderr, stdout, break_bool=True):
     if process.returncode: 
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
-    if process.returncode and not break_bool:
+    if process.returncode and not fail_fast:
         print('Encountered error...fail-fast not enabled, continuing execution...\n\n')
-    if break_bool and process.returncode:
+    if fail_fast and process.returncode:
         exit(1)
 
 
@@ -183,7 +183,7 @@ def download_test_data(data_dir):
     process = Popen(["bash", script_name],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -228,7 +228,7 @@ def prep_data_info(
     cmd_str = cmd_str.replace('$DIR', data_dir)
     process = Popen(cmd_str, shell=True, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 ############################################################
@@ -242,7 +242,7 @@ def reset_blech_clust(data_dir):
     process = Popen(["python", script_name],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -253,7 +253,7 @@ def run_clean_slate(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -265,7 +265,7 @@ def mark_exp_info_success(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -276,7 +276,7 @@ def run_blech_init(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -287,7 +287,7 @@ def make_arrays(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 ############################################################
 # Spike Only
@@ -302,7 +302,7 @@ def run_CAR(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -314,7 +314,7 @@ def change_waveform_classifier(data_dir, use_classifier=1):
     process = Popen(["python", script_name, str(use_classifier)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -326,7 +326,7 @@ def change_auto_params(data_dir, use_auto=1):
     process = Popen(["python", script_name, data_dir, str(use_auto), str(use_auto)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -337,7 +337,7 @@ def run_jetstream_bash(data_dir):
     process = Popen(["bash", script_name, '--delete-log', data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -348,7 +348,7 @@ def select_clusters(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -371,7 +371,7 @@ def post_process(data_dir, use_file=True, keep_raw=False, delete_existing=False)
     print(f'Post-process: {run_list}')
     process = Popen(run_list, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -382,7 +382,7 @@ def quality_assurance(data_dir):
     process = Popen(["bash", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -393,7 +393,7 @@ def units_plot(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -405,7 +405,7 @@ def units_characteristics(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 ############################################################
 # EMG Only
@@ -421,7 +421,7 @@ def change_emg_freq_method(data_dir, use_BSA=1):
     process = Popen(["python", script_name, str(use_BSA)],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -432,7 +432,7 @@ def cut_emg_trials(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -443,7 +443,7 @@ def emg_filter(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -454,7 +454,7 @@ def emg_freq_setup(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -466,7 +466,7 @@ def emg_jetstream_parallel(data_dir):
     full_str = script_name
     process = Popen(full_str, shell=True, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
@@ -478,7 +478,7 @@ def emg_freq_post_process(data_dir):
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
 
 @task(log_prints=True)
