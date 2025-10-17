@@ -812,7 +812,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             return None
     else:
         # Get default from existing info or cache
-        default_path = existing_info.get('permanent_path', '') or cache.get('permanent_path', '')
+        default_path = existing_info.get(
+            'permanent_path', '') or cache.get('permanent_path', '')
 
         if args.auto_defaults and default_path:
             permanent_path = default_path
@@ -831,11 +832,12 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
 
         # Validate the path
         permanent_path = os.path.expanduser(permanent_path.strip())
-    
+
     # Validation (applies to both programmatic and manual modes)
     if not os.path.exists(permanent_path):
         print(f"Error: Path does not exist: {permanent_path}")
-        print("Please ensure the permanent data directory exists before running this script.")
+        print(
+            "Please ensure the permanent data directory exists before running this script.")
         print("Skipping permanent metadata copy.")
         return None
 
@@ -854,7 +856,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             print(f"\n⚠️  Warning: Directory name mismatch!")
             print(f"  Current directory: {dir_name}")
             print(f"  Permanent directory: {permanent_dir_name}")
-            response = input("Are you sure this is the correct permanent data location? (y/n): ")
+            response = input(
+                "Are you sure this is the correct permanent data location? (y/n): ")
             if response.lower() not in ['y', 'yes']:
                 print("Skipping permanent metadata copy.")
                 return None
@@ -862,9 +865,9 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     # Check if data exists at the permanent location
     # Look for common data files to verify this is a valid data directory
     data_indicators = ['info.rhd', 'time.dat', 'amplifier.dat']
-    has_data = any(os.path.exists(os.path.join(permanent_path, indicator)) 
+    has_data = any(os.path.exists(os.path.join(permanent_path, indicator))
                    for indicator in data_indicators)
-    
+
     if not has_data:
         print(f"Warning: No data files found at {permanent_path}")
         print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
@@ -935,10 +938,10 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
         if not os.path.exists(file_path):
             print(f"Warning: File not found, skipping: {file_path}")
             continue
-        
+
         filename = os.path.basename(file_path)
         dest_path = os.path.join(permanent_path, filename)
-        
+
         try:
             shutil.copy2(file_path, dest_path)
             print(f"Copied: {filename}")
@@ -946,7 +949,8 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
         except Exception as e:
             print(f"Error copying {filename}: {e}")
 
-    print(f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
+    print(
+        f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
     return copied_count > 0
 
 
@@ -1540,9 +1544,10 @@ def main():
         json.dump(fin_dict, file, indent=4)
 
     # Collect all generated files for copying
-    layout_file_path = os.path.join(dir_path, dir_name + "_electrode_layout.csv")
+    layout_file_path = os.path.join(
+        dir_path, dir_name + "_electrode_layout.csv")
     dig_in_frame_path = os.path.join(dir_path, 'dig_in_channel_info.json')
-    
+
     generated_files = [
         json_file_name,
         layout_file_path,
