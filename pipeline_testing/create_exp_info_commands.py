@@ -8,7 +8,7 @@ usage: blech_exp_info.py [-h] [--template TEMPLATE] [--mode {legacy,updated}]
                          [--laser-digin LASER_DIGIN]
                          [--laser-params LASER_PARAMS]
                          [--virus-region VIRUS_REGION] [--opto-loc OPTO_LOC]
-                         [--notes NOTES]
+                         [--notes NOTES] [--permanent-path PERMANENT_PATH]
                          dir_name
 
 Creates files with experiment info
@@ -43,6 +43,8 @@ optional arguments:
                         Virus region
   --opto-loc OPTO_LOC   Opto-fiber location
   --notes NOTES         Experiment notes
+  --permanent-path PERMANENT_PATH
+                        Permanent path where metadata files should be copied
 """
 
 import os

@@ -73,7 +73,8 @@ def parse_arguments():
             virus_region=None,
             opto_loc=None,
             notes=None,
-            auto_defaults=False
+            auto_defaults=False,
+            permanent_path=None
         )
     else:
         # Create argument parser
@@ -120,6 +121,8 @@ def parse_arguments():
 
         # Additional information
         parser.add_argument('--notes', help='Experiment notes')
+        parser.add_argument('--permanent-path',
+                            help='Permanent path where metadata files should be copied')
 
         return parser.parse_args()
 
@@ -799,31 +802,37 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     Returns:
         String containing the permanent path, or None if skipped
     """
+    # Handle programmatic mode
     if args.programmatic:
-        # In programmatic mode, skip permanent path prompt
-        return None
-
-    # Get default from existing info or cache
-    default_path = existing_info.get('permanent_path', '') or cache.get('permanent_path', '')
-
-    if args.auto_defaults and default_path:
-        permanent_path = default_path
+        # Use permanent_path from command line if provided
+        if hasattr(args, 'permanent_path') and args.permanent_path:
+            permanent_path = os.path.expanduser(args.permanent_path.strip())
+        else:
+            # Skip if not provided in programmatic mode
+            return None
     else:
-        print("\n=== Permanent Metadata Copy ===")
-        print("Please specify where the permanent copy of the data is stored.")
-        print("Metadata files will be copied to this location.")
-        permanent_path = input(
-            f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
-        if permanent_path.strip() == '':
-            if default_path:
-                permanent_path = default_path
-            else:
-                print("Skipping permanent metadata copy.")
-                return None
+        # Get default from existing info or cache
+        default_path = existing_info.get('permanent_path', '') or cache.get('permanent_path', '')
 
-    # Validate the path
-    permanent_path = os.path.expanduser(permanent_path.strip())
+        if args.auto_defaults and default_path:
+            permanent_path = default_path
+        else:
+            print("\n=== Permanent Metadata Copy ===")
+            print("Please specify where the permanent copy of the data is stored.")
+            print("Metadata files will be copied to this location.")
+            permanent_path = input(
+                f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
+            if permanent_path.strip() == '':
+                if default_path:
+                    permanent_path = default_path
+                else:
+                    print("Skipping permanent metadata copy.")
+                    return None
+
+        # Validate the path
+        permanent_path = os.path.expanduser(permanent_path.strip())
     
+    # Validation (applies to both programmatic and manual modes)
     if not os.path.exists(permanent_path):
         print(f"Error: Path does not exist: {permanent_path}")
         print("Please ensure the permanent data directory exists before running this script.")
@@ -833,13 +842,22 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     # Check if directory name matches
     permanent_dir_name = os.path.basename(permanent_path.rstrip('/'))
     if permanent_dir_name != dir_name:
-        print(f"\n⚠️  Warning: Directory name mismatch!")
-        print(f"  Current directory: {dir_name}")
-        print(f"  Permanent directory: {permanent_dir_name}")
-        response = input("Are you sure this is the correct permanent data location? (y/n): ")
-        if response.lower() not in ['y', 'yes']:
+        if args.programmatic:
+            # In programmatic mode, fail with error
+            print(f"Error: Directory name mismatch!")
+            print(f"  Current directory: {dir_name}")
+            print(f"  Permanent directory: {permanent_dir_name}")
             print("Skipping permanent metadata copy.")
             return None
+        else:
+            # In manual mode, ask for confirmation
+            print(f"\n⚠️  Warning: Directory name mismatch!")
+            print(f"  Current directory: {dir_name}")
+            print(f"  Permanent directory: {permanent_dir_name}")
+            response = input("Are you sure this is the correct permanent data location? (y/n): ")
+            if response.lower() not in ['y', 'yes']:
+                print("Skipping permanent metadata copy.")
+                return None
 
     # Check if data exists at the permanent location
     # Look for common data files to verify this is a valid data directory
@@ -850,14 +868,19 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     if not has_data:
         print(f"Warning: No data files found at {permanent_path}")
         print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
-        response = input("Continue anyway? (y/n): ")
-        if response.lower() not in ['y', 'yes']:
-            print("Skipping permanent metadata copy.")
-            return None
+        if args.programmatic:
+            # In programmatic mode, continue anyway (assume user knows what they're doing)
+            print("Continuing in programmatic mode...")
+        else:
+            response = input("Continue anyway? (y/n): ")
+            if response.lower() not in ['y', 'yes']:
+                print("Skipping permanent metadata copy.")
+                return None
 
-    # Save to cache
-    cache['permanent_path'] = permanent_path
-    save_to_cache(cache, cache_file_path)
+    # Save to cache (only in manual mode)
+    if not args.programmatic:
+        cache['permanent_path'] = permanent_path
+        save_to_cache(cache, cache_file_path)
 
     return permanent_path
 
