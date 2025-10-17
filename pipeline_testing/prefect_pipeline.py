@@ -1,6 +1,9 @@
 """
 Creating a Prefect pipeline for running tests
 Run python scripts using subprocess as prefect tasks
+
+NOTE: Superflows will stop execution of that flow on the first subflow/task that fails,
+    unless we catch exceptions within the subflow/task itself.
 """
 
 ############################################################
@@ -75,22 +78,19 @@ from prefect import flow, task  # noqa
 from glob import glob  # noqa
 import json  # noqa
 import sys  # noqa
-from PIL import Image  # noqa
-from io import BytesIO  # noqa
 from create_exp_info_commands import command_dict  # noqa
 from switch_auto_car import set_auto_car  # noqa
 import pandas as pd  # noqa
 
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-import blech_clust.utils.blech_utils as bu  # noqa
 import blech_clust.utils.ephys_data.ephys_data as ephys_data  # noqa
-
-# S3 configuration
-S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
-
-# GitHub Actions configuration
-GITHUB_ACTIONS = os.environ.get('GITHUB_ACTIONS') == 'true'
+from blech_clust.pipeline_testing.s3_utils import (
+    S3_BUCKET,
+    dummy_upload_test_results,
+    compress_image,
+    upload_test_results,
+    )
 
 print(args.fail_fast)
 fail_fast = args.fail_fast
@@ -627,6 +627,29 @@ def fail_check_direct():
     print("Running fail_check_direct to simulate an error...")
     raise Exception("Simulated direct failure")
 
+@task(log_prints=True)
+def pass_check_popen(data_dir):
+    """
+    Dummy task to simulate a successful process using Popen
+    """
+    if verbose:
+        print(f'[DEBUG] pass_check_popen with data_dir={data_dir}')
+    print("Running pass_check_popen to simulate success...")
+    process = Popen(["python", '-c', 'print("Simulated success popen")'], 
+                    stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
+
+@task(log_prints=True)
+def pass_check_direct():
+    """
+    Dummy task to simulate a successful direct execution
+    """
+    if verbose:
+        print(f'[DEBUG] pass_check_direct')
+    print("Running pass_check_direct to simulate success...")
+    return
+
 
 ############################################################
 # Define Flows
@@ -651,15 +674,30 @@ def fail_check_subflow(use_popen=False):
     else:
         fail_check_direct()
 
+@try_except_flow
+@flow(log_prints=True)
+def pass_check_subflow(use_popen=False):
+    """Flow to test successful execution"""
+    data_dir = data_dirs_dict['ofpc']
+    if use_popen:
+        pass_check_popen(data_dir)
+    else:
+        pass_check_direct()
+
 @flow(log_prints=True)
 def fail_check_flow(use_popen=False):
     """Flow to test error handling"""
-    print('Running 2 fail check tests...')
+    print('Running 2 sets of tests...')
     print('1- Running first test...')
+    pass_check_subflow(use_popen=use_popen)
     fail_check_subflow(use_popen=use_popen)
     print('2- Running second test...')
+    pass_check_subflow(use_popen=use_popen)
     fail_check_subflow(use_popen=use_popen)
 
+##############################
+
+@try_except_flow
 @flow(log_prints=True)
 def prep_data_flow(file_type, data_type='emg_spike'):
     data_dir = data_dirs_dict[file_type]
@@ -667,7 +705,7 @@ def prep_data_flow(file_type, data_type='emg_spike'):
     download_test_data(data_dir)
     prep_data_info(file_type, data_type)
 
-
+@try_except_flow
 @flow(log_prints=True)
 def run_spike_test(data_dir):
     os.chdir(blech_clust_dir)
@@ -714,6 +752,7 @@ def run_spike_test(data_dir):
     test_ephys_data(data_dir)
 
 
+@try_except_flow
 @flow(log_prints=True)
 def run_emg_main_test(data_dir):
     os.chdir(blech_clust_dir)
@@ -729,6 +768,7 @@ def run_emg_main_test(data_dir):
     emg_freq_setup(data_dir)
 
 
+@try_except_flow
 @flow(log_prints=True)
 def spike_emg_flow(data_dir, file_type):
     # Set data type
@@ -767,6 +807,7 @@ def spike_emg_flow(data_dir, file_type):
     run_gapes_Li(data_dir)
 
 
+@try_except_flow
 @flow(log_prints=True)
 def run_emg_freq_test(data_dir, use_BSA=1):
     os.chdir(blech_clust_dir)
@@ -778,147 +819,8 @@ def run_emg_freq_test(data_dir, use_BSA=1):
     emg_freq_plot(data_dir)
 
 ##############################
-
-
-def compress_image(image_path, max_size_kb=50):
-    """Compress image to a maximum size in KB.
-
-    Args:
-        image_path (str): Path to the image file
-        max_size_kb (int): Maximum size in KB
-
-    Returns:
-        bool: True if compression was successful, False otherwise
-    """
-    try:
-        # Check if file exists and is an image
-        if not os.path.exists(image_path):
-            return False
-
-        # Check current file size
-        current_size = os.path.getsize(image_path)
-        if current_size <= max_size_kb * 1024:
-            return True  # Already small enough
-
-        # Open the image
-        img = Image.open(image_path)
-        img_format = img.format if img.format else 'PNG'
-
-        # If we get here, we couldn't compress enough with quality reduction alone
-        # Try resizing the image
-        width, height = img.size
-        scale_factor = (max_size_kb * 1024) / current_size
-
-        # print(f'Scale factor: {scale_factor}')
-        new_width = int(width * scale_factor)
-        new_height = int(height * scale_factor)
-        resized_img = img.resize((new_width, new_height), Image.LANCZOS)
-
-        temp_buffer = BytesIO()
-        resized_img.save(temp_buffer, format=img_format,
-                         quality=25, optimize=True)
-        temp_size = temp_buffer.getbuffer().nbytes
-
-        while temp_size > max_size_kb * 1024:
-            # print(f'Scale factor: {scale_factor}')
-            new_width = int(width * scale_factor)
-            new_height = int(height * scale_factor)
-            resized_img = img.resize((new_width, new_height), Image.LANCZOS)
-
-            temp_buffer = BytesIO()
-            resized_img.save(temp_buffer, format=img_format,
-                             quality=90, optimize=True)
-            temp_size = temp_buffer.getbuffer().nbytes
-            scale_factor *= 0.5  # Reduce scale factor for next iteration
-
-        resized_img.save(image_path, format=img_format,
-                         quality=90, optimize=True)
-        # print(
-        #     f"Compressed and resized {image_path} to {new_width}x{new_height} ({temp_size/1024:.1f}KB)")
-        return True
-
-    except Exception as e:
-        print(f"Error compressing image {image_path}: {str(e)}")
-        return False
-
-
-def upload_test_results(data_dir, test_type, file_type, data_type=None):
-    """Upload test results to S3 bucket and generate summary
-
-    Args:
-        data_dir (str): Directory containing results to upload
-        test_type (str): Type of test (spike, emg, etc.)
-        file_type (str): Type of file (ofpc, trad)
-        data_type (str, optional): Type of data being tested (emg, spike, emg_spike)
-
-    Returns:
-        dict: Results from upload_to_s3 function
-    """
-    test_name = f"{test_type}_test"
-    s3_dir = f"test_outputs/{os.path.basename(data_dir)}"
-
-    # Compress all images before uploading
-    print(f"Compressing images in {data_dir} before upload...")
-    image_count = 0
-    compressed_count = 0
-
-    output_files = bu.find_output_files(data_dir)
-    for file_list in output_files.values():
-        for file in file_list:
-            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                image_path = os.path.join(data_dir, file)
-                image_count += 1
-                if compress_image(image_path):
-                    compressed_count += 1
-
-    if image_count > 0:
-        print(
-            f"Compressed {compressed_count}/{image_count} images to max 50KB")
-
-    try:
-        # Upload files to S3
-        upload_results = bu.upload_to_s3(data_dir, S3_BUCKET, s3_dir,
-                                         add_timestamp=True, test_name=test_name,
-                                         data_type=data_type, file_type=file_type)
-
-        # Generate summary
-        summary_file = os.path.join(
-            data_dir, f"{test_type}_{file_type}_s3_summary.md")
-        # summary = bu.generate_github_summary(
-        #     upload_results, summary_file, bucket_name=S3_BUCKET)
-
-        # Add index.html link to summary if available
-        if upload_results and upload_results.get('s3_directory'):
-            index_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{upload_results['s3_directory']}/index.html"
-            # Include file_type and data_type in the summary
-            data_type_str = f" ({data_type})" if data_type else ""
-            index_summary = f"\n\n## {test_name} - {file_type}{data_type_str}\n\nView all files in this upload: [Index Page]({index_url})\n\n"
-
-            # Append to summary file
-            with open(summary_file, 'a') as f:
-                f.write(index_summary)
-
-            # # Append to summary string
-            # summary += index_summary
-
-        # If running in GitHub Actions, append to step summary
-        if os.environ.get('GITHUB_STEP_SUMMARY'):
-            with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                f.write(index_summary)
-
-        return upload_results
-    except Exception as e:
-        print(f'Failed to upload results to S3: {str(e)}')
-        return None
-
-
-def dummy_upload_test_results():
-    """Upload results without running tests"""
-    file_type = 'ofpc'
-    data_dir = data_dirs_dict[file_type]
-    test_type = 'dummy'
-    upload_test_results(data_dir, test_type, file_type, data_type='dummy_data')
-
+# FINAL LEVEL FLOWS
+##############################
 
 @flow(log_prints=True)
 def spike_only_test():
