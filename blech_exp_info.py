@@ -785,7 +785,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     Process permanent path for metadata backup.
 
     This function handles the collection of a permanent path where metadata files
-    should be copied. It validates that the data exists at the specified location.
+    should be copied. It validates that the data exists at the specified location
+    and that the directory name matches the current data directory.
 
     Args:
         dir_path: Path to the current data directory
@@ -824,16 +825,19 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     permanent_path = os.path.expanduser(permanent_path.strip())
     
     if not os.path.exists(permanent_path):
-        print(f"Warning: Path does not exist: {permanent_path}")
-        response = input("Do you want to create this directory? (y/n): ")
-        if response.lower() in ['y', 'yes']:
-            try:
-                os.makedirs(permanent_path, exist_ok=True)
-                print(f"Created directory: {permanent_path}")
-            except Exception as e:
-                print(f"Error creating directory: {e}")
-                return None
-        else:
+        print(f"Error: Path does not exist: {permanent_path}")
+        print("Please ensure the permanent data directory exists before running this script.")
+        print("Skipping permanent metadata copy.")
+        return None
+
+    # Check if directory name matches
+    permanent_dir_name = os.path.basename(permanent_path.rstrip('/'))
+    if permanent_dir_name != dir_name:
+        print(f"\n⚠️  Warning: Directory name mismatch!")
+        print(f"  Current directory: {dir_name}")
+        print(f"  Permanent directory: {permanent_dir_name}")
+        response = input("Are you sure this is the correct permanent data location? (y/n): ")
+        if response.lower() not in ['y', 'yes']:
             print("Skipping permanent metadata copy.")
             return None
 
