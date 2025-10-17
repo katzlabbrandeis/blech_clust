@@ -24,7 +24,7 @@ if test_bool:
         qda=False,
         all=False,
         spike_emg=False,
-        raise_exception=False,
+        fail_fast=False,
         file_type='ofpc',
         dummy_upload=False
     )
@@ -49,8 +49,8 @@ else:
                         help='Run spike + emg in single test')
     parser.add_argument('--ephys_data', action='store_true',
                         help='Run ephys_data test')
-    parser.add_argument('--raise-exception', action='store_true',
-                        help='Raise error if subprocess fails')
+    parser.add_argument('--fail-fast', action='store_true',
+                        help='Stop execution on first error encountered')
     parser.add_argument('--file_type',
                         help='File types to run tests on',
                         choices=['ofpc', 'trad', 'all'],
@@ -63,6 +63,10 @@ else:
                         help='Run dummy upload test')
     parser.add_argument('--verbose', action='store_true',
                         help='Enable verbose debug output')
+    parser.add_argument('--fail-check', action='store_true',
+                        help='Run tests expected to fail')
+    parser.add_argument('--fail-popen', action='store_true',
+                        help='Run fail check using Popen')
     args = parser.parse_args()
     script_path = os.path.realpath(__file__)
 
@@ -88,8 +92,8 @@ S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 # GitHub Actions configuration
 GITHUB_ACTIONS = os.environ.get('GITHUB_ACTIONS') == 'true'
 
-print(args.raise_exception)
-break_bool = args.raise_exception
+print(args.fail_fast)
+break_bool = args.fail_fast
 
 # Set file_types to run
 if args.file_type == 'all':
@@ -128,9 +132,13 @@ def raise_error_if_error(data_dir, process, stderr, stdout, break_bool=True):
     print('=== Process stdout ===\n\n')
     print(stdout.decode('utf-8'))
     print('=== Process stderr ===\n\n')
-    if process.returncode and break_bool:
+    if process.returncode: 
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
+    if process.returncode and not break_bool:
+        print('Encountered error...fail-fast not enabled, continuing execution...\n\n')
+    if break_bool and process.returncode:
+        exit(1)
 
 
 ############################################################
@@ -594,10 +602,63 @@ def test_ephys_data(data_dir):
         raise Exception(
             "Some ephys data tests failed. Check the output above.")
 
+@task(log_prints=True)
+def fail_check_popen(data_dir):
+    """
+    Dummy task to raise an exception for testing error handling
+    using raise_error_if_error function
+    """
+    if verbose:
+        print(f'[DEBUG] fail_check_popen with data_dir={data_dir}')
+    print("Running fail_check_popen to simulate an error...")
+    process = Popen(["python", '-c', 'raise Exception("Simulated failure popen")'], 
+                    stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+    raise_error_if_error(data_dir, process, stderr, stdout, break_bool)
+
+@task(log_prints=True)
+def fail_check_direct():
+    """
+    Dummy task to raise an exception for testing error handling
+    directly
+    """
+    if verbose:
+        print(f'[DEBUG] fail_check_direct')
+    print("Running fail_check_direct to simulate an error...")
+    raise Exception("Simulated direct failure")
+
+
 ############################################################
 # Define Flows
 ############################################################
+# Make a try-except decorator to catch errors in flows but allow Prefect to log and continue
+def try_except_flow(flow_func):
+    def wrapper(*args, **kwargs):
+        print(f"Try-except wrapper for flow: {flow_func.__name__}")
+        try:
+            flow_func(*args, **kwargs)
+        except Exception as e:
+            print(f"Error in flow {flow_func.__name__}: {str(e)}")
+    return wrapper
 
+@try_except_flow
+@flow(log_prints=True)
+def fail_check_subflow(use_popen=False):
+    """Flow to test error handling"""
+    data_dir = data_dirs_dict['ofpc']
+    if use_popen:
+        fail_check_popen(data_dir)
+    else:
+        fail_check_direct()
+
+@flow(log_prints=True)
+def fail_check_flow(use_popen=False):
+    """Flow to test error handling"""
+    print('Running 2 fail check tests...')
+    print('1- Running first test...')
+    fail_check_subflow(use_popen=use_popen)
+    print('2- Running second test...')
+    fail_check_subflow(use_popen=use_popen)
 
 @flow(log_prints=True)
 def prep_data_flow(file_type, data_type='emg_spike'):
@@ -1011,3 +1072,6 @@ elif args.dummy_upload:
 elif args.ephys_data:
     print('Running ephys_data class tests only')
     ephys_data_only_flow(return_state=True)
+elif args.fail_check:
+    print('Running fail_check test')
+    fail_check_flow(use_popen=args.fail_popen, return_state=True)
