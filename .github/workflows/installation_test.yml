@@ -41,6 +41,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
