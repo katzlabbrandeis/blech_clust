@@ -12,9 +12,11 @@ The testing framework allows automated testing of different components of the bl
 
 ## Test Data
 
-The framework uses small test datasets that can be automatically downloaded:
+The framework uses small test datasets that can be automatically downloaded to `~/.blech_clust_test_data`:
 - OFPC format data: `KM45_5tastes_210620_113227_new`
 - Traditional format data: `eb24_behandephys_11_12_24_241112_114659_copy`
+
+Test data is stored outside the repository directory to allow clean repo cloning without re-downloading data.
 
 ## Running Tests
 
