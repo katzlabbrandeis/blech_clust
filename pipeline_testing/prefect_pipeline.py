@@ -147,8 +147,8 @@ data_subdirs_dict = {
     'ofpc': 'KM45_5tastes_210620_113227_new',
     'trad': 'eb24_behandephys_11_12_24_241112_114659_copy'
 }
-data_dir_base = os.path.join(
-    blech_clust_dir, 'pipeline_testing', 'test_data_handling', 'test_data')
+# Use home directory for test data to allow clean repo cloning
+data_dir_base = os.path.expanduser('~/.blech_clust_test_data')
 data_dirs_dict = {key: os.path.join(data_dir_base, subdir)
                   for key, subdir in data_subdirs_dict.items()}
 
