@@ -780,6 +780,149 @@ def process_notes(args, existing_info, cache, cache_file_path):
     return notes
 
 
+def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache_file_path):
+    """
+    Process permanent path for metadata backup.
+
+    This function handles the collection of a permanent path where metadata files
+    should be copied. It validates that the data exists at the specified location.
+
+    Args:
+        dir_path: Path to the current data directory
+        dir_name: Name of the directory
+        args: Command line arguments
+        existing_info: Dictionary containing existing information
+        cache: Dictionary containing cached values
+        cache_file_path: Path to cache file
+
+    Returns:
+        String containing the permanent path, or None if skipped
+    """
+    if args.programmatic:
+        # In programmatic mode, skip permanent path prompt
+        return None
+
+    # Get default from existing info or cache
+    default_path = existing_info.get('permanent_path', '') or cache.get('permanent_path', '')
+
+    if args.auto_defaults and default_path:
+        permanent_path = default_path
+    else:
+        print("\n=== Permanent Metadata Copy ===")
+        print("Please specify where the permanent copy of the data is stored.")
+        print("Metadata files will be copied to this location.")
+        permanent_path = input(
+            f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
+        if permanent_path.strip() == '':
+            if default_path:
+                permanent_path = default_path
+            else:
+                print("Skipping permanent metadata copy.")
+                return None
+
+    # Validate the path
+    permanent_path = os.path.expanduser(permanent_path.strip())
+    
+    if not os.path.exists(permanent_path):
+        print(f"Warning: Path does not exist: {permanent_path}")
+        response = input("Do you want to create this directory? (y/n): ")
+        if response.lower() in ['y', 'yes']:
+            try:
+                os.makedirs(permanent_path, exist_ok=True)
+                print(f"Created directory: {permanent_path}")
+            except Exception as e:
+                print(f"Error creating directory: {e}")
+                return None
+        else:
+            print("Skipping permanent metadata copy.")
+            return None
+
+    # Check if data exists at the permanent location
+    # Look for common data files to verify this is a valid data directory
+    data_indicators = ['info.rhd', 'time.dat', 'amplifier.dat']
+    has_data = any(os.path.exists(os.path.join(permanent_path, indicator)) 
+                   for indicator in data_indicators)
+    
+    if not has_data:
+        print(f"Warning: No data files found at {permanent_path}")
+        print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
+        response = input("Continue anyway? (y/n): ")
+        if response.lower() not in ['y', 'yes']:
+            print("Skipping permanent metadata copy.")
+            return None
+
+    # Save to cache
+    cache['permanent_path'] = permanent_path
+    save_to_cache(cache, cache_file_path)
+
+    return permanent_path
+
+
+def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, generated_files):
+    """
+    Copy metadata files to permanent location.
+
+    This function copies all generated metadata files to the permanent storage location.
+    If files already exist, it prompts the user for confirmation before overwriting.
+
+    Args:
+        dir_path: Path to the current data directory
+        dir_name: Name of the directory
+        permanent_path: Path to permanent storage location
+        generated_files: List of generated file paths to copy
+
+    Returns:
+        Boolean indicating success
+    """
+    import shutil
+
+    if not permanent_path or not generated_files:
+        return False
+
+    print(f"\n=== Copying Metadata to Permanent Location ===")
+    print(f"Destination: {permanent_path}")
+
+    # Check if any files already exist
+    existing_files = []
+    for file_path in generated_files:
+        if not os.path.exists(file_path):
+            continue
+        filename = os.path.basename(file_path)
+        dest_path = os.path.join(permanent_path, filename)
+        if os.path.exists(dest_path):
+            existing_files.append(filename)
+
+    # If files exist, ask for confirmation
+    if existing_files:
+        print(f"\nThe following files already exist at the destination:")
+        for filename in existing_files:
+            print(f"  - {filename}")
+        response = input("Do you want to overwrite them? (y/n): ")
+        if response.lower() not in ['y', 'yes']:
+            print("Skipping metadata copy.")
+            return False
+
+    # Copy files
+    copied_count = 0
+    for file_path in generated_files:
+        if not os.path.exists(file_path):
+            print(f"Warning: File not found, skipping: {file_path}")
+            continue
+        
+        filename = os.path.basename(file_path)
+        dest_path = os.path.join(permanent_path, filename)
+        
+        try:
+            shutil.copy2(file_path, dest_path)
+            print(f"Copied: {filename}")
+            copied_count += 1
+        except Exception as e:
+            print(f"Error copying {filename}: {e}")
+
+    print(f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
+    return copied_count > 0
+
+
 def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
                              args, existing_info, cache, cache_file_path):
     """
@@ -1315,6 +1458,10 @@ def main():
     # Process notes
     notes = process_notes(args, existing_info, cache, cache_file_path)
 
+    # Process permanent path for metadata backup
+    permanent_path = process_permanent_path(
+        dir_path, dir_name, args, existing_info, cache, cache_file_path)
+
     # Get laser trial counts if laser dig-ins exist
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
@@ -1356,10 +1503,29 @@ def main():
         'notes': notes
     }
 
+    # Add permanent_path to the dictionary if provided
+    if permanent_path:
+        fin_dict['permanent_path'] = permanent_path
+
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
     with open(json_file_name, 'w') as file:
         json.dump(fin_dict, file, indent=4)
+
+    # Collect all generated files for copying
+    layout_file_path = os.path.join(dir_path, dir_name + "_electrode_layout.csv")
+    dig_in_frame_path = os.path.join(dir_path, 'dig_in_channel_info.json')
+    
+    generated_files = [
+        json_file_name,
+        layout_file_path,
+        dig_in_frame_path
+    ]
+
+    # Copy metadata to permanent location if specified
+    if permanent_path:
+        copy_metadata_to_permanent_location(
+            dir_path, dir_name, permanent_path, generated_files)
 
     # Write success to log
     if pipeline_check:
