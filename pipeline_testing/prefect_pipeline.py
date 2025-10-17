@@ -870,18 +870,8 @@ def spike_only_test():
             print(f"""Running spike test with
                   file type : {file_type}
                   data type : {data_type}""")
-            if not break_bool:
-                try:
-                    prep_data_flow(file_type, data_type=data_type)
-                except:
-                    print('Failed to prep data')
-                try:
-                    run_spike_test(data_dir)
-                except:
-                    print('Failed to run spike test')
-            else:
-                prep_data_flow(file_type, data_type=data_type)
-                run_spike_test(data_dir)
+            prep_data_flow(file_type, data_type=data_type)
+            run_spike_test(data_dir)
 
             # Upload results to S3
             # Get current data type from file
@@ -917,13 +907,7 @@ def ephys_data_only_flow():
 def spike_emg_test():
     for file_type in file_types:
         data_dir = data_dirs_dict[file_type]
-        if not break_bool:
-            try:
-                spike_emg_flow(data_dir, file_type)
-            except:
-                print('Failed to run spike+emg test')
-        else:
-            spike_emg_flow(data_dir, file_type)
+        spike_emg_flow(data_dir, file_type)
 
         # Upload results to S3 with data_type
         upload_test_results(data_dir, "spike_emg",
@@ -938,18 +922,8 @@ def bsa_only_test():
             print(f"""Running BSA test with
                   file type : {file_type}
                   data type : {data_type}""")
-            if not break_bool:
-                try:
-                    prep_data_flow(file_type, data_type=data_type)
-                except:
-                    print('Failed to prep data')
-                try:
-                    run_emg_freq_test(data_dir, use_BSA=1)
-                except:
-                    print('Failed to run emg BSA test')
-            else:
-                prep_data_flow(file_type, data_type=data_type)
-                run_emg_freq_test(data_dir, use_BSA=1)
+            prep_data_flow(file_type, data_type=data_type)
+            run_emg_freq_test(data_dir, use_BSA=1)
             upload_test_results(
                 data_dir, "BSA", file_type, data_type=data_type)
 
@@ -962,18 +936,8 @@ def stft_only_test():
             print(f"""Running STFT test with
                   file type : {file_type}
                   data type : {data_type}""")
-            if not break_bool:
-                try:
-                    prep_data_flow(file_type, data_type=data_type)
-                except:
-                    print('Failed to prep data')
-                try:
-                    run_emg_freq_test(data_dir, use_BSA=0)
-                except:
-                    print('Failed to run emg STFT test')
-            else:
-                prep_data_flow(file_type, data_type=data_type)
-                run_emg_freq_test(data_dir, use_BSA=0)
+            prep_data_flow(file_type, data_type=data_type)
+            run_emg_freq_test(data_dir, use_BSA=0)
             upload_test_results(
                 data_dir, "STFT", file_type, data_type=data_type)
 
@@ -986,74 +950,31 @@ def run_EMG_QDA_test():
             print(f"""Running EMG QDA test with
                   file type : {file_type}
                   data type : {data_type}""")
-            if not break_bool:
-                try:
-                    prep_data_flow(file_type, data_type=data_type)
-                except:
-                    print('Failed to prep data')
-                try:
-                    run_emg_main_test(data_dir)
-                    os.chdir(os.path.join(blech_clust_dir,
-                             'emg', 'gape_QDA_classifier'))
-                    run_gapes_Li(data_dir)
-                except:
-                    print('Failed to run QDA test')
-            else:
-                prep_data_flow(file_type, data_type=data_type)
-                run_emg_main_test(data_dir)
-                os.chdir(os.path.join(blech_clust_dir,
-                         'emg', 'gape_QDA_classifier'))
-                run_gapes_Li(data_dir)
+            prep_data_flow(file_type, data_type=data_type)
+            run_emg_main_test(data_dir)
+            os.chdir(os.path.join(blech_clust_dir,
+                     'emg', 'gape_QDA_classifier'))
+            run_gapes_Li(data_dir)
             upload_test_results(
                 data_dir, "QDA", file_type, data_type=data_type)
 
 
 @flow(log_prints=True)
 def run_emg_freq_only():
-    if not break_bool:
-        try:
-            bsa_only_test()
-        except:
-            print('Failed to run BSA test')
-        try:
-            stft_only_test()
-        except:
-            print('Failed to run STFT test')
-    else:
-        bsa_only_test()
-        stft_only_test()
+    bsa_only_test()
+    stft_only_test()
 
 
 @flow(log_prints=True)
 def emg_only_test():
-    if not break_bool:
-        try:
-            run_emg_freq_only()
-        except:
-            print('Failed to run emg freq test')
-        try:
-            run_EMG_QDA_test()
-        except:
-            print('Failed to run QDA test')
-    else:
-        run_emg_freq_only()
-        run_EMG_QDA_test()
+    run_emg_freq_only()
+    run_EMG_QDA_test()
 
 
 @flow(log_prints=True)
 def full_test():
-    if not break_bool:
-        try:
-            spike_emg_test()
-        except:
-            print('Failed to run spike+emg test')
-        try:
-            emg_only_test()
-        except:
-            print('Failed to run emg test')
-    else:
-        spike_emg_test()
-        emg_only_test()
+    spike_emg_test()
+    emg_only_test()
 
 
 ############################################################
