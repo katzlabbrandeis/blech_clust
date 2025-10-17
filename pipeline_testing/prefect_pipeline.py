@@ -7,6 +7,12 @@ NOTE: Superflows will stop execution of that flow on the first subflow/task that
 """
 
 ############################################################
+from blech_clust.pipeline_testing.s3_utils import (
+    S3_BUCKET,
+    dummy_upload_test_results,
+    compress_image,
+    upload_test_results,
+)
 import traceback
 test_bool = False
 
@@ -85,12 +91,6 @@ import pandas as pd  # noqa
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 import blech_clust.utils.ephys_data.ephys_data as ephys_data  # noqa
-from blech_clust.pipeline_testing.s3_utils import (
-    S3_BUCKET,
-    dummy_upload_test_results,
-    compress_image,
-    upload_test_results,
-    )
 
 print(args.fail_fast)
 fail_fast = args.fail_fast
@@ -132,7 +132,7 @@ def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
     print('=== Process stdout ===\n\n')
     print(stdout.decode('utf-8'))
     print('=== Process stderr ===\n\n')
-    if process.returncode: 
+    if process.returncode:
         decode_err = stderr.decode('utf-8')
         raise Exception(decode_err)
     if process.returncode and not fail_fast:
@@ -602,6 +602,7 @@ def test_ephys_data(data_dir):
         raise Exception(
             "Some ephys data tests failed. Check the output above.")
 
+
 @task(log_prints=True)
 def fail_check_popen(data_dir):
     """
@@ -611,10 +612,11 @@ def fail_check_popen(data_dir):
     if verbose:
         print(f'[DEBUG] fail_check_popen with data_dir={data_dir}')
     print("Running fail_check_popen to simulate an error...")
-    process = Popen(["python", '-c', 'raise Exception("Simulated failure popen")'], 
+    process = Popen(["python", '-c', 'raise Exception("Simulated failure popen")'],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
+
 
 @task(log_prints=True)
 def fail_check_direct():
@@ -627,6 +629,7 @@ def fail_check_direct():
     print("Running fail_check_direct to simulate an error...")
     raise Exception("Simulated direct failure")
 
+
 @task(log_prints=True)
 def pass_check_popen(data_dir):
     """
@@ -635,10 +638,11 @@ def pass_check_popen(data_dir):
     if verbose:
         print(f'[DEBUG] pass_check_popen with data_dir={data_dir}')
     print("Running pass_check_popen to simulate success...")
-    process = Popen(["python", '-c', 'print("Simulated success popen")'], 
+    process = Popen(["python", '-c', 'print("Simulated success popen")'],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
+
 
 @task(log_prints=True)
 def pass_check_direct():
@@ -664,6 +668,7 @@ def try_except_flow(flow_func):
             print(f"Error in flow {flow_func.__name__}: {str(e)}")
     return wrapper
 
+
 @try_except_flow
 @flow(log_prints=True)
 def fail_check_subflow(use_popen=False):
@@ -674,6 +679,7 @@ def fail_check_subflow(use_popen=False):
     else:
         fail_check_direct()
 
+
 @try_except_flow
 @flow(log_prints=True)
 def pass_check_subflow(use_popen=False):
@@ -683,6 +689,7 @@ def pass_check_subflow(use_popen=False):
         pass_check_popen(data_dir)
     else:
         pass_check_direct()
+
 
 @flow(log_prints=True)
 def fail_check_flow(use_popen=False):
@@ -697,6 +704,7 @@ def fail_check_flow(use_popen=False):
 
 ##############################
 
+
 @try_except_flow
 @flow(log_prints=True)
 def prep_data_flow(file_type, data_type='emg_spike'):
@@ -704,6 +712,7 @@ def prep_data_flow(file_type, data_type='emg_spike'):
     os.chdir(blech_clust_dir)
     download_test_data(data_dir)
     prep_data_info(file_type, data_type)
+
 
 @try_except_flow
 @flow(log_prints=True)
@@ -821,6 +830,7 @@ def run_emg_freq_test(data_dir, use_BSA=1):
 ##############################
 # FINAL LEVEL FLOWS
 ##############################
+
 
 @flow(log_prints=True)
 def spike_only_test():

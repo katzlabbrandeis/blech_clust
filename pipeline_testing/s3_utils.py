@@ -5,6 +5,7 @@ import os
 S3_BUCKET = os.getenv('BLECH_S3_BUCKET', 'blech-pipeline-outputs')
 import blech_clust.utils.blech_utils as bu  # noqa
 
+
 def compress_image(image_path, max_size_kb=50):
     """Compress image to a maximum size in KB.
 
