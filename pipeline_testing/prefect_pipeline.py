@@ -259,10 +259,10 @@ def mark_exp_info_success(data_dir):
 
 
 @task(log_prints=True)
-def run_blech_clust(data_dir):
+def run_blech_init(data_dir):
     if verbose:
-        print(f'[DEBUG] run_blech_clust: Starting with data_dir={data_dir}')
-    script_name = 'blech_clust.py'
+        print(f'[DEBUG] run_blech_init: Starting with data_dir={data_dir}')
+    script_name = 'blech_init.py'
     process = Popen(["python", script_name, data_dir],
                     stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
@@ -603,7 +603,7 @@ def run_spike_test(data_dir):
     reset_blech_clust(data_dir)
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
-    run_blech_clust(data_dir)
+    run_blech_init(data_dir)
 
     # Test with auto_car enabled
     set_auto_car(data_dir, 1)
@@ -649,7 +649,7 @@ def run_emg_main_test(data_dir):
     reset_blech_clust(data_dir)
     run_clean_slate(data_dir)
     mark_exp_info_success(data_dir)
-    run_blech_clust(data_dir)
+    run_blech_init(data_dir)
     make_arrays(data_dir)
     # Chop number of trials down to preserve time
     cut_emg_trials(data_dir)
