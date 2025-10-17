@@ -107,7 +107,7 @@ print(f'Running tests for data types: {data_type_list}')
 
 if break_bool:
     print('====================')
-    print('Raising error if subprocess fails')
+    print('Stopping execution on error')
     print('====================')
 
 # Set verbose flag for debug prints
