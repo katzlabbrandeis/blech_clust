@@ -173,7 +173,7 @@ def plot_unit_summary(
 
     fig, ax = plt.subplots(2, 2, figsize=(8, 6), dpi=200)
 
-    if title_text is None:
+    if title_text is not None:
         fig.suptitle(title_text, fontsize=12)
 
     # Plot datashader waveforms
