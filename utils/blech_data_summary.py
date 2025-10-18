@@ -58,8 +58,8 @@ else:
 # Import necessary modules from blech_clust
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-from utils.qa_utils.channel_corr import get_all_channels, intra_corr  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.qa_utils.channel_corr import get_all_channels, intra_corr  # noqa
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 
 def extract_unit_characteristics(dir_name):
