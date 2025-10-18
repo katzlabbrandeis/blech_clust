@@ -384,7 +384,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
         args: Command line arguments containing taste-related parameters
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
     """
     this_dig_handler.get_dig_in_files()
     this_dig_handler.get_trial_data()
@@ -459,7 +459,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
 
 
 def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
@@ -478,7 +478,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         cache_file_path: Path to cache file for saving user preferences
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
     """
     this_dig_handler.get_dig_in_files()
     dig_in_list_str = "All Dig-ins : \n" + \
@@ -654,7 +654,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
 
 
 def setup_experiment_info():
@@ -1304,10 +1304,10 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times = process_dig_ins_programmatic(
             this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
@@ -1356,9 +1356,6 @@ def main():
         )
     else:
         laser_digin_trials = []
-
-    # Ensure open_times is defined
-    open_times = cache['taste_params'].get('open_times', [])
 
     # Create final dictionary
     fin_dict = {
