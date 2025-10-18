@@ -3,6 +3,14 @@
 
 # blech_clust
 
+## Installation Test Status
+
+<!-- INSTALL_TEST_RESULTS_START -->
+Installation tests are run on PRs with the `install` label. Latest results will appear here after the next test run.
+
+To view the most recent installation test results, check the [Actions tab](https://github.com/katzlabbrandeis/blech_clust/actions/workflows/installation_test.yml).
+<!-- INSTALL_TEST_RESULTS_END -->
+
 Python and R based code for clustering and sorting electrophysiology data
 recorded using the Intan RHD2132 chips.  Originally written for cortical
 multi-electrode recordings in Don Katz's lab at Brandeis.  Optimized for the
