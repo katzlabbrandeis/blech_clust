@@ -5,6 +5,7 @@ usage: blech_exp_info.py [-h] [--template TEMPLATE] [--mode {legacy,updated}]
                          [--taste-digins TASTE_DIGINS] [--tastes TASTES]
                          [--concentrations CONCENTRATIONS]
                          [--palatability PALATABILITY]
+                         [--open-times OPEN_TIMES]
                          [--laser-digin LASER_DIGIN]
                          [--laser-params LASER_PARAMS]
                          [--virus-region VIRUS_REGION] [--opto-loc OPTO_LOC]
@@ -35,6 +36,8 @@ optional arguments:
                         Comma-separated concentrations in M
   --palatability PALATABILITY
                         Comma-separated palatability rankings
+  --open-times OPEN_TIMES
+                        Comma-separated open times for each taste dig-in
   --laser-digin LASER_DIGIN
                         Laser digital input index
   --laser-params LASER_PARAMS
@@ -103,6 +106,7 @@ ofpc_stem_str = \
 --tastes a,b,c,d \
 --concentrations 1,1,1,1 \
 --palatability 1,2,3,4 \
+--open-times 1000,1000,1000,1000 \
 """
 
 wanted_emg_inds = [8, 9]
@@ -171,6 +175,7 @@ trad_stem_str = \
 --tastes a,b \
 --concentrations 1,1 \
 --palatability 1,2 \
+--open-times 1000,1000 \
 """
 
 wanted_gc_inds = [39, 44, 63]
@@ -247,6 +252,7 @@ laser_stem_str = \
 --tastes a,b,c \
 --concentrations 1,1,1 \
 --palatability 1,2,3 \
+--open-times 1000,1000,1000 \
 --laser-digin 3 \
 --laser-params "{multi_laser_params}" \
 --opto-loc {multi_opto_locs} \

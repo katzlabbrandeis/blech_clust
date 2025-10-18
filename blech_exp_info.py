@@ -110,6 +110,10 @@ def parse_arguments():
         parser.add_argument(
             '--palatability', help='Comma-separated palatability rankings')
 
+        # Programmatic mode parameters - Taste open-times
+        parser.add_argument(
+            '--open-times', help='Comma-separated open times for each taste dig-in')
+
         # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
         parser.add_argument(
@@ -380,7 +384,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
         args: Command line arguments containing taste-related parameters
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
     """
     this_dig_handler.get_dig_in_files()
     this_dig_handler.get_trial_data()
@@ -428,6 +432,14 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     print_df = print_df[print_df.taste_bool]
     print(print_df)
 
+    # Process open-times
+    if args.open_times:
+        open_times = parse_csv(args.open_times, float)
+    else:
+        raise ValueError('Open-times not provided, use --open-times')
+
+    this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
+
     # Process palatability rankings
     if args.palatability:
         pal_ranks = parse_csv(args.palatability, int)
@@ -447,7 +459,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
 
 
 def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
@@ -466,7 +478,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         cache_file_path: Path to cache file for saving user preferences
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
     """
     this_dig_handler.get_dig_in_files()
     dig_in_list_str = "All Dig-ins : \n" + \
@@ -578,6 +590,30 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     print_df = print_df[print_df.taste_bool]
     print(print_df)
 
+    def open_time_check(x):
+        return len(x.split(',')) == len(taste_dig_inds)
+
+    # Get open-times
+    open_time_str = populate_field_with_defaults(
+        field_name='open_times',
+        nested_field='taste_params',
+        entry_checker_msg='Corresponding open times (in seconds, IN ORDER, COMMA separated)',
+        check_func=open_time_check,
+        existing_info=existing_info,
+        cache=cache,
+        convert_func=convert_concs,
+        fail_response=f'Please enter as many ({len(taste_dig_inds)}) open times as digins',
+        force_default=args.auto_defaults
+    )
+
+    open_times = convert_concs(open_time_str) if isinstance(
+        open_time_str, str) else open_time_str
+    cache['taste_params']['open_times'] = open_times
+    save_to_cache(cache, cache_file_path)
+
+    this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'open_time'] = open_times
+
+    # Get palatability rankings
     def pal_check(x):
         nums = re.findall('[1-9]+', x)
         if not nums:
@@ -585,7 +621,6 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         pal_nums = [int(n) for n in nums]
         return all(1 <= p <= len(tastes) for p in pal_nums) and len(pal_nums) == len(tastes)
 
-    # Get palatability rankings
     def convert_pal_ranks(input_str):
         nums = re.findall('[1-9]+', input_str)
         return [int(x) for x in nums]
@@ -619,7 +654,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times
 
 
 def setup_experiment_info():
@@ -1269,10 +1304,10 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times = process_dig_ins_programmatic(
             this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, open_times = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
@@ -1324,7 +1359,7 @@ def main():
 
     # Create final dictionary
     fin_dict = {
-        'version': '0.0.3',
+        'version': '0.0.4',
         **metadata_dict,
         'file_type': file_type,
         'regions': list(layout_dict.keys()),
@@ -1344,7 +1379,8 @@ def main():
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
-            'pal_rankings': pal_ranks
+            'pal_rankings': pal_ranks,
+            'open_times': open_times
         },
         'laser_params': {
             'dig_in_nums': laser_digin_nums,
