@@ -19,10 +19,10 @@ import sys
 import os
 import pandas as pd
 from tqdm import tqdm
-from utils.clustering import get_filtered_electrode
-from utils.blech_process_utils import return_cutoff_values
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-from utils.read_file import DigInHandler
+from blech_clust.utils.clustering import get_filtered_electrode
+from blech_clust.utils.blech_process_utils import return_cutoff_values
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
+from blech_clust.utils.read_file import DigInHandler
 from ast import literal_eval
 import matplotlib.pyplot as plt
 

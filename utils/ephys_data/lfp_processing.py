@@ -29,7 +29,7 @@ Here are some common usage patterns:
 
 Workflow 1: Basic LFP Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for LFP extraction
 params = {
@@ -52,7 +52,7 @@ lfp_processing.extract_lfps(
 
 Workflow 2: EMG Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for EMG extraction
 params = {
@@ -76,7 +76,7 @@ Workflow 3: Quality Control for LFP Trials
 import numpy as np
 import tables
 import matplotlib.pyplot as plt
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Load LFP data from HDF5 file
 with tables.open_file('/path/to/data/session.h5', 'r') as hf5:
@@ -194,6 +194,17 @@ if try_again:
 
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
+    """Apply bandpass filtering to electrode data
+
+    Args:
+        data: Raw electrode data array
+        low_pass: Low frequency cutoff in Hz
+        high_pass: High frequency cutoff in Hz
+        sampling_rate: Sampling rate of the data in Hz
+
+    Returns:
+        filt_el: Bandpass filtered electrode data
+    """
     el = 0.195*(data)
     m, n = butter(
         2,
@@ -218,6 +229,28 @@ def extract_lfps(dir_name,
                  trial_durations,
                  trial_info_frame,
                  ):
+    """Extract and process LFP data from raw electrode recordings
+
+    Extracts LFP data from raw .dat files, applies bandpass filtering, downsamples,
+    segments into trials based on digital inputs, and saves to HDF5 file. Also
+    generates quality control plots for visual inspection of channels.
+
+    Args:
+        dir_name: Directory containing data files and HDF5 file
+        freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
+        sampling_rate: Original sampling rate of raw data in Hz
+        taste_signal_choice: 'Start' or 'End' for trial alignment point
+        fin_sampling_rate: Final sampling rate after downsampling in Hz
+        dig_in_list: List of digital input channel indices to process
+        trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
+        trial_info_frame: DataFrame containing trial timing information
+
+    Side Effects:
+        - Creates /raw_LFP and /Parsed_LFP nodes in HDF5 file
+        - Creates /Parsed_LFP_channels array in HDF5 file
+        - Generates channel check plots in LFP_channel_check directory
+        - Removes /raw_LFP node after processing to save space
+    """
 
     if taste_signal_choice == 'Start':
         # diff_val = 1
