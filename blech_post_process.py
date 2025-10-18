@@ -86,8 +86,8 @@ os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
 
-import utils.blech_post_process_utils as post_utils  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa
