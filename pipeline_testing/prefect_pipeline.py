@@ -171,16 +171,16 @@ def download_test_data(data_dir):
 def create_dummy_permanent_dataset(data_dir):
     """
     Create a dummy permanent dataset for testing permanent-path functionality.
-    
+
     Args:
         data_dir: Source data directory
-    
+
     Returns:
         Path to the created permanent directory
     """
     # Create permanent directory path (sibling to test_data)
     permanent_dir = data_dir + '_permanent'
-    
+
     script_name = './pipeline_testing/create_dummy_permanent_dataset.py'
     process = Popen(
         ["python", script_name, data_dir, permanent_dir],
@@ -188,7 +188,7 @@ def create_dummy_permanent_dataset(data_dir):
     )
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
-    
+
     return permanent_dir
 
 

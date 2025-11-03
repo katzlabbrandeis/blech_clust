@@ -21,7 +21,7 @@ import shutil
 def create_dummy_file(filepath, size_bytes=1024):
     """
     Create a dummy file with specified size.
-    
+
     Args:
         filepath: Path to the file to create
         size_bytes: Size of the file in bytes (default: 1KB)
@@ -35,7 +35,7 @@ def create_dummy_file(filepath, size_bytes=1024):
 def create_dummy_permanent_dataset(source_dir, permanent_dir):
     """
     Create a dummy permanent dataset with minimum required files.
-    
+
     Args:
         source_dir: Source data directory (for reference)
         permanent_dir: Destination permanent directory to create
@@ -43,14 +43,14 @@ def create_dummy_permanent_dataset(source_dir, permanent_dir):
     # Create the permanent directory if it doesn't exist
     os.makedirs(permanent_dir, exist_ok=True)
     print(f"Created permanent directory: {permanent_dir}")
-    
+
     # Required files for permanent-path validation
     required_files = ['info.rhd', 'time.dat', 'amplifier.dat']
-    
+
     for filename in required_files:
         source_file = os.path.join(source_dir, filename)
         dest_file = os.path.join(permanent_dir, filename)
-        
+
         # If source file exists, copy it (for info.rhd which is small)
         # Otherwise create a dummy file
         if os.path.exists(source_file) and filename == 'info.rhd':
@@ -67,9 +67,9 @@ def create_dummy_permanent_dataset(source_dir, permanent_dir):
                 size = 1024 * 10  # 10KB
             else:
                 size = 1024
-            
+
             create_dummy_file(dest_file, size)
-    
+
     print(f"\nDummy permanent dataset created at: {permanent_dir}")
     print("This directory contains minimal files to pass permanent-path validation.")
 
@@ -86,17 +86,17 @@ def main():
         'permanent_dir',
         help='Permanent directory to create'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate source directory exists
     if not os.path.exists(args.source_dir):
         print(f"Error: Source directory does not exist: {args.source_dir}")
         return 1
-    
+
     # Create dummy permanent dataset
     create_dummy_permanent_dataset(args.source_dir, args.permanent_dir)
-    
+
     return 0
 
 
