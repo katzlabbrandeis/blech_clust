@@ -912,7 +912,8 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
 
     if not permanent_path or not generated_files:
         if programmatic:
-            raise RuntimeError("Cannot copy metadata: permanent_path or generated_files is empty")
+            raise RuntimeError(
+                "Cannot copy metadata: permanent_path or generated_files is empty")
         return False
 
     print(f"\n=== Copying Metadata to Permanent Location ===")
@@ -970,7 +971,8 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
                 print(msg)
 
     if programmatic and failed_files:
-        raise RuntimeError(f"Failed to copy metadata files:\n" + "\n".join(failed_files))
+        raise RuntimeError(
+            f"Failed to copy metadata files:\n" + "\n".join(failed_files))
 
     print(
         f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
@@ -1580,7 +1582,7 @@ def main():
     # Copy metadata to permanent location if specified
     if permanent_path:
         copy_metadata_to_permanent_location(
-            dir_path, dir_name, permanent_path, generated_files, 
+            dir_path, dir_name, permanent_path, generated_files,
             programmatic=args.programmatic)
 
     # Write success to log

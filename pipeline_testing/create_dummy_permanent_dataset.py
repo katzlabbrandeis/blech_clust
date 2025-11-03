@@ -79,7 +79,7 @@ def create_dummy_permanent_dataset(source_dir, permanent_base_dir):
 
     print(f"\nDummy permanent dataset created at: {permanent_dir}")
     print("This directory contains minimal files to pass permanent-path validation.")
-    
+
     return permanent_dir
 
 
@@ -104,8 +104,9 @@ def main():
         return 1
 
     # Create dummy permanent dataset
-    permanent_dir = create_dummy_permanent_dataset(args.source_dir, args.permanent_base_dir)
-    
+    permanent_dir = create_dummy_permanent_dataset(
+        args.source_dir, args.permanent_base_dir)
+
     # Print the final path for use in scripts
     print(f"PERMANENT_PATH={permanent_dir}")
 
