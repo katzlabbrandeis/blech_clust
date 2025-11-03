@@ -29,7 +29,7 @@ Here are some common usage patterns:
 
 Workflow 1: Basic LFP Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for LFP extraction
 params = {
@@ -52,7 +52,7 @@ lfp_processing.extract_lfps(
 
 Workflow 2: EMG Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for EMG extraction
 params = {
@@ -76,7 +76,7 @@ Workflow 3: Quality Control for LFP Trials
 import numpy as np
 import tables
 import matplotlib.pyplot as plt
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Load LFP data from HDF5 file
 with tables.open_file('/path/to/data/session.h5', 'r') as hf5:

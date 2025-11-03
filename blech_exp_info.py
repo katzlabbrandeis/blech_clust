@@ -36,13 +36,13 @@ import pandas as pd
 from tqdm import tqdm
 
 # Local imports
-from utils.blech_utils import (
+from blech_clust.utils.blech_utils import (
     entry_checker,
     imp_metadata,
     pipeline_graph_check,
 )
-from utils.importrhdutilities import load_file, read_header
-from utils.read_file import DigInHandler
+from blech_clust.utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.read_file import DigInHandler
 
 # Constants
 test_bool = False  # noqa

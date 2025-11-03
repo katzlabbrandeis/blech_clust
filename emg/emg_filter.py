@@ -25,7 +25,7 @@ import tables
 import ast
 
 sys.path.append('..')
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 # Get name of directory with the data files
 metadata_handler = imp_metadata(sys.argv)

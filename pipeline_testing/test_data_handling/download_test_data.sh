@@ -15,10 +15,11 @@ DATA_DIR_NAMES=(
     eb24_behandephys_11_12_24_241112_114659_copy
 )
 
-DATA_SUP_DIR=${DIR_PATH}/test_data
+# Use home directory for test data to allow clean repo cloning
+DATA_SUP_DIR=~/.blech_clust_test_data
 # If DATA_DIR does not exist, create it
 if [ ! -d "$DATA_SUP_DIR" ]; then
-    mkdir $DATA_SUP_DIR
+    mkdir -p $DATA_SUP_DIR
 fi
 
 for i in {0..1}

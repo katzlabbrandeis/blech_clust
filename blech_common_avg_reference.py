@@ -50,9 +50,9 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-from utils.qa_utils import channel_corr
-from utils.ephys_data.visualize import gen_square_subplots
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
+from blech_clust.utils.qa_utils import channel_corr
+from blech_clust.utils.ephys_data.visualize import gen_square_subplots
 import pandas as pd
 
 try:

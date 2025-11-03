@@ -8,7 +8,7 @@ Below are examples of common analysis workflows:
 
 Workflow 1: Basic Data Loading and Processing
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 # Initialize with data directory
 data = ephys_data(data_dir='/path/to/data')
@@ -26,7 +26,7 @@ lfps = data.lfp_array        # Access LFP data
 
 Workflow 2: Region-Based Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 
 # Initialize and load data
@@ -58,7 +58,7 @@ for region in data.region_names:
 
 Workflow 3: Laser Condition Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -94,7 +94,7 @@ if data.laser_exists:
 
 Workflow 4: Palatability Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -120,7 +120,7 @@ print(f"Neurons with strong palatability coding: {strong_pal_neurons}")
 
 Workflow 5: Time-Frequency Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 
 # Initialize and load data
