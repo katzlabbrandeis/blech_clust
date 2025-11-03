@@ -105,6 +105,7 @@ ofpc_stem_str = \
 --tastes a,b,c,d \
 --concentrations 1,1,1,1 \
 --palatability 1,2,3,4 \
+--permanent-path $PERMANENT_DIR \
 """
 
 wanted_emg_inds = [8, 9]
@@ -173,6 +174,7 @@ trad_stem_str = \
 --tastes a,b \
 --concentrations 1,1 \
 --palatability 1,2 \
+--permanent-path $PERMANENT_DIR \
 """
 
 wanted_gc_inds = [39, 44, 63]
@@ -253,6 +255,7 @@ laser_stem_str = \
 --laser-params "{multi_laser_params}" \
 --opto-loc {multi_opto_locs} \
 --virus-region gc \
+--permanent-path $PERMANENT_DIR \
 """
 
 # Validate that laser params and opto locations match
