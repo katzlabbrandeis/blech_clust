@@ -844,18 +844,17 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     # Check if directory name matches
     permanent_dir_name = os.path.basename(permanent_path.rstrip('/'))
     if permanent_dir_name != dir_name:
+        error_msg = (
+            f"Directory name mismatch!\n"
+            f"  Current directory: {dir_name}\n"
+            f"  Permanent directory: {permanent_dir_name}"
+        )
         if args.programmatic:
-            # In programmatic mode, fail with error
-            print(f"Error: Directory name mismatch!")
-            print(f"  Current directory: {dir_name}")
-            print(f"  Permanent directory: {permanent_dir_name}")
-            print("Skipping permanent metadata copy.")
-            return None
+            # In programmatic mode, raise error
+            raise ValueError(f"Error: {error_msg}")
         else:
             # In manual mode, ask for confirmation
-            print(f"\n⚠️  Warning: Directory name mismatch!")
-            print(f"  Current directory: {dir_name}")
-            print(f"  Permanent directory: {permanent_dir_name}")
+            print(f"\n⚠️  Warning: {error_msg}")
             response = input(
                 "Are you sure this is the correct permanent data location? (y/n): ")
             if response.lower() not in ['y', 'yes']:
@@ -888,25 +887,32 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     return permanent_path
 
 
-def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, generated_files):
+def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, generated_files, programmatic=False):
     """
     Copy metadata files to permanent location.
 
     This function copies all generated metadata files to the permanent storage location.
     If files already exist, it prompts the user for confirmation before overwriting.
+    In programmatic mode, raises errors instead of returning False.
 
     Args:
         dir_path: Path to the current data directory
         dir_name: Name of the directory
         permanent_path: Path to permanent storage location
         generated_files: List of generated file paths to copy
+        programmatic: If True, raise errors instead of returning False
 
     Returns:
         Boolean indicating success
+
+    Raises:
+        RuntimeError: In programmatic mode if copy fails
     """
     import shutil
 
     if not permanent_path or not generated_files:
+        if programmatic:
+            raise RuntimeError("Cannot copy metadata: permanent_path or generated_files is empty")
         return False
 
     print(f"\n=== Copying Metadata to Permanent Location ===")
@@ -922,21 +928,31 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
         if os.path.exists(dest_path):
             existing_files.append(filename)
 
-    # If files exist, ask for confirmation
+    # If files exist, ask for confirmation (or auto-overwrite in programmatic mode)
     if existing_files:
-        print(f"\nThe following files already exist at the destination:")
-        for filename in existing_files:
-            print(f"  - {filename}")
-        response = input("Do you want to overwrite them? (y/n): ")
-        if response.lower() not in ['y', 'yes']:
-            print("Skipping metadata copy.")
-            return False
+        if programmatic:
+            print(f"\nOverwriting existing files in programmatic mode:")
+            for filename in existing_files:
+                print(f"  - {filename}")
+        else:
+            print(f"\nThe following files already exist at the destination:")
+            for filename in existing_files:
+                print(f"  - {filename}")
+            response = input("Do you want to overwrite them? (y/n): ")
+            if response.lower() not in ['y', 'yes']:
+                print("Skipping metadata copy.")
+                return False
 
     # Copy files
     copied_count = 0
+    failed_files = []
     for file_path in generated_files:
         if not os.path.exists(file_path):
-            print(f"Warning: File not found, skipping: {file_path}")
+            msg = f"File not found: {file_path}"
+            if programmatic:
+                failed_files.append(msg)
+            else:
+                print(f"Warning: {msg}, skipping")
             continue
 
         filename = os.path.basename(file_path)
@@ -947,7 +963,14 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
             print(f"Copied: {filename}")
             copied_count += 1
         except Exception as e:
-            print(f"Error copying {filename}: {e}")
+            msg = f"Error copying {filename}: {e}"
+            if programmatic:
+                failed_files.append(msg)
+            else:
+                print(msg)
+
+    if programmatic and failed_files:
+        raise RuntimeError(f"Failed to copy metadata files:\n" + "\n".join(failed_files))
 
     print(
         f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
@@ -1557,7 +1580,8 @@ def main():
     # Copy metadata to permanent location if specified
     if permanent_path:
         copy_metadata_to_permanent_location(
-            dir_path, dir_name, permanent_path, generated_files)
+            dir_path, dir_name, permanent_path, generated_files, 
+            programmatic=args.programmatic)
 
     # Write success to log
     if pipeline_check:

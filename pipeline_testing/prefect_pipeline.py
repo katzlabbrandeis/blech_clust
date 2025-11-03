@@ -191,23 +191,36 @@ def create_dummy_permanent_dataset(data_dir):
     """
     Create a dummy permanent dataset for testing permanent-path functionality.
 
+    Creates a nested directory structure so the final directory name matches
+    the source directory name.
+
     Args:
         data_dir: Source data directory
 
     Returns:
-        Path to the created permanent directory
+        Path to the created permanent directory (nested path)
     """
-    # Create permanent directory path (sibling to test_data)
-    permanent_dir = data_dir + '_permanent'
+    # Create permanent base directory (sibling to test_data)
+    permanent_base_dir = data_dir + '_permanent'
 
     script_name = './pipeline_testing/create_dummy_permanent_dataset.py'
     process = Popen(
-        ["python", script_name, data_dir, permanent_dir],
+        ["python", script_name, data_dir, permanent_base_dir],
         stdout=PIPE, stderr=PIPE
     )
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
 
+    # Extract the permanent path from stdout
+    stdout_str = stdout.decode('utf-8')
+    for line in stdout_str.split('\n'):
+        if line.startswith('PERMANENT_PATH='):
+            permanent_dir = line.split('=', 1)[1]
+            return permanent_dir
+
+    # Fallback: construct the path manually
+    source_dir_name = os.path.basename(data_dir.rstrip('/'))
+    permanent_dir = os.path.join(permanent_base_dir, source_dir_name)
     return permanent_dir
 
 

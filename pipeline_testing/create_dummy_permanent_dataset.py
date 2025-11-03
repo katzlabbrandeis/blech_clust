@@ -32,15 +32,22 @@ def create_dummy_file(filepath, size_bytes=1024):
     print(f"Created dummy file: {filepath} ({size_bytes} bytes)")
 
 
-def create_dummy_permanent_dataset(source_dir, permanent_dir):
+def create_dummy_permanent_dataset(source_dir, permanent_base_dir):
     """
     Create a dummy permanent dataset with minimum required files.
 
+    Creates a nested directory structure so the final directory name matches
+    the source directory name (e.g., permanent_base/KM45_5tastes_210620_113227_new/)
+
     Args:
         source_dir: Source data directory (for reference)
-        permanent_dir: Destination permanent directory to create
+        permanent_base_dir: Base directory for permanent storage
     """
-    # Create the permanent directory if it doesn't exist
+    # Get the source directory name
+    source_dir_name = os.path.basename(source_dir.rstrip('/'))
+
+    # Create nested permanent directory with matching name
+    permanent_dir = os.path.join(permanent_base_dir, source_dir_name)
     os.makedirs(permanent_dir, exist_ok=True)
     print(f"Created permanent directory: {permanent_dir}")
 
@@ -72,6 +79,8 @@ def create_dummy_permanent_dataset(source_dir, permanent_dir):
 
     print(f"\nDummy permanent dataset created at: {permanent_dir}")
     print("This directory contains minimal files to pass permanent-path validation.")
+    
+    return permanent_dir
 
 
 def main():
@@ -83,8 +92,8 @@ def main():
         help='Source data directory'
     )
     parser.add_argument(
-        'permanent_dir',
-        help='Permanent directory to create'
+        'permanent_base_dir',
+        help='Base directory for permanent storage (will create nested dir with matching name)'
     )
 
     args = parser.parse_args()
@@ -95,7 +104,10 @@ def main():
         return 1
 
     # Create dummy permanent dataset
-    create_dummy_permanent_dataset(args.source_dir, args.permanent_dir)
+    permanent_dir = create_dummy_permanent_dataset(args.source_dir, args.permanent_base_dir)
+    
+    # Print the final path for use in scripts
+    print(f"PERMANENT_PATH={permanent_dir}")
 
     return 0
 
