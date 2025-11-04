@@ -809,9 +809,6 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
         # Use permanent_path from command line if provided
         if hasattr(args, 'permanent_path') and args.permanent_path:
             permanent_path = os.path.expanduser(args.permanent_path.strip())
-        else:
-            # Skip if not provided in programmatic mode
-            return None
     else:
         # Get default from existing info or cache
         default_path = existing_info.get(
@@ -823,14 +820,21 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             print("\n=== Permanent Metadata Copy ===")
             print("Please specify where the permanent copy of the data is stored.")
             print("Metadata files will be copied to this location.")
-            permanent_path = input(
-                f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
+            print(" !!! This cannot be the same as the working directory !!!")
+            permanent_path_str, continue_bool = entry_checker(
+                msg=f'Enter permanent data path [Default: {default_path}]:', 
+                check_func=lambda x: True,
+                fail_response='',
+                default_input=default_path,
+            )
+            if continue_bool:
+                permanent_path = permanent_path_str.strip()
+            else:
+                print("Permanent path not provided. Exiting...")
+            # permanent_path = input(
+            #     f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
             if permanent_path.strip() == '':
-                if default_path:
-                    permanent_path = default_path
-                else:
-                    print("Skipping permanent metadata copy.")
-                    return None
+                raise ValueError("Permanent path not provided. This is needed to continue processing.")
 
         # Validate the path
         permanent_path = os.path.expanduser(permanent_path.strip())
@@ -840,8 +844,12 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
         print(f"Error: Path does not exist: {permanent_path}")
         print(
             "Please ensure the permanent data directory exists before running this script.")
-        print("Skipping permanent metadata copy.")
-        return None
+        raise ValueError("Error: Permanent path does not exist.")
+
+    # If the permanent path is the same as the current directory, raise error
+    if os.path.abspath(permanent_path) == os.path.abspath(dir_path):
+        raise ValueError(
+            "Error: Permanent path cannot be the same as the working directory.")
 
     # Check if directory name matches
     permanent_dir_name = os.path.basename(permanent_path.rstrip('/'))
@@ -851,17 +859,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             f"  Current directory: {dir_name}\n"
             f"  Permanent directory: {permanent_dir_name}"
         )
-        if args.programmatic:
-            # In programmatic mode, raise error
-            raise ValueError(f"Error: {error_msg}")
-        else:
-            # In manual mode, ask for confirmation
-            print(f"\n⚠️  Warning: {error_msg}")
-            response = input(
-                "Are you sure this is the correct permanent data location? (y/n): ")
-            if response.lower() not in ['y', 'yes']:
-                print("Skipping permanent metadata copy.")
-                return None
+        # In programmatic mode, raise error
+        raise ValueError(f"Error: {error_msg}")
 
     # Check if data exists at the permanent location
     # Look for common data files to verify this is a valid data directory
@@ -872,14 +871,7 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     if not has_data:
         print(f"Warning: No data files found at {permanent_path}")
         print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
-        if args.programmatic:
-            # In programmatic mode, continue anyway (assume user knows what they're doing)
-            print("Continuing in programmatic mode...")
-        else:
-            response = input("Continue anyway? (y/n): ")
-            if response.lower() not in ['y', 'yes']:
-                print("Skipping permanent metadata copy.")
-                return None
+        raise ValueError("Error: No data files found at the permanent location.")
 
     # Save to cache (only in manual mode)
     if not args.programmatic:
@@ -1421,7 +1413,19 @@ def main():
     6. Assembles and saves the final experiment info file
     """
     # Setup experiment info
-    dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
+    (
+            dir_path, 
+            dir_name, 
+            cache_file_path, 
+            cache, 
+            existing_info, 
+            metadata_dict, 
+            pipeline_check,
+                )= setup_experiment_info()
+
+    # Process permanent path for metadata backup
+    permanent_path = process_permanent_path(
+        dir_path, dir_name, args, existing_info, cache, cache_file_path)
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1523,10 +1527,6 @@ def main():
 
     # Process notes
     notes = process_notes(args, existing_info, cache, cache_file_path)
-
-    # Process permanent path for metadata backup
-    permanent_path = process_permanent_path(
-        dir_path, dir_name, args, existing_info, cache, cache_file_path)
 
     # Get laser trial counts if laser dig-ins exist
     if laser_digin_ind:
