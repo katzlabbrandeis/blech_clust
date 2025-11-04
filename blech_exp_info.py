@@ -910,10 +910,13 @@ def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, gene
     """
     import shutil
 
-    if not permanent_path or not generated_files:
+    if not permanent_path:
         if programmatic:
-            raise RuntimeError(
-                "Cannot copy metadata: permanent_path or generated_files is empty")
+            raise RuntimeError("Cannot copy metadata: permanent_path is empty")
+        return False
+
+    if not generated_files:
+        print("No metadata files to copy (this is normal if files don't exist yet)")
         return False
 
     print(f"\n=== Copying Metadata to Permanent Location ===")
@@ -1573,11 +1576,13 @@ def main():
         dir_path, dir_name + "_electrode_layout.csv")
     dig_in_frame_path = os.path.join(dir_path, 'dig_in_channel_info.json')
 
-    generated_files = [
+    # Only include files that actually exist
+    potential_files = [
         json_file_name,
         layout_file_path,
         dig_in_frame_path
     ]
+    generated_files = [f for f in potential_files if os.path.exists(f)]
 
     # Copy metadata to permanent location if specified
     if permanent_path:
