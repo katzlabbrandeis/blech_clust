@@ -363,8 +363,8 @@ def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
 
                 # Upload the file
                 uploaded_count += 1
-                print(
-                    f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
+                # print(
+                #     f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
                 s3_client.upload_file(local_path, bucket_name, s3_path)
 
                 # Generate S3 URL

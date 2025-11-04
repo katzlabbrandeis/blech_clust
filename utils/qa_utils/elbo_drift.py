@@ -34,8 +34,8 @@ script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
-from utils.ephys_data import ephys_data  # noqa: E402
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 
 def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):

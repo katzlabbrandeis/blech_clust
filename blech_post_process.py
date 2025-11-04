@@ -67,6 +67,8 @@ parser.add_argument('--show-plot',
                     action='store_true')
 parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
                     action='store_true')
+parser.add_argument('--manual', help='Force manual processing logic',
+                    action='store_true')
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
                     action='store_true')
 parser.add_argument('--delete-existing', help='Delete existing units',
@@ -84,8 +86,8 @@ os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
 
-import utils.blech_post_process_utils as post_utils  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa
@@ -182,13 +184,24 @@ elif sorted_units_exist_bool:
         hf5.close()
         exit()
     if overwrite_hf5.lower() == 'y':
+        # Double check if the user wants to delete existing units
+        overwrite_hf5, continue_bool = entry_checker(
+            msg='Are you sure you want to delete existing units? (y/[n]): ',
+            check_func=lambda x: x.lower() in ['y', 'n'],
+            fail_response='Please enter y or n',
+        )
+        if not continue_bool:
+            print('Exiting post-processing.')
+            hf5.close()
+            exit()
+    if overwrite_hf5.lower() == 'y':
+        # Remove the sorted_units group and create a new one
         hf5.remove_node('/sorted_units', recursive=True)
         hf5.create_group('/', 'sorted_units')
         print('==== Cleared saved units. ====\n')
         sorted_units_exist_bool = False
 else:
     hf5.create_group('/', 'sorted_units')
-
 
 ############################################################
 # Main Processing Loop
@@ -197,10 +210,12 @@ else:
 # pick clusters from the electrodes
 
 # Providing a sort file will force use of the sort file and
-# skip auto_post_process
+# skip auto_post_process. Manual processing will occur if
+# auto_post_process is False, no sort file is provided, or
+# if the --manual flag is set.
 
-# This section will run if not auto_post_process
-while (not auto_post_process) or (args.sort_file is not None):
+# This section will run if not auto_post_process or if manual flag is set
+while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
     ############################################################
     # Get unit details and load data

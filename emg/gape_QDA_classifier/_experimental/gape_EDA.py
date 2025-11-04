@@ -8,7 +8,7 @@ import itertools
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
 from sklearn.svm import SVC
-from utils.blech_utils import imp_metadata
+from blech_clust.utils.blech_utils import imp_metadata
 import os
 import sys
 from glob import glob

@@ -22,6 +22,99 @@ Dependencies:
     - numpy, scipy, tables
     - matplotlib for visualization
 
+EXAMPLE WORKFLOWS:
+
+This module provides functions for extracting and processing LFP data from electrophysiology recordings.
+Here are some common usage patterns:
+
+Workflow 1: Basic LFP Extraction
+-----------------------------------------------------
+from blech_clust.utils.ephys_data import lfp_processing
+
+# Set parameters for LFP extraction
+params = {
+    'freq_bounds': [1, 300],          # Frequency range in Hz
+    'sampling_rate': 30000,           # Original sampling rate
+    'taste_signal_choice': 'Start',   # Trial alignment
+    'fin_sampling_rate': 1000,        # Final sampling rate
+    'dig_in_list': [0, 1, 2, 3],      # Digital inputs to process
+    'trial_durations': [2000, 5000]   # Pre/post trial durations in ms
+}
+
+# Extract LFPs from raw data files
+lfp_processing.extract_lfps(
+    dir_name='/path/to/data',
+    **params
+)
+
+# After extraction, the LFP data is stored in the HDF5 file in the /Parsed_LFP group
+# You can then load and analyze it using the ephys_data class
+
+Workflow 2: EMG Extraction
+-----------------------------------------------------
+from blech_clust.utils.ephys_data import lfp_processing
+
+# Set parameters for EMG extraction
+params = {
+    'emg_electrode_nums': [0, 1],     # EMG electrode numbers
+    'freq_bounds': [10, 500],         # Frequency range in Hz (higher for EMG)
+    'sampling_rate': 30000,           # Original sampling rate
+    'taste_signal_choice': 'Start',   # Trial alignment
+    'fin_sampling_rate': 1000,        # Final sampling rate
+    'dig_in_list': [0, 1, 2, 3],      # Digital inputs to process
+    'trial_durations': [2000, 5000]   # Pre/post trial durations in ms
+}
+
+# Extract EMGs from raw data files
+lfp_processing.extract_emgs(
+    dir_name='/path/to/data',
+    **params
+)
+
+Workflow 3: Quality Control for LFP Trials
+-----------------------------------------------------
+import numpy as np
+import tables
+import matplotlib.pyplot as plt
+from blech_clust.utils.ephys_data import lfp_processing
+
+# Load LFP data from HDF5 file
+with tables.open_file('/path/to/data/session.h5', 'r') as hf5:
+    # Get LFP data for a specific taste
+    lfp_data = hf5.root.Parsed_LFP.dig_in_0_LFPs[:]  # Shape: (channels, trials, time)
+
+# Identify good quality trials
+good_trials_bool = lfp_processing.return_good_lfp_trial_inds(
+    data=lfp_data,
+    MAD_threshold=3  # Number of MADs to use as threshold
+)
+
+# Get only the good trials
+good_lfp_data = lfp_data[:, good_trials_bool, :]
+
+# Visualize the results
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+
+# Plot all trials for one channel
+channel = 0
+ax1.set_title(f'All Trials - Channel {channel}')
+for trial in range(lfp_data.shape[1]):
+    color = 'blue' if good_trials_bool[trial] else 'red'
+    ax1.plot(lfp_data[channel, trial], color=color, alpha=0.5)
+ax1.set_xlabel('Time (ms)')
+ax1.set_ylabel('Amplitude')
+
+# Plot mean of good vs. bad trials
+ax2.set_title('Mean LFP')
+ax2.plot(np.mean(lfp_data[:, good_trials_bool, :], axis=1).T, 'b-', label='Good Trials')
+ax2.plot(np.mean(lfp_data[:, ~good_trials_bool, :], axis=1).T, 'r-', label='Bad Trials')
+ax2.set_xlabel('Time (ms)')
+ax2.set_ylabel('Amplitude')
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
+
 Usage:
     >>> from utils.ephys_data import lfp_processing
     >>>
@@ -101,6 +194,17 @@ if try_again:
 
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
+    """Apply bandpass filtering to electrode data
+
+    Args:
+        data: Raw electrode data array
+        low_pass: Low frequency cutoff in Hz
+        high_pass: High frequency cutoff in Hz
+        sampling_rate: Sampling rate of the data in Hz
+
+    Returns:
+        filt_el: Bandpass filtered electrode data
+    """
     el = 0.195*(data)
     m, n = butter(
         2,
@@ -122,12 +226,38 @@ def extract_lfps(dir_name,
                  taste_signal_choice,
                  fin_sampling_rate,
                  dig_in_list,
-                 trial_durations):
+                 trial_durations,
+                 trial_info_frame,
+                 ):
+    """Extract and process LFP data from raw electrode recordings
+
+    Extracts LFP data from raw .dat files, applies bandpass filtering, downsamples,
+    segments into trials based on digital inputs, and saves to HDF5 file. Also
+    generates quality control plots for visual inspection of channels.
+
+    Args:
+        dir_name: Directory containing data files and HDF5 file
+        freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
+        sampling_rate: Original sampling rate of raw data in Hz
+        taste_signal_choice: 'Start' or 'End' for trial alignment point
+        fin_sampling_rate: Final sampling rate after downsampling in Hz
+        dig_in_list: List of digital input channel indices to process
+        trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
+        trial_info_frame: DataFrame containing trial timing information
+
+    Side Effects:
+        - Creates /raw_LFP and /Parsed_LFP nodes in HDF5 file
+        - Creates /Parsed_LFP_channels array in HDF5 file
+        - Generates channel check plots in LFP_channel_check directory
+        - Removes /raw_LFP node after processing to save space
+    """
 
     if taste_signal_choice == 'Start':
-        diff_val = 1
+        # diff_val = 1
+        dig_col = 'start_taste_ms'
     elif taste_signal_choice == 'End':
-        diff_val = -1
+        # diff_val = -1
+        dig_col = 'end_taste_ms'
 
     # ==============================
     # Open HDF5 File
@@ -194,26 +324,6 @@ def extract_lfps(dir_name,
         hf5.flush()
         del data, data_down, filt_el_down
 
-    # Grab the names of the arrays containing digital inputs,
-    # and pull the data into a numpy array
-    dig_in_nodes = hf5.list_nodes('/digital_in')
-    dig_in = []
-    dig_in_pathname = []
-    for node in dig_in_nodes:
-        dig_in_pathname.append(node._v_pathname)
-        # exec("dig_in.append(hf5.root.digital_in.%s[:])" \
-        #            % dig_in_pathname[-1].split('/')[-1])
-        dig_in.append(node[:])
-    dig_in = np.array(dig_in)
-
-    # The tail end of the pulse generates a negative value when passed through diff
-    # This method removes the need for a "for" loop
-
-    diff_points = list(np.where(np.diff(dig_in) == diff_val))
-    diff_points[1] = diff_points[1]//new_intersample_interval
-    change_points = [diff_points[1][diff_points[0] == this_dig_in]
-                     for this_dig_in in range(len(dig_in))]
-
     # ==============================
     # Write-Out Extracted LFP
     # ==============================
@@ -234,20 +344,22 @@ def extract_lfps(dir_name,
     hf5.create_array('/', 'Parsed_LFP_channels', electrodegroup)
     hf5.flush()
 
-    # Remove dig_ins which are not relevant
-    change_points_fin = [change_points[x] for x in range(len(change_points))
-                         if x in dig_in_list]
-
     # Make markers to slice trials for every dig_on
+    trial_info_frame['dig_in_ind'] = trial_info_frame['dig_in_num_taste'].rank(
+        method='dense') - 1
+    change_points_fin = [
+        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_ind')
+    ]
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
                          for this_dig_in_markers in change_points_fin]
 
     # Cut off dig-inds by lowest number of trials
     trial_counts = [x.shape[0] for x in change_points_fin]
-    min_trial_counts = np.min(trial_counts)
-    all_trial_markers = [np.array(x)[:min_trial_counts, :]
-                         for x in all_trial_markers]
+    # min_trial_counts = np.min(trial_counts)
+    max_trial_counts = np.max(trial_counts)
+    # all_trial_markers = [np.array(x)[:min_trial_counts, :]
+    #                      for x in all_trial_markers]
 
     # Extract trials for every channel for every dig_in
     print('Parsing LFPs')
@@ -597,7 +709,7 @@ def extract_emgs(dir_name,
     hf5.close()
 
 
-def return_good_lfp_trial_inds(data, MAD_threshold=3,):
+def return_good_lfp_trial_inds(data, MAD_threshold=3):
     """
     Return boolean array of good trials (for all channels) based on MAD threshold
     Remove trials based on deviation from median LFP per trial
@@ -605,6 +717,8 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3,):
     Inputs:
         data : shape (n_channels, n_trials, n_timepoints)
         MAD_threshold : number of MADs to use as threshold for individual timepoints
+        deviation_threshold : number of MADs to use as threshold for trial deviation
+                             (defaults to MAD_threshold if None)
 
     Outputs:
         good_trials_bool : boolean array of good trials
@@ -616,8 +730,7 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3,):
         np.abs(data - lfp_median[:, np.newaxis, :])/lfp_MAD[:, None], axis=2)
     deviation_median = np.median(mean_trial_deviation, axis=1)
     deviation_MAD = MAD(mean_trial_deviation, axis=1)
-    deviation_threshold = 3
-    fin_deviation_threshold = deviation_median + deviation_threshold*deviation_MAD
+    fin_deviation_threshold = deviation_median + MAD_threshold*deviation_MAD
     # Remove trials with high deviation
     good_trials_bool = mean_trial_deviation < fin_deviation_threshold[:, np.newaxis]
     # Take only trials good for both regions
@@ -625,11 +738,11 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3,):
     return good_trials_bool
 
 
-def return_good_lfp_trials(data, MAD_threshold=3,):
+def return_good_lfp_trials(data, MAD_threshold=3):
     """Return good trials (for all channels) based on MAD threshold
-    data : shape (n_channels, n_trials, n_timepoints)
-    MAD_threshold : number of MADs to use as threshold for individual timepoints
+        data : shape (n_channels, n_trials, n_timepoints)
+        MAD_threshold : number of MADs to use as threshold for individual timepoints
     """
-    good_trials_bool = return_good_lfp_trial_inds(data, MAD_threshold,)
-    good_lfp_data = data.copy()
-    return good_lfp_data[:, good_trials_bool]
+    good_trials_bool = return_good_lfp_trial_inds(
+        data, MAD_threshold)
+    return data[:, good_trials_bool]

@@ -30,12 +30,12 @@ This module processes single electrode waveforms for spike detection and cluster
 import time
 import argparse  # noqa
 import os  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 test_bool = False
 if test_bool:
     args = argparse.Namespace(
-        data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/',
+        data_dir='/media/storage/abu_resorted/gc_only/AM34_4Tastes_201215_115133/',
         electrode_num=0
     )
 else:
@@ -66,7 +66,7 @@ import numpy as np  # noqa
 import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
-import utils.blech_process_utils as bpu  # noqa
+import blech_clust.utils.blech_process_utils as bpu  # noqa
 from itertools import product  # noqa
 
 # Confirm sys.argv[1] is a path that exists
@@ -334,13 +334,22 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
+    cluster_handler.ensure_continuous_labels()
+
     # At this point, cluster_handler has a trained GMM
     # If 'throw_out_noise', then get labels for all waveforms
+    # otherwise, use the labels from the GMM
     if throw_out_noise_bool:
         print('=== GMM trained using only classified spikes ===')
         all_labels = cluster_handler.get_cluster_labels(
             all_features,
         )
+        # Since GMM will return predictions using original labels,
+        # if auto_clustering, will need to relabel
+        if auto_cluster:
+            all_labels = np.array(
+                [cluster_handler.cluster_map[label] for label in all_labels]
+            )
     else:
         all_labels = cluster_handler.labels
     cluster_handler.remove_outliers(params_dict)
