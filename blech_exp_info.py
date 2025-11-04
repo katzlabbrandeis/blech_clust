@@ -822,7 +822,7 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             print("Metadata files will be copied to this location.")
             print(" !!! This cannot be the same as the working directory !!!")
             permanent_path_str, continue_bool = entry_checker(
-                msg=f'Enter permanent data path [Default: {default_path}]:', 
+                msg=f'Enter permanent data path [Default: {default_path}]:',
                 check_func=lambda x: True,
                 fail_response='',
                 default_input=default_path,
@@ -834,7 +834,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
             # permanent_path = input(
             #     f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
             if permanent_path.strip() == '':
-                raise ValueError("Permanent path not provided. This is needed to continue processing.")
+                raise ValueError(
+                    "Permanent path not provided. This is needed to continue processing.")
 
         # Validate the path
         permanent_path = os.path.expanduser(permanent_path.strip())
@@ -871,7 +872,8 @@ def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache
     if not has_data:
         print(f"Warning: No data files found at {permanent_path}")
         print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
-        raise ValueError("Error: No data files found at the permanent location.")
+        raise ValueError(
+            "Error: No data files found at the permanent location.")
 
     # Save to cache (only in manual mode)
     if not args.programmatic:
@@ -1414,14 +1416,14 @@ def main():
     """
     # Setup experiment info
     (
-            dir_path, 
-            dir_name, 
-            cache_file_path, 
-            cache, 
-            existing_info, 
-            metadata_dict, 
-            pipeline_check,
-                )= setup_experiment_info()
+        dir_path,
+        dir_name,
+        cache_file_path,
+        cache,
+        existing_info,
+        metadata_dict,
+        pipeline_check,
+    ) = setup_experiment_info()
 
     # Process permanent path for metadata backup
     permanent_path = process_permanent_path(
