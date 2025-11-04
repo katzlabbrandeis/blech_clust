@@ -382,13 +382,14 @@ if __name__ == '__main__':
     ##############################
     # Create barplot of taste_duration_ms across dig-ins
     fig, ax = plt.subplots(figsize=(8, 6))
-    taste_duration_data = trial_info_frame.groupby('dig_in_name_taste')['taste_duration_ms'].apply(list)
+    taste_duration_data = trial_info_frame.groupby(
+        'dig_in_name_taste')['taste_duration_ms'].apply(list)
     positions = np.arange(len(taste_duration_data))
-    
+
     for i, (dig_in_name, durations) in enumerate(taste_duration_data.items()):
-        ax.bar(i, np.mean(durations), yerr=np.std(durations), 
+        ax.bar(i, np.mean(durations), yerr=np.std(durations),
                capsize=5, alpha=0.7, label=dig_in_name)
-    
+
     ax.set_xlabel('Dig-in')
     ax.set_ylabel('Taste Duration (ms)')
     ax.set_title('Taste Duration Across Dig-ins')
