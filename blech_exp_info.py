@@ -57,7 +57,7 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -73,7 +73,8 @@ def parse_arguments():
             virus_region=None,
             opto_loc=None,
             notes=None,
-            auto_defaults=False
+            auto_defaults=False,
+            permanent_path=None
         )
     else:
         # Create argument parser
@@ -120,6 +121,8 @@ def parse_arguments():
 
         # Additional information
         parser.add_argument('--notes', help='Experiment notes')
+        parser.add_argument('--permanent-path',
+                            help='Permanent path where metadata files should be copied')
 
         return parser.parse_args()
 
@@ -285,8 +288,10 @@ def populate_field_with_defaults(
         )
 
     if continue_bool:
-        if user_input.strip():
-            # Convert input if conversion function provided
+        if user_input.strip().lower() == "none":
+            return []
+        # Convert input if conversion function provided
+        elif user_input.strip():
             if convert_func:
                 return convert_func(user_input)
             return user_input
@@ -691,7 +696,7 @@ def process_laser_params_programmatic(this_dig_handler, args):
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
     """
     # Process laser dig-ins
-    if args.laser_digin:
+    if args.laser_digin and args.laser_digin.lower() != "none":
         laser_digin_ind = parse_csv(args.laser_digin, int)
     else:
         laser_digin_ind = []
@@ -778,6 +783,199 @@ def process_notes(args, existing_info, cache, cache_file_path):
         notes = args.notes or existing_info.get('notes', '') or ''
 
     return notes
+
+
+def process_permanent_path(dir_path, dir_name, args, existing_info, cache, cache_file_path):
+    """
+    Process permanent path for metadata backup.
+
+    This function handles the collection of a permanent path where metadata files
+    should be copied. It validates that the data exists at the specified location
+    and that the directory name matches the current data directory.
+
+    Args:
+        dir_path: Path to the current data directory
+        dir_name: Name of the directory
+        args: Command line arguments
+        existing_info: Dictionary containing existing information
+        cache: Dictionary containing cached values
+        cache_file_path: Path to cache file
+
+    Returns:
+        String containing the permanent path, or None if skipped
+    """
+    # Handle programmatic mode
+    if args.programmatic:
+        # Use permanent_path from command line if provided
+        if hasattr(args, 'permanent_path') and args.permanent_path:
+            permanent_path = os.path.expanduser(args.permanent_path.strip())
+    else:
+        # Get default from existing info or cache
+        default_path = existing_info.get(
+            'permanent_path', '') or cache.get('permanent_path', '')
+
+        if args.auto_defaults and default_path:
+            permanent_path = default_path
+        else:
+            print("\n=== Permanent Metadata Copy ===")
+            print("Please specify where the permanent copy of the data is stored.")
+            print("Metadata files will be copied to this location.")
+            print(" !!! This cannot be the same as the working directory !!!")
+            permanent_path_str, continue_bool = entry_checker(
+                msg=f'Enter permanent data path [Default: {default_path}]:',
+                check_func=lambda x: True,
+                fail_response='',
+                default_input=default_path,
+            )
+            if continue_bool:
+                permanent_path = permanent_path_str.strip()
+            else:
+                print("Permanent path not provided. Exiting...")
+            # permanent_path = input(
+            #     f'Enter permanent data path [Default: {default_path}] (or press ENTER to skip): ')
+            if permanent_path.strip() == '':
+                raise ValueError(
+                    "Permanent path not provided. This is needed to continue processing.")
+
+        # Validate the path
+        permanent_path = os.path.expanduser(permanent_path.strip())
+
+    # Validation (applies to both programmatic and manual modes)
+    if not os.path.exists(permanent_path):
+        print(f"Error: Path does not exist: {permanent_path}")
+        print(
+            "Please ensure the permanent data directory exists before running this script.")
+        raise ValueError("Error: Permanent path does not exist.")
+
+    # If the permanent path is the same as the current directory, raise error
+    if os.path.abspath(permanent_path) == os.path.abspath(dir_path):
+        raise ValueError(
+            "Error: Permanent path cannot be the same as the working directory.")
+
+    # Check if directory name matches
+    permanent_dir_name = os.path.basename(permanent_path.rstrip('/'))
+    if permanent_dir_name != dir_name:
+        error_msg = (
+            f"Directory name mismatch!\n"
+            f"  Current directory: {dir_name}\n"
+            f"  Permanent directory: {permanent_dir_name}"
+        )
+        # In programmatic mode, raise error
+        raise ValueError(f"Error: {error_msg}")
+
+    # Check if data exists at the permanent location
+    # Look for common data files to verify this is a valid data directory
+    data_indicators = ['info.rhd', 'time.dat', 'amplifier.dat']
+    has_data = any(os.path.exists(os.path.join(permanent_path, indicator))
+                   for indicator in data_indicators)
+
+    if not has_data:
+        print(f"Warning: No data files found at {permanent_path}")
+        print("Expected to find files like: info.rhd, time.dat, or amplifier.dat")
+        raise ValueError(
+            "Error: No data files found at the permanent location.")
+
+    # Save to cache (only in manual mode)
+    if not args.programmatic:
+        cache['permanent_path'] = permanent_path
+        save_to_cache(cache, cache_file_path)
+
+    return permanent_path
+
+
+def copy_metadata_to_permanent_location(dir_path, dir_name, permanent_path, generated_files, programmatic=False):
+    """
+    Copy metadata files to permanent location.
+
+    This function copies all generated metadata files to the permanent storage location.
+    If files already exist, it prompts the user for confirmation before overwriting.
+    In programmatic mode, raises errors instead of returning False.
+
+    Args:
+        dir_path: Path to the current data directory
+        dir_name: Name of the directory
+        permanent_path: Path to permanent storage location
+        generated_files: List of generated file paths to copy
+        programmatic: If True, raise errors instead of returning False
+
+    Returns:
+        Boolean indicating success
+
+    Raises:
+        RuntimeError: In programmatic mode if copy fails
+    """
+    import shutil
+
+    if not permanent_path:
+        if programmatic:
+            raise RuntimeError("Cannot copy metadata: permanent_path is empty")
+        return False
+
+    if not generated_files:
+        print("No metadata files to copy (this is normal if files don't exist yet)")
+        return False
+
+    print(f"\n=== Copying Metadata to Permanent Location ===")
+    print(f"Destination: {permanent_path}")
+
+    # Check if any files already exist
+    existing_files = []
+    for file_path in generated_files:
+        if not os.path.exists(file_path):
+            continue
+        filename = os.path.basename(file_path)
+        dest_path = os.path.join(permanent_path, filename)
+        if os.path.exists(dest_path):
+            existing_files.append(filename)
+
+    # If files exist, ask for confirmation (or auto-overwrite in programmatic mode)
+    if existing_files:
+        if programmatic:
+            print(f"\nOverwriting existing files in programmatic mode:")
+            for filename in existing_files:
+                print(f"  - {filename}")
+        else:
+            print(f"\nThe following files already exist at the destination:")
+            for filename in existing_files:
+                print(f"  - {filename}")
+            response = input("Do you want to overwrite them? (y/n): ")
+            if response.lower() not in ['y', 'yes']:
+                print("Skipping metadata copy.")
+                return False
+
+    # Copy files
+    copied_count = 0
+    failed_files = []
+    for file_path in generated_files:
+        if not os.path.exists(file_path):
+            msg = f"File not found: {file_path}"
+            if programmatic:
+                failed_files.append(msg)
+            else:
+                print(f"Warning: {msg}, skipping")
+            continue
+
+        filename = os.path.basename(file_path)
+        dest_path = os.path.join(permanent_path, filename)
+
+        try:
+            shutil.copy2(file_path, dest_path)
+            print(f"Copied: {filename}")
+            copied_count += 1
+        except Exception as e:
+            msg = f"Error copying {filename}: {e}"
+            if programmatic:
+                failed_files.append(msg)
+            else:
+                print(msg)
+
+    if programmatic and failed_files:
+        raise RuntimeError(
+            f"Failed to copy metadata files:\n" + "\n".join(failed_files))
+
+    print(
+        f"\nSuccessfully copied {copied_count} file(s) to permanent location.")
+    return copied_count > 0
 
 
 def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electrode_num_list,
@@ -1014,15 +1212,18 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Custom conversion function for laser dig-ins
     def convert_laser_digin(input_str):
-        if len(input_str) == 0:
+        if input_str.lower() == "none":
             return []
-        return [int(input_str)]
+        elif len(input_str) == 0:
+            return []
+        else:
+            return [int(input_str)]
 
     # Use helper function with special handling for blank input
     laser_select_str = populate_field_with_defaults(
         field_name='dig_in_nums',
         nested_field='laser_params',
-        entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
+        entry_checker_msg='Laser dig_in INDEX, "none" for no laser digins',
         check_func=count_check,
         existing_info=existing_info,
         cache=cache,
@@ -1034,7 +1235,9 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Handle the special case for laser dig-ins
     if isinstance(laser_select_str, str):
-        if len(laser_select_str) == 0:
+        if laser_select_str.lower() == "none":
+            laser_digin_ind = []
+        elif len(laser_select_str) == 0:
             laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
         else:
             laser_digin_ind = [int(laser_select_str)]
@@ -1212,7 +1415,19 @@ def main():
     6. Assembles and saves the final experiment info file
     """
     # Setup experiment info
-    dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
+    (
+        dir_path,
+        dir_name,
+        cache_file_path,
+        cache,
+        existing_info,
+        metadata_dict,
+        pipeline_check,
+    ) = setup_experiment_info()
+
+    # Process permanent path for metadata backup
+    permanent_path = process_permanent_path(
+        dir_path, dir_name, args, existing_info, cache, cache_file_path)
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1356,10 +1571,33 @@ def main():
         'notes': notes
     }
 
+    # Add permanent_path to the dictionary if provided
+    if permanent_path:
+        fin_dict['permanent_path'] = permanent_path
+
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
     with open(json_file_name, 'w') as file:
         json.dump(fin_dict, file, indent=4)
+
+    # Collect all generated files for copying
+    layout_file_path = os.path.join(
+        dir_path, dir_name + "_electrode_layout.csv")
+    dig_in_frame_path = os.path.join(dir_path, 'dig_in_channel_info.json')
+
+    # Only include files that actually exist
+    potential_files = [
+        json_file_name,
+        layout_file_path,
+        dig_in_frame_path
+    ]
+    generated_files = [f for f in potential_files if os.path.exists(f)]
+
+    # Copy metadata to permanent location if specified
+    if permanent_path:
+        copy_metadata_to_permanent_location(
+            dir_path, dir_name, permanent_path, generated_files,
+            programmatic=args.programmatic)
 
     # Write success to log
     if pipeline_check:
