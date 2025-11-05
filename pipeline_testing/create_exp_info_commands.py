@@ -8,7 +8,7 @@ usage: blech_exp_info.py [-h] [--template TEMPLATE] [--mode {legacy,updated}]
                          [--laser-digin LASER_DIGIN]
                          [--laser-params LASER_PARAMS]
                          [--virus-region VIRUS_REGION] [--opto-loc OPTO_LOC]
-                         [--notes NOTES]
+                         [--notes NOTES] [--permanent-path PERMANENT_PATH]
                          dir_name
 
 Creates files with experiment info
@@ -43,6 +43,8 @@ optional arguments:
                         Virus region
   --opto-loc OPTO_LOC   Opto-fiber location
   --notes NOTES         Experiment notes
+  --permanent-path PERMANENT_PATH
+                        Permanent path where metadata files should be copied
 """
 
 import os
@@ -103,6 +105,7 @@ ofpc_stem_str = \
 --tastes a,b,c,d \
 --concentrations 1,1,1,1 \
 --palatability 1,2,3,4 \
+--permanent-path $PERMANENT_DIR \
 """
 
 wanted_emg_inds = [8, 9]
@@ -171,6 +174,7 @@ trad_stem_str = \
 --tastes a,b \
 --concentrations 1,1 \
 --palatability 1,2 \
+--permanent-path $PERMANENT_DIR \
 """
 
 wanted_gc_inds = [39, 44, 63]
@@ -251,6 +255,7 @@ laser_stem_str = \
 --laser-params "{multi_laser_params}" \
 --opto-loc {multi_opto_locs} \
 --virus-region gc \
+--permanent-path $PERMANENT_DIR \
 """
 
 # Validate that laser params and opto locations match
