@@ -682,7 +682,7 @@ class classifier_handler():
         """
         Inner function for get_waveform_classifier_params
         so that it can also be called externally
-        
+
         First checks data_dir for waveform_classifier_params.json,
         then falls back to blech_clust_dir/params
         """
@@ -693,7 +693,7 @@ class classifier_handler():
                 'waveform_classifier_params.json')
             if os.path.exists(data_dir_params_path):
                 return data_dir_params_path
-        
+
         # Fall back to blech_clust_dir/params
         params_file_path = os.path.join(
             blech_clust_dir,
