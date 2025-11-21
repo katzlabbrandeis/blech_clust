@@ -275,7 +275,7 @@ if file_type not in VALID_FILE_TYPES:
 # Get digin and laser info
 print('Getting trial markers from digital inputs')
 # dig_in_array = hdf5_handler.get_digital_inputs(sampling_rate)
-this_dig_handler = read_file.DigInHandler(dir_name, file_type)
+this_dig_handler = read_file.DigInHandler(dir_name, file_type, silent=args.silent)
 this_dig_handler.load_dig_in_frame()
 
 print('DigIn data loaded')

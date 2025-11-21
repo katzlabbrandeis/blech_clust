@@ -39,7 +39,7 @@ class DigInHandler:
 
     """
 
-    def __init__(self, data_dir, file_type):
+    def __init__(self, data_dir, file_type, silent=False):
         """
         Initializes DigInHandler object
 
@@ -48,9 +48,12 @@ class DigInHandler:
                         Directory containing digital input files
                 file_format: str
                         Format of digital input files
+                silent: bool
+                        If True, suppress progress bars and verbose output
         """
         self.data_dir = data_dir
         self.file_type = file_type
+        self.silent = silent
 
     def get_dig_in_files(self):
         """
@@ -154,9 +157,9 @@ class DigInHandler:
 
             pulse_times = {}
             counter = 0
-            for this_file in tqdm(self.dig_in_file_list):
+            for this_file in tqdm(self.dig_in_file_list, disable=self.silent):
                 this_file_data, data_present = load_file(
-                    os.path.join(self.data_dir, this_file))
+                    os.path.join(self.data_dir, this_file), silent=self.silent)
                 dig_inputs = this_file_data['board_dig_in_data']
                 dig_inputs = dig_inputs.astype('int')
                 # Shape: (num_dig_ins, num_samples)
@@ -270,7 +273,7 @@ def read_traditional_intan(
         # Update progress bar with file name
         pbar.set_description(os.path.basename(this_file))
         # this_file_data = read_data(this_file)
-        this_file_data, data_present = load_file(this_file)
+        this_file_data, data_present = load_file(this_file, silent=silent)
         # Get channel details
         # For each anplifier channel, read data and save to hdf5
         for i, this_amp in enumerate(this_file_data['amplifier_data']):

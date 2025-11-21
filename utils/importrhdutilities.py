@@ -46,9 +46,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def load_file(filename):
+def load_file(filename, silent=False):
     """Loads .rhd file with provided filename, returning 'result' dict and
     'data_present' Boolean.
+    
+    Args:
+        filename: Path to .rhd file
+        silent: If True, suppress progress output
     """
     # Start timing
     tic = time.time()
@@ -62,12 +66,12 @@ def load_file(filename):
 
     # Calculate how much data is present and summarize to console.
     data_present, filesize, num_blocks, num_samples = (
-        calculate_data_size(header, filename, fid))
+        calculate_data_size(header, filename, fid, silent=silent))
 
     # If .rhd file contains data, read all present data blocks into 'data'
     # dict, and verify the amount of data read.
     if data_present:
-        data = read_all_data_blocks(header, num_samples, num_blocks, fid)
+        data = read_all_data_blocks(header, num_samples, num_blocks, fid, silent=silent)
         check_end_of_file(filesize, fid)
 
     # Save information in 'header' to 'result' dict.
@@ -78,7 +82,7 @@ def load_file(filename):
     # necessary, apply the same notch filter that was active during recording.
     if data_present:
         parse_data(header, data)
-        apply_notch_filter(header, data)
+        apply_notch_filter(header, data, silent=silent)
 
         # Save recorded data in 'data' to 'result' dict.
         data_to_result(header, data, result)
@@ -875,12 +879,18 @@ def read_qstring(fid):
     return ''.join([chr(c) for c in data])
 
 
-def calculate_data_size(header, filename, fid):
+def calculate_data_size(header, filename, fid, silent=False):
     """Calculates how much data is present in this file. Returns:
     data_present: Bool, whether any data is present in file
     filesize: Int, size (in bytes) of file
     num_blocks: Int, number of 60 or 128-sample data blocks present
     num_samples: Int, number of samples present in file
+    
+    Args:
+        header: File header information
+        filename: Path to file
+        fid: File identifier
+        silent: If True, suppress output
     """
     bytes_per_block = get_bytes_per_data_block(header)
 
@@ -904,7 +914,8 @@ def calculate_data_size(header, filename, fid):
 
     print_record_time_summary(num_samples['amplifier'],
                               header['sample_rate'],
-                              data_present)
+                              data_present,
+                              silent=silent)
 
     return data_present, filesize, num_blocks, num_samples
 
@@ -924,10 +935,19 @@ def calculate_num_samples(header, num_data_blocks):
     return num_samples
 
 
-def print_record_time_summary(num_amp_samples, sample_rate, data_present):
+def print_record_time_summary(num_amp_samples, sample_rate, data_present, silent=False):
     """Prints summary of how much recorded data is present in RHD file
     to console.
+    
+    Args:
+        num_amp_samples: Number of amplifier samples
+        sample_rate: Sampling rate
+        data_present: Whether data is present in file
+        silent: If True, suppress output
     """
+    if silent:
+        return
+        
     record_time = num_amp_samples / sample_rate
 
     if data_present:
@@ -940,18 +960,26 @@ def print_record_time_summary(num_amp_samples, sample_rate, data_present):
               .format(sample_rate / 1000))
 
 
-def read_all_data_blocks(header, num_samples, num_blocks, fid):
+def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
     """Reads all data blocks present in file, allocating memory for and
     returning 'data' dict containing all data.
+    
+    Args:
+        header: File header information
+        num_samples: Number of samples to read
+        num_blocks: Number of data blocks
+        fid: File identifier
+        silent: If True, suppress progress output
     """
     data, indices = initialize_memory(header, num_samples)
-    print("Reading data from file...")
+    if not silent:
+        print("Reading data from file...")
     print_step = 10
     percent_done = print_step
     for i in range(num_blocks):
         read_one_data_block(data, header, indices, fid)
         advance_indices(indices, header['num_samples_per_data_block'])
-        percent_done = print_progress(i, num_blocks, print_step, percent_done)
+        percent_done = print_progress(i, num_blocks, print_step, percent_done, silent=silent)
     return data
 
 
@@ -1153,9 +1181,14 @@ def extract_digital_data(header, data):
             0)
 
 
-def apply_notch_filter(header, data):
+def apply_notch_filter(header, data, silent=False):
     """Checks header to determine if notch filter should be applied, and if so,
     apply notch filter to all signals in data['amplifier_data'].
+    
+    Args:
+        header: File header information
+        data: Data dictionary containing amplifier data
+        silent: If True, suppress progress output
     """
     # If data was not recorded with notch filter turned on, return without
     # applying notch filter. Similarly, if data was recorded from Intan RHX
@@ -1166,7 +1199,8 @@ def apply_notch_filter(header, data):
         return
 
     # Apply notch filter individually to each channel in order
-    print('Applying notch filter...')
+    if not silent:
+        print('Applying notch filter...')
     print_step = 10
     percent_done = print_step
     for i in range(header['num_amplifier_channels']):
@@ -1177,7 +1211,7 @@ def apply_notch_filter(header, data):
             10)
 
         percent_done = print_progress(i, header['num_amplifier_channels'],
-                                      print_step, percent_done)
+                                      print_step, percent_done, silent=silent)
 
 
 def notch_filter(signal_in, f_sample, f_notch, bandwidth):
@@ -1259,13 +1293,21 @@ def calculate_iir(i, signal_in, signal_out, iir_parameters):
     return sample
 
 
-def print_progress(i, target, print_step, percent_done):
+def print_progress(i, target, print_step, percent_done, silent=False):
     """Prints progress of an arbitrary process based on position i / target,
     printing a line showing completion percentage for each print_step / 100.
+    
+    Args:
+        i: Current position in process
+        target: Total number of items to process
+        print_step: Percentage increment for progress updates
+        percent_done: Current percentage completed
+        silent: If True, suppress progress output
     """
     fraction_done = 100 * (1.0 * i / target)
     if fraction_done >= percent_done:
-        print('{}% done...'.format(percent_done))
+        if not silent:
+            print('{}% done...'.format(percent_done))
         percent_done += print_step
 
     return percent_done
