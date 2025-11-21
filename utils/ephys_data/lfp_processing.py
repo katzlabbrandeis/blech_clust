@@ -7,9 +7,10 @@ data from electrophysiology recordings. Adapted from blech_clust LFP analysis to
 Key Functions:
     extract_lfps: Main function for LFP extraction and processing
     extract_emgs: Similar processing for EMG signals
-    get_filtered_electrode: Apply bandpass filtering to electrode signals
     return_good_lfp_trials: Quality control for LFP trials
     return_good_lfp_trial_inds: Get indices of good quality trials
+
+Note: For filtering electrode data, this module uses apply_bandpass_filter from read_file.py
 
 Features:
     - Automatic trial segmentation based on digital inputs
@@ -142,10 +143,10 @@ Usage:
     ... )
     >>>
     >>> # Filter individual electrode data
-    >>> filtered_data = lfp_processing.get_filtered_electrode(
+    >>> from blech_clust.utils.read_file import apply_bandpass_filter
+    >>> filtered_data = apply_bandpass_filter(
     ...     data=raw_data,
-    ...     low_pass=1,
-    ...     high_pass=300,
+    ...     freq=[1, 300],
     ...     sampling_rate=1000
     ... )
     >>>
@@ -190,27 +191,8 @@ if try_again:
 # Define Functions
 # ==============================
 
-
-def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
-    """Apply bandpass filtering to electrode data
-
-    This function wraps apply_bandpass_filter from read_file.py to maintain
-    backward compatibility with the low_pass/high_pass parameter naming.
-
-    Args:
-        data: Raw electrode data array
-        low_pass: Low frequency cutoff in Hz
-        high_pass: High frequency cutoff in Hz
-        sampling_rate: Sampling rate of the data in Hz
-
-    Returns:
-        filt_el: Bandpass filtered electrode data
-    """
-    return apply_bandpass_filter(
-        data,
-        freq=[float(low_pass), float(high_pass)],
-        sampling_rate=sampling_rate
-    )
+# Note: Filtering is now handled by apply_bandpass_filter from read_file.py
+# All filtering calls in this module use apply_bandpass_filter directly
 
 # ==============================
 # Collect user input needed for later processing
@@ -311,10 +293,10 @@ def extract_lfps(dir_name,
             data = data[:-remaining_inds]
         data_down = np.mean(
             data.reshape((-1, int(new_intersample_interval))), axis=-1)
-        filt_el_down = get_filtered_electrode(data=data_down,
-                                              low_pass=freq_bounds[0],
-                                              high_pass=freq_bounds[1],
-                                              sampling_rate=fin_sampling_rate)
+        filt_el_down = apply_bandpass_filter(
+            data=data_down,
+            freq=[freq_bounds[0], freq_bounds[1]],
+            sampling_rate=fin_sampling_rate)
 
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
@@ -549,10 +531,10 @@ def extract_emgs(dir_name,
         data = np.fromfile(Raw_Electrodefiles[i], dtype=np.dtype('int16'))
         data_down = np.mean(
             data.reshape((-1, int(new_intersample_interval))), axis=-1)
-        filt_el_down = get_filtered_electrode(data=data_down,
-                                              low_pass=freq_bounds[0],
-                                              high_pass=freq_bounds[1],
-                                              sampling_rate=fin_sampling_rate)
+        filt_el_down = apply_bandpass_filter(
+            data=data_down,
+            freq=[freq_bounds[0], freq_bounds[1]],
+            sampling_rate=fin_sampling_rate)
 
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
