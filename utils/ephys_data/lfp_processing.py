@@ -193,7 +193,7 @@ if try_again:
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
     """Apply bandpass filtering to electrode data
-    
+
     This function wraps apply_bandpass_filter from read_file.py to maintain
     backward compatibility with the low_pass/high_pass parameter naming.
 
@@ -207,8 +207,8 @@ def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
         filt_el: Bandpass filtered electrode data
     """
     return apply_bandpass_filter(
-        data, 
-        freq=[float(low_pass), float(high_pass)], 
+        data,
+        freq=[float(low_pass), float(high_pass)],
         sampling_rate=sampling_rate
     )
 
