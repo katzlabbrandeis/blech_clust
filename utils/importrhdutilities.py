@@ -49,7 +49,7 @@ import matplotlib.pyplot as plt
 def load_file(filename, silent=False):
     """Loads .rhd file with provided filename, returning 'result' dict and
     'data_present' Boolean.
-    
+
     Args:
         filename: Path to .rhd file
         silent: If True, suppress progress output
@@ -71,7 +71,8 @@ def load_file(filename, silent=False):
     # If .rhd file contains data, read all present data blocks into 'data'
     # dict, and verify the amount of data read.
     if data_present:
-        data = read_all_data_blocks(header, num_samples, num_blocks, fid, silent=silent)
+        data = read_all_data_blocks(
+            header, num_samples, num_blocks, fid, silent=silent)
         check_end_of_file(filesize, fid)
 
     # Save information in 'header' to 'result' dict.
@@ -885,7 +886,7 @@ def calculate_data_size(header, filename, fid, silent=False):
     filesize: Int, size (in bytes) of file
     num_blocks: Int, number of 60 or 128-sample data blocks present
     num_samples: Int, number of samples present in file
-    
+
     Args:
         header: File header information
         filename: Path to file
@@ -938,7 +939,7 @@ def calculate_num_samples(header, num_data_blocks):
 def print_record_time_summary(num_amp_samples, sample_rate, data_present, silent=False):
     """Prints summary of how much recorded data is present in RHD file
     to console.
-    
+
     Args:
         num_amp_samples: Number of amplifier samples
         sample_rate: Sampling rate
@@ -947,7 +948,7 @@ def print_record_time_summary(num_amp_samples, sample_rate, data_present, silent
     """
     if silent:
         return
-        
+
     record_time = num_amp_samples / sample_rate
 
     if data_present:
@@ -963,7 +964,7 @@ def print_record_time_summary(num_amp_samples, sample_rate, data_present, silent
 def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
     """Reads all data blocks present in file, allocating memory for and
     returning 'data' dict containing all data.
-    
+
     Args:
         header: File header information
         num_samples: Number of samples to read
@@ -979,7 +980,8 @@ def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
     for i in range(num_blocks):
         read_one_data_block(data, header, indices, fid)
         advance_indices(indices, header['num_samples_per_data_block'])
-        percent_done = print_progress(i, num_blocks, print_step, percent_done, silent=silent)
+        percent_done = print_progress(
+            i, num_blocks, print_step, percent_done, silent=silent)
     return data
 
 
@@ -1184,7 +1186,7 @@ def extract_digital_data(header, data):
 def apply_notch_filter(header, data, silent=False):
     """Checks header to determine if notch filter should be applied, and if so,
     apply notch filter to all signals in data['amplifier_data'].
-    
+
     Args:
         header: File header information
         data: Data dictionary containing amplifier data
@@ -1296,7 +1298,7 @@ def calculate_iir(i, signal_in, signal_out, iir_parameters):
 def print_progress(i, target, print_step, percent_done, silent=False):
     """Prints progress of an arbitrary process based on position i / target,
     printing a line showing completion percentage for each print_step / 100.
-    
+
     Args:
         i: Current position in process
         target: Total number of items to process
