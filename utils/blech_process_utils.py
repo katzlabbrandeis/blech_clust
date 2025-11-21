@@ -905,8 +905,8 @@ class classifier_handler():
 class electrode_handler():
     """
     Class to handle electrode data
-    
-    Note: Electrode data is now pre-filtered (300-3000Hz bandpass) 
+
+    Note: Electrode data is now pre-filtered (300-3000Hz bandpass)
     during loading in read_file.py
     """
 
@@ -931,7 +931,7 @@ class electrode_handler():
         2. Calculate recording cutoff
         3. Make cutoff plot
         4. Apply cutoff to electrode data
-        
+
         Note: Filtering is now performed during data loading (see read_file.py)
         """
         # Cut to integer seconds
