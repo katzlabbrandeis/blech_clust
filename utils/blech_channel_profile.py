@@ -56,13 +56,16 @@ def plot_channels(dir_path, qa_out_path, file_type):
             raise Exception("Couldn't find *.rhd files in dir" + "\n" +
                             f"{dir_path}")
         # Load first file to get structure
-        print(f"Loading first traditional file: {os.path.basename(rhd_files[0])}")
+        print(
+            f"Loading first traditional file: {os.path.basename(rhd_files[0])}")
         result, data_present = load_file(rhd_files[0])
         if not data_present:
-            raise Exception("No data present in .rhd file. This may be a header-only file.")
+            raise Exception(
+                "No data present in .rhd file. This may be a header-only file.")
         amp_data = result['amplifier_data']
         num_electrodes = amp_data.shape[0]
-        amp_channel_names = [ch['native_channel_name'] for ch in result['amplifier_channels']]
+        amp_channel_names = [ch['native_channel_name']
+                             for ch in result['amplifier_channels']]
         # Check if digital input data is present
         if 'board_dig_in_data' in result and result['board_dig_in_data'] is not None:
             dig_in_data = result['board_dig_in_data']
