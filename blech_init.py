@@ -45,6 +45,8 @@ parser.add_argument('dir_name', type=str,
                     help='Directory name with data files')
 parser.add_argument('--force_run', action='store_true',
                     help='Force run the script without asking user')
+parser.add_argument('--silent', action='store_true',
+                    help='Suppress progress bars and verbose output')
 args = parser.parse_args()
 force_run = args.force_run
 
@@ -349,9 +351,9 @@ electrode_layout_frame = pd.read_csv(layout_path)
 if reload_data_str in ['y', 'yes']:
     if file_type == 'one file per channel':
         # read_file.read_digins(hdf5_name, dig_in_int, dig_in_file_list)
-        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
+        read_file.read_electrode_channels(hdf5_name, electrode_layout_frame, silent=args.silent)
         if len(emg_channels) > 0:
-            read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+            read_file.read_emg_channels(hdf5_name, electrode_layout_frame, silent=args.silent)
     elif file_type == 'one file per signal type':
         # read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
         # This next line takes care of both electrodes and emgs
@@ -362,6 +364,7 @@ if reload_data_str in ['y', 'yes']:
             hdf5_name,
             rhd_file_list,
             electrode_layout_frame,
+            silent=args.silent,
         )
 else:
     print('Data already present...Not reloading data')

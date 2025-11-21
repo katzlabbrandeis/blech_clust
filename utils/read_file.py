@@ -240,6 +240,7 @@ def read_traditional_intan(
     hdf5_name,
     file_list,
     electrode_layout_frame,
+    silent=False,
 ):
     """
     Reads traditional intan format data and saves to hdf5
@@ -251,6 +252,8 @@ def read_traditional_intan(
                     List of file names to read
             electrode_layout_frame: pandas.DataFrame
                     Dataframe containing details of electrode layout
+            silent: bool
+                    If True, suppress progress bars
 
     Writes:
             hdf5 file with raw and raw_emg data
@@ -262,7 +265,7 @@ def read_traditional_intan(
     # hdf5_path = os.path.join(dir_name, hdf5_name)
     hf5 = tables.open_file(hdf5_name, 'r+')
 
-    pbar = tqdm(total=len(file_list))
+    pbar = tqdm(total=len(file_list), disable=silent)
     for this_file in file_list:
         # Update progress bar with file name
         pbar.set_description(os.path.basename(this_file))
@@ -299,16 +302,17 @@ def read_traditional_intan(
 
 
 # TODO: Remove exec statements throughout file
-def read_emg_channels(hdf5_name, electrode_layout_frame):
+def read_emg_channels(hdf5_name, electrode_layout_frame, silent=False):
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
     hf5 = tables.open_file(hdf5_name, 'r+')
-    for num, row in tqdm(electrode_layout_frame.iterrows()):
+    for num, row in tqdm(electrode_layout_frame.iterrows(), disable=silent):
         # Loading should use file name
         # but writing should use channel ind so that channels from
         # multiple boards are written into a monotonic sequence
         if 'emg' in row.CAR_group.lower():
-            print(f'Reading : {row.filename, row.CAR_group}')
+            if not silent:
+                print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
             data = np.fromfile(row.filename, dtype=np.dtype('int16'))
@@ -321,7 +325,7 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
     hf5.close()
 
 
-def read_electrode_channels(hdf5_name, electrode_layout_frame):
+def read_electrode_channels(hdf5_name, electrode_layout_frame, silent=False):
     """
     # Loading should use file name
     # but writing should use channel ind so that channels from
@@ -332,11 +336,12 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
     hf5 = tables.open_file(hdf5_name, 'r+')
-    for num, row in tqdm(electrode_layout_frame.iterrows()):
+    for num, row in tqdm(electrode_layout_frame.iterrows(), disable=silent):
         emg_bool = 'emg' not in row.CAR_group.lower()
         none_bool = row.CAR_group.lower() not in ['none', 'na']
         if emg_bool and none_bool:
-            print(f'Reading : {row.filename, row.CAR_group}')
+            if not silent:
+                print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
             data = np.fromfile(row.filename, dtype=np.dtype('int16'))

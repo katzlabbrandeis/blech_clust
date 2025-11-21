@@ -27,6 +27,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('dir_name', type=str, help='Directory containing data')
 parser.add_argument('--force', action='store_true', help='Force re-fitting')
+parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
 args = parser.parse_args()
 
 
@@ -208,7 +209,7 @@ max_changepoints = 10
 n_repeats = 4
 changes_vec = np.arange(max_changepoints+1)
 
-if args.force:
+if args.force and not args.silent:
     print('=== Force re-fitting ===')
 
 if not os.path.exists(artifact_save_path) or args.force:
@@ -219,9 +220,10 @@ if not os.path.exists(artifact_save_path) or args.force:
     var_ppc_list = []
     changes_list = []
     repeat_list = []
-    for n_changes in tqdm(changes_vec):
+    for n_changes in tqdm(changes_vec, disable=args.silent):
         for repeat_ind in range(n_repeats):
-            print(f'Running {n_changes} changes, repeat {repeat_ind}')
+            if not args.silent:
+                print(f'Running {n_changes} changes, repeat {repeat_ind}')
             model = gaussian_changepoint_mean_var_2d(
                 zscored_hists_pca.T,
                 # It doesn't like it being numpy.int64
@@ -241,9 +243,10 @@ if not os.path.exists(artifact_save_path) or args.force:
                             # As is, this is a very high (coarse) tolerance
                         )
                     ],
+                    progressbar=not args.silent,
                 )
                 trace = approx.sample(draws=int(2e3))
-                ppc = pm.sample_posterior_predictive(trace)
+                ppc = pm.sample_posterior_predictive(trace, progressbar=not args.silent)
 
             tau_samples = trace.posterior['tau'].values
             tau_hists = np.stack([np.histogram(
@@ -284,7 +287,8 @@ if not os.path.exists(artifact_save_path) or args.force:
     csv_frame.drop(columns=['mean_ppc', 'var_ppc', 'tau_hist'], inplace=True)
     csv_frame.to_csv(csv_save_path)
 else:
-    print(f'{os.path.basename(artifact_save_path)} already exists, skipping')
+    if not args.silent:
+        print(f'{os.path.basename(artifact_save_path)} already exists, skipping')
 
 
 ##############################

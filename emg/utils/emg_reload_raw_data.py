@@ -22,14 +22,21 @@ import json
 import glob
 import pandas as pd
 from tqdm import tqdm
+import argparse
+
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('dir_name', type=str, nargs='?', help='Directory containing data')
+parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+args = parser.parse_args()
 
 # Necessary blech_clust modules
 sys.path.append('../..')
 from utils import read_file  # noqa: E402
 
 # Get name of directory with the data files
-if len(sys.argv) > 1:
-    dir_name = os.path.abspath(sys.argv[1])
+if args.dir_name:
+    dir_name = os.path.abspath(args.dir_name)
     if dir_name[-1] != '/':
         dir_name += '/'
 else:
@@ -85,6 +92,7 @@ electrode_layout_frame = pd.read_csv(layout_path)
 read_file.read_emg_channels(
     hdf5_name,
     electrode_layout_frame,
+    silent=args.silent,
 )
 
 # # Read EMG data from amplifier channels
