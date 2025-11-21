@@ -27,7 +27,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('dir_name', type=str, help='Directory containing data')
 parser.add_argument('--force', action='store_true', help='Force re-fitting')
-parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+parser.add_argument('--silent', action='store_true',
+                    help='Suppress progress bars and verbose output')
 args = parser.parse_args()
 
 
@@ -246,7 +247,8 @@ if not os.path.exists(artifact_save_path) or args.force:
                     progressbar=not args.silent,
                 )
                 trace = approx.sample(draws=int(2e3))
-                ppc = pm.sample_posterior_predictive(trace, progressbar=not args.silent)
+                ppc = pm.sample_posterior_predictive(
+                    trace, progressbar=not args.silent)
 
             tau_samples = trace.posterior['tau'].values
             tau_hists = np.stack([np.histogram(

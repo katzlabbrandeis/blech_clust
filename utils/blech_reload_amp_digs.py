@@ -24,7 +24,8 @@ import argparse
 # Parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('dir_name', type=str, help='Directory containing data')
-parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+parser.add_argument('--silent', action='store_true',
+                    help='Suppress progress bars and verbose output')
 args = parser.parse_args()
 
 # Get blech_clust path
@@ -149,9 +150,11 @@ electrode_layout_frame = pd.read_csv(layout_path)
 # Read data files, and append to electrode arrays
 if file_type == ['one file per channel']:
     read_file.read_digins(hdf5_name, dig_in, dig_in_list)
-    read_file.read_electrode_channels(hdf5_name, electrode_layout_frame, silent=args.silent)
+    read_file.read_electrode_channels(
+        hdf5_name, electrode_layout_frame, silent=args.silent)
     if len(emg_channels) > 0:
-        read_file.read_emg_channels(hdf5_name, electrode_layout_frame, silent=args.silent)
+        read_file.read_emg_channels(
+            hdf5_name, electrode_layout_frame, silent=args.silent)
 elif file_type == ['one file per signal type']:
     read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
     # This next line takes care of both electrodes and emgs

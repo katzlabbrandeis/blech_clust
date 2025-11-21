@@ -26,8 +26,10 @@ import argparse
 
 # Parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('dir_name', type=str, nargs='?', help='Directory containing data')
-parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+parser.add_argument('dir_name', type=str, nargs='?',
+                    help='Directory containing data')
+parser.add_argument('--silent', action='store_true',
+                    help='Suppress progress bars and verbose output')
 args = parser.parse_args()
 
 # Necessary blech_clust modules
