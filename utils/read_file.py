@@ -22,11 +22,43 @@ import os
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
+from scipy.signal import butter, filtfilt
 
 # Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from blech_clust.utils.importrhdutilities import load_file, read_header
+
+
+def apply_bandpass_filter(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
+    """
+    Apply bandpass filter to electrode data.
+    
+    According to research (Zanos et al. 2011, Nason et al. 2020), 
+    filtering in the 300-3000Hz range preserves most spectral power for spiking.
+    
+    Parameters:
+    -----------
+    data : array-like
+        Raw electrode data
+    freq : list, optional
+        [low_cutoff, high_cutoff] in Hz (default: [300.0, 3000.0])
+    sampling_rate : float, optional
+        Sampling rate in Hz (default: 30000.0)
+    
+    Returns:
+    --------
+    filt_data : array-like
+        Filtered electrode data in microvolts
+    """
+    # Convert to microvolts
+    el = 0.195 * data
+    # Design bandpass filter
+    m, n = butter(2, [2.0 * freq[0] / sampling_rate, 2.0 * freq[1] / sampling_rate], 
+                  btype='bandpass')
+    # Apply filter
+    filt_el = filtfilt(m, n, el)
+    return filt_el
 
 
 class DigInHandler:
@@ -240,9 +272,12 @@ def read_traditional_intan(
     hdf5_name,
     file_list,
     electrode_layout_frame,
+    sampling_rate=30000.0,
 ):
     """
     Reads traditional intan format data and saves to hdf5
+    
+    Applies bandpass filtering (300-3000Hz) to electrode data during loading.
 
     Input:
             hdf5_name: str
@@ -251,11 +286,13 @@ def read_traditional_intan(
                     List of file names to read
             electrode_layout_frame: pandas.DataFrame
                     Dataframe containing details of electrode layout
+            sampling_rate: float, optional
+                    Sampling rate in Hz (default: 30000.0)
 
     Writes:
             hdf5 file with raw and raw_emg data
-            - raw: amplifier data
-            - raw_emg: EMG data
+            - raw: filtered amplifier data (300-3000Hz bandpass)
+            - raw_emg: EMG data (unfiltered)
     """
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
@@ -285,13 +322,15 @@ def read_traditional_intan(
             elif electrode_layout_frame.loc[i].CAR_group.lower() in ['none', 'na']:
                 continue
             else:
+                # Apply bandpass filter to electrode data
+                filtered_amp = apply_bandpass_filter(this_amp, sampling_rate=sampling_rate)
                 array_name = f'electrode{i:02}'
                 if os.path.join('/raw', array_name) not in hf5:
                     hf5_el_array = hf5.create_earray(
                         '/raw', array_name, atom, (0,))
                 else:
                     hf5_el_array = hf5.get_node('/raw', array_name)
-                hf5_el_array.append(this_amp)
+                hf5_el_array.append(filtered_amp)
             hf5.flush()
         pbar.update(1)
     pbar.close()
@@ -321,8 +360,10 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
     hf5.close()
 
 
-def read_electrode_channels(hdf5_name, electrode_layout_frame):
+def read_electrode_channels(hdf5_name, electrode_layout_frame, sampling_rate=30000.0):
     """
+    Reads electrode channels and applies bandpass filtering (300-3000Hz).
+    
     # Loading should use file name
     # but writing should use channel ind so that channels from
     # multiple boards are written into a monotonic sequence
@@ -340,10 +381,12 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
             port = row.port
             channel_ind = row.electrode_ind
             data = np.fromfile(row.filename, dtype=np.dtype('int16'))
+            # Apply bandpass filter to electrode data
+            filtered_data = apply_bandpass_filter(data, sampling_rate=sampling_rate)
             # Label raw_emg with electrode_ind so it's more easily identifiable
             array_name = f'electrode{channel_ind:02}'
             hf5_el_array = hf5.create_earray('/raw', array_name, atom, (0,))
-            hf5_el_array.append(data)
+            hf5_el_array.append(filtered_data)
             hf5.flush()
     hf5.close()
 
@@ -353,7 +396,8 @@ def read_electrode_emg_channels_single_file(
         electrode_layout_frame,
         electrodes_list,
         num_recorded_samples,
-        emg_channels):
+        emg_channels,
+        sampling_rate=30000.0):
     # Read EMG data from amplifier channels
     hf5 = tables.open_file(hdf5_name, 'r+')
     atom = tables.IntAtom()
@@ -371,12 +415,14 @@ def read_electrode_emg_channels_single_file(
             print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
+            # Apply bandpass filter to electrode data
+            filtered_data = apply_bandpass_filter(amp_reshape[num,:], sampling_rate=sampling_rate)
 # el = hf5.create_earray('/raw_emg', f'emg{emg_counter:02}', atom, (0,))
 # Label raw_emg with electrode_ind so it's more easily identifiable
             el = hf5.create_earray(
                 '/raw', f'electrode{channel_ind:02}', atom, (0,))
             exec(
-                f"hf5.root.raw.electrode{channel_ind:02}.append(amp_reshape[num,:])")
+                f"hf5.root.raw.electrode{channel_ind:02}.append(filtered_data)")
             hf5.flush()
         elif not (emg_bool) and none_bool:
             port = row.port
