@@ -25,10 +25,10 @@ from blech_clust.utils.read_file import apply_bandpass_filter
 def get_filtered_electrode(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
     """
     DEPRECATED: This function redirects to apply_bandpass_filter in read_file.py.
-    
+
     For new code, import and use apply_bandpass_filter directly:
         from blech_clust.utils.read_file import apply_bandpass_filter
-    
+
     This wrapper is maintained for backward compatibility.
     """
     return apply_bandpass_filter(data, freq=freq, sampling_rate=sampling_rate)
