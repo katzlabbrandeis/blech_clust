@@ -323,12 +323,13 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('dir_name', type=str, help='Directory containing data')
-    parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+    parser.add_argument('--silent', action='store_true',
+                        help='Suppress progress bars and verbose output')
     args = parser.parse_args()
-    
+
     global silent
     silent = args.silent
-    
+
     # Setup environment
     test_bool = False
     if not test_bool:
