@@ -172,9 +172,7 @@ import matplotlib.pyplot as plt
 import re
 from tqdm import tqdm, trange
 import shutil
-# Import specific functions in order to filter the data file
-from scipy.signal import butter
-from scipy.signal import filtfilt
+from blech_clust.utils.read_file import apply_bandpass_filter
 try:
     from scipy.stats import median_abs_deviation as MAD
     try_again = False
@@ -195,6 +193,9 @@ if try_again:
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
     """Apply bandpass filtering to electrode data
+    
+    This function wraps apply_bandpass_filter from read_file.py to maintain
+    backward compatibility with the low_pass/high_pass parameter naming.
 
     Args:
         data: Raw electrode data array
@@ -205,13 +206,11 @@ def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
     Returns:
         filt_el: Bandpass filtered electrode data
     """
-    el = 0.195*(data)
-    m, n = butter(
-        2,
-        [2.0*int(low_pass)/sampling_rate, 2.0*int(high_pass)/sampling_rate],
-        btype='bandpass')
-    filt_el = filtfilt(m, n, el)
-    return filt_el
+    return apply_bandpass_filter(
+        data, 
+        freq=[float(low_pass), float(high_pass)], 
+        sampling_rate=sampling_rate
+    )
 
 # ==============================
 # Collect user input needed for later processing
