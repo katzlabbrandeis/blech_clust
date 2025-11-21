@@ -19,10 +19,9 @@ import sys
 import os
 import pandas as pd
 from tqdm import tqdm
-from blech_clust.utils.clustering import get_filtered_electrode
+from blech_clust.utils.read_file import apply_bandpass_filter, DigInHandler
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
-from blech_clust.utils.read_file import DigInHandler
 from ast import literal_eval
 import matplotlib.pyplot as plt
 
@@ -406,7 +405,7 @@ if __name__ == '__main__':
         for this_el in tqdm(raw_emg_electrodes):
             raw_el = this_el[:]
             # High bandpass filter the raw electrode recordings
-            filt_el = get_filtered_electrode(
+            filt_el = apply_bandpass_filter(
                 raw_el,
                 freq=[params_dict['bandpass_lower_cutoff'],
                       params_dict['bandpass_upper_cutoff']],

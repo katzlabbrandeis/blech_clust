@@ -26,11 +26,11 @@ This module is designed for handling and processing electrophysiological data, s
   - `gen_plots`: Generates plots for predicted spikes and noise.
 
 - **electrode_handler**: Handles electrode data processing.
-  - `filter_electrode`: Filters raw electrode data.
   - `cut_to_int_seconds`: Cuts data to integer seconds.
   - `calc_recording_cutoff`: Calculates recording cutoff based on parameters.
   - `make_cutoff_plot`: Generates a plot showing recording cutoff.
   - `cutoff_electrode`: Cuts off electrode data at the calculated cutoff.
+  - Note: Filtering is now performed during data loading (see read_file.py)
 
 - **spike_handler**: Processes spikes from electrode data.
   - `extract_waveforms`: Extracts waveforms from filtered electrode data.
