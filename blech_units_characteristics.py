@@ -26,6 +26,7 @@ import os
 import json
 import glob
 import itertools
+import argparse
 from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
 from blech_clust.utils.ephys_data import ephys_data
 from blech_clust.utils.ephys_data import visualize as vz
@@ -43,8 +44,16 @@ if test_bool:
     data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     dir_name = metadata_handler.dir_name
+    silent = False
 else:
-    metadata_handler = imp_metadata(sys.argv)
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dir_name', type=str, help='Directory containing data')
+    parser.add_argument('--silent', action='store_true', help='Suppress progress bars and verbose output')
+    args = parser.parse_args()
+    
+    silent = args.silent
+    metadata_handler = imp_metadata([[], args.dir_name])
     dir_name = metadata_handler.dir_name
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
@@ -129,7 +138,7 @@ spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
 print('=== Creating overlay PSTH plots ===')
-for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
+for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique(), disable=silent):
     n_rows = np.max([n_laser_conditions, 2])
     fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
                            # sharex=True, sharey='col')
@@ -210,7 +219,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 # with laser conditions as hue
 print('=== Creating overlay PSTH plots for each taste ===')
 if n_laser_conditions > 1:
-    for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
+    for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique(), disable=silent):
         this_firing = mean_seq_firing.loc[
             mean_seq_firing.neuron_num == nrn_ind
         ]
@@ -302,7 +311,7 @@ firing_frame_group_inds = [x[0] for x in firing_frame_group_list]
 # For each of group_inds, check if it is in seq_spike_counts
 # If not add 0
 seq_spike_counts.set_index(index_cols+['post_stim'], inplace=True)
-for this_ind in tqdm(firing_frame_group_inds):
+for this_ind in tqdm(firing_frame_group_inds, disable=silent):
     # Iterate of post_stim
     for this_post_stim in [False, True]:
         fin_ind = tuple((*this_ind, this_post_stim))
@@ -325,7 +334,7 @@ group_inds = [x[0] for x in group_list]
 group_frames = [x[1] for x in group_list]
 print('=== Calculating responsiveness ===')
 pval_list = []
-for this_frame in tqdm(group_frames):
+for this_frame in tqdm(group_frames, disable=silent):
     this_pval = ttest_rel(
         this_frame.loc[this_frame.post_stim].spikes,
         this_frame.loc[~this_frame.post_stim].spikes,
@@ -450,7 +459,7 @@ seq_spike_counts.fillna(0, inplace=True)
 # Make sure all inds are present
 print('=== Calculating discriminability ===')
 seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
-for this_ind in tqdm(firing_frame_group_inds):
+for this_ind in tqdm(firing_frame_group_inds, disable=silent):
     # Iterate of post_stim
     for bin_num in range(anova_bin_num):
         fin_ind = tuple((*this_ind, bin_num))
@@ -473,7 +482,7 @@ group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
 group_frames = [x[1] for x in group_list]
 pval_list = []
-for this_frame in tqdm(group_frames):
+for this_frame in tqdm(group_frames, disable=silent):
     anova_out = pg.anova(
         data=this_frame,
         dv='spikes',
@@ -579,8 +588,12 @@ def palatability_corr(x):
     return pd.Series({'rho': rho, 'pval': p})
 
 
-pal_frame = seq_firing_frame.groupby(
-    group_cols).progress_apply(palatability_corr)
+if silent:
+    pal_frame = seq_firing_frame.groupby(
+        group_cols).apply(palatability_corr)
+else:
+    pal_frame = seq_firing_frame.groupby(
+        group_cols).progress_apply(palatability_corr)
 pal_frame.reset_index(inplace=True)
 pal_frame['abs_rho'] = pal_frame.rho.abs()
 pal_frame['pal_sig'] = (pal_frame['pval'] < alpha)*1
