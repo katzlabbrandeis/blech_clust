@@ -1,7 +1,7 @@
 """
 This module generates plots for the entire timeseries of digital inputs (DIG_INs) and
-amplifier (AMP) channels from data files in a specified directory. It handles two types
-of file structures: one file per channel and one file per signal type.
+amplifier (AMP) channels from data files in a specified directory. It handles three types
+of file structures: one file per channel, one file per signal type, and traditional.
 """
 
 import glob
@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pylab as plt
 from tqdm import tqdm
+from blech_clust.utils.importrhdutilities import load_file
 
 
 def plot_channels(dir_path, qa_out_path, file_type):
@@ -18,11 +19,11 @@ def plot_channels(dir_path, qa_out_path, file_type):
     Args:
         dir_path: Directory containing the data files
         qa_out_path: Directory to save the plots
-        file_type: Either 'one file per channel' or 'one file per signal type'
+        file_type: Either 'one file per channel', 'one file per signal type', or 'traditional'
     """
-    if file_type not in ['one file per channel', 'one file per signal type']:
+    if file_type not in ['one file per channel', 'one file per signal type', 'traditional']:
         raise ValueError(
-            "file_type must be either 'one file per channel' or 'one file per signal type'")
+            "file_type must be either 'one file per channel', 'one file per signal type', or 'traditional'")
 
     # Create plot dir
     plot_dir = os.path.join(qa_out_path, "channel_profile_plots")
@@ -49,13 +50,33 @@ def plot_channels(dir_path, qa_out_path, file_type):
         num_recorded_samples = len(np.fromfile(
             os.path.join(dir_path, 'time.dat'), dtype=np.dtype('float32')))
         total_recording_time = num_recorded_samples/sampling_rate  # In seconds
+    elif file_type == 'traditional':
+        rhd_files = sorted(glob.glob(os.path.join(dir_path, "*.rhd")))
+        if len(rhd_files) < 1:
+            raise Exception("Couldn't find *.rhd files in dir" + "\n" +
+                            f"{dir_path}")
+        # Load first file to get structure
+        print(f"Loading first traditional file: {os.path.basename(rhd_files[0])}")
+        result, data_present = load_file(rhd_files[0])
+        if not data_present:
+            raise Exception("No data present in .rhd file. This may be a header-only file.")
+        amp_data = result['amplifier_data']
+        num_electrodes = amp_data.shape[0]
+        amp_channel_names = [ch['native_channel_name'] for ch in result['amplifier_channels']]
+        # Check if digital input data is present
+        if 'board_dig_in_data' in result and result['board_dig_in_data'] is not None:
+            dig_in_data = result['board_dig_in_data']
+            num_dig_ins = dig_in_data.shape[0]
+        else:
+            dig_in_data = None
+            num_dig_ins = 0
 
-    if len(amp_files) < 1:
+    if file_type != 'traditional' and len(amp_files) < 1:
         raise Exception("Couldn't find amp*.dat files in dir" + "\n" +
                         f"{dir_path}")
 
     # Plot files
-    print("Now plotting ampilfier signals")
+    print("Now plotting amplifier signals")
     downsample = 100
     row_lim = 8
     if file_type == 'one file per channel':
@@ -90,6 +111,20 @@ def plot_channels(dir_path, qa_out_path, file_type):
         plt.suptitle('Amplifier Data')
         fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
         plt.close(fig)
+    elif file_type == 'traditional':
+        row_num = np.min((row_lim, num_electrodes))
+        col_num = int(np.ceil(num_electrodes/row_num))
+        # Create plot
+        fig, ax = plt.subplots(row_num, col_num,
+                               sharex=True, sharey=True, figsize=(15, 10))
+        for e_i in tqdm(range(num_electrodes)):
+            data = amp_data[e_i, :]
+            ax_i = plt.subplot(row_num, col_num, e_i+1)
+            ax_i.plot(data[::downsample])
+            ax_i.set_ylabel(amp_channel_names[e_i])
+        plt.suptitle('Amplifier Data')
+        fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
+        plt.close(fig)
 
     print("Now plotting digital input signals")
     if file_type == 'one file per channel':
@@ -103,6 +138,21 @@ def plot_channels(dir_path, qa_out_path, file_type):
         plt.suptitle('DIGIN Data')
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
+    elif file_type == 'traditional':
+        if dig_in_data is not None and num_dig_ins > 0:
+            fig, ax = plt.subplots(num_dig_ins, 1,
+                                   sharex=True, sharey=True, figsize=(8, 10))
+            # Handle case where there's only one digital input
+            if num_dig_ins == 1:
+                ax = [ax]
+            for d_i in tqdm(range(num_dig_ins)):
+                ax[d_i].plot(dig_in_data[d_i, ::downsample])
+                ax[d_i].set_ylabel(f'Dig_in_{d_i}')
+            plt.suptitle('DIGIN Data')
+            fig.savefig(os.path.join(plot_dir, 'digin_data'))
+            plt.close(fig)
+        else:
+            print("No digital input data found in traditional file")
     elif file_type == 'one file per signal type':
         d_inputs = np.fromfile(digin_files[0], dtype=np.dtype('uint16'))
         d_inputs_str = d_inputs.astype('str')
@@ -140,7 +190,8 @@ if __name__ == '__main__':
                         help='The directory containing the data files')
     parser.add_argument('--file-type', type=str, required=True,
                         choices=['one file per channel',
-                                 'one file per signal type'],
+                                 'one file per signal type',
+                                 'traditional'],
                         help='The type of file organization')
     args = parser.parse_args()
 
