@@ -19,12 +19,10 @@ update:
 	@echo "Updating conda..."
 	conda update -n base -c conda-forge conda -y
 
-make_env: params
+make_env: 
 	@echo "Setting up base blech_clust environment..."
 	@echo "Deactivating any active conda environment..."
 	conda deactivate || true
-	@echo "Cleaning conda cache..."
-	conda clean --all -y
 	@echo "Creating blech_clust environment with Python 3.8..."
 	conda create --name blech_clust python=3.8 -y
 
@@ -121,3 +119,5 @@ clean:
 	else \
 		echo "blech_clust environment does not exist, nothing to clean"; \
 	fi
+	@echo "Cleaning conda cache..."
+	conda clean --all -y
