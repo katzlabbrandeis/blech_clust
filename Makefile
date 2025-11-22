@@ -92,6 +92,7 @@ params:
 		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
 	elif [ $$(ls params/*.json 2>/dev/null | wc -l) -eq 1 ]; then \
 		echo "Copying parameter templates to params directory..."; \
+		cp params/templates/* params/; \
 	else \
 		echo "No parameter files found. Templates should be copied if available."; \
 	fi
