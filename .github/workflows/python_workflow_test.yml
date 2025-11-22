@@ -55,7 +55,9 @@ jobs:
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
-        run: ./.github/workflows/run_tests.sh spike-emg
+        run: |
+          chmod +x ./.github/workflows/run_tests.sh
+          ./.github/workflows/run_tests.sh spike-emg
 
   EMG-Only:
     runs-on: self-hosted
@@ -67,4 +69,6 @@ jobs:
     steps:
       - name: Prefect EMG only test
         shell: bash
-        run: ./.github/workflows/run_tests.sh emg-only
+        run: |
+          chmod +x ./.github/workflows/run_tests.sh
+          ./.github/workflows/run_tests.sh emg-only
