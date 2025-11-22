@@ -4,7 +4,7 @@
 
 SCRIPT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))) # This will return blech_clust base dir
 INSTALL_PATH = $(strip $(SCRIPT_DIR))/requirements/BaSAR_1.3.tar.gz
-INSTALL_STR = install.packages('$(INSTALL_PATH)', repos=NULL)
+INSTALL_STR = "install.packages('$(INSTALL_PATH)', repos=NULL)"
 
 # Default target
 all: update make_env base emg neurec blechrnn prefect dev optional
