@@ -391,8 +391,10 @@ def quality_assurance(data_dir):
     if verbose:
         print(f'[DEBUG] quality_assurance: Starting with data_dir={data_dir}')
     script_name = 'blech_run_QA.sh'
-    process = Popen(["bash", script_name, data_dir],
-                    stdout=PIPE, stderr=PIPE)
+    cmd = ["bash", script_name, data_dir]
+    if silent:
+        cmd.append("--silent")
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
