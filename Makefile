@@ -115,5 +115,9 @@ prefect:
 # Clean up environments
 clean:
 	@echo "Cleaning up blech_clust environment..."
-	conda env remove -n blech_clust -y
-	@echo "Environment cleanup complete!"
+	@if conda env list | grep -q "blech_clust"; then \
+		conda env remove -n blech_clust -y; \
+		echo "Environment cleanup complete!"; \
+	else \
+		echo "blech_clust environment does not exist, nothing to clean"; \
+	fi
