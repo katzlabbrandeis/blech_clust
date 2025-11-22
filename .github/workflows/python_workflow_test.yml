@@ -55,7 +55,6 @@ jobs:
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg --silent 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
@@ -73,7 +72,6 @@ jobs:
     steps:
       - name: Prefect EMG only test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
         run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e --silent 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
