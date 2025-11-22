@@ -268,10 +268,15 @@ def read_traditional_intan(
     # hdf5_path = os.path.join(dir_name, hdf5_name)
     hf5 = tables.open_file(hdf5_name, 'r+')
 
-    pbar = tqdm(total=len(file_list), disable=silent)
-    for this_file in file_list:
-        # Update progress bar with file name
-        pbar.set_description(os.path.basename(this_file))
+    if not silent:
+        pbar = tqdm(total=len(file_list), disable=False)
+    
+    for i, this_file in enumerate(file_list):
+        if silent:
+            print(f"File {i+1}/{len(file_list)} has been loaded")
+        else:
+            # Update progress bar with file name
+            pbar.set_description(os.path.basename(this_file))
         # this_file_data = read_data(this_file)
         this_file_data, data_present = load_file(this_file, silent=silent)
         # Get channel details
@@ -299,8 +304,10 @@ def read_traditional_intan(
                     hf5_el_array = hf5.get_node('/raw', array_name)
                 hf5_el_array.append(this_amp)
             hf5.flush()
-        pbar.update(1)
-    pbar.close()
+        if not silent:
+            pbar.update(1)
+    if not silent:
+        pbar.close()
     hf5.close()
 
 
