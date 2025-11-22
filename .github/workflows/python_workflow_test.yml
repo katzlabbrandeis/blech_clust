@@ -37,7 +37,7 @@ jobs:
         run: echo "${{ github.event.pull_request.labels.*.name }}"
 
       - name: Check files in working-directory
-        run: ls -R ${{ github.workspace }} 
+        run: ls -lFR ${{ github.workspace }} 
 
       - name: Check params
         run: for f in $(find ${{ github.workspace }}/params/ -type f); do echo $f; cat $f; done
