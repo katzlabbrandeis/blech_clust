@@ -62,7 +62,7 @@ def load_file(filename, silent=False):
     filesize = os.path.getsize(filename)
 
     # Read file header
-    header = read_header(fid)
+    header = read_header(fid, silent=silent)
 
     # Calculate how much data is present and summarize to console.
     data_present, filesize, num_blocks, num_samples = (
