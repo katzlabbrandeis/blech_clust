@@ -314,7 +314,7 @@ if file_type == 'traditional':
     print('Tranditional INTAN file format detected')
     rhd_file_list = file_lists[file_type]['rhd']
     with open(rhd_file_list[0], 'rb') as f:
-        header = read_header(f)
+        header = read_header(f, silent=args.silent)
     # temp_file, data_present = importrhdutilities.load_file(file_list[0])
     amp_channel_ports = [x['port_prefix']
                          for x in header['amplifier_channels']]

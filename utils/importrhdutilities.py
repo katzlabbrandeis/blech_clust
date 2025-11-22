@@ -82,7 +82,7 @@ def load_file(filename, silent=False):
     # If .rhd file contains data, parse data into readable forms and, if
     # necessary, apply the same notch filter that was active during recording.
     if data_present:
-        parse_data(header, data)
+        parse_data(header, data, silent=silent)
         apply_notch_filter(header, data, silent=silent)
 
         # Save recorded data in 'data' to 'result' dict.
@@ -95,7 +95,8 @@ def load_file(filename, silent=False):
         data = []
 
     # Report how long read took.
-    print('Done!  Elapsed time: {0:0.1f} seconds'.format(time.time() - tic))
+    if not silent:
+        print('Done!  Elapsed time: {0:0.1f} seconds'.format(time.time() - tic))
 
     # Return 'result' dict.
     return result, data_present
@@ -190,14 +191,14 @@ def find_channel_in_header(channel_name, header):
     return False, '', 0
 
 
-def read_header(fid):
+def read_header(fid, silent=False):
     """Reads the Intan File Format header from the given file.
     """
     check_magic_number(fid)
 
     header = {}
 
-    read_version_number(header, fid)
+    read_version_number(header, fid, silent=silent)
     set_num_samples_per_data_block(header)
 
     freq = {}
@@ -216,7 +217,7 @@ def read_header(fid):
 
     initialize_channels(header)
 
-    read_signal_summary(header, fid)
+    read_signal_summary(header, fid, silent=silent)
 
     return header
 
@@ -230,7 +231,7 @@ def check_magic_number(fid):
         raise UnrecognizedFileError('Unrecognized file type.')
 
 
-def read_version_number(header, fid):
+def read_version_number(header, fid, silent=False):
     """Reads version number (major and minor) from fid. Stores them into
     header['version']['major'] and header['version']['minor'].
     """
@@ -238,8 +239,9 @@ def read_version_number(header, fid):
     (version['major'], version['minor']) = struct.unpack('<hh', fid.read(4))
     header['version'] = version
 
-    print('\nReading Intan Technologies RHD Data File, Version {}.{}\n'
-          .format(version['major'], version['minor']))
+    if not silent:
+        print('\nReading Intan Technologies RHD Data File, Version {}.{}\n'
+              .format(version['major'], version['minor']))
 
 
 def set_num_samples_per_data_block(header):
@@ -363,7 +365,7 @@ def initialize_channels(header):
     header['board_dig_out_channels'] = []
 
 
-def read_signal_summary(header, fid):
+def read_signal_summary(header, fid, silent=False):
     """Reads signal summary from data file header and stores information for
     all signal groups and their channels in 'header' dict.
     """
@@ -371,7 +373,7 @@ def read_signal_summary(header, fid):
     for signal_group in range(1, number_of_signal_groups + 1):
         add_signal_group_information(header, fid, signal_group)
     add_num_channels(header)
-    print_header_summary(header)
+    print_header_summary(header, silent=silent)
 
 
 def add_signal_group_information(header, fid, signal_group):
@@ -500,9 +502,12 @@ def header_to_result(header, result):
     return result
 
 
-def print_header_summary(header):
+def print_header_summary(header, silent=False):
     """Prints summary of contents of RHD header to console.
     """
+    if silent:
+        return
+        
     print('Found {} amplifier channel{}.'.format(
         header['num_amplifier_channels'],
         plural(header['num_amplifier_channels'])))
@@ -972,7 +977,7 @@ def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
         fid: File identifier
         silent: If True, suppress progress output
     """
-    data, indices = initialize_memory(header, num_samples)
+    data, indices = initialize_memory(header, num_samples, silent=silent)
     if not silent:
         print("Reading data from file...")
     print_step = 10
@@ -985,12 +990,13 @@ def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
     return data
 
 
-def initialize_memory(header, num_samples):
+def initialize_memory(header, num_samples, silent=False):
     """Pre-allocates NumPy arrays for each signal type that will be filled
     during this read, and initializes unique indices for data access to each
     signal type.
     """
-    print('\nAllocating memory for data...')
+    if not silent:
+        print('\nAllocating memory for data...')
     data = {}
 
     # Create zero array for amplifier timestamps.
@@ -1092,29 +1098,31 @@ def check_end_of_file(filesize, fid):
         raise FileSizeError('Error: End of file not reached.')
 
 
-def parse_data(header, data):
+def parse_data(header, data, silent=False):
     """Parses raw data into user readable and interactable forms (for example,
     extracting raw digital data to separate channels and scaling data to units
     like microVolts, degrees Celsius, or seconds.)
     """
-    print('Parsing data...')
+    if not silent:
+        print('Parsing data...')
     extract_digital_data(header, data)
     scale_analog_data(header, data)
-    scale_timestamps(header, data)
+    scale_timestamps(header, data, silent=silent)
 
 
-def scale_timestamps(header, data):
+def scale_timestamps(header, data, silent=False):
     """Verifies no timestamps are missing, and scales timestamps to seconds.
     """
     # Check for gaps in timestamps.
     num_gaps = np.sum(np.not_equal(
         data['t_amplifier'][1:]-data['t_amplifier'][:-1], 1))
-    if num_gaps == 0:
-        print('No missing timestamps in data.')
-    else:
-        print('Warning: {0} gaps in timestamp data found.  '
-              'Time scale will not be uniform!'
-              .format(num_gaps))
+    if not silent:
+        if num_gaps == 0:
+            print('No missing timestamps in data.')
+        else:
+            print('Warning: {0} gaps in timestamp data found.  '
+                  'Time scale will not be uniform!'
+                  .format(num_gaps))
 
     # Scale time steps (units = seconds).
     data['t_amplifier'] = data['t_amplifier'] / header['sample_rate']

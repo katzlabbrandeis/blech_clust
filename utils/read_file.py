@@ -95,7 +95,7 @@ class DigInHandler:
         else:
             rhd_file_list = [x for x in file_list if 'rhd' in x]
             with open(os.path.join(self.data_dir, rhd_file_list[0]), 'rb') as f:
-                header = read_header(f)
+                header = read_header(f, silent=self.silent)
             dig_in_file_list = sorted([x for x in rhd_file_list if 'rhd' in x])
             dig_in_name = [x['native_channel_name'].lower()
                            for x in header['board_dig_in_channels']]
