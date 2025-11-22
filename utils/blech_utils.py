@@ -43,7 +43,6 @@ import pandas as pd
 import sys
 from datetime import datetime
 import time
-import boto3
 from typing import Dict, List
 import shutil
 
@@ -312,113 +311,6 @@ def find_output_files(data_dir: str) -> Dict[str, List[str]]:
             data_dir, '**', ext), recursive=True)
 
     return found_files
-
-
-def upload_to_s3(local_directory: str, bucket_name: str, s3_directory: str,
-                 add_timestamp: bool, test_name: str, data_type: str, file_type: str = None) -> dict:
-    """Upload files to S3 bucket preserving directory structure.
-
-    Args:
-        local_directory (str): Local directory containing files to upload
-        bucket_name (str): Name of S3 bucket
-        s3_directory (str): Directory prefix in S3 bucket
-        add_timestamp (bool): Whether to add a timestamp to the S3 directory
-        test_name (str): Name of the test to include in the S3 directory
-        data_type (str): Type of data being tested (emg, spike, emg_spike)
-        file_type (str, optional): Type of file (ofpc, trad)
-
-    Returns:
-        dict: Dictionary containing:
-            - 's3_directory': The S3 directory path where files were uploaded
-            - 'uploaded_files': List of dictionaries with file info (local_path, s3_path, s3_url)
-    """
-    try:
-        s3_client = boto3.client('s3')
-        uploaded_files = []
-
-        # Add timestamp, test name, file type, and data type to S3 directory if requested
-        if add_timestamp:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            if file_type:
-                s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{file_type}_{data_type}"
-            else:
-                s3_directory = f"{s3_directory}/{timestamp}_{test_name}_{data_type}"
-
-        # Find all output files
-        files_dict = find_output_files(local_directory)
-
-        # Count total files to upload
-        total_files = sum(len(files) for files in files_dict.values())
-        uploaded_count = 0
-
-        # Upload each file
-        for ext, file_list in files_dict.items():
-            for local_path in file_list:
-                # Get path relative to local_directory
-                relative_path = os.path.relpath(local_path, local_directory)
-                # Create S3 path preserving structure
-                s3_path = os.path.join(s3_directory, relative_path)
-                # Replace backslashes with forward slashes for S3
-                s3_path = s3_path.replace('\\', '/')
-
-                # Upload the file
-                uploaded_count += 1
-                # print(
-                #     f"Uploading {uploaded_count}/{total_files}: {local_path} to s3://{bucket_name}/{s3_path}")
-                s3_client.upload_file(local_path, bucket_name, s3_path)
-
-                # Generate S3 URL
-                s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"
-
-                # Add file info to uploaded_files list
-                uploaded_files.append({
-                    'local_path': local_path,
-                    'relative_path': relative_path,
-                    's3_path': s3_path,
-                    's3_url': s3_url
-                })
-
-        # Generate and upload index.html
-        if uploaded_files:
-            # Create index.html content with file_type and data_type info
-            index_html_content = generate_index_html(
-                uploaded_files, s3_directory, bucket_name, local_directory)
-
-            # Create a temporary file for index.html
-            index_html_path = os.path.join(local_directory, 'index.html')
-            with open(index_html_path, 'w') as f:
-                f.write(index_html_content)
-
-            # Upload index.html to S3
-            s3_path = f"{s3_directory}/index.html"
-            print(f"Uploading index.html to s3://{bucket_name}/{s3_path}")
-            s3_client.upload_file(index_html_path, bucket_name, s3_path, ExtraArgs={
-                                  'ContentType': 'text/html'})
-
-            # Add index.html to uploaded_files list
-            s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_path}"
-            uploaded_files.append({
-                'local_path': index_html_path,
-                'relative_path': 'index.html',
-                's3_path': s3_path,
-                's3_url': s3_url
-            })
-
-            # Print the URL to the index.html
-            print(f"Index page available at: {s3_url}")
-
-        print(
-            f"Successfully uploaded {uploaded_count + 1} files to s3://{bucket_name}/{s3_directory}")
-
-        return {
-            's3_directory': s3_directory,
-            'uploaded_files': uploaded_files
-        }
-
-    except Exception as e:
-        print(f"Error uploading to S3: {str(e)}")
-        return {'s3_directory': None, 'uploaded_files': []}
-
 
 def generate_index_html(uploaded_files: list, s3_directory: str, bucket_name: str, local_directory: str) -> str:
     """Generate an index.html file for S3 directory listing.
