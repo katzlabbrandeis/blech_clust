@@ -62,6 +62,7 @@ jobs:
                 ./pipeline_testing/extract_traceback.sh ${LOG_LOC}; 
                 exit 1;
               fi
+
   EMG-Only:
     runs-on: self-hosted
     needs: Spike-EMG
