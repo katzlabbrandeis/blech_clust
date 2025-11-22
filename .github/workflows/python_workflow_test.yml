@@ -39,11 +39,9 @@ jobs:
       - name: Check files in working-directory
         run: ls -R ${{ github.workspace }} 
 
-      - name: Setup params
-        run: cp {{ github.workspace }}/params/_templates/* {{ github.workspace }}/params
-
       - name: Check params
         run: for f in $(find ${{ github.workspace }}/params/ -type f); do echo $f; cat $f; done
+
       - name: Install blech_clust package
         run: make clean core optional prefect
 
