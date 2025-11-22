@@ -52,7 +52,6 @@ blech_clust = ["*.sh", "*.md", "params/*.json", "example_meta_files/*.json"]
 dependencies = {file = ["requirements/requirements.txt"]}
 optional-dependencies.dev = {file = ["requirements/requirements-dev.txt"]}
 optional-dependencies.optional = {file = ["requirements/requirements-optional.txt"]}
-optional-dependencies.test = {file = ["requirements/requirements-test.txt"]}
 
 [tool.black]
 line-length = 88

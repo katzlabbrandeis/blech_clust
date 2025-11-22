@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params dev optional test prefect update make_env
+.PHONY: all base emg neurec blechrnn clean params dev optional prefect update make_env
 
 # Consolidated pip-based installation - no sudo required for base packages
 
@@ -106,11 +106,6 @@ optional:
 	@echo "Installing optional dependencies..."
 	conda run -n blech_clust pip install --no-cache-dir -e .[optional]
 	@echo "Optional dependencies installation complete!"
-
-test:
-	@echo "Installing test dependencies..."
-	conda run -n blech_clust pip install --no-cache-dir -e .[test]
-	@echo "Test dependencies installation complete!"
 
 # Install Prefect
 prefect:
