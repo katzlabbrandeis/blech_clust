@@ -17,7 +17,7 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 1. `python blech_exp_info.py`
     - Pre-clustering step. Annotate recorded channels and save experimental parameters
     - Takes template for info and electrode layout as argument
-2. `python blech_clust.py`
+2. `python blech_init.py`
     - Setup directories and define clustering parameters
 3. `python blech_common_avg_reference.py`
     - Perform common average referencing to remove large artifacts
@@ -100,31 +100,95 @@ This work used ACCESS-allocated resources at Brandeis University through allocat
 
 The project titled "Computational Processing and Modeling of Neural Ensembles in Identifying the Nonlinear Dynamics of Taste Perception" was led by PI Abuzar Mahmood. The computational allocation was active from 2023-06-26 to 2024-06-25.
 
-### Setup
+### Installation
 
-The installation process is managed through a Makefile that handles all dependencies and environment setup.
+The installation process is managed through a Makefile that handles all dependencies and environment setup automatically.
 
-To install everything (recommended):
+#### Prerequisites
+
+- **Conda/Miniconda**: Required for environment management
+- **Git**: For cloning repositories
+- **System packages**: GNU parallel (optional, for parallel processing)
+
+#### Quick Start (Recommended)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/katzlabbrandeis/blech_clust.git
+   cd blech_clust
+   ```
+
+2. **Install everything:**
+   ```bash
+   make all
+   ```
+   This installs the base environment, EMG analysis tools, neuRecommend classifier, BlechRNN, and all optional dependencies.
+
+3. **Activate the environment:**
+   ```bash
+   conda activate blech_clust
+   ```
+
+#### Custom Installation
+
+For more control over what gets installed:
+
 ```bash
-make all
+# Core spike sorting functionality only
+make core
+
+# Or install components individually:
+make base      # Base environment and core dependencies (required)
+make emg       # EMG analysis requirements (BSA/STFT, QDA)
+make neurec    # neuRecommend waveform classifier
+make blechrnn  # BlechRNN for firing rate estimation
+make prefect   # Prefect workflow management (for testing)
+make dev       # Development dependencies
+make optional  # Optional analysis tools
 ```
 
-Or install components individually:
+#### Parameter Setup
+
+After installation, set up parameter templates:
+
 ```bash
-make base      # Install base environment and dependencies
-make emg       # Install EMG analysis requirements (optional)
-make neurec    # Install neuRecommend classifier
-make blechrnn  # Install BlechRNN for firing rate estimation (optional)
+# Copy parameter templates (if none exist)
+make params
+
+# Edit the parameter files according to your experimental setup
 ```
 
-**Note:** If you plan to use GPU with BlechRNN, you'll need to install CUDA separately.
-See: [Installing PyTorch with GPU Support](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266)
+See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter configuration.
 
-To remove the environment and start fresh:
-```bash
-make clean
-```
-- Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
+#### GPU Support (Optional)
+
+If you plan to use GPU acceleration with BlechRNN:
+
+1. Install CUDA toolkit separately (see [PyTorch GPU installation guide](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266))
+2. Reinstall PyTorch with GPU support:
+   ```bash
+   conda activate blech_clust
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   ```
+
+#### Troubleshooting
+
+- **Clean installation:** If you encounter issues, remove the environment and start fresh:
+  ```bash
+  make clean
+  make all
+  ```
+
+- **Partial installation:** If a component fails, you can retry individual components:
+  ```bash
+  make base    # Retry base installation
+  make emg     # Retry EMG components
+  ```
+
+- **Environment activation:** Always activate the environment before running scripts:
+  ```bash
+  conda activate blech_clust
+  ```
 
 ### Testing
 <details>
@@ -236,7 +300,7 @@ The next prompt (```Laser dig_in index, <BLANK> for none::: "x" to exit ::```) a
 
 Our final prompt (```::: Please enter any notes about the experiment.```) just asks for notes. Enter any pertinent comments, or just hit ```enter``` to finish running ```blech_exp_info.py```
 
-Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
+Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_init.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
 
 While you're there, you should also copy and adapt the other two params templates (`waveform_classifier_params.json` and `emg_params.json`), or you will probably be haunted by errors.
 
@@ -294,8 +358,8 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 ### Dependency Graph (for use with https://www.nomnoml.com/)
 <details>
 - **Spike Sorting**
-- - [blech_exp_info] -> [blech_clust]
-- - [blech_clust] -> [blech_common_average_reference]
+- - [blech_exp_info] -> [blech_init]
+- - [blech_init] -> [blech_common_average_reference]
 - - [blech_common_average_reference] -> [bash blech_run_process.sh]
 - - [bash blech_run_process.sh] -> [blech_post_process]
 - - [blech_post_process] -> [blech_units_plot]
@@ -306,7 +370,7 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [blech_data_summary] -> [grade_dataset]
 
 - **EMG shared**
-- - [blech_clust] -> [blech_make_arrays]
+- - [blech_init] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [emg_filter]
 
 - **BSA/STFT**

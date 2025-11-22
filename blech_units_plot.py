@@ -14,7 +14,7 @@ from tqdm import tqdm, trange
 
 # Import 3rd part code
 from utils import blech_waveforms_datashader
-from utils.blech_utils import imp_metadata, pipeline_graph_check
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 
 
 def setup_environment(args):

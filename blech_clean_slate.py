@@ -12,7 +12,7 @@ import os
 import shutil
 import sys
 import glob
-from utils.blech_utils import imp_metadata
+from blech_clust.utils.blech_utils import imp_metadata
 
 metadata_handler = imp_metadata(sys.argv)
 dir_name = metadata_handler.dir_name
