@@ -7,7 +7,8 @@
 set -e  # Exit on any error
 
 TEST_TYPE="$1"
-LOG_LOC="${GITHUB_WORKSPACE}/github.log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_LOC="$SCRIPT_DIR/github.log"
 
 if [ -z "$TEST_TYPE" ]; then
     echo "Error: Test type not specified"
