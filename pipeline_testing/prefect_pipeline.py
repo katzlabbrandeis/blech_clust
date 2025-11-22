@@ -161,12 +161,10 @@ def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
 if not os.path.exists(emg_params_path):
     print('=== Environment params file not found. ===')
+    print(f'Expected path: {emg_params_path}')
     print(
-        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
+        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/emg_params.json ]] and update as needed.')
     exit()
-with open(emg_params_path) as f:
-    env_params = json.load(f)
-emg_env_path = env_params['emg_env']
 
 # data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
 # data_subdir = 'pipeline_testing/test_data_handling/eb24_behandephys_11_12_24_241112_114659_copy'
