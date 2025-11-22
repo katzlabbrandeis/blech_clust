@@ -90,10 +90,11 @@ params:
 	@echo "Checking parameter files in params directory = $(strip $(SCRIPT_DIR))/params..."
 	@if [ $$(ls $(strip $(SCRIPT_DIR))/params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
 		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
-	else
-		echo "No parameter files found."; \ 
+	else \
+		echo "No parameter files found."; \
 		echo "Copying parameter templates to params directory..."; \
 		cp $(strip $(SCRIPT_DIR))/params/_templates/* params/; \
+	fi
 
 dev:
 	@echo "Installing development dependencies..."
