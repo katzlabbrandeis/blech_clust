@@ -55,7 +55,7 @@ jobs:
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
-        run: LOG_LOC="{{ github.workspace }}/github.log"; \
+        run: LOG_LOC="${{ github.workspace }}/github.log"; \
               conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg --silent 2>&1 | tee ${LOG_LOC}; \
               if grep -q "ERROR" ${LOG_LOC}; then \
                 echo "ERROR detected by bash";
@@ -72,7 +72,8 @@ jobs:
     steps:
       - name: Prefect EMG only test
         shell: bash
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e --silent 2>&1 | tee ${LOG_LOC}; \
+        run: LOG_LOC="${{ github.workspace }}/github.log"; \
+              conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e --silent 2>&1 | tee ${LOG_LOC}; \
               if grep -q "ERROR" ${LOG_LOC}; then \
                 echo "ERROR detected by bash";
                 ./pipeline_testing/extract_traceback.sh ${LOG_LOC}; 
