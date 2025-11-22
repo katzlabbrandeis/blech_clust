@@ -16,12 +16,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - name: Clean working directory
-        run: |
-          echo "Cleaning working directory to ensure fresh code"
-          rm -rf /home/exouser/Desktop/blech_clust
-          mkdir -p /home/exouser/Desktop/blech_clust
-
       - name: Clean workspace
         run: |
           echo "Cleaning workspace to ensure fresh checkout"
@@ -42,20 +36,16 @@ jobs:
       - name: check labels
         run: echo "${{ github.event.pull_request.labels.*.name }}"
 
-      - name: Copy files to working-directory
-        run: cp -r ./* /home/exouser/Desktop/blech_clust
-
       - name: Check files in working-directory
-        run: ls -R /home/exouser/Desktop/blech_clust
+        run: ls -R ${{ github.workspace }} 
 
       - name: Setup params
-        run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
+        run: cp {{ github.workspace }}/params/_templates/* {{ github.workspace }}/params
 
       - name: Check params
-        run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
+        run: for f in $(find ${{ github.workspace }}/params/ -type f); do echo $f; cat $f; done
       - name: Install blech_clust package
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: make base
+        run: make clean core optional prefect
 
   Spike-EMG:
     runs-on: self-hosted
