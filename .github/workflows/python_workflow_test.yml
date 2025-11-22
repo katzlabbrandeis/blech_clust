@@ -39,11 +39,11 @@ jobs:
       - name: Check files in working-directory
         run: ls -lFR ${{ github.workspace }} 
 
-      - name: Check params
-        run: for f in $(find ${{ github.workspace }}/params/ -type f); do echo $f; cat $f; done
-
       - name: Install blech_clust package
         run: make clean core optional prefect dev
+
+      - name: Check params
+        run: for f in $(find ${{ github.workspace }}/params/ -type f); do echo $f; cat $f; done
 
   Spike-EMG:
     runs-on: self-hosted
