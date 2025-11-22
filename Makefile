@@ -87,15 +87,13 @@ blechrnn:
 # This is to prevent overwriting existing parameter files
 # If no json files exist, copy templates
 params:
-	@echo "Checking parameter files..."
-	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
+	@echo "Checking parameter files in params directory = $(strip $(SCRIPT_DIR))/params..."
+	@if [ $$(ls $(strip $(SCRIPT_DIR))/params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
 		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
-	elif [ $$(ls params/*.json 2>/dev/null | wc -l) -eq 1 ]; then \
+	else
+		echo "No parameter files found."; \ 
 		echo "Copying parameter templates to params directory..."; \
-		cp params/templates/* params/; \
-	else \
-		echo "No parameter files found. Templates should be copied if available."; \
-	fi
+		cp $(strip $(SCRIPT_DIR))/params/_templates/* params/; \
 
 dev:
 	@echo "Installing development dependencies..."
