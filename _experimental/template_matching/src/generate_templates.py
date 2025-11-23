@@ -12,6 +12,7 @@ from scipy.optimize import minimize
 from pprint import pprint as pp
 from itertools import product
 import json
+import pandas as pd
 
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 data_dir = os.path.join(base_dir, 'data')
@@ -595,7 +596,14 @@ explained_variance_filters = pca_filters.explained_variance_ratio_
 
 filter_pca_components = pca_filters.components_
 # Calculate score of each filter as mean absolute projection onto PCA components 
-filter_scores = np.mean(np.abs(X_norm @ filter_pca_components.T), axis=1)
+X_norm_pca_filters = X_norm @ filter_pca_components.T
+filter_scores = np.mean(np.abs(X_norm_pca_filters), axis=1)
+
+plt.imshow(X_norm_pca_filters, aspect='auto', cmap='bwr', interpolation='none')
+plt.title('Projection of Data onto PCA Components of Optimized Filters')
+plt.xlabel('Time Point')
+plt.ylabel('PCA Component Index')
+plt.show()
 
 # Plot optimized filter and pca filters
 fig, axs = plt.subplots(2, 1, figsize=(10, 8))
@@ -666,6 +674,13 @@ ax.set_xlabel('Max Optimized Filter Score')
 ax.set_ylabel('Density')
 ax.legend()
 plt.show()
+
+# Write out optimized filters and pca filters
+np.savez(
+    os.path.join(artifacts_dir, 'optimized_filters.npz'),
+    optimized_filters=optimized_filters,
+    filter_pca_components=filter_pca_components
+    )
 
 ##############################
 # Run grid over:
@@ -738,17 +753,73 @@ for comb in tqdm(all_combinations):
         json.dump(all_losses, f, indent=4)
 
 # Plot heatmaps of all combinations
-import pandas as pd
 loss_df = pd.DataFrame(all_losses)
-for orthogonality_weight in orthogonality_weight_vec:
+
+fig, axs = plt.subplots(
+    1,len(orthogonality_weight_vec), 
+    figsize=(20,5),
+    sharex=True,
+    sharey=True
+    )
+vmin = loss_df['final_loss'].min()
+vmax = loss_df['final_loss'].max()
+for i, orthogonality_weight in enumerate(orthogonality_weight_vec):
     subset_df = loss_df[loss_df['orthogonality_weight'] == orthogonality_weight]
     pivot_table = subset_df.pivot('n_basis_funcs', 'n_templates', 'final_loss')
-    plt.figure(figsize=(8, 6))
-    plt.imshow(pivot_table, aspect='auto', cmap='viridis', origin='lower')
-    plt.colorbar(label='Final Loss')
-    plt.title(f'Final Loss Heatmap (Orthogonality Weight: {orthogonality_weight})')
-    plt.xlabel('Number of Templates')
-    plt.ylabel('Number of Basis Functions')
-    plt.xticks(ticks=np.arange(len(n_templates_vec)), labels=n_templates_vec)
-    plt.yticks(ticks=np.arange(len(n_basis_vec)), labels=n_basis_vec)
+    im = axs[i].imshow(
+        pivot_table, 
+        aspect='auto', 
+        origin='lower', 
+        cmap='viridis',
+        vmin=vmin,
+        vmax=vmax
+        )
+    axs[i].set_title(f'Orthogonality Weight: {orthogonality_weight:.2f}')
+    axs[i].set_xlabel('Number of Templates')
+    axs[i].set_ylabel('Number of Basis Functions')
+    fig.colorbar(im, ax=axs[i], label='Final Loss')
+plt.tight_layout()
 plt.show()
+
+best_params = loss_df.loc[loss_df['final_loss'].idxmin()]
+
+# Generate filters using best params
+n_basis_funcs = int(best_params['n_basis_funcs'])
+n_templates = int(best_params['n_templates'])
+orthogonality_weight = best_params['orthogonality_weight']
+
+forward_basis_funcs = gen_raised_cosine_basis(75-30, n_basis_funcs//2, spread='log')
+backward_basis_funcs = gen_raised_cosine_basis(30, n_basis_funcs//2, spread='log')[:,::-1]
+mirrored_basis_funcs = np.zeros(
+    (forward_basis_funcs.shape[0] + backward_basis_funcs.shape[0],
+     X.shape[1])
+    )
+for i, this_func in enumerate(forward_basis_funcs):
+    mirrored_basis_funcs[i, 30:] = this_func
+for i, this_func in enumerate(backward_basis_funcs):
+    mirrored_basis_funcs[i + forward_basis_funcs.shape[0], :30] = this_func
+
+rand_weights = np.random.randn(n_templates, mirrored_basis_funcs.shape[0])
+
+result = minimize(
+        loss_function_basis, 
+        rand_weights.flatten(), 
+        args=(mirrored_basis_funcs, X_norm, y, orthogonality_weight),
+        method='L-BFGS-B',
+        options={
+            'maxfun': 100000, 
+            'disp': True, 
+            'gtol': 1e-6,
+            }
+        )
+
+# Value without orthogonality weight
+final_loss = loss_function_basis(
+    result.x,
+    mirrored_basis_funcs,
+    X_norm,
+    y,
+    orthogonality_weight=0.0
+    )
+
+
