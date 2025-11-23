@@ -170,6 +170,7 @@ for electrode_num in electrode_nums:
     threshold = 0.9
     spike_indices = np.where(np.abs(outs) > threshold)[0]
     spike_waveforms = data_snippets[spike_indices]
+    spike_xcorr_values = outs[spike_indices]
 
     # Plot histogram of abs(outs)
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -209,7 +210,8 @@ for electrode_num in electrode_nums:
 
     all_spike_waveforms[electrode_num] = {
         'spike_indices': spike_indices,
-        'spike_waveforms': spike_waveforms
+        'spike_waveforms': spike_waveforms,
+        'xcorr_values': spike_xcorr_values
     }
 
     # scaled_xcorr_partial = partial(
@@ -230,3 +232,127 @@ np.savez(
     os.path.join(artifacts_dir, 'template_matching_spike_waveforms.npz'),
     all_spike_waveforms=all_spike_waveforms
     )
+
+############################################################
+# Compare:
+# 1) Timing of detected spikes with ground truth spikes from blech_clust
+# 2) Classifier probs vs scaled xcorr values
+
+all_spike_waveforms_npz = np.load(
+    os.path.join(artifacts_dir, 'template_matching_spike_waveforms.npz'),
+    allow_pickle=True
+    )
+
+all_xcorr_waveforms = all_spike_waveforms_npz['all_spike_waveforms'].item()
+
+import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
+
+all_clust_waveforms = {}
+for electrode_num in electrode_nums:
+    load_bool, (
+        spike_waveforms,
+        spike_times,
+        pca_slices,
+        energy,
+        amplitudes,
+        predictions,
+    ) = post_utils.load_data_from_disk(data_dir, electrode_num, 10)
+
+    clf_list_path = glob(
+            os.path.join(
+                data_dir,
+                f'spike_waveforms/electrode{electrode_num:02d}/clf_prob.npy'
+                )
+            )
+    clf_probs = np.load(clf_list_path[0])
+
+    all_clust_waveforms[electrode_num] = {
+        'spike_waveforms': spike_waveforms,
+        'spike_times': spike_times,
+        'clf_probs': clf_probs
+    }
+
+for this_electrode_num in electrode_nums:
+    xcorr_data = all_xcorr_waveforms[this_electrode_num]
+    clust_data = all_clust_waveforms[this_electrode_num]
+
+    xcorr_spike_times = xcorr_data['spike_indices']
+    clust_spike_times = clust_data['spike_times']
+
+    # Find waveforms within one waveform length
+    waveform_length = clust_data['spike_waveforms'].shape[1]
+    xcorr_matched_indices = []
+    clust_matched_indices = []
+    for xcorr_ind, xcorr_time in enumerate(xcorr_spike_times):
+        diffs = np.abs(clust_spike_times - xcorr_time)
+        if np.any(diffs <= waveform_length):
+            clust_ind = np.argmin(diffs)
+            clust_matched_indices.append(clust_ind)
+            xcorr_matched_indices.append(xcorr_ind)
+
+    xcorr_waveforms = xcorr_data['spike_waveforms']
+    clust_waveforms = clust_data['spike_waveforms']
+
+    # Plot waveform comparison
+    fig, ax = plt.subplots(1,2, figsize=(15,5))
+    for waveform in xcorr_waveforms[:1000]:
+        ax[0].plot(waveform, color='orange', alpha=0.05)
+    ax[0].set_title('Template Matching Detected Waveforms'+\
+            f'\nTotal Detected: {len(xcorr_waveforms)}')
+    for waveform in clust_waveforms[:1000]:
+        ax[1].plot(waveform, color='purple', alpha=0.05)
+    ax[1].set_title('Blech Clust Detected Waveforms'+\
+            f'\nTotal Detected: {len(clust_waveforms)}')
+    plt.suptitle(f'Electrode {this_electrode_num} Waveform Comparison')
+    # plt.show()
+    plt.tight_layout()
+    fig.savefig( 
+          os.path.join(
+               this_plot_dir,
+               f'electrode_{this_electrode_num}_waveform_comparison.png'
+          )
+     )
+    plt.close()
+
+    # For the matched indices, plot classifier probs vs scaled xcorr values
+    matched_clf_probs = clust_data['clf_probs'][clust_matched_indices]
+    matched_xcorr_values = xcorr_data['xcorr_values'][xcorr_matched_indices]
+    fig, ax = plt.subplots(figsize=(10,5))
+    ax.scatter(
+        np.abs(matched_xcorr_values),
+        matched_clf_probs,
+        color='teal',
+        alpha=0.5
+    )
+    ax.set_xlabel('Scaled Cross-Correlation Value')
+    ax.set_ylabel('Classifier Probability')
+    ax.set_title(f'Classifier Probability vs Scaled Cross-Correlation Value\nElectrode {this_electrode_num}')
+    # plt.show()
+    fig.savefig(
+            os.path.join(
+                 this_plot_dir,
+                 f'electrode_{this_electrode_num}_clf_prob_vs_xcorr_value.png'
+            )
+         )
+    plt.close()
+
+    # Plot overlapping waveforms for matched spikes
+    fig, ax = plt.subplots(1,2, figsize=(15,5))
+    matched_clust_waveforms = clust_waveforms[clust_matched_indices]
+    matched_xcorr_waveforms = xcorr_waveforms[xcorr_matched_indices]
+    ax[0].plot(matched_xcorr_waveforms.T, color='orange', alpha=0.05)
+    ax[0].set_title('Template Matching Matched Waveforms')
+    ax[1].plot(matched_clust_waveforms.T, color='purple', alpha=0.05)
+    ax[1].set_title('Blech Clust Matched Waveforms')
+    plt.suptitle(f'Electrode {this_electrode_num} Matched Waveform Comparison\n'+\
+            f'Number of Matched Spikes: {len(clust_matched_indices)}'
+                 )
+    # plt.show()
+    fig.savefig( 
+          os.path.join(
+               this_plot_dir,
+               f'electrode_{this_electrode_num}_matched_waveform_comparison.png'
+          )
+     )
+    plt.close()
+
