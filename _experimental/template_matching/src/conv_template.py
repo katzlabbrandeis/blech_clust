@@ -100,7 +100,6 @@ def scaled_xcorr(snippet, template):
     return np.dot(snippet, template)
 
 threshold = 0.8
-all_spike_waveforms = {}
 for electrode_num in electrode_nums:
 
     print(f"Processing Electrode {electrode_num}")
@@ -209,11 +208,17 @@ for electrode_num in electrode_nums:
     )
     plt.close()
 
-    all_spike_waveforms[electrode_num] = {
+    # Save spike waveforms for this electrode individually
+    electrode_spike_data = {
         'spike_indices': spike_indices,
         'spike_waveforms': spike_waveforms,
         'xcorr_values': spike_xcorr_values
     }
+    
+    np.savez(
+        os.path.join(artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'),
+        **electrode_spike_data
+    )
 
     # scaled_xcorr_partial = partial(
     #     scaled_xcorr,
@@ -228,23 +233,22 @@ for electrode_num in electrode_nums:
     #     ) for this_snippet in tqdm(data_snippets)
     # )
 
-# Save all spike waveforms
-np.savez(
-    os.path.join(artifacts_dir, 'template_matching_spike_waveforms.npz'),
-    all_spike_waveforms=all_spike_waveforms
-    )
-
 ############################################################
 # Compare:
 # 1) Timing of detected spikes with ground truth spikes from blech_clust
 # 2) Classifier probs vs scaled xcorr values
 
-all_spike_waveforms_npz = np.load(
-    os.path.join(artifacts_dir, 'template_matching_spike_waveforms.npz'),
-    allow_pickle=True
-    )
-
-all_xcorr_waveforms = all_spike_waveforms_npz['all_spike_waveforms'].item()
+# Load spike waveforms for each electrode individually
+def load_xcorr_waveforms_for_electrode(electrode_num):
+    npz_path = os.path.join(artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz')
+    if os.path.exists(npz_path):
+        npz_data = np.load(npz_path)
+        return {
+            'spike_indices': npz_data['spike_indices'],
+            'spike_waveforms': npz_data['spike_waveforms'],
+            'xcorr_values': npz_data['xcorr_values']
+        }
+    return None
 
 import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
 
@@ -274,7 +278,10 @@ for electrode_num in electrode_nums:
     }
 
 for this_electrode_num in electrode_nums:
-    xcorr_data = all_xcorr_waveforms[this_electrode_num]
+    xcorr_data = load_xcorr_waveforms_for_electrode(this_electrode_num)
+    if xcorr_data is None:
+        print(f"No xcorr data found for electrode {this_electrode_num}, skipping...")
+        continue
     clust_data = all_clust_waveforms[this_electrode_num]
 
     xcorr_spike_times = xcorr_data['spike_indices']
@@ -358,10 +365,13 @@ for this_electrode_num in electrode_nums:
     plt.close()
 
 # Make plot of detected spike counts for all electrodes
-all_xcorr_waveform_counts = [
-    len(all_xcorr_waveforms[el_num]['spike_waveforms'])
-    for el_num in electrode_nums
-    ]
+all_xcorr_waveform_counts = []
+for el_num in electrode_nums:
+    xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
+    if xcorr_data is not None:
+        all_xcorr_waveform_counts.append(len(xcorr_data['spike_waveforms']))
+    else:
+        all_xcorr_waveform_counts.append(0)
 
 fig, ax = plt.subplots(figsize=(10,5))
 ax.bar(electrode_nums, all_xcorr_waveform_counts, color='cyan', alpha=0.7)
