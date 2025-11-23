@@ -22,7 +22,8 @@ base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matc
 plot_dir = os.path.join(base_dir, 'plots')
 artifacts_dir = os.path.join(base_dir, 'artifacts')
 
-data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+# data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
 # Find h5 file
 h5_path = glob(os.path.join(data_dir, '*.h5'))[0]
 h5 = tables.open_file(h5_path, mode='r')
@@ -355,4 +356,28 @@ for this_electrode_num in electrode_nums:
           )
      )
     plt.close()
+
+# Make plot of detected spike counts for all electrodes
+all_xcorr_waveform_counts = [
+    len(all_xcorr_waveforms[el_num]['spike_waveforms'])
+    for el_num in electrode_nums
+    ]
+
+fig, ax = plt.subplots(figsize=(10,5))
+ax.bar(electrode_nums, all_xcorr_waveform_counts, color='cyan', alpha=0.7)
+# Put anootations on top of bars
+for i, count in enumerate(all_xcorr_waveform_counts):
+    ax.text(electrode_nums[i], count + 1, f"#{i}: {count}", ha='center', va='bottom', rotation=90, fontsize=8) 
+ax.set_xlabel('Electrode Number')
+ax.set_ylabel('Number of Detected Spikes (Template Matching)')
+ax.set_title('Detected Spike Counts per Electrode (Template Matching)')
+plt.tight_layout()
+# plt.show()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_detected_spike_counts_template_matching.png'
+    )
+)
+plt.close()
 
