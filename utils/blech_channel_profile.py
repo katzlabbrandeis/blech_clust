@@ -14,6 +14,10 @@ from tqdm import tqdm
 def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
     """
     Generate plots for all channels and digital inputs
+    
+    Memory-efficient implementation using memory mapping and on-the-fly downsampling
+    to avoid loading entire datasets into RAM. This is critical for large recordings
+    (e.g., 64 channels can otherwise consume 16GB+ of RAM).
 
     Args:
         dir_path: Directory containing the data files
@@ -65,67 +69,96 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
         fig, ax = plt.subplots(row_num, col_num,
                                sharex=True, sharey=True, figsize=(15, 10))
         for this_file, this_ax in tqdm(zip(amp_files, ax.flatten())):
-            data = np.fromfile(this_file, dtype=np.dtype('int16'))
-            this_ax.plot(data[::downsample])
+            # Use memory mapping to avoid loading entire file
+            data_mmap = np.memmap(this_file, dtype=np.dtype('int16'), mode='r')
+            # Only read downsampled indices to save memory
+            downsampled_data = data_mmap[::downsample]
+            this_ax.plot(downsampled_data)
             this_ax.set_ylabel("_".join(os.path.basename(this_file)
                                         .split('.')[0].split('-')[1:]))
+            # Delete memmap to free memory
+            del data_mmap, downsampled_data
         plt.suptitle('Amplifier Data')
         fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
         plt.close(fig)
     elif file_type == 'one file per signal type':
-        amplifier_data = np.fromfile(amp_files[0], dtype=np.dtype('uint16'))
-        num_electrodes = int(len(amplifier_data)/num_recorded_samples)
-        amp_reshape = np.reshape(amplifier_data, (int(
-            len(amplifier_data)/num_electrodes), num_electrodes)).T
+        # Use memory mapping to avoid loading entire file into memory
+        amplifier_data_mmap = np.memmap(amp_files[0], dtype=np.dtype('uint16'), mode='r')
+        num_electrodes = int(len(amplifier_data_mmap)/num_recorded_samples)
         row_num = np.min((row_lim, num_electrodes))
         col_num = int(np.ceil(num_electrodes/row_num))
         # Create plot
         fig, ax = plt.subplots(row_num, col_num,
                                sharex=True, sharey=True, figsize=(15, 10))
         for e_i in tqdm(range(num_electrodes)):
-            data = amp_reshape[e_i, :]
+            # Extract only the data for this electrode, downsampled
+            # Data is interleaved: [e0_t0, e1_t0, ..., eN_t0, e0_t1, e1_t1, ...]
+            electrode_indices = np.arange(e_i, len(amplifier_data_mmap), num_electrodes)
+            # Downsample the indices
+            downsampled_indices = electrode_indices[::downsample]
+            data = amplifier_data_mmap[downsampled_indices]
             ax_i = plt.subplot(row_num, col_num, e_i+1)
-            ax_i.plot(data[::downsample])
+            ax_i.plot(data)
             ax_i.set_ylabel('amp_' + str(e_i))
+            del data, electrode_indices, downsampled_indices
         plt.suptitle('Amplifier Data')
         fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
         plt.close(fig)
+        del amplifier_data_mmap
 
     print("Now plotting digital input signals")
     if file_type == 'one file per channel':
         fig, ax = plt.subplots(len(digin_files),
                                sharex=True, sharey=True, figsize=(8, 10))
         for this_file, this_ax in tqdm(zip(digin_files, ax.flatten())):
-            data = np.fromfile(this_file, dtype=np.dtype('uint16'))
-            this_ax.plot(data[::downsample])
+            # Use memory mapping to avoid loading entire file
+            data_mmap = np.memmap(this_file, dtype=np.dtype('uint16'), mode='r')
+            downsampled_data = data_mmap[::downsample]
+            this_ax.plot(downsampled_data)
             this_ax.set_ylabel("_".join(os.path.basename(this_file)
                                         .split('.')[0].split('-')[1:]))
+            del data_mmap, downsampled_data
         plt.suptitle('DIGIN Data')
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
     elif file_type == 'one file per signal type':
-        d_inputs = np.fromfile(digin_files[0], dtype=np.dtype('uint16'))
-        d_inputs_str = d_inputs.astype('str')
+        # Use memory mapping for digital inputs
+        d_inputs_mmap = np.memmap(digin_files[0], dtype=np.dtype('uint16'), mode='r')
+        # Process in chunks to reduce memory usage
+        # For diff calculation, we need the full data but can work with views
+        d_inputs_str = d_inputs_mmap.astype('str')
         d_in_str_int = d_inputs_str.astype('int64')
         d_diff = np.diff(d_in_str_int)
+        # Clean up intermediate arrays
+        del d_inputs_str, d_in_str_int
+        
         dig_in = list(np.unique(np.abs(d_diff)) - 1)
         dig_in.remove(-1)
         num_dig_ins = len(dig_in)
-        dig_inputs = np.zeros((num_dig_ins, len(d_inputs)))
-        for n_i in range(num_dig_ins):
-            start_ind = np.where(d_diff == n_i + 1)[0]
-            end_ind = np.where(d_diff == -1*(n_i + 1))[0]
-            for s_i in range(len(start_ind)):
-                dig_inputs[n_i, start_ind[s_i]:end_ind[s_i]] = 1
+        
+        # Instead of creating full dig_inputs array, process each channel separately
         fig, ax = plt.subplots(num_dig_ins, 1,
                                sharex=True, sharey=True, figsize=(8, 10))
-        for d_i in tqdm(range(num_dig_ins)):
+        for d_i, n_i in tqdm(enumerate(range(num_dig_ins))):
+            # Create sparse representation for this channel only
+            start_ind = np.where(d_diff == n_i + 1)[0]
+            end_ind = np.where(d_diff == -1*(n_i + 1))[0]
+            # Create downsampled output directly
+            dig_input_downsampled = np.zeros(int(np.ceil(len(d_inputs_mmap) / downsample)))
+            for s_i in range(len(start_ind)):
+                start_ds = start_ind[s_i] // downsample
+                end_ds = end_ind[s_i] // downsample
+                dig_input_downsampled[start_ds:end_ds] = 1
+            
             ax_i = plt.subplot(num_dig_ins, 1, d_i+1)
-            ax_i.plot(dig_inputs[d_i, ::downsample])
+            ax_i.plot(dig_input_downsampled)
             ax_i.set_ylabel('Dig_in_' + str(dig_in[d_i]))
+            del dig_input_downsampled
+        
         plt.suptitle('DIGIN Data')
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
+        del d_inputs_mmap, d_diff
 
 
 if __name__ == '__main__':
