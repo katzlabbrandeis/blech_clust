@@ -9,14 +9,18 @@ import os
 import numpy as np
 import pylab as plt
 from tqdm import tqdm
+import tables
 
 
-def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
+def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=None):
     """
     Generate plots for all channels and digital inputs
     
-    Memory-efficient implementation using memory mapping and on-the-fly downsampling
-    to avoid loading entire datasets into RAM. This is critical for large recordings
+    Memory-efficient implementation that can load data from either:
+    1. HDF5 file (if electrode data has been loaded) - preferred method
+    2. Raw data files using memory mapping - fallback method
+    
+    This avoids loading entire datasets into RAM, which is critical for large recordings
     (e.g., 64 channels can otherwise consume 16GB+ of RAM).
 
     Args:
@@ -24,6 +28,7 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
         qa_out_path: Directory to save the plots
         file_type: Either 'one file per channel' or 'one file per signal type'
         downsample: Downsampling factor for plotting (default: 100)
+        hdf5_name: Optional path to HDF5 file. If provided and contains data, will use HDF5 instead of raw files
     """
     if file_type not in ['one file per channel', 'one file per signal type']:
         raise ValueError(
@@ -33,6 +38,31 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
     plot_dir = os.path.join(qa_out_path, "channel_profile_plots")
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
+    
+    # Check if HDF5 file exists and has data
+    use_hdf5 = False
+    hf5 = None
+    if hdf5_name is None:
+        # Try to find HDF5 file in dir_path
+        h5_search = glob.glob(os.path.join(dir_path, '*.h5'))
+        if len(h5_search) > 0:
+            hdf5_name = h5_search[0]
+    
+    if hdf5_name and os.path.exists(hdf5_name):
+        try:
+            hf5 = tables.open_file(hdf5_name, 'r')
+            # Check if raw data exists in HDF5
+            if '/raw' in hf5 and len(hf5.root.raw._v_children) > 0:
+                use_hdf5 = True
+                print(f"Using HDF5 file for data: {hdf5_name}")
+            else:
+                hf5.close()
+                hf5 = None
+        except Exception as e:
+            print(f"Could not open HDF5 file: {e}")
+            if hf5:
+                hf5.close()
+            hf5 = None
 
     # Get files to read
     if file_type == 'one file per channel':
@@ -55,14 +85,41 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
             os.path.join(dir_path, 'time.dat'), dtype=np.dtype('float32')))
         total_recording_time = num_recorded_samples/sampling_rate  # In seconds
 
-    if len(amp_files) < 1:
+    if not use_hdf5 and len(amp_files) < 1:
         raise Exception("Couldn't find amp*.dat files in dir" + "\n" +
                         f"{dir_path}")
 
     # Plot files
-    print("Now plotting ampilfier signals")
+    print("Now plotting amplifier signals")
     row_lim = 8
-    if file_type == 'one file per channel':
+    
+    if use_hdf5:
+        # Get electrode data from HDF5
+        electrode_nodes = sorted([node._v_name for node in hf5.root.raw._f_iter_nodes()])
+        num_electrodes = len(electrode_nodes)
+        
+        row_num = np.min((row_lim, num_electrodes))
+        col_num = int(np.ceil(num_electrodes/row_num))
+        
+        # Create plot
+        fig, ax = plt.subplots(row_num, col_num,
+                               sharex=True, sharey=True, figsize=(15, 10))
+        if num_electrodes == 1:
+            ax = [ax]
+        else:
+            ax = ax.flatten()
+        
+        for node_name, this_ax in tqdm(zip(electrode_nodes, ax)):
+            # Read data from HDF5 with downsampling
+            data = hf5.root.raw._f_get_child(node_name)[::downsample]
+            this_ax.plot(data)
+            this_ax.set_ylabel(node_name)
+        
+        plt.suptitle('Amplifier Data (from HDF5)')
+        fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
+        plt.close(fig)
+        
+    elif file_type == 'one file per channel':
         row_num = np.min((row_lim, len(amp_files)))
         col_num = int(np.ceil(len(amp_files)/row_num))
         # Create plot
@@ -107,6 +164,11 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
         del amplifier_data_mmap
 
     print("Now plotting digital input signals")
+    
+    # Digital inputs are not stored in HDF5, so always read from raw files
+    if use_hdf5:
+        print("Note: Digital inputs must be read from raw files (not stored in HDF5)")
+    
     if file_type == 'one file per channel':
         fig, ax = plt.subplots(len(digin_files),
                                sharex=True, sharey=True, figsize=(8, 10))
@@ -159,6 +221,10 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
         del d_inputs_mmap, d_diff
+    
+    # Close HDF5 file if it was opened
+    if hf5 is not None:
+        hf5.close()
 
 
 if __name__ == '__main__':
@@ -177,8 +243,10 @@ if __name__ == '__main__':
                         help='The type of file organization')
     parser.add_argument('--downsample', type=int, default=100,
                         help='Downsampling factor for plotting (default: 100)')
+    parser.add_argument('--hdf5', type=str, default=None,
+                        help='Path to HDF5 file (optional, will auto-detect if not provided)')
     args = parser.parse_args()
 
     dir_path = args.dir_path
 
-    plot_channels(dir_path, dir_path, args.file_type, args.downsample)
+    plot_channels(dir_path, dir_path, args.file_type, args.downsample, args.hdf5)
