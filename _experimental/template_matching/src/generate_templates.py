@@ -730,7 +730,7 @@ for comb in tqdm(all_combinations):
     all_losses.append({
         'n_basis_funcs': int(n_basis_funcs),
         'n_templates': int(n_templates),
-        'orthogonality_weight': int(orthogonality_weight),
+        'orthogonality_weight': orthogonality_weight,
         'final_loss': final_loss
     })
     # Append results to a json file
