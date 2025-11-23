@@ -99,6 +99,7 @@ def scaled_xcorr(snippet, template):
     snippet = snippet / norm(snippet)
     return np.dot(snippet, template)
 
+threshold = 0.8
 all_spike_waveforms = {}
 for electrode_num in electrode_nums:
 
@@ -168,7 +169,6 @@ for electrode_num in electrode_nums:
     plt.close()
 
     # Pull out waveforms where abs(outs) > threshold
-    threshold = 0.9
     spike_indices = np.where(np.abs(outs) > threshold)[0]
     spike_waveforms = data_snippets[spike_indices]
     spike_xcorr_values = outs[spike_indices]
