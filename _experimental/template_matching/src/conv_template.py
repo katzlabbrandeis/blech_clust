@@ -21,6 +21,8 @@ from numba import njit
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 plot_dir = os.path.join(base_dir, 'plots')
 artifacts_dir = os.path.join(base_dir, 'artifacts')
+electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes')
+os.makedirs(electrode_artifacts_dir, exist_ok=True)
 
 # data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
 data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
@@ -216,7 +218,7 @@ for electrode_num in electrode_nums:
     }
     
     np.savez(
-        os.path.join(artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'),
+        os.path.join(electrode_artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'),
         **electrode_spike_data
     )
 
@@ -240,7 +242,7 @@ for electrode_num in electrode_nums:
 
 # Load spike waveforms for each electrode individually
 def load_xcorr_waveforms_for_electrode(electrode_num):
-    npz_path = os.path.join(artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz')
+    npz_path = os.path.join(electrode_artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz')
     if os.path.exists(npz_path):
         npz_data = np.load(npz_path)
         return {
