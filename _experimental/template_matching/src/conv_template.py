@@ -149,15 +149,22 @@ for electrode_num in electrode_nums:
         
     # # # Plot filtered data downsampled
     downsample_factor = 100
-    # fig, ax = plt.subplots(3, 1, figsize=(15, 10), sharex=True, sharey=True)
-    # ax[0].plot(raw_el[::downsample_factor], color='gray', alpha=0.5)
-    # ax[0].set_title('Raw Data (Downsampled)')
-    # ax[1].plot(filtered_data[::downsample_factor], color='blue', alpha=0.5)
-    # ax[1].set_title('Filtered Data (Downsampled)')
-    # ax[2].plot(outs[::downsample_factor], color='red', alpha=0.5)
-    # ax[2].set_title('Scaled Cross-Correlation Output')
-    # plt.xlabel('Samples (Downsampled)')
-    # plt.show()
+    fig, ax = plt.subplots(3, 1, figsize=(15, 10), sharex=True, sharey=False)
+    ax[0].plot(raw_el[::downsample_factor], color='gray', alpha=0.5)
+    ax[0].set_title('Raw Data (Downsampled)')
+    ax[1].plot(filtered_data[::downsample_factor], color='blue', alpha=0.5)
+    ax[1].set_title('Filtered Data (Downsampled)')
+    ax[2].plot(outs[::downsample_factor]**2, color='red', alpha=0.5)
+    ax[2].set_title('Scaled Cross-Correlation Output (squared to emphasize peaks)')
+    plt.xlabel('Samples (Downsampled)')
+    plt.tight_layout()
+    fig.savefig(
+        os.path.join(
+            this_plot_dir,
+            f'electrode_{electrode_num}_data_and_scaled_xcorr.png'
+            )
+        )
+    plt.close()
 
     # Pull out waveforms where abs(outs) > threshold
     threshold = 0.9
@@ -200,7 +207,10 @@ for electrode_num in electrode_nums:
     )
     plt.close()
 
-    all_spike_waveforms[electrode_num] = spike_waveforms
+    all_spike_waveforms[electrode_num] = {
+        'spike_indices': spike_indices,
+        'spike_waveforms': spike_waveforms
+    }
 
     # scaled_xcorr_partial = partial(
     #     scaled_xcorr,
@@ -214,3 +224,9 @@ for electrode_num in electrode_nums:
     #         this_snippet 
     #     ) for this_snippet in tqdm(data_snippets)
     # )
+
+# Save all spike waveforms
+np.savez(
+    os.path.join(artifacts_dir, 'template_matching_spike_waveforms.npz'),
+    all_spike_waveforms=all_spike_waveforms
+    )
