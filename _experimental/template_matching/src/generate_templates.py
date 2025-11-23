@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from numpy.linalg import norm
 from scipy.optimize import minimize
+from pprint import pprint as pp
 
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 data_dir = os.path.join(base_dir, 'data')
@@ -235,6 +236,84 @@ X_neg = np.vstack(neg_waveform_data)
 X_pos = stats.zscore(X_pos, axis=1)
 X_neg = stats.zscore(X_neg, axis=1)
 
+
+##############################
+# Pick pos units using active learning
+# In each loop, add the unit that is worst classified by a logistic regression model
+worst_accuracy_list = []
+zscored_pos_waveform_data = [stats.zscore(unit, axis=1) for unit in pos_waveform_data]
+selected_pos_units = [zscored_pos_waveform_data[0]]  # Start with first unit
+remaining_pos_units = zscored_pos_waveform_data[1:] 
+n_active_learning_iters = 100
+for iter in tqdm(range(n_active_learning_iters)):
+    # Prepare data
+    X_current = np.vstack((np.vstack(selected_pos_units), X_neg))
+    y_current = np.hstack((
+        np.ones(np.vstack(selected_pos_units).shape[0]),
+        np.zeros(X_neg.shape[0])
+    ))
+
+    # Fit logistic regression
+    clf = LogisticRegression(max_iter=5000)
+    clf.fit(X_current, y_current)
+
+    # Evaluate remaining pos units
+    worst_accuracy = 1.0
+    worst_unit = None
+    for unit_ind, unit in enumerate(remaining_pos_units): 
+        X_unit = unit
+        y_unit = np.ones(X_unit.shape[0])
+        accuracy = clf.score(X_unit, y_unit)
+        if accuracy < worst_accuracy:
+            worst_accuracy = accuracy
+            worst_unit = unit
+    worst_accuracy_list.append(worst_accuracy)
+
+    # Add worst unit to selected units
+    selected_pos_units.append(worst_unit)
+    # Remove worst unit from remaining units
+    _ = remaining_pos_units.pop(unit_ind)
+
+plt.plot(worst_accuracy_list)
+plt.show()
+
+plt.imshow(np.vstack(selected_pos_units), aspect='auto', cmap='viridis', interpolation='none')
+plt.show()
+
+
+##############################
+
+fig, ax = plt.subplots(1,2, figsize=(10, 6))
+ax[0].imshow(X_pos, aspect='auto', cmap='viridis', interpolation='none')
+ax[0].set_title('Positive Waveforms')
+ax[0].set_xlabel('Time Point')
+ax[0].set_ylabel('Waveform Index')
+ax[1].imshow(X_neg, aspect='auto', cmap='viridis', interpolation='none')
+ax[1].set_title('Negative Waveforms')
+ax[1].set_xlabel('Time Point')
+ax[1].set_ylabel('Waveform Index')
+plt.tight_layout()
+plt.show()
+
+# Plot random subset of waveforms from each class
+n_plot = 500
+rand_pos_inds = np.random.choice(X_pos.shape[0], size=n_plot, replace=False)
+rand_neg_inds = np.random.choice(X_neg.shape[0], size=n_plot, replace=False)
+X_plot_pos = X_pos[rand_pos_inds]
+X_plot_neg = X_neg[rand_neg_inds]
+
+fig, axs = plt.subplots(1,2, figsize=(10, 8))
+axs[0].plot(X_plot_pos.T, color='blue', alpha=0.1)
+axs[0].set_title('Random Positive Waveforms')
+axs[0].set_xlabel('Time Point')
+axs[0].set_ylabel('Amplitude')
+axs[1].plot(X_plot_neg.T, color='red', alpha=0.1)
+axs[1].set_title('Random Negative Waveforms')
+axs[1].set_xlabel('Time Point')
+axs[1].set_ylabel('Amplitude')
+plt.tight_layout()
+plt.show()
+
 X = np.vstack((X_pos, X_neg))
 y = np.hstack((np.ones(X_pos.shape[0]), np.zeros(X_neg.shape[0])))
 
@@ -291,14 +370,29 @@ plt.show()
 from blech_clust.utils.makeRaisedCosBasis import gen_raised_cosine_basis
 
 # linear_basis_funcs = gen_raised_cosine_basis(X.shape[1], 5, spread='log')
-forward_basis_funcs = gen_raised_cosine_basis(75-30, 5, spread='log')
-backward_basis_funcs = gen_raised_cosine_basis(30, 5, spread='log')[:,::-1]
-mirrored_basis_funcs = np.concatenate([
-    backward_basis_funcs,
-    forward_basis_funcs
-    ], axis=1)
+forward_basis_funcs = gen_raised_cosine_basis(75-30, 8, spread='log')
+backward_basis_funcs = gen_raised_cosine_basis(30, 8, spread='log')[:,::-1]
+mirrored_basis_funcs = np.zeros(
+    (forward_basis_funcs.shape[0] + backward_basis_funcs.shape[0],
+     X.shape[1])
+    )
+for i, this_func in enumerate(forward_basis_funcs):
+    mirrored_basis_funcs[i, 30:] = this_func
+for i, this_func in enumerate(backward_basis_funcs):
+    mirrored_basis_funcs[i + forward_basis_funcs.shape[0], :30] = this_func
+
+# mirrored_basis_funcs = np.concatenate([
+#     backward_basis_funcs,
+#     forward_basis_funcs
+#     ], axis=1)
 
 plt.plot(mirrored_basis_funcs.T)
+plt.show()
+
+plt.imshow(mirrored_basis_funcs, aspect='auto', cmap='bwr', interpolation='none')
+plt.title('Mirrored Raised Cosine Basis Functions')
+plt.xlabel('Time Point')
+plt.ylabel('Basis Function Index')
 plt.show()
 
 # rand_weights = np.random.randn(10, linear_basis_funcs.shape[0])
@@ -311,46 +405,15 @@ plt.xlabel('Time Point')
 plt.ylabel('Filter Index')
 plt.show()
 
-def loss_function_basis(weights, basis_funcs, X, y, orthogonality_weight=1.0):
+def loss_function_basis(weights, basis_funcs, X_norm, y, orthogonality_weight=1.0):
     filters = weights.reshape((-1, basis_funcs.shape[0])) @ basis_funcs
 
     # Normalize filters 
     filters -= np.mean(filters, axis=1, keepdims=True)
     filters /= norm(filters, axis=1, keepdims=True)
 
-    # Norm X
-    X_transformed = X_norm @ filters.T
-    # Calculate norm of abs dot product
-    norm_score = norm(np.abs(X_transformed), axis=1)
-    # Calculate separation between classes
-    class_0_mean = np.mean(norm_score[y == 0])
-    class_1_mean = np.mean(norm_score[y == 1])
-    # class_delta = class_1_mean - class_0_mean
-    # We want to project such that class 0 has close to 0 score, class 1 has high score
-    class_0_delta = class_0_mean
-    class_1_delta = 1 - class_1_mean
-
-    # We also want to encourage orthogonality between filters
-    orthogonality_penalty = 0
-    filt_dot_products = filters @ filters.T
-    # Get off-diagonal elements
-    tril_indices = np.tril_indices(n_filters, k=-1)
-    off_diag_elements = filt_dot_products[tril_indices]
-    orthogonality_penalty = np.sum(off_diag_elements ** 2)
-    # Final loss is negative class delta plus orthogonality penalty
-    # loss = -class_delta + (orthogonality_penalty * orthogonality_weight)
-    loss = class_0_delta + class_1_delta + (orthogonality_penalty * orthogonality_weight)
-
-    return loss
-
-def loss_function(weights, X, y, orthogonality_weight=1.0):
-    # Reshape filters
-    n_filters = filters.shape[0] // X.shape[1]
-    filters = filters.reshape((n_filters, X.shape[1]))
-
-    # Normalize filters 
-    filters -= np.mean(filters, axis=1, keepdims=True)
-    filters /= norm(filters, axis=1, keepdims=True)
+    # plt.imshow(filters, aspect='auto', cmap='bwr', interpolation='none')
+    # plt.show()
 
     # Norm X
     X_transformed = X_norm @ filters.T
@@ -365,17 +428,51 @@ def loss_function(weights, X, y, orthogonality_weight=1.0):
     class_1_delta = 1 - class_1_mean
 
     # We also want to encourage orthogonality between filters
-    orthogonality_penalty = 0
     filt_dot_products = filters @ filters.T
     # Get off-diagonal elements
-    tril_indices = np.tril_indices(n_filters, k=-1)
+    tril_indices = np.tril_indices(filters.shape[0], k=-1)
     off_diag_elements = filt_dot_products[tril_indices]
-    orthogonality_penalty = np.sum(off_diag_elements ** 2)
+    orthogonality_penalty = np.mean(np.abs(off_diag_elements))
     # Final loss is negative class delta plus orthogonality penalty
     # loss = -class_delta + (orthogonality_penalty * orthogonality_weight)
     loss = class_0_delta + class_1_delta + (orthogonality_penalty * orthogonality_weight)
 
     return loss
+
+# def loss_function(weights, X, y, orthogonality_weight=1.0):
+#     # Reshape filters
+#     n_filters = filters.shape[0] // X.shape[1]
+#     filters = filters.reshape((n_filters, X.shape[1]))
+#
+#     # Normalize filters 
+#     filters -= np.mean(filters, axis=1, keepdims=True)
+#     filters /= norm(filters, axis=1, keepdims=True)
+#
+#     # Norm X
+#     X_transformed = X_norm @ filters.T
+#     # Calculate norm of abs dot product
+#     norm_score = norm(np.abs(X_transformed), axis=1)
+#     # Calculate separation between classes
+#     class_0_mean = np.mean(norm_score[y == 0])
+#     class_1_mean = np.mean(norm_score[y == 1])
+#     # class_delta = class_1_mean - class_0_mean
+#     # We want to project such that class 0 has close to 0 score, class 1 has high score
+#     class_0_delta = class_0_mean
+#     class_1_delta = 1 - class_1_mean
+#
+#     # We also want to encourage orthogonality between filters
+#     orthogonality_penalty = 0
+#     filt_dot_products = filters @ filters.T
+#     # Get off-diagonal elements
+#     tril_indices = np.tril_indices(n_filters, k=-1)
+#     off_diag_elements = filt_dot_products[tril_indices]
+#     orthogonality_penalty = np.sum(off_diag_elements ** 2)
+#     # Final loss is negative class delta plus orthogonality penalty
+#     # loss = -class_delta + (orthogonality_penalty * orthogonality_weight)
+#     loss = class_0_delta + class_1_delta + (orthogonality_penalty * orthogonality_weight)
+#
+#     return loss
+
 
 X_norm = (X - np.mean(X, axis=1, keepdims=True))
 X_norm /= norm(X_norm, axis=1, keepdims=True)
@@ -391,13 +488,23 @@ initial_filters = rand_filters.flatten()
 #         )
 # optimized_filters = result.x.reshape((10, X.shape[1]))
 
+# Test run
+loss_function_basis(
+    rand_weights.flatten(),
+    mirrored_basis_funcs,
+    X_norm,
+    y,
+    orthogonality_weight=1.0
+    )
+
 result = minimize(
         loss_function_basis, 
-        initial_filters, 
-        args=(mirrored_basis_funcs, X_norm, y, 0.05),
+        rand_weights.flatten(), 
+        args=(mirrored_basis_funcs, X_norm, y, 1),
         method='L-BFGS-B',
         options={'maxfun': 100000, 'disp': True, 'gtol': 1e-6}
         )
+
 # optimized_filters = (result.x.reshape((-1, linear_basis_funcs.shape[0])) @ linear_basis_funcs)
 optimized_filters = (result.x.reshape((-1, mirrored_basis_funcs.shape[0])) @ mirrored_basis_funcs) 
 
@@ -415,6 +522,9 @@ plt.ylabel('Filter Index')
 plt.show()
 
 # Plot optimized filters
+plt.plot(optimized_filters.T)
+plt.show()
+
 plt.figure(figsize=(10, 6))
 plt.imshow(optimized_filters, aspect='auto', cmap='bwr', interpolation='none')
 plt.title('Optimized Filters for Class Separation')
@@ -443,6 +553,43 @@ ax.set_zlabel('Filter 3')
 ax.legend()
 plt.show()
 
+# Perform PCA on the transformed data
+pca_optimized = PCA()
+X_optimized_pca = pca_optimized.fit_transform(X_optimized)
+explained_variance_optimize = pca_optimized.explained_variance_ratio_
+
+# Perform PCA on the optimized filters
+pca_filters = PCA(n_components=0.95)
+filters_pca = pca_filters.fit_transform(optimized_filters)
+explained_variance_filters = pca_filters.explained_variance_ratio_
+
+filter_pca_components = pca_filters.components_
+# Calculate score of each filter as mean absolute projection onto PCA components 
+filter_scores = np.mean(np.abs(X_norm @ filter_pca_components.T), axis=1)
+
+# Plot optimized filter and pca filters
+fig, axs = plt.subplots(2, 1, figsize=(10, 8))
+axs[0].plot(optimized_filters.T)
+axs[0].set_title('Optimized Filters')
+axs[1].plot(filter_pca_components.T)
+axs[1].set_title('PCA Components of Optimized Filters')
+plt.tight_layout()
+plt.show()
+
+fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+ax[0].plot(np.cumsum(explained_variance_optimize), marker='o')
+ax[0].set_title('Cumulative Explained Variance - Optimized Filter Transformed Data')
+ax[0].set_xlabel('Number of PCA Components')
+ax[0].set_ylabel('Cumulative Explained Variance')
+ax[1].plot(np.cumsum(explained_variance_filters), marker='o')
+ax[1].set_title('Cumulative Explained Variance - Optimized Filters')
+ax[1].set_xlabel('Number of PCA Components')
+ax[1].set_ylabel('Cumulative Explained Variance')
+ax[0].set_ylim([0, 1])
+ax[1].set_ylim([0, 1])
+plt.tight_layout()
+plt.show()
+
 # Histogram of score of optimized filters 
 X_optimized_score = np.mean(np.abs(X_optimized), axis=1) 
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -456,3 +603,17 @@ ax.set_xlabel('Optimized Filter Score')
 ax.set_ylabel('Density')
 ax.legend()
 plt.show()
+
+# Plot X_optimized_score against filter scores
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.scatter(
+    filter_scores,
+    X_optimized_score,
+    c=['blue' if label == 1 else 'red' for label in y],
+    alpha=0.05
+)
+ax.set_title('Optimized Filter Score vs. Filter PCA Score')
+ax.set_xlabel('Filter PCA Score')
+ax.set_ylabel('Optimized Filter Score')
+plt.show()
+
