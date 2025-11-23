@@ -15,11 +15,11 @@ import tables
 def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=None):
     """
     Generate plots for all channels and digital inputs
-    
+
     Memory-efficient implementation that can load data from either:
     1. HDF5 file (if electrode data has been loaded) - preferred method
     2. Raw data files using memory mapping - fallback method
-    
+
     This avoids loading entire datasets into RAM, which is critical for large recordings
     (e.g., 64 channels can otherwise consume 16GB+ of RAM).
 
@@ -38,7 +38,7 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
     plot_dir = os.path.join(qa_out_path, "channel_profile_plots")
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
-    
+
     # Check if HDF5 file exists and has data
     use_hdf5 = False
     hf5 = None
@@ -47,7 +47,7 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         h5_search = glob.glob(os.path.join(dir_path, '*.h5'))
         if len(h5_search) > 0:
             hdf5_name = h5_search[0]
-    
+
     if hdf5_name and os.path.exists(hdf5_name):
         try:
             hf5 = tables.open_file(hdf5_name, 'r')
@@ -92,15 +92,16 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
     # Plot files
     print("Now plotting amplifier signals")
     row_lim = 8
-    
+
     if use_hdf5:
         # Get electrode data from HDF5
-        electrode_nodes = sorted([node._v_name for node in hf5.root.raw._f_iter_nodes()])
+        electrode_nodes = sorted(
+            [node._v_name for node in hf5.root.raw._f_iter_nodes()])
         num_electrodes = len(electrode_nodes)
-        
+
         row_num = np.min((row_lim, num_electrodes))
         col_num = int(np.ceil(num_electrodes/row_num))
-        
+
         # Create plot
         fig, ax = plt.subplots(row_num, col_num,
                                sharex=True, sharey=True, figsize=(15, 10))
@@ -108,17 +109,17 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
             ax = [ax]
         else:
             ax = ax.flatten()
-        
+
         for node_name, this_ax in tqdm(zip(electrode_nodes, ax)):
             # Read data from HDF5 with downsampling
             data = hf5.root.raw._f_get_child(node_name)[::downsample]
             this_ax.plot(data)
             this_ax.set_ylabel(node_name)
-        
+
         plt.suptitle('Amplifier Data (from HDF5)')
         fig.savefig(os.path.join(plot_dir, 'amplifier_data'))
         plt.close(fig)
-        
+
     elif file_type == 'one file per channel':
         row_num = np.min((row_lim, len(amp_files)))
         col_num = int(np.ceil(len(amp_files)/row_num))
@@ -140,7 +141,8 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         plt.close(fig)
     elif file_type == 'one file per signal type':
         # Use memory mapping to avoid loading entire file into memory
-        amplifier_data_mmap = np.memmap(amp_files[0], dtype=np.dtype('uint16'), mode='r')
+        amplifier_data_mmap = np.memmap(
+            amp_files[0], dtype=np.dtype('uint16'), mode='r')
         num_electrodes = int(len(amplifier_data_mmap)/num_recorded_samples)
         row_num = np.min((row_lim, num_electrodes))
         col_num = int(np.ceil(num_electrodes/row_num))
@@ -150,7 +152,8 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         for e_i in tqdm(range(num_electrodes)):
             # Extract only the data for this electrode, downsampled
             # Data is interleaved: [e0_t0, e1_t0, ..., eN_t0, e0_t1, e1_t1, ...]
-            electrode_indices = np.arange(e_i, len(amplifier_data_mmap), num_electrodes)
+            electrode_indices = np.arange(
+                e_i, len(amplifier_data_mmap), num_electrodes)
             # Downsample the indices
             downsampled_indices = electrode_indices[::downsample]
             data = amplifier_data_mmap[downsampled_indices]
@@ -164,17 +167,18 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         del amplifier_data_mmap
 
     print("Now plotting digital input signals")
-    
+
     # Digital inputs are not stored in HDF5, so always read from raw files
     if use_hdf5:
         print("Note: Digital inputs must be read from raw files (not stored in HDF5)")
-    
+
     if file_type == 'one file per channel':
         fig, ax = plt.subplots(len(digin_files),
                                sharex=True, sharey=True, figsize=(8, 10))
         for this_file, this_ax in tqdm(zip(digin_files, ax.flatten())):
             # Use memory mapping to avoid loading entire file
-            data_mmap = np.memmap(this_file, dtype=np.dtype('uint16'), mode='r')
+            data_mmap = np.memmap(
+                this_file, dtype=np.dtype('uint16'), mode='r')
             downsampled_data = data_mmap[::downsample]
             this_ax.plot(downsampled_data)
             this_ax.set_ylabel("_".join(os.path.basename(this_file)
@@ -185,7 +189,8 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         plt.close(fig)
     elif file_type == 'one file per signal type':
         # Use memory mapping for digital inputs
-        d_inputs_mmap = np.memmap(digin_files[0], dtype=np.dtype('uint16'), mode='r')
+        d_inputs_mmap = np.memmap(
+            digin_files[0], dtype=np.dtype('uint16'), mode='r')
         # Process in chunks to reduce memory usage
         # For diff calculation, we need the full data but can work with views
         d_inputs_str = d_inputs_mmap.astype('str')
@@ -193,11 +198,11 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
         d_diff = np.diff(d_in_str_int)
         # Clean up intermediate arrays
         del d_inputs_str, d_in_str_int
-        
+
         dig_in = list(np.unique(np.abs(d_diff)) - 1)
         dig_in.remove(-1)
         num_dig_ins = len(dig_in)
-        
+
         # Instead of creating full dig_inputs array, process each channel separately
         fig, ax = plt.subplots(num_dig_ins, 1,
                                sharex=True, sharey=True, figsize=(8, 10))
@@ -206,22 +211,23 @@ def plot_channels(dir_path, qa_out_path, file_type, downsample=100, hdf5_name=No
             start_ind = np.where(d_diff == n_i + 1)[0]
             end_ind = np.where(d_diff == -1*(n_i + 1))[0]
             # Create downsampled output directly
-            dig_input_downsampled = np.zeros(int(np.ceil(len(d_inputs_mmap) / downsample)))
+            dig_input_downsampled = np.zeros(
+                int(np.ceil(len(d_inputs_mmap) / downsample)))
             for s_i in range(len(start_ind)):
                 start_ds = start_ind[s_i] // downsample
                 end_ds = end_ind[s_i] // downsample
                 dig_input_downsampled[start_ds:end_ds] = 1
-            
+
             ax_i = plt.subplot(num_dig_ins, 1, d_i+1)
             ax_i.plot(dig_input_downsampled)
             ax_i.set_ylabel('Dig_in_' + str(dig_in[d_i]))
             del dig_input_downsampled
-        
+
         plt.suptitle('DIGIN Data')
         fig.savefig(os.path.join(plot_dir, 'digin_data'))
         plt.close(fig)
         del d_inputs_mmap, d_diff
-    
+
     # Close HDF5 file if it was opened
     if hf5 is not None:
         hf5.close()
@@ -249,4 +255,5 @@ if __name__ == '__main__':
 
     dir_path = args.dir_path
 
-    plot_channels(dir_path, dir_path, args.file_type, args.downsample, args.hdf5)
+    plot_channels(dir_path, dir_path, args.file_type,
+                  args.downsample, args.hdf5)
