@@ -10,6 +10,8 @@ from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from numpy.linalg import norm
 from scipy.optimize import minimize
 from pprint import pprint as pp
+from itertools import product
+import json
 
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 data_dir = os.path.join(base_dir, 'data')
@@ -370,8 +372,9 @@ plt.show()
 from blech_clust.utils.makeRaisedCosBasis import gen_raised_cosine_basis
 
 # linear_basis_funcs = gen_raised_cosine_basis(X.shape[1], 5, spread='log')
-forward_basis_funcs = gen_raised_cosine_basis(75-30, 8, spread='log')
-backward_basis_funcs = gen_raised_cosine_basis(30, 8, spread='log')[:,::-1]
+n_basis_funcs = 20
+forward_basis_funcs = gen_raised_cosine_basis(75-30, n_basis_funcs//2, spread='log')
+backward_basis_funcs = gen_raised_cosine_basis(30, n_basis_funcs//2, spread='log')[:,::-1]
 mirrored_basis_funcs = np.zeros(
     (forward_basis_funcs.shape[0] + backward_basis_funcs.shape[0],
      X.shape[1])
@@ -397,7 +400,8 @@ plt.show()
 
 # rand_weights = np.random.randn(10, linear_basis_funcs.shape[0])
 # rand_filters = rand_weights @ linear_basis_funcs
-rand_weights = np.random.randn(10, mirrored_basis_funcs.shape[0])
+n_templates = 10
+rand_weights = np.random.randn(n_templates, mirrored_basis_funcs.shape[0])
 rand_filters = rand_weights @ mirrored_basis_funcs
 plt.imshow(rand_filters, aspect='auto', cmap='bwr')
 plt.title('Random Filters Generated from Basis Functions')
@@ -405,7 +409,13 @@ plt.xlabel('Time Point')
 plt.ylabel('Filter Index')
 plt.show()
 
-def loss_function_basis(weights, basis_funcs, X_norm, y, orthogonality_weight=1.0):
+def loss_function_basis(
+        weights, 
+        basis_funcs, 
+        X_norm, 
+        y, 
+        orthogonality_weight=1.0
+        ):
     filters = weights.reshape((-1, basis_funcs.shape[0])) @ basis_funcs
 
     # Normalize filters 
@@ -432,7 +442,9 @@ def loss_function_basis(weights, basis_funcs, X_norm, y, orthogonality_weight=1.
     # Get off-diagonal elements
     tril_indices = np.tril_indices(filters.shape[0], k=-1)
     off_diag_elements = filt_dot_products[tril_indices]
-    orthogonality_penalty = np.mean(np.abs(off_diag_elements))
+    # orthogonality_penalty = np.mean(np.abs(off_diag_elements))
+    # Use L2 penalty for orthogonality
+    orthogonality_penalty = np.mean(off_diag_elements ** 2)
     # Final loss is negative class delta plus orthogonality penalty
     # loss = -class_delta + (orthogonality_penalty * orthogonality_weight)
     loss = class_0_delta + class_1_delta + (orthogonality_penalty * orthogonality_weight)
@@ -476,7 +488,7 @@ def loss_function_basis(weights, basis_funcs, X_norm, y, orthogonality_weight=1.
 
 X_norm = (X - np.mean(X, axis=1, keepdims=True))
 X_norm /= norm(X_norm, axis=1, keepdims=True)
-initial_filters = rand_filters.flatten()
+# initial_filters = rand_filters.flatten()
 
 # result = minimize(
 #         loss_function, 
@@ -558,6 +570,24 @@ pca_optimized = PCA()
 X_optimized_pca = pca_optimized.fit_transform(X_optimized)
 explained_variance_optimize = pca_optimized.explained_variance_ratio_
 
+# Plot X_optimized_pca colored by class
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(
+        *(X_optimized_pca[y == 1, :3].T),
+        c='blue', label='Positive', alpha=0.05,
+        )
+ax.scatter(
+        *(X_optimized_pca[y == 0, :3].T),
+        c='red', label='Negative', alpha=0.05,
+        )
+ax.set_title('PCA of Optimized Filter Transformed Waveforms (Top 3 PCs)')
+ax.set_xlabel('PC 1')
+ax.set_ylabel('PC 2')
+ax.set_zlabel('PC 3')
+ax.legend()
+plt.show()
+
 # Perform PCA on the optimized filters
 pca_filters = PCA(n_components=0.95)
 filters_pca = pca_filters.fit_transform(optimized_filters)
@@ -604,6 +634,12 @@ ax.set_ylabel('Density')
 ax.legend()
 plt.show()
 
+# Plot imshow of X_optimized and X_optimized_pca
+fig, ax = plt.subplots(1,2, figsize=(10, 6))
+ax[0].imshow(X_optimized, aspect='auto', cmap='viridis', interpolation='none')
+ax[1].imshow(X_optimized_pca, aspect='auto', cmap='viridis', interpolation='none')
+plt.show()
+
 # Plot X_optimized_score against filter scores
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.scatter(
@@ -617,3 +653,102 @@ ax.set_xlabel('Filter PCA Score')
 ax.set_ylabel('Optimized Filter Score')
 plt.show()
 
+# Also plot max filter score
+max_filter_scores = np.max(np.abs(X_optimized), axis=1)
+fig, ax = plt.subplots(figsize=(10, 6))
+for this_label in [0, 1]:
+    ax.hist(
+        max_filter_scores[y == this_label], bins=30, alpha=0.5, 
+        label=f'Class {this_label}', density=True
+    )
+ax.set_title('Histogram of Max Optimized Filter Scores')
+ax.set_xlabel('Max Optimized Filter Score')
+ax.set_ylabel('Density')
+ax.legend()
+plt.show()
+
+##############################
+# Run grid over:
+# 1) number of basis functions
+# 2) orthogonality weight
+# 3) number of templates
+# Generate filters using basis functions
+
+# n_basis_funcs = 20
+# n_templates = 10
+
+n_basis_vec = np.arange(5, 25, 5)
+n_templates_vec = np.arange(4, 21, 4)
+orthogonality_weight_vec = np.logspace(-2, 2, 5)
+
+all_combinations = list(product(
+    n_basis_vec,
+    n_templates_vec,
+    orthogonality_weight_vec
+    )) 
+
+all_losses = []
+for comb in tqdm(all_combinations):
+    n_basis_funcs = comb[0]
+    n_templates = comb[1]
+    orthogonality_weight = comb[2]
+
+    forward_basis_funcs = gen_raised_cosine_basis(75-30, n_basis_funcs//2, spread='log')
+    backward_basis_funcs = gen_raised_cosine_basis(30, n_basis_funcs//2, spread='log')[:,::-1]
+    mirrored_basis_funcs = np.zeros(
+        (forward_basis_funcs.shape[0] + backward_basis_funcs.shape[0],
+         X.shape[1])
+        )
+    for i, this_func in enumerate(forward_basis_funcs):
+        mirrored_basis_funcs[i, 30:] = this_func
+    for i, this_func in enumerate(backward_basis_funcs):
+        mirrored_basis_funcs[i + forward_basis_funcs.shape[0], :30] = this_func
+
+    rand_weights = np.random.randn(n_templates, mirrored_basis_funcs.shape[0])
+
+    result = minimize(
+            loss_function_basis, 
+            rand_weights.flatten(), 
+            args=(mirrored_basis_funcs, X_norm, y, orthogonality_weight),
+            method='L-BFGS-B',
+            options={
+                'maxfun': 100000, 
+                # 'disp': True, 
+                'gtol': 1e-6,
+                }
+            )
+    # final_loss = result.fun
+    # Get basis and test using no orthogonality weight
+    final_loss = loss_function_basis(
+        result.x,
+        mirrored_basis_funcs,
+        X_norm,
+        y,
+        orthogonality_weight=0.0
+        )
+    
+    all_losses.append({
+        'n_basis_funcs': int(n_basis_funcs),
+        'n_templates': int(n_templates),
+        'orthogonality_weight': int(orthogonality_weight),
+        'final_loss': final_loss
+    })
+    # Append results to a json file
+    with open(os.path.join(artifacts_dir, 'grid_search_losses.json'), 'w') as f:
+        json.dump(all_losses, f, indent=4)
+
+# Plot heatmaps of all combinations
+import pandas as pd
+loss_df = pd.DataFrame(all_losses)
+for orthogonality_weight in orthogonality_weight_vec:
+    subset_df = loss_df[loss_df['orthogonality_weight'] == orthogonality_weight]
+    pivot_table = subset_df.pivot('n_basis_funcs', 'n_templates', 'final_loss')
+    plt.figure(figsize=(8, 6))
+    plt.imshow(pivot_table, aspect='auto', cmap='viridis', origin='lower')
+    plt.colorbar(label='Final Loss')
+    plt.title(f'Final Loss Heatmap (Orthogonality Weight: {orthogonality_weight})')
+    plt.xlabel('Number of Templates')
+    plt.ylabel('Number of Basis Functions')
+    plt.xticks(ticks=np.arange(len(n_templates_vec)), labels=n_templates_vec)
+    plt.yticks(ticks=np.arange(len(n_basis_vec)), labels=n_basis_vec)
+plt.show()
