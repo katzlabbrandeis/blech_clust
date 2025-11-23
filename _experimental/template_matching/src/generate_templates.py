@@ -673,7 +673,9 @@ ax.set_title('Histogram of Max Optimized Filter Scores')
 ax.set_xlabel('Max Optimized Filter Score')
 ax.set_ylabel('Density')
 ax.legend()
-plt.show()
+# plt.show()
+fig.savefig(os.path.join(plot_dir, 'max_optimized_filter_scores_histogram.png'))
+plt.close()
 
 # Write out optimized filters and pca filters
 np.savez(
