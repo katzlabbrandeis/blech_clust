@@ -17,6 +17,7 @@ from glob import glob
 from joblib import Parallel, delayed
 from functools import partial
 from numba import njit
+from blech_clust.utils.ephys_data import visualize as vz
 
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 plot_dir = os.path.join(base_dir, 'plots')
@@ -393,3 +394,53 @@ fig.savefig(
 )
 plt.close()
 
+# Plot CDFs of scaled xcorr values for all electrodes
+fig, ax = plt.subplots(figsize=(10,5))
+for el_num in electrode_nums:
+    xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
+    if xcorr_data is not None:
+        xcorr_values = np.abs(xcorr_data['xcorr_values'])
+        sorted_vals = np.sort(xcorr_values)
+        cdf = np.arange(1, len(sorted_vals)+1) / len(sorted_vals)
+        ax.plot(sorted_vals, cdf, label=f'Electrode {el_num}', alpha=0.1)
+ax.set_xlabel('Absolute Scaled Cross-Correlation Value')
+ax.set_ylabel('Cumulative Distribution Function (CDF)')
+ax.set_title('CDF of Absolute Scaled Cross-Correlation Values per Electrode')
+# plt.legend()
+plt.tight_layout()
+# plt.show()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_scaled_xcorr_cdf.png'
+    )
+)
+plt.close()
+
+# Plot only waveforms with xcorr values greater than a plot threshold
+plot_threshold = 0.9
+max_plot_waveforms = 1000
+fig, ax = vz.gen_square_subplots(
+        len(electrode_nums),
+        figsize=(15, 15),
+    )
+for i, el_num in enumerate(electrode_nums):
+    xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
+    if xcorr_data is not None:
+        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_waveforms = xcorr_data['spike_waveforms'][high_xcorr_indices]
+        ax.flatten()[i].plot(
+            high_xcorr_waveforms[:max_plot_waveforms].T,
+            color='magenta',
+            alpha=0.05
+        )
+    ax.flatten()[i].set_title(f'{el_num}:: n={len(high_xcorr_indices)}')
+plt.suptitle(f'Waveforms with Scaled Cross-Correlation > {plot_threshold} Across Electrodes')
+plt.tight_layout()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_high_xcorr_waveforms_threshold_{plot_threshold:.2f}.png'
+    )
+)
+plt.close()
