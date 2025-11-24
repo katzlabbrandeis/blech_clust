@@ -23,11 +23,11 @@ base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matc
 plot_dir = os.path.join(base_dir, 'plots')
 artifacts_dir = os.path.join(base_dir, 'artifacts')
 
-data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+# data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
 data_basename = os.path.basename(data_dir)
 electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes', data_basename)
 os.makedirs(electrode_artifacts_dir, exist_ok=True)
-# data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
 # Find h5 file
 h5_path = glob(os.path.join(data_dir, '*.h5'))[0]
 h5 = tables.open_file(h5_path, mode='r')
@@ -477,6 +477,59 @@ fig.savefig(
     os.path.join(
         this_plot_dir,
         f'all_electrodes_high_xcorr_values_over_time_threshold_{plot_threshold:.2f}.png'
+    )
+)
+plt.close()
+
+# For each electrode, compare positive and negative xcorr values > plot threshold
+# Put everything on one plot as bars
+all_positive_counts = []
+all_negative_counts = []
+for el_num in electrode_nums:
+    xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
+    if xcorr_data is not None:
+        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_values = xcorr_data['xcorr_values'][high_xcorr_indices]
+        positive_count = np.sum(high_xcorr_values > 0)
+        negative_count = np.sum(high_xcorr_values < 0)
+        all_positive_counts.append(positive_count)
+        all_negative_counts.append(negative_count)
+    else:
+        all_positive_counts.append(0)
+        all_negative_counts.append(0)
+x = np.arange(len(electrode_nums))
+width = 0.35
+fig, ax = plt.subplots(figsize=(12,6))
+ax.bar(x - width/2, all_positive_counts, width, label='Positive XCorr Counts', color='limegreen', alpha=0.7)
+ax.bar(x + width/2, all_negative_counts, width, label='Negative XCorr Counts', color='salmon', alpha=0.7)
+ax.set_xlabel('Electrode Number')
+ax.set_ylabel('Counts of High Magnitude XCorr Values')
+ax.set_title(f'Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
+ax.set_xticks(x)
+ax.set_xticklabels(electrode_nums)
+ax.legend()
+plt.tight_layout()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_positive_negative_xcorr_counts_threshold_{plot_threshold:.2f}.png'
+    )
+)
+plt.close()
+
+# Bar plot of differences in positive and negative counts
+diff_counts = np.array(all_positive_counts) - np.array(all_negative_counts)
+diff_colors = ['green' if diff >=0 else 'red' for diff in diff_counts]
+fig, ax = plt.subplots(figsize=(12,6))
+ax.bar(electrode_nums, diff_counts, color=diff_colors, alpha=0.7) 
+ax.set_xlabel('Electrode Number')
+ax.set_ylabel('Difference in Counts (Positive - Negative)')
+ax.set_title(f'Difference in Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
+plt.tight_layout()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_diff_positive_negative_xcorr_counts_threshold_{plot_threshold:.2f}.png'
     )
 )
 plt.close()
