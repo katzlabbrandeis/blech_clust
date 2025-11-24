@@ -1,7 +1,7 @@
 """
 This module provides functions for processing and analyzing electrophysiological data, specifically focusing on filtering, waveform extraction, dejittering, scaling, and clustering of neural spike data.
 
-- `get_filtered_electrode(data, freq, sampling_rate)`: Filters the input electrode data using a bandpass filter with specified frequency range and sampling rate.
+- `get_filtered_electrode(data, freq, sampling_rate)`: Filters the input electrode data using a high-pass filter with specified cutoff frequency and sampling rate.
 - `extract_waveforms_abu(filt_el, spike_snapshot, sampling_rate, threshold_mult)`: Extracts waveforms from filtered electrode data using a threshold-based method, returning slices, spike times, polarity, mean, and threshold.
 - `extract_waveforms_hannah(filt_el, spike_snapshot, sampling_rate, threshold_mult)`: Similar to `extract_waveforms_abu`, but uses a sliding thresholding approach to extract waveforms.
 - `extract_waveforms(filt_el, spike_snapshot, sampling_rate)`: Extracts waveforms based on threshold crossings, returning slices, spike times, mean, and threshold.
@@ -23,10 +23,10 @@ from scipy.signal import fftconvolve
 from sklearn.cluster import KMeans
 
 
-def get_filtered_electrode(data, freq=[300.0, 7500.0], sampling_rate=30000.0):
+def get_filtered_electrode(data, freq=300.0, sampling_rate=30000.0):
     el = 0.195*(data)
-    m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0 *
-                  freq[1]/sampling_rate], btype='bandpass')
+    # High-pass filter to remove low-frequency components while preserving spike activity
+    m, n = butter(2, 2.0*freq/sampling_rate, btype='highpass')
     filt_el = filtfilt(m, n, el)
     return filt_el
 
