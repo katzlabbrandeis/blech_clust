@@ -23,7 +23,7 @@ from scipy.signal import fftconvolve
 from sklearn.cluster import KMeans
 
 
-def get_filtered_electrode(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
+def get_filtered_electrode(data, freq=[300.0, 7500.0], sampling_rate=30000.0):
     el = 0.195*(data)
     m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0 *
                   freq[1]/sampling_rate], btype='bandpass')
