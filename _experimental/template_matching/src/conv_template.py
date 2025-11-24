@@ -22,11 +22,12 @@ from blech_clust.utils.ephys_data import visualize as vz
 base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
 plot_dir = os.path.join(base_dir, 'plots')
 artifacts_dir = os.path.join(base_dir, 'artifacts')
-electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes')
-os.makedirs(electrode_artifacts_dir, exist_ok=True)
 
-# data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
-data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
+data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+data_basename = os.path.basename(data_dir)
+electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes', data_basename)
+os.makedirs(electrode_artifacts_dir, exist_ok=True)
+# data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
 # Find h5 file
 h5_path = glob(os.path.join(data_dir, '*.h5'))[0]
 h5 = tables.open_file(h5_path, mode='r')
@@ -75,7 +76,8 @@ os.chdir(metadata_handler.dir_name)
 
 this_plot_dir = os.path.join(
     plot_dir,
-    'template_conv_results'
+    'template_conv_results',
+    data_basename
     )
 os.makedirs(this_plot_dir, exist_ok=True)
 
@@ -441,6 +443,40 @@ fig.savefig(
     os.path.join(
         this_plot_dir,
         f'all_electrodes_high_xcorr_waveforms_threshold_{plot_threshold:.2f}.png'
+    )
+)
+plt.close()
+
+# Plot xcorr values over time for all electrodes for all waveforms with xcorr > plot threshold
+fig, ax = vz.gen_square_subplots(
+        len(electrode_nums),
+        figsize=(25, 25),
+        sharex=True,
+        sharey=True,
+    )
+for i, el_num in enumerate(electrode_nums):
+    xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
+    if xcorr_data is not None:
+        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_values = xcorr_data['xcorr_values'][high_xcorr_indices]
+        high_xcorr_spike_times = xcorr_data['spike_indices'][high_xcorr_indices]
+        ax.flatten()[i].scatter(
+            high_xcorr_spike_times,
+            np.abs(high_xcorr_values),
+            color='brown',
+            alpha=0.5,
+            s=1
+        )
+    ax.flatten()[i].set_title(f'{el_num}:: n={len(high_xcorr_indices)}')
+    ax.flatten()[i].set_xlabel('Sample Index')
+    ax.flatten()[i].set_ylabel('Scaled Cross-Correlation Value')
+plt.suptitle(f'Scaled Cross-Correlation Values Over Time\n' +\
+        f'Only Showing Values > {plot_threshold} Across Electrodes')
+plt.tight_layout()
+fig.savefig(
+    os.path.join(
+        this_plot_dir,
+        f'all_electrodes_high_xcorr_values_over_time_threshold_{plot_threshold:.2f}.png'
     )
 )
 plt.close()
