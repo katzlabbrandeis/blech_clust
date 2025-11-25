@@ -62,8 +62,9 @@ class BllechUnitExplorer:
             Path to the blech_clust data directory
         mode : str
             'unsorted' for raw waveforms from electrode, 'sorted' for sorted units
-        electrode : int
-            Electrode number (required for unsorted mode). Use -1 for all electrodes.
+        electrode : int or list
+            Electrode number(s) (required for unsorted mode). Use -1 for all electrodes,
+            or provide a list of specific electrode numbers.
         units : list
             List of unit numbers to visualize (for sorted mode)
         all_units : bool
@@ -126,6 +127,9 @@ class BllechUnitExplorer:
         if self.electrode == -1:
             # Load from all available electrodes
             self._load_all_electrodes()
+        elif isinstance(self.electrode, list):
+            # Load from specific list of electrodes
+            self._load_electrode_list(self.electrode)
         else:
             # Load from single electrode
             self._load_single_electrode(self.electrode)
@@ -134,7 +138,9 @@ class BllechUnitExplorer:
         self._prepare_umap_data()
         
         if self.electrode == -1:
-            print(f"Loaded {len(self.waveform_data)} waveforms from {len(self.electrode_info)} electrodes")
+            print(f"Loaded {len(self.waveform_data)} waveforms from {len(self.electrode_info)} electrodes (all)")
+        elif isinstance(self.electrode, list):
+            print(f"Loaded {len(self.waveform_data)} waveforms from {len(self.electrode_info)} electrodes {self.electrode}")
         else:
             print(f"Loaded {len(self.waveform_data)} waveforms from electrode {self.electrode}")
         print(f"Using {len(self.umap_data)} data points for UMAP visualization ({self.umap_mode} mode)")
@@ -183,7 +189,38 @@ class BllechUnitExplorer:
         # Sort by electrode number
         electrode_dirs.sort(key=lambda x: x[0])
         
-        # Load waveforms from all electrodes
+        self._load_electrode_dirs(electrode_dirs)
+    
+    def _load_electrode_list(self, electrode_list):
+        """Load waveforms from a specific list of electrodes"""
+        spike_waveforms_dir = os.path.join(self.data_dir, 'spike_waveforms')
+        
+        if not os.path.exists(spike_waveforms_dir):
+            raise ValueError(f"Spike waveforms directory not found: {spike_waveforms_dir}")
+        
+        # Create electrode directories list for the specified electrodes
+        electrode_dirs = []
+        for electrode_num in electrode_list:
+            electrode_dir = f'electrode{electrode_num:02d}'
+            electrode_path = os.path.join(spike_waveforms_dir, electrode_dir)
+            if os.path.isdir(electrode_path):
+                electrode_dirs.append((electrode_num, electrode_dir))
+            else:
+                print(f"Warning: Electrode {electrode_num} directory not found")
+        
+        if not electrode_dirs:
+            raise ValueError(f"No valid electrode directories found for electrodes {electrode_list}")
+        
+        # Sort by electrode number
+        electrode_dirs.sort(key=lambda x: x[0])
+        
+        self._load_electrode_dirs(electrode_dirs)
+    
+    def _load_electrode_dirs(self, electrode_dirs):
+        """Load waveforms from a list of electrode directories"""
+        spike_waveforms_dir = os.path.join(self.data_dir, 'spike_waveforms')
+        
+        # Load waveforms from specified electrodes
         all_waveforms = []
         all_labels = []
         self.electrode_info = []
@@ -542,6 +579,9 @@ class BllechUnitExplorer:
             if self.electrode == -1:
                 electrode_nums = [info[0] for info in self.electrode_info]
                 title += f' - All Electrodes ({min(electrode_nums)}-{max(electrode_nums)}) ({self.umap_mode} mode)'
+            elif isinstance(self.electrode, list):
+                electrode_nums = [info[0] for info in self.electrode_info]
+                title += f' - Electrodes {electrode_nums} ({self.umap_mode} mode)'
             else:
                 title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
         if self.use_pca:
@@ -702,7 +742,7 @@ class BllechUnitExplorer:
                 self._plot_mean_std_envelope(time_points, cluster_waveforms, 
                                            color='blue', label='Cluster Mean ± SD')
                 
-                if self.electrode == -1:
+                if self.electrode == -1 or isinstance(self.electrode, list):
                     # Count waveforms per electrode in this cluster
                     electrode_counts = {}
                     cluster_indices = np.where(self.kmeans_labels == centroid_idx)[0]
@@ -741,7 +781,7 @@ class BllechUnitExplorer:
                 self._plot_mean_std_envelope(time_points, context_waveforms, 
                                            color='blue', label='Local Mean ± SD')
                 
-                if self.electrode == -1:
+                if self.electrode == -1 or isinstance(self.electrode, list):
                     # Extract electrode info from label
                     selected_label = self.data_labels[actual_idx]
                     electrode_num = int(selected_label.split('_')[1])
@@ -805,8 +845,14 @@ Examples:
   # Explore unsorted waveforms from all electrodes
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1
   
+  # Explore unsorted waveforms from specific electrodes
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23
+  
   # Explore unsorted waveforms using K-means mode
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
+  
+  # Explore multiple electrodes with K-means and PCA
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23 --umap-mode kmeans --use-pca
   
   # Explore all electrodes with K-means and PCA
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --use-pca
@@ -834,8 +880,23 @@ Examples:
     parser.add_argument('data_dir', help='Path to blech_clust data directory')
     parser.add_argument('--mode', choices=['unsorted', 'sorted'], 
                        default='sorted', help='Visualization mode')
-    parser.add_argument('--electrode', type=int, 
-                       help='Electrode number (required for unsorted mode). Use -1 for all electrodes.')
+    def parse_electrode_arg(electrode_str):
+        """Parse electrode argument - can be single int, -1, or comma-separated list"""
+        if electrode_str == '-1':
+            return -1
+        elif ',' in electrode_str:
+            try:
+                return [int(x.strip()) for x in electrode_str.split(',')]
+            except ValueError:
+                raise argparse.ArgumentTypeError(f"Invalid electrode list: {electrode_str}")
+        else:
+            try:
+                return int(electrode_str)
+            except ValueError:
+                raise argparse.ArgumentTypeError(f"Invalid electrode number: {electrode_str}")
+    
+    parser.add_argument('--electrode', type=parse_electrode_arg, 
+                       help='Electrode number (required for unsorted mode). Use -1 for all electrodes, or comma-separated list (e.g., "1,5,23").')
     parser.add_argument('--units', type=int, nargs='+', 
                        help='Unit numbers to visualize (for sorted mode)')
     parser.add_argument('--all-units', action='store_true',
