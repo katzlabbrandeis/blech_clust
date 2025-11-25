@@ -1,19 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
+import argparse
 
-def plot_butterworth_responses():
+def plot_butterworth_responses(order=2):
     """
-    Plot frequency response of 2nd order Butterworth filters:
+    Plot frequency response of Butterworth filters:
     1. 300-3000Hz bandpass filter
     2. 300Hz highpass filter
+    
+    Args:
+        order (int): Filter order (default: 2)
     """
     # Sampling frequency (typical for neural data)
     fs = 30000  # Hz
     nyquist = fs / 2
     
     # Filter specifications
-    order = 2
+    # order is now a parameter
     
     # Bandpass filter: 300-3000 Hz
     low_freq = 300 / nyquist
@@ -37,7 +41,7 @@ def plot_butterworth_responses():
     # Magnitude response
     ax1.semilogx(bp_w, 20 * np.log10(abs(bp_h)), 'b-', label='300-3000 Hz Bandpass', linewidth=2)
     ax1.semilogx(hp_w, 20 * np.log10(abs(hp_h)), 'r-', label='300 Hz Highpass', linewidth=2)
-    ax1.set_title('Butterworth Filter Frequency Response (2nd Order)')
+    ax1.set_title(f'Butterworth Filter Frequency Response ({order} Order)')
     ax1.set_xlabel('Frequency (Hz)')
     ax1.set_ylabel('Magnitude (dB)')
     ax1.grid(True, which='both', alpha=0.3)
@@ -80,4 +84,9 @@ def plot_butterworth_responses():
     print(f"  Normalized frequency: {hp_freq:.4f}")
 
 if __name__ == "__main__":
-    plot_butterworth_responses()
+    parser = argparse.ArgumentParser(description='Plot Butterworth filter frequency responses')
+    parser.add_argument('--order', type=int, default=2, 
+                        help='Filter order (default: 2)')
+    
+    args = parser.parse_args()
+    plot_butterworth_responses(order=args.order)
