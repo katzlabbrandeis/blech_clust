@@ -42,6 +42,8 @@ from sklearn.decomposition import PCA
 from scipy import stats
 from scipy.stats import gaussian_kde
 import warnings
+import hashlib
+import pickle
 
 # Add blech_clust utils to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -106,7 +108,7 @@ class BllechUnitExplorer:
         else:
             raise ValueError("Mode must be 'unsorted' or 'sorted'")
         
-        # Calculate UMAP embedding
+        # Calculate UMAP embedding (with caching)
         self._calculate_umap()
         
         # Set up the interactive plot
@@ -227,8 +229,77 @@ class BllechUnitExplorer:
         else:
             raise ValueError(f"Unknown umap_mode: {self.umap_mode}")
     
+    def _get_cache_key(self):
+        """Generate a cache key based on embedding parameters and data"""
+        # Create a hash based on parameters that affect the embedding
+        params = {
+            'mode': self.mode,
+            'electrode': self.electrode,
+            'units': sorted(self.units) if self.units else None,
+            'all_units': self.all_units,
+            'umap_mode': self.umap_mode,
+            'max_waveforms': self.max_waveforms,
+            'kmeans_k': self.kmeans_k,
+            'use_pca': self.use_pca,
+            'pca_variance': self.pca_variance,
+            'data_shape': self.umap_data.shape,
+            'data_hash': hashlib.md5(self.umap_data.tobytes()).hexdigest()[:16]  # Short hash of data
+        }
+        
+        # Convert to string and hash
+        params_str = str(sorted(params.items()))
+        cache_key = hashlib.md5(params_str.encode()).hexdigest()
+        return cache_key
+    
+    def _get_cache_path(self, cache_key):
+        """Get the cache file path for a given cache key"""
+        cache_dir = os.path.join(self.data_dir, '.umap_cache')
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        return os.path.join(cache_dir, f'umap_embedding_{cache_key}.pkl')
+    
+    def _save_embedding_to_cache(self, cache_key, embedding_data):
+        """Save UMAP embedding and related data to cache"""
+        cache_path = self._get_cache_path(cache_key)
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump(embedding_data, f)
+            print(f"Saved UMAP embedding to cache: {os.path.basename(cache_path)}")
+        except Exception as e:
+            print(f"Warning: Could not save embedding to cache: {e}")
+    
+    def _load_embedding_from_cache(self, cache_key):
+        """Load UMAP embedding and related data from cache"""
+        cache_path = self._get_cache_path(cache_key)
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, 'rb') as f:
+                    embedding_data = pickle.load(f)
+                print(f"Loaded UMAP embedding from cache: {os.path.basename(cache_path)}")
+                return embedding_data
+            except Exception as e:
+                print(f"Warning: Could not load embedding from cache: {e}")
+                # Remove corrupted cache file
+                try:
+                    os.remove(cache_path)
+                except:
+                    pass
+        return None
+    
     def _calculate_umap(self):
-        """Calculate UMAP embedding of the data"""
+        """Calculate UMAP embedding of the data with caching"""
+        # Generate cache key
+        cache_key = self._get_cache_key()
+        
+        # Try to load from cache first
+        cached_data = self._load_embedding_from_cache(cache_key)
+        if cached_data is not None:
+            self.umap_embedding = cached_data['umap_embedding']
+            self.umap_reducer = cached_data.get('umap_reducer')
+            if 'pca_reducer' in cached_data:
+                self.pca_reducer = cached_data['pca_reducer']
+            return
+        
         print("Computing UMAP embedding...")
         
         # Standardize the data for UMAP
@@ -241,16 +312,18 @@ class BllechUnitExplorer:
             data_scaled = scaler.fit_transform(self.umap_data)
         
         # Apply PCA if requested
+        pca_reducer = None
         if self.use_pca:
             print(f"Applying PCA to retain {self.pca_variance:.1%} variance...")
             pca = PCA(n_components=self.pca_variance, random_state=42)
             data_scaled = pca.fit_transform(data_scaled)
+            pca_reducer = pca
             self.pca_reducer = pca
             print(f"PCA reduced dimensionality from {self.umap_data.shape[1]} to {data_scaled.shape[1]} components")
         
         # Compute UMAP embedding
         n_neighbors = min(15, len(data_scaled) - 1)
-        self.umap_reducer = umap.UMAP(
+        umap_reducer = umap.UMAP(
             n_neighbors=n_neighbors, 
             min_dist=0.1, 
             random_state=42
@@ -258,7 +331,20 @@ class BllechUnitExplorer:
         
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.umap_embedding = self.umap_reducer.fit_transform(data_scaled)
+            umap_embedding = umap_reducer.fit_transform(data_scaled)
+        
+        self.umap_embedding = umap_embedding
+        self.umap_reducer = umap_reducer
+        
+        # Save to cache
+        embedding_data = {
+            'umap_embedding': umap_embedding,
+            'umap_reducer': umap_reducer,
+        }
+        if pca_reducer is not None:
+            embedding_data['pca_reducer'] = pca_reducer
+        
+        self._save_embedding_to_cache(cache_key, embedding_data)
     
     def setup_plot(self):
         """Set up the interactive matplotlib plot"""
@@ -514,6 +600,16 @@ class BllechUnitExplorer:
     def close(self):
         """Close the HDF5 file"""
         self.h5.close()
+    
+    def clear_cache(self):
+        """Clear all cached UMAP embeddings for this dataset"""
+        cache_dir = os.path.join(self.data_dir, '.umap_cache')
+        if os.path.exists(cache_dir):
+            import shutil
+            shutil.rmtree(cache_dir)
+            print("Cleared UMAP embedding cache")
+        else:
+            print("No cache directory found")
 
 def main():
     """Main function to run the unit explorer"""
@@ -539,6 +635,9 @@ Examples:
   
   # Use custom KDE bandwidth for smoother/sharper density visualization
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
+  
+  # Clear UMAP embedding cache
+  python blech_unit_explorer.py /path/to/data --clear-cache
         """
     )
     
@@ -563,6 +662,8 @@ Examples:
                        help='Variance to retain with PCA (0.0-1.0)')
     parser.add_argument('--kde-bandwidth', type=float, default=None,
                        help='KDE bandwidth (None for automatic selection)')
+    parser.add_argument('--clear-cache', action='store_true',
+                       help='Clear UMAP embedding cache and exit')
     
     args = parser.parse_args()
     
@@ -575,6 +676,17 @@ Examples:
     
     if args.pca_variance <= 0 or args.pca_variance > 1:
         parser.error("--pca-variance must be between 0 and 1")
+    
+    # Handle cache clearing
+    if args.clear_cache:
+        cache_dir = os.path.join(args.data_dir, '.umap_cache')
+        if os.path.exists(cache_dir):
+            import shutil
+            shutil.rmtree(cache_dir)
+            print("Cleared UMAP embedding cache")
+        else:
+            print("No cache directory found")
+        return 0
     
     try:
         explorer = BllechUnitExplorer(
