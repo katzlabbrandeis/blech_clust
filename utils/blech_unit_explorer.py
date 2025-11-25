@@ -212,16 +212,32 @@ class BllechUnitExplorer:
         elif self.umap_mode == 'kmeans':
             if len(self.waveform_data) > self.kmeans_k:
                 print(f"Applying K-means with k={self.kmeans_k} for UMAP visualization...")
-                kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
-                kmeans.fit(self.waveform_data)
                 
-                # Use centroids for UMAP
-                self.umap_data = kmeans.cluster_centers_
+                # Apply PCA before K-means if requested to reduce computational cost
+                kmeans_data = self.waveform_data
+                pca_for_kmeans = None
+                if self.use_pca:
+                    print(f"Applying PCA before K-means to retain {self.pca_variance:.1%} variance...")
+                    pca_for_kmeans = PCA(n_components=self.pca_variance, random_state=42)
+                    kmeans_data = pca_for_kmeans.fit_transform(self.waveform_data)
+                    print(f"PCA reduced dimensionality from {self.waveform_data.shape[1]} to {kmeans_data.shape[1]} components for K-means")
+                
+                kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
+                kmeans.fit(kmeans_data)
+                
+                # Get centroids in original space if PCA was applied
+                if pca_for_kmeans is not None:
+                    # Transform centroids back to original space
+                    centroids_original = pca_for_kmeans.inverse_transform(kmeans.cluster_centers_)
+                    self.umap_data = centroids_original
+                else:
+                    self.umap_data = kmeans.cluster_centers_
+                
                 self.umap_labels = [f'KMeans_centroid_{i}' for i in range(self.kmeans_k)]
                 
                 # Store cluster assignments to map back to original data
                 self.kmeans_labels = kmeans.labels_
-                self.kmeans_centroids = kmeans.cluster_centers_
+                self.kmeans_centroids = self.umap_data  # Centroids in original space
                 self.umap_indices = np.arange(self.kmeans_k)  # Indices into centroids
             else:
                 # Not enough data for K-means, fall back to using all data
