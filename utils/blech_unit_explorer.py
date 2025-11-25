@@ -194,6 +194,9 @@ class BllechUnitExplorer:
             return
         
         # For unsorted data, apply the selected UMAP mode
+        # Use fixed random seed for reproducible results
+        np.random.seed(42)
+        
         if self.umap_mode == 'subsample':
             if len(self.waveform_data) > self.max_waveforms:
                 indices = np.random.choice(len(self.waveform_data), 
@@ -231,6 +234,13 @@ class BllechUnitExplorer:
     
     def _get_cache_key(self):
         """Generate a cache key based on embedding parameters and data"""
+        # For unsorted data, we need to use the original data for consistent hashing
+        # since umap_data might be different due to random sampling/kmeans
+        if self.mode == 'unsorted':
+            data_for_hash = self.waveform_data
+        else:
+            data_for_hash = self.umap_data
+        
         # Create a hash based on parameters that affect the embedding
         params = {
             'mode': self.mode,
@@ -242,8 +252,8 @@ class BllechUnitExplorer:
             'kmeans_k': self.kmeans_k,
             'use_pca': self.use_pca,
             'pca_variance': self.pca_variance,
-            'data_shape': self.umap_data.shape,
-            'data_hash': hashlib.md5(self.umap_data.tobytes()).hexdigest()[:16]  # Short hash of data
+            'data_shape': data_for_hash.shape,
+            'data_hash': hashlib.md5(data_for_hash.tobytes()).hexdigest()[:16]  # Short hash of data
         }
         
         # Convert to string and hash
