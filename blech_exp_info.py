@@ -319,16 +319,40 @@ def parse_laser_params(s):
     return [(int(onset), int(duration)) for onset, duration in matches]
 
 
-def extract_recording_params(dir_path):
+def extract_recording_params(dir_path, header=None):
     """
-    Extract recording parameters from info.rhd file.
+    Extract recording parameters from info.rhd file or from provided header.
 
     Args:
         dir_path: Path to the directory containing info.rhd
+        header: Optional pre-loaded header dict (for traditional format)
 
     Returns:
-        Dictionary containing recording parameters, or None if info.rhd not found
+        Dictionary containing recording parameters, or None if not available
     """
+    # If header is provided (traditional format), use it directly
+    if header is not None:
+        try:
+            freq_params = header.get('frequency_parameters', {})
+            
+            recording_params = {
+                'sampling_rate': header.get('sample_rate'),
+                'notch_filter_frequency': header.get('notch_filter_frequency'),
+                'dsp_enabled': freq_params.get('dsp_enabled'),
+                'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+                'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+                'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+                'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+                'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+                'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+            }
+            
+            return recording_params
+        except Exception as e:
+            print(f'Error extracting recording parameters from header: {e}')
+            return None
+    
+    # Otherwise, try to read from info.rhd file
     info_rhd_path = os.path.join(dir_path, 'info.rhd')
 
     if not os.path.exists(info_rhd_path):
@@ -1281,6 +1305,8 @@ def main():
         file_type = 'one file per channel'
 
     # Initialize electrodes_list based on file type
+    # Also store header for traditional format to extract recording params
+    rhd_header = None
     if file_type == 'one file per signal type':
         electrodes_list = ['amplifier.dat']
     elif file_type == 'one file per channel':
@@ -1292,10 +1318,10 @@ def main():
         electrodes_list = []
         rhd_file_list = [x for x in file_list if 'rhd' in x]
         with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
-            header = read_header(f)
-        ports = [x['port_prefix'] for x in header['amplifier_channels']]
+            rhd_header = read_header(f)
+        ports = [x['port_prefix'] for x in rhd_header['amplifier_channels']]
         electrode_files = [x['native_channel_name']
-                           for x in header['amplifier_channels']]
+                           for x in rhd_header['amplifier_channels']]
 
     ##################################################
     # Process Digital Inputs
@@ -1366,7 +1392,8 @@ def main():
     # Extract Recording Parameters
     ##################################################
     print("\n=== Extracting Recording Parameters ===")
-    recording_params = extract_recording_params(dir_path)
+    # Pass header if available (traditional format)
+    recording_params = extract_recording_params(dir_path, header=rhd_header)
 
     # Create final dictionary
     fin_dict = {
