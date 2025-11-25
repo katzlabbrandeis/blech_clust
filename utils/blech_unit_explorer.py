@@ -334,7 +334,7 @@ class BllechUnitExplorer:
             density = kde(grid_coords).reshape(xx.shape)
             
             # Plot KDE as contour/contourf
-            self.ax_umap.contourf(xx, yy, density, levels=20, alpha=0.3, cmap='Blues')
+            self.ax_umap.contourf(xx, yy, density, levels=20, alpha=0.3, cmap='jet')
             self.ax_umap.contour(xx, yy, density, levels=10, alpha=0.5, colors='navy', linewidths=0.5)
             
         except Exception as e:
