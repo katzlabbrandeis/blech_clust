@@ -319,6 +319,46 @@ def parse_laser_params(s):
     return [(int(onset), int(duration)) for onset, duration in matches]
 
 
+def extract_recording_params(dir_path):
+    """
+    Extract recording parameters from info.rhd file.
+
+    Args:
+        dir_path: Path to the directory containing info.rhd
+
+    Returns:
+        Dictionary containing recording parameters, or None if info.rhd not found
+    """
+    info_rhd_path = os.path.join(dir_path, 'info.rhd')
+    
+    if not os.path.exists(info_rhd_path):
+        print('info.rhd file not found. Recording parameters will not be included.')
+        return None
+    
+    try:
+        with open(info_rhd_path, 'rb') as f:
+            header = read_header(f)
+        
+        freq_params = header.get('frequency_parameters', {})
+        
+        recording_params = {
+            'sampling_rate': header.get('sample_rate'),
+            'notch_filter_frequency': header.get('notch_filter_frequency'),
+            'dsp_enabled': freq_params.get('dsp_enabled'),
+            'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+            'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+            'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+            'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+            'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+            'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+        }
+        
+        return recording_params
+    except Exception as e:
+        print(f'Error reading info.rhd: {e}')
+        return None
+
+
 def extract_metadata_from_dir_name(dir_name):
     """
     Extract metadata such as name, experiment type, date, and timestamp from directory name.
@@ -1322,6 +1362,12 @@ def main():
     else:
         laser_digin_trials = []
 
+    ##################################################
+    # Extract Recording Parameters
+    ##################################################
+    print("\n=== Extracting Recording Parameters ===")
+    recording_params = extract_recording_params(dir_path)
+
     # Create final dictionary
     fin_dict = {
         'version': '0.0.3',
@@ -1355,6 +1401,10 @@ def main():
         },
         'notes': notes
     }
+
+    # Add recording parameters if available
+    if recording_params is not None:
+        fin_dict['recording_params'] = recording_params
 
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
