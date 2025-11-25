@@ -40,6 +40,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from scipy import stats
+from scipy.stats import gaussian_kde
 import warnings
 
 # Add blech_clust utils to path
@@ -260,13 +261,18 @@ class BllechUnitExplorer:
         """Set up the interactive matplotlib plot"""
         self.fig, (self.ax_umap, self.ax_waveform) = plt.subplots(1, 2, figsize=(15, 6))
         
-        # Plot UMAP embedding
+        # Create KDE background
+        self._plot_kde_background()
+        
+        # Plot UMAP embedding on top of KDE
         self.scatter = self.ax_umap.scatter(
             self.umap_embedding[:, 0], 
             self.umap_embedding[:, 1],
-            c='blue', 
-            alpha=0.6, 
-            s=30
+            c='red', 
+            alpha=0.7, 
+            s=30,
+            edgecolors='white',
+            linewidth=0.5
         )
         
         title = f'UMAP of {self.mode.title()} Data\n(Click on points to explore)'
@@ -291,6 +297,50 @@ class BllechUnitExplorer:
         self.selected_point = None
         
         plt.tight_layout()
+    
+    def _plot_kde_background(self):
+        """Plot KDE density background for UMAP points"""
+        if len(self.umap_embedding) < 3:
+            # Need at least 3 points for KDE
+            return
+        
+        try:
+            # Create KDE from UMAP embedding
+            kde = gaussian_kde(self.umap_embedding.T)
+            
+            # Create a grid for plotting the KDE
+            x_min, x_max = self.umap_embedding[:, 0].min(), self.umap_embedding[:, 0].max()
+            y_min, y_max = self.umap_embedding[:, 1].min(), self.umap_embedding[:, 1].max()
+            
+            # Add some padding
+            x_range = x_max - x_min
+            y_range = y_max - y_min
+            x_pad = x_range * 0.1
+            y_pad = y_range * 0.1
+            
+            x_min -= x_pad
+            x_max += x_pad
+            y_min -= y_pad
+            y_max += y_pad
+            
+            # Create grid
+            xx, yy = np.meshgrid(
+                np.linspace(x_min, x_max, 100),
+                np.linspace(y_min, y_max, 100)
+            )
+            
+            # Evaluate KDE on grid
+            grid_coords = np.vstack([xx.ravel(), yy.ravel()])
+            density = kde(grid_coords).reshape(xx.shape)
+            
+            # Plot KDE as contour/contourf
+            self.ax_umap.contourf(xx, yy, density, levels=20, alpha=0.3, cmap='Blues')
+            self.ax_umap.contour(xx, yy, density, levels=10, alpha=0.5, colors='navy', linewidths=0.5)
+            
+        except Exception as e:
+            print(f"Warning: Could not create KDE background: {e}")
+            # Continue without KDE if it fails
+            pass
     
     def on_click(self, event):
         """Handle click events on the UMAP plot"""
