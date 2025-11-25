@@ -63,7 +63,7 @@ class BllechUnitExplorer:
         mode : str
             'unsorted' for raw waveforms from electrode, 'sorted' for sorted units
         electrode : int
-            Electrode number (required for unsorted mode)
+            Electrode number (required for unsorted mode). Use -1 for all electrodes.
         units : list
             List of unit numbers to visualize (for sorted mode)
         all_units : bool
@@ -115,30 +115,93 @@ class BllechUnitExplorer:
         self.setup_plot()
     
     def _load_unsorted_data(self):
-        """Load unsorted waveforms from specified electrode"""
+        """Load unsorted waveforms from specified electrode(s)"""
         if self.electrode is None:
             raise ValueError("Electrode number required for unsorted mode")
         
-        # Load waveforms from spike_waveforms directory (saved as .npy files)
-        waveforms_file = os.path.join(
-            self.data_dir, 
-            'spike_waveforms', 
-            f'electrode{self.electrode:02d}', 
-            'spike_waveforms.npy'
-        )
-        
-        if not os.path.exists(waveforms_file):
-            raise ValueError(f"No waveforms found for electrode {self.electrode} at {waveforms_file}")
-        
-        self.waveform_data = np.load(waveforms_file)
-        self.data_labels = [f'Electrode_{self.electrode}_waveform_{i}' 
-                           for i in range(len(self.waveform_data))]
+        if self.electrode == -1:
+            # Load from all available electrodes
+            self._load_all_electrodes()
+        else:
+            # Load from single electrode
+            self._load_single_electrode(self.electrode)
         
         # Prepare data for UMAP based on the selected mode
         self._prepare_umap_data()
         
-        print(f"Loaded {len(self.waveform_data)} waveforms from electrode {self.electrode}")
+        if self.electrode == -1:
+            print(f"Loaded {len(self.waveform_data)} waveforms from {len(self.electrode_info)} electrodes")
+        else:
+            print(f"Loaded {len(self.waveform_data)} waveforms from electrode {self.electrode}")
         print(f"Using {len(self.umap_data)} data points for UMAP visualization ({self.umap_mode} mode)")
+    
+    def _load_single_electrode(self, electrode_num):
+        """Load waveforms from a single electrode"""
+        waveforms_file = os.path.join(
+            self.data_dir, 
+            'spike_waveforms', 
+            f'electrode{electrode_num:02d}', 
+            'spike_waveforms.npy'
+        )
+        
+        if not os.path.exists(waveforms_file):
+            raise ValueError(f"No waveforms found for electrode {electrode_num} at {waveforms_file}")
+        
+        self.waveform_data = np.load(waveforms_file)
+        self.data_labels = [f'Electrode_{electrode_num}_waveform_{i}' 
+                           for i in range(len(self.waveform_data))]
+        self.electrode_info = [(electrode_num, len(self.waveform_data))]
+    
+    def _load_all_electrodes(self):
+        """Load waveforms from all available electrodes"""
+        spike_waveforms_dir = os.path.join(self.data_dir, 'spike_waveforms')
+        
+        if not os.path.exists(spike_waveforms_dir):
+            raise ValueError(f"Spike waveforms directory not found: {spike_waveforms_dir}")
+        
+        # Find all electrode directories
+        electrode_dirs = []
+        for item in os.listdir(spike_waveforms_dir):
+            if item.startswith('electrode') and os.path.isdir(os.path.join(spike_waveforms_dir, item)):
+                try:
+                    electrode_num = int(item.replace('electrode', ''))
+                    electrode_dirs.append((electrode_num, item))
+                except ValueError:
+                    continue
+        
+        if not electrode_dirs:
+            raise ValueError("No electrode directories found in spike_waveforms")
+        
+        # Sort by electrode number
+        electrode_dirs.sort(key=lambda x: x[0])
+        
+        # Load waveforms from all electrodes
+        all_waveforms = []
+        all_labels = []
+        self.electrode_info = []
+        
+        for electrode_num, electrode_dir in electrode_dirs:
+            waveforms_file = os.path.join(spike_waveforms_dir, electrode_dir, 'spike_waveforms.npy')
+            
+            if os.path.exists(waveforms_file):
+                try:
+                    electrode_waveforms = np.load(waveforms_file)
+                    if len(electrode_waveforms) > 0:
+                        all_waveforms.append(electrode_waveforms)
+                        electrode_labels = [f'Electrode_{electrode_num}_waveform_{i}' 
+                                          for i in range(len(electrode_waveforms))]
+                        all_labels.extend(electrode_labels)
+                        self.electrode_info.append((electrode_num, len(electrode_waveforms)))
+                        print(f"Loaded {len(electrode_waveforms)} waveforms from electrode {electrode_num}")
+                except Exception as e:
+                    print(f"Warning: Could not load waveforms from electrode {electrode_num}: {e}")
+        
+        if not all_waveforms:
+            raise ValueError("No valid waveform data found in any electrode")
+        
+        # Concatenate all waveforms
+        self.waveform_data = np.vstack(all_waveforms)
+        self.data_labels = all_labels
     
     def _load_sorted_data(self):
         """Load sorted units from HDF5 file"""
@@ -400,7 +463,11 @@ class BllechUnitExplorer:
         
         title = f'UMAP of {self.mode.title()} Data\n(Click on points to explore)'
         if self.mode == 'unsorted':
-            title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
+            if self.electrode == -1:
+                electrode_nums = [info[0] for info in self.electrode_info]
+                title += f' - All Electrodes ({min(electrode_nums)}-{max(electrode_nums)}) ({self.umap_mode} mode)'
+            else:
+                title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
         if self.use_pca:
             title += f'\nPCA: {self.pca_variance:.1%} variance'
         
@@ -557,7 +624,19 @@ class BllechUnitExplorer:
                 self._plot_mean_std_envelope(time_points, cluster_waveforms, 
                                            color='blue', label='Cluster Mean ± SD')
                 
-                title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms'
+                if self.electrode == -1:
+                    # Count waveforms per electrode in this cluster
+                    electrode_counts = {}
+                    cluster_indices = np.where(self.kmeans_labels == centroid_idx)[0]
+                    for idx in cluster_indices:
+                        label = self.data_labels[idx]
+                        electrode_num = int(label.split('_')[1])
+                        electrode_counts[electrode_num] = electrode_counts.get(electrode_num, 0) + 1
+                    
+                    electrode_info = ', '.join([f'E{e}:{c}' for e, c in sorted(electrode_counts.items())])
+                    title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms ({electrode_info})'
+                else:
+                    title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms'
                 
             else:
                 # For subsample mode, show the specific waveform and nearby waveforms
@@ -584,7 +663,14 @@ class BllechUnitExplorer:
                 self._plot_mean_std_envelope(time_points, context_waveforms, 
                                            color='blue', label='Local Mean ± SD')
                 
-                title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
+                if self.electrode == -1:
+                    # Extract electrode info from label
+                    selected_label = self.data_labels[actual_idx]
+                    electrode_num = int(selected_label.split('_')[1])
+                    waveform_num = int(selected_label.split('_')[3])
+                    title = f'Electrode {electrode_num}, Waveform {waveform_num} (red) with {len(context_waveforms)} neighbors'
+                else:
+                    title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
             
         else:
             # For sorted data, show all waveforms from the selected unit
@@ -638,8 +724,14 @@ Examples:
   # Explore unsorted waveforms from electrode 5 (subsample mode)
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5
   
+  # Explore unsorted waveforms from all electrodes
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1
+  
   # Explore unsorted waveforms using K-means mode
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
+  
+  # Explore all electrodes with K-means and PCA
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --use-pca
   
   # Explore unsorted waveforms with PCA preprocessing
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --use-pca --pca-variance 0.9
@@ -662,7 +754,7 @@ Examples:
     parser.add_argument('--mode', choices=['unsorted', 'sorted'], 
                        default='sorted', help='Visualization mode')
     parser.add_argument('--electrode', type=int, 
-                       help='Electrode number (required for unsorted mode)')
+                       help='Electrode number (required for unsorted mode). Use -1 for all electrodes.')
     parser.add_argument('--units', type=int, nargs='+', 
                        help='Unit numbers to visualize (for sorted mode)')
     parser.add_argument('--all-units', action='store_true',
