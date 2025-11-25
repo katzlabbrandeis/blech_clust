@@ -277,11 +277,16 @@ class BllechUnitExplorer:
         cache_key = hashlib.md5(params_str.encode()).hexdigest()
         return cache_key
     
-    def _get_cache_path(self, cache_key):
-        """Get the cache file path for a given cache key"""
+    def _ensure_cache_dir(self):
+        """Ensure cache directory exists and return its path"""
         cache_dir = os.path.join(self.data_dir, '.umap_cache')
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
+        return cache_dir
+    
+    def _get_cache_path(self, cache_key):
+        """Get the cache file path for a given cache key"""
+        cache_dir = self._ensure_cache_dir()
         return os.path.join(cache_dir, f'umap_embedding_{cache_key}.pkl')
     
     def _save_embedding_to_cache(self, cache_key, embedding_data):
@@ -330,12 +335,7 @@ class BllechUnitExplorer:
         
         # Standardize the data for UMAP
         scaler = StandardScaler()
-        if self.mode == 'unsorted':
-            # For unsorted data, use the waveforms directly
-            data_scaled = scaler.fit_transform(self.umap_data)
-        else:
-            # For sorted data, use the unit means
-            data_scaled = scaler.fit_transform(self.umap_data)
+        data_scaled = scaler.fit_transform(self.umap_data)
         
         # Apply PCA if requested, but only if not already applied in K-means mode
         pca_reducer = None
@@ -498,6 +498,40 @@ class BllechUnitExplorer:
         # Refresh the plot
         self.fig.canvas.draw()
     
+    def _plot_background_waveforms(self, time_points, waveforms, max_plot=200):
+        """Plot background waveforms with consistent styling"""
+        if len(waveforms) > max_plot:
+            plot_indices = np.random.choice(len(waveforms), max_plot, replace=False)
+            plot_waveforms = waveforms[plot_indices]
+        else:
+            plot_waveforms = waveforms
+        
+        for wf in plot_waveforms:
+            self.ax_waveform.plot(time_points, wf, 'gray', alpha=0.1, linewidth=0.5)
+    
+    def _plot_mean_std_envelope(self, time_points, waveforms, color='blue', label='Mean ± SD'):
+        """Plot mean ± std envelope for waveforms"""
+        mean_wf = np.mean(waveforms, axis=0)
+        std_wf = np.std(waveforms, axis=0)
+        
+        self.ax_waveform.fill_between(
+            time_points,
+            mean_wf - std_wf,
+            mean_wf + std_wf,
+            alpha=0.2,
+            color=color,
+            label=label
+        )
+        return mean_wf, std_wf
+    
+    def _finalize_waveform_plot(self, title):
+        """Apply consistent formatting to waveform plot"""
+        self.ax_waveform.set_title(title)
+        self.ax_waveform.set_xlabel('Time Point')
+        self.ax_waveform.set_ylabel('Amplitude')
+        self.ax_waveform.legend()
+        self.ax_waveform.grid(True, alpha=0.3)
+    
     def plot_waveforms(self, data_idx):
         """Plot waveforms for the selected data point"""
         # Clear previous waveform plot
@@ -510,39 +544,18 @@ class BllechUnitExplorer:
                 cluster_waveforms = self.waveform_data[self.kmeans_labels == centroid_idx]
                 selected_centroid = self.kmeans_centroids[centroid_idx]
                 
-                # Time points
                 time_points = np.arange(len(selected_centroid))
                 
                 # Plot centroid
                 self.ax_waveform.plot(time_points, selected_centroid, 'r-', 
                                     linewidth=3, label='K-means Centroid')
                 
-                # Plot a subset of cluster waveforms
-                max_plot_waveforms = 200
-                if len(cluster_waveforms) > max_plot_waveforms:
-                    plot_indices = np.random.choice(len(cluster_waveforms), 
-                                                  max_plot_waveforms, replace=False)
-                    plot_waveforms = cluster_waveforms[plot_indices]
-                else:
-                    plot_waveforms = cluster_waveforms
+                # Plot background waveforms
+                self._plot_background_waveforms(time_points, cluster_waveforms)
                 
-                for wf in plot_waveforms:
-                    self.ax_waveform.plot(time_points, wf, 'gray', 
-                                        alpha=0.1, linewidth=0.5)
-                
-                # Calculate statistics for the cluster
-                cluster_mean = np.mean(cluster_waveforms, axis=0)
-                cluster_std = np.std(cluster_waveforms, axis=0)
-                
-                # Plot mean ± std as filled area
-                self.ax_waveform.fill_between(
-                    time_points,
-                    cluster_mean - cluster_std,
-                    cluster_mean + cluster_std,
-                    alpha=0.2,
-                    color='blue',
-                    label='Cluster Mean ± SD'
-                )
+                # Plot mean ± std envelope
+                self._plot_mean_std_envelope(time_points, cluster_waveforms, 
+                                           color='blue', label='Cluster Mean ± SD')
                 
                 title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms'
                 
@@ -557,7 +570,6 @@ class BllechUnitExplorer:
                 end_idx = min(len(self.waveform_data), actual_idx + window_size // 2)
                 context_waveforms = self.waveform_data[start_idx:end_idx]
                 
-                # Time points
                 time_points = np.arange(len(selected_waveform))
                 
                 # Plot context waveforms
@@ -568,19 +580,9 @@ class BllechUnitExplorer:
                     self.ax_waveform.plot(time_points, wf, color=color, 
                                         alpha=alpha, linewidth=linewidth)
                 
-                # Calculate statistics for the context window
-                context_mean = np.mean(context_waveforms, axis=0)
-                context_std = np.std(context_waveforms, axis=0)
-                
-                # Plot mean ± std as filled area
-                self.ax_waveform.fill_between(
-                    time_points,
-                    context_mean - context_std,
-                    context_mean + context_std,
-                    alpha=0.2,
-                    color='blue',
-                    label='Local Mean ± SD'
-                )
+                # Plot mean ± std envelope
+                self._plot_mean_std_envelope(time_points, context_waveforms, 
+                                           color='blue', label='Local Mean ± SD')
                 
                 title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
             
@@ -589,43 +591,24 @@ class BllechUnitExplorer:
             unit_name = self.umap_labels[data_idx]
             unit_waveforms = self.unit_data[unit_name]
             
-            # Calculate statistics
+            time_points = np.arange(unit_waveforms.shape[1])
+            
+            # Calculate and plot mean waveform
             unit_mean = np.mean(unit_waveforms, axis=0)
-            unit_std = np.std(unit_waveforms, axis=0)
-            
-            # Time points
-            time_points = np.arange(len(unit_mean))
-            
-            # Plot mean waveform
             self.ax_waveform.plot(time_points, unit_mean, 'b-', 
                                 linewidth=2, label='Mean')
             
-            # Plot mean ± std as filled area
-            self.ax_waveform.fill_between(
-                time_points,
-                unit_mean - unit_std,
-                unit_mean + unit_std,
-                alpha=0.3,
-                color='blue',
-                label='Mean ± SD'
-            )
+            # Plot mean ± std envelope
+            self._plot_mean_std_envelope(time_points, unit_waveforms, 
+                                       color='blue', label='Mean ± SD')
             
-            # Plot a subset of individual waveforms for context
-            n_plot_waveforms = min(50, unit_waveforms.shape[0])
-            plot_indices = np.random.choice(unit_waveforms.shape[0], 
-                                          n_plot_waveforms, replace=False)
-            for i in plot_indices:
-                self.ax_waveform.plot(time_points, unit_waveforms[i], 
-                                    'gray', alpha=0.1, linewidth=0.5)
+            # Plot background waveforms
+            self._plot_background_waveforms(time_points, unit_waveforms, max_plot=50)
             
             title = f'{unit_name}: {unit_waveforms.shape[0]} waveforms'
         
-        # Formatting
-        self.ax_waveform.set_title(title)
-        self.ax_waveform.set_xlabel('Time Point')
-        self.ax_waveform.set_ylabel('Amplitude')
-        self.ax_waveform.legend()
-        self.ax_waveform.grid(True, alpha=0.3)
+        # Apply consistent formatting
+        self._finalize_waveform_plot(title)
     
     def show(self):
         """Display the interactive plot"""
@@ -637,7 +620,7 @@ class BllechUnitExplorer:
     
     def clear_cache(self):
         """Clear all cached UMAP embeddings for this dataset"""
-        cache_dir = os.path.join(self.data_dir, '.umap_cache')
+        cache_dir = self._ensure_cache_dir()
         if os.path.exists(cache_dir):
             import shutil
             shutil.rmtree(cache_dir)
@@ -713,13 +696,14 @@ Examples:
     
     # Handle cache clearing
     if args.clear_cache:
-        cache_dir = os.path.join(args.data_dir, '.umap_cache')
-        if os.path.exists(cache_dir):
-            import shutil
-            shutil.rmtree(cache_dir)
-            print("Cleared UMAP embedding cache")
-        else:
-            print("No cache directory found")
+        # Create a temporary explorer instance just to access the cache clearing method
+        try:
+            temp_explorer = BllechUnitExplorer.__new__(BllechUnitExplorer)
+            temp_explorer.data_dir = args.data_dir
+            temp_explorer.clear_cache()
+        except Exception as e:
+            print(f"Error clearing cache: {e}")
+            return 1
         return 0
     
     try:
