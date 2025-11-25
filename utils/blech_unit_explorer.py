@@ -993,11 +993,11 @@ Examples:
                        default='sorted', help='Visualization mode')
     def parse_electrode_arg(electrode_str):
         """Parse electrode argument - can be single int, -1, or comma-separated list"""
-        if electrode_str == '-1':
+        if str(electrode_str) == '-1':
             return -1
-        elif ',' in electrode_str:
+        elif ',' in str(electrode_str):
             try:
-                return [int(x.strip()) for x in electrode_str.split(',')]
+                return [int(x.strip()) for x in str(electrode_str).split(',')]
             except ValueError:
                 raise argparse.ArgumentTypeError(f"Invalid electrode list: {electrode_str}")
         else:
