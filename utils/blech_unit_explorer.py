@@ -395,8 +395,8 @@ class BllechUnitExplorer:
                 kmeans_data = self.waveform_data
                 pca_for_kmeans = None
                 if self.use_pca:
-                    print(f"Applying PCA before K-means to retain {self.pca_variance:.1%} variance...")
-                    pca_for_kmeans = PCA(n_components=self.pca_variance, random_state=42)
+                    print(f"Applying PCA before K-means to retain {float(self.pca_variance):.1%} variance...")
+                    pca_for_kmeans = PCA(n_components=float(self.pca_variance), random_state=42)
                     kmeans_data = pca_for_kmeans.fit_transform(self.waveform_data)
                     print(f"PCA reduced dimensionality from {self.waveform_data.shape[1]} to {kmeans_data.shape[1]} components for K-means")
                 
@@ -532,8 +532,8 @@ class BllechUnitExplorer:
                               self.kmeans_labels is not None)
         
         if self.use_pca and not pca_already_applied:
-            print(f"Applying PCA to retain {self.pca_variance:.1%} variance...")
-            pca = PCA(n_components=self.pca_variance, random_state=42)
+            print(f"Applying PCA to retain {float(self.pca_variance):.1%} variance...")
+            pca = PCA(n_components=float(self.pca_variance), random_state=42)
             data_scaled = pca.fit_transform(data_scaled)
             pca_reducer = pca
             self.pca_reducer = pca
