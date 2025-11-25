@@ -50,7 +50,7 @@ from blech_utils import imp_metadata
 class BllechUnitExplorer:
     def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
                  umap_mode='subsample', max_waveforms=5000, kmeans_k=1000,
-                 use_pca=False, pca_variance=0.95):
+                 use_pca=False, pca_variance=0.95, kde_bandwidth=None):
         """
         Initialize the unit explorer
         
@@ -76,6 +76,8 @@ class BllechUnitExplorer:
             Whether to apply PCA before UMAP
         pca_variance : float
             Amount of variance to retain with PCA (0.0-1.0)
+        kde_bandwidth : float or None
+            Bandwidth for KDE. If None, uses automatic bandwidth selection
         """
         self.data_dir = data_dir
         self.mode = mode
@@ -87,6 +89,7 @@ class BllechUnitExplorer:
         self.kmeans_k = kmeans_k
         self.use_pca = use_pca
         self.pca_variance = pca_variance
+        self.kde_bandwidth = kde_bandwidth
         
         # Load metadata
         self.metadata_handler = imp_metadata([[], data_dir])
@@ -307,6 +310,10 @@ class BllechUnitExplorer:
         try:
             # Create KDE from UMAP embedding
             kde = gaussian_kde(self.umap_embedding.T)
+            
+            # Set custom bandwidth if provided
+            if self.kde_bandwidth is not None:
+                kde.set_bandwidth(self.kde_bandwidth)
             
             # Create a grid for plotting the KDE
             x_min, x_max = self.umap_embedding[:, 0].min(), self.umap_embedding[:, 0].max()
@@ -529,6 +536,9 @@ Examples:
   
   # Explore all sorted units with PCA
   python blech_unit_explorer.py /path/to/data --mode sorted --all-units --use-pca --pca-variance 0.95
+  
+  # Use custom KDE bandwidth for smoother/sharper density visualization
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
         """
     )
     
@@ -551,6 +561,8 @@ Examples:
                        help='Apply PCA before UMAP')
     parser.add_argument('--pca-variance', type=float, default=0.95,
                        help='Variance to retain with PCA (0.0-1.0)')
+    parser.add_argument('--kde-bandwidth', type=float, default=None,
+                       help='KDE bandwidth (None for automatic selection)')
     
     args = parser.parse_args()
     
@@ -575,7 +587,8 @@ Examples:
             max_waveforms=args.max_waveforms,
             kmeans_k=args.kmeans_k,
             use_pca=args.use_pca,
-            pca_variance=args.pca_variance
+            pca_variance=args.pca_variance,
+            kde_bandwidth=args.kde_bandwidth
         )
         
         print("Click on points in the UMAP plot to explore waveforms")
