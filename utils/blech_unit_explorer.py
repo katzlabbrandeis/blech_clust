@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import umap
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.decomposition import PCA
 from scipy import stats
 from scipy.stats import gaussian_kde
