@@ -662,7 +662,15 @@ class BllechUnitExplorer:
             # Create color array for each point
             point_colors = []
             for label in self.umap_labels:
-                electrode_num = int(label.split('_')[1])
+                # Handle different label formats (Electrode_X_waveform_Y vs KMeans_centroid_X)
+                if label.startswith('Electrode_'):
+                    electrode_num = int(label.split('_')[1])
+                elif label.startswith('KMeans_centroid_'):
+                    # For K-means centroids, we need to map back to original data
+                    # This is more complex, so for now use a default color
+                    electrode_num = list(electrode_color_map.keys())[0]  # Use first electrode color
+                else:
+                    electrode_num = list(electrode_color_map.keys())[0]  # Fallback
                 point_colors.append(electrode_color_map[electrode_num])
             
             # Plot points with electrode-specific colors
@@ -840,8 +848,10 @@ class BllechUnitExplorer:
                     cluster_indices = np.where(self.kmeans_labels == centroid_idx)[0]
                     for idx in cluster_indices:
                         label = self.data_labels[idx]
-                        electrode_num = int(label.split('_')[1])
-                        electrode_counts[electrode_num] = electrode_counts.get(electrode_num, 0) + 1
+                        # Handle different label formats
+                        if label.startswith('Electrode_'):
+                            electrode_num = int(label.split('_')[1])
+                            electrode_counts[electrode_num] = electrode_counts.get(electrode_num, 0) + 1
                     
                     electrode_info = ', '.join([f'E{e}:{c}' for e, c in sorted(electrode_counts.items())])
                     title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms ({electrode_info})'
@@ -876,9 +886,12 @@ class BllechUnitExplorer:
                 if self.electrode == -1 or isinstance(self.electrode, list):
                     # Extract electrode info from label
                     selected_label = self.data_labels[actual_idx]
-                    electrode_num = int(selected_label.split('_')[1])
-                    waveform_num = int(selected_label.split('_')[3])
-                    title = f'Electrode {electrode_num}, Waveform {waveform_num} (red) with {len(context_waveforms)} neighbors'
+                    if selected_label.startswith('Electrode_'):
+                        electrode_num = int(selected_label.split('_')[1])
+                        waveform_num = int(selected_label.split('_')[3])
+                        title = f'Electrode {electrode_num}, Waveform {waveform_num} (red) with {len(context_waveforms)} neighbors'
+                    else:
+                        title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
                 else:
                     title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
             
