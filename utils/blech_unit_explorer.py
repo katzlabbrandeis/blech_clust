@@ -99,6 +99,7 @@ class BllechUnitExplorer:
         # Load metadata
         self.metadata_handler = imp_metadata([[], data_dir])
         self.hdf5_path = os.path.join(data_dir, self.metadata_handler.hdf5_name)
+        self.params_dict = self.metadata_handler.params_dict
         
         # Open HDF5 file
         self.h5 = tables.open_file(self.hdf5_path, mode='r')
@@ -268,15 +269,22 @@ class BllechUnitExplorer:
         if not hasattr(self, 'waveform_data') or len(self.waveform_data) == 0:
             return
         
-        # Determine spike snapshot window (assuming it's centered around the spike)
-        # For typical blech_clust data, the spike is usually around the middle
-        waveform_length = self.waveform_data.shape[1]
-        center_idx = waveform_length // 2
+        # Extract spike window parameters from blech_clust params
+        spike_snapshot_before = self.params_dict['spike_snapshot_before']
+        spike_snapshot_after = self.params_dict['spike_snapshot_after']
+        sampling_rate = self.params_dict['sampling_rate']
         
-        # Define a window around the spike (e.g., ±5 samples from center)
-        window_size = min(10, waveform_length // 4)
-        start_idx = max(0, center_idx - window_size // 2)
-        end_idx = min(waveform_length, center_idx + window_size // 2)
+        # Convert time to samples
+        before_samples = int(spike_snapshot_before * sampling_rate / 1000)
+        after_samples = int(spike_snapshot_after * sampling_rate / 1000)
+        
+        # The spike should be at the transition from before to after
+        spike_idx = before_samples
+        
+        # Define a window around the spike (use a portion of the total window)
+        window_size = min(10, (before_samples + after_samples) // 4)
+        start_idx = max(0, spike_idx - window_size // 2)
+        end_idx = min(self.waveform_data.shape[1], spike_idx + window_size // 2)
         
         flipped_count = 0
         for i in range(len(self.waveform_data)):
@@ -300,19 +308,27 @@ class BllechUnitExplorer:
         if not hasattr(self, 'unit_data') or len(self.unit_data) == 0:
             return
         
+        # Extract spike window parameters from blech_clust params
+        spike_snapshot_before = self.params_dict['spike_snapshot_before']
+        spike_snapshot_after = self.params_dict['spike_snapshot_after']
+        sampling_rate = self.params_dict['sampling_rate']
+        
+        # Convert time to samples
+        before_samples = int(spike_snapshot_before * sampling_rate / 1000)
+        after_samples = int(spike_snapshot_after * sampling_rate / 1000)
+        
+        # The spike should be at the transition from before to after
+        spike_idx = before_samples
+        
         flipped_units = []
         for unit_name in self.unit_data.keys():
             unit_waveforms = self.unit_data[unit_name]
             unit_mean = np.mean(unit_waveforms, axis=0)
             
-            # Determine spike snapshot window
-            waveform_length = len(unit_mean)
-            center_idx = waveform_length // 2
-            
-            # Define a window around the spike
-            window_size = min(10, waveform_length // 4)
-            start_idx = max(0, center_idx - window_size // 2)
-            end_idx = min(waveform_length, center_idx + window_size // 2)
+            # Define a window around the spike (use a portion of the total window)
+            window_size = min(10, (before_samples + after_samples) // 4)
+            start_idx = max(0, spike_idx - window_size // 2)
+            end_idx = min(len(unit_mean), spike_idx + window_size // 2)
             
             # Check if the spike window has a positive deflection
             spike_window = unit_mean[start_idx:end_idx]
