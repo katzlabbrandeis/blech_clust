@@ -330,17 +330,17 @@ def extract_recording_params(dir_path):
         Dictionary containing recording parameters, or None if info.rhd not found
     """
     info_rhd_path = os.path.join(dir_path, 'info.rhd')
-    
+
     if not os.path.exists(info_rhd_path):
         print('info.rhd file not found. Recording parameters will not be included.')
         return None
-    
+
     try:
         with open(info_rhd_path, 'rb') as f:
             header = read_header(f)
-        
+
         freq_params = header.get('frequency_parameters', {})
-        
+
         recording_params = {
             'sampling_rate': header.get('sample_rate'),
             'notch_filter_frequency': header.get('notch_filter_frequency'),
@@ -352,7 +352,7 @@ def extract_recording_params(dir_path):
             'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
             'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
         }
-        
+
         return recording_params
     except Exception as e:
         print(f'Error reading info.rhd: {e}')
