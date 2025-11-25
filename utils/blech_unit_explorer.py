@@ -337,15 +337,23 @@ class BllechUnitExplorer:
             # For sorted data, use the unit means
             data_scaled = scaler.fit_transform(self.umap_data)
         
-        # Apply PCA if requested
+        # Apply PCA if requested, but only if not already applied in K-means mode
         pca_reducer = None
-        if self.use_pca:
+        pca_already_applied = (self.mode == 'unsorted' and 
+                              self.umap_mode == 'kmeans' and 
+                              self.use_pca and 
+                              hasattr(self, 'kmeans_labels') and 
+                              self.kmeans_labels is not None)
+        
+        if self.use_pca and not pca_already_applied:
             print(f"Applying PCA to retain {self.pca_variance:.1%} variance...")
             pca = PCA(n_components=self.pca_variance, random_state=42)
             data_scaled = pca.fit_transform(data_scaled)
             pca_reducer = pca
             self.pca_reducer = pca
             print(f"PCA reduced dimensionality from {self.umap_data.shape[1]} to {data_scaled.shape[1]} components")
+        elif pca_already_applied:
+            print("PCA already applied during K-means clustering, skipping PCA for UMAP")
         
         # Compute UMAP embedding
         n_neighbors = min(15, len(data_scaled) - 1)
