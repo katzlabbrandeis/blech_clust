@@ -400,7 +400,13 @@ class BllechUnitExplorer:
                     kmeans_data = pca_for_kmeans.fit_transform(self.waveform_data)
                     print(f"PCA reduced dimensionality from {self.waveform_data.shape[1]} to {kmeans_data.shape[1]} components for K-means")
                 
-                kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
+                # Use MiniBatchKMeans for large datasets (>10,000 points)
+                if len(self.waveform_data) > 10000:
+                    print(f"Using MiniBatchKMeans for {len(self.waveform_data)} data points (>10,000)")
+                    kmeans = MiniBatchKMeans(n_clusters=self.kmeans_k, random_state=42, n_init='auto')
+                else:
+                    kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
+                
                 kmeans.fit(kmeans_data)
                 
                 # Get centroids in original space if PCA was applied
