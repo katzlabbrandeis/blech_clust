@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import umap
 from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 from scipy import stats
 import warnings
 
@@ -45,7 +46,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from blech_utils import imp_metadata
 
 class BllechUnitExplorer:
-    def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False):
+    def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
+                 umap_mode='subsample', max_waveforms=5000, kmeans_k=1000):
         """
         Initialize the unit explorer
         
@@ -61,12 +63,21 @@ class BllechUnitExplorer:
             List of unit numbers to visualize (for sorted mode)
         all_units : bool
             Whether to visualize all available sorted units
+        umap_mode : str
+            'subsample' or 'kmeans' - method for handling large datasets
+        max_waveforms : int
+            Maximum number of waveforms to use for UMAP (subsample mode)
+        kmeans_k : int
+            Number of K-means clusters to use (kmeans mode)
         """
         self.data_dir = data_dir
         self.mode = mode
         self.electrode = electrode
         self.units = units
         self.all_units = all_units
+        self.umap_mode = umap_mode
+        self.max_waveforms = max_waveforms
+        self.kmeans_k = kmeans_k
         
         # Load metadata
         self.metadata_handler = imp_metadata([[], data_dir])
@@ -109,21 +120,11 @@ class BllechUnitExplorer:
         self.data_labels = [f'Electrode_{self.electrode}_waveform_{i}' 
                            for i in range(len(self.waveform_data))]
         
-        # For unsorted data, we'll sample a subset for UMAP if too many waveforms
-        max_waveforms_for_umap = 5000
-        if len(self.waveform_data) > max_waveforms_for_umap:
-            indices = np.random.choice(len(self.waveform_data), 
-                                     max_waveforms_for_umap, replace=False)
-            self.umap_data = self.waveform_data[indices]
-            self.umap_labels = [self.data_labels[i] for i in indices]
-            self.umap_indices = indices
-        else:
-            self.umap_data = self.waveform_data
-            self.umap_labels = self.data_labels
-            self.umap_indices = np.arange(len(self.waveform_data))
+        # Prepare data for UMAP based on the selected mode
+        self._prepare_umap_data()
         
         print(f"Loaded {len(self.waveform_data)} waveforms from electrode {self.electrode}")
-        print(f"Using {len(self.umap_data)} waveforms for UMAP visualization")
+        print(f"Using {len(self.umap_data)} data points for UMAP visualization ({self.umap_mode} mode)")
     
     def _load_sorted_data(self):
         """Load sorted units from HDF5 file"""
@@ -169,6 +170,51 @@ class BllechUnitExplorer:
         
         print(f"Loaded {len(selected_units)} sorted units")
     
+    def _prepare_umap_data(self):
+        """Prepare data for UMAP based on the selected mode"""
+        if self.mode == 'sorted':
+            # For sorted data, always use unit means
+            self.umap_data = self.unit_means
+            self.umap_labels = self.data_labels
+            self.umap_indices = np.arange(len(self.unit_means))
+            return
+        
+        # For unsorted data, apply the selected UMAP mode
+        if self.umap_mode == 'subsample':
+            if len(self.waveform_data) > self.max_waveforms:
+                indices = np.random.choice(len(self.waveform_data), 
+                                         self.max_waveforms, replace=False)
+                self.umap_data = self.waveform_data[indices]
+                self.umap_labels = [self.data_labels[i] for i in indices]
+                self.umap_indices = indices
+            else:
+                self.umap_data = self.waveform_data
+                self.umap_labels = self.data_labels
+                self.umap_indices = np.arange(len(self.waveform_data))
+                
+        elif self.umap_mode == 'kmeans':
+            if len(self.waveform_data) > self.kmeans_k:
+                print(f"Applying K-means with k={self.kmeans_k} for UMAP visualization...")
+                kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
+                kmeans.fit(self.waveform_data)
+                
+                # Use centroids for UMAP
+                self.umap_data = kmeans.cluster_centers_
+                self.umap_labels = [f'KMeans_centroid_{i}' for i in range(self.kmeans_k)]
+                
+                # Store cluster assignments to map back to original data
+                self.kmeans_labels = kmeans.labels_
+                self.kmeans_centroids = kmeans.cluster_centers_
+                self.umap_indices = np.arange(self.kmeans_k)  # Indices into centroids
+            else:
+                # Not enough data for K-means, fall back to using all data
+                self.umap_data = self.waveform_data
+                self.umap_labels = self.data_labels
+                self.umap_indices = np.arange(len(self.waveform_data))
+                self.kmeans_labels = None
+        else:
+            raise ValueError(f"Unknown umap_mode: {self.umap_mode}")
+    
     def _calculate_umap(self):
         """Calculate UMAP embedding of the data"""
         print("Computing UMAP embedding...")
@@ -209,7 +255,7 @@ class BllechUnitExplorer:
         
         title = f'UMAP of {self.mode.title()} Data\n(Click on points to explore)'
         if self.mode == 'unsorted':
-            title += f' - Electrode {self.electrode}'
+            title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
         
         self.ax_umap.set_title(title)
         self.ax_umap.set_xlabel('UMAP 1')
@@ -263,42 +309,85 @@ class BllechUnitExplorer:
         self.ax_waveform.clear()
         
         if self.mode == 'unsorted':
-            # For unsorted data, show the specific waveform and nearby waveforms
-            actual_idx = self.umap_indices[data_idx]
-            selected_waveform = self.waveform_data[actual_idx]
-            
-            # Get a window of waveforms around the selected one for context
-            window_size = 100
-            start_idx = max(0, actual_idx - window_size // 2)
-            end_idx = min(len(self.waveform_data), actual_idx + window_size // 2)
-            context_waveforms = self.waveform_data[start_idx:end_idx]
-            
-            # Time points
-            time_points = np.arange(len(selected_waveform))
-            
-            # Plot context waveforms
-            for i, wf in enumerate(context_waveforms):
-                alpha = 0.3 if start_idx + i != actual_idx else 1.0
-                color = 'gray' if start_idx + i != actual_idx else 'red'
-                linewidth = 0.5 if start_idx + i != actual_idx else 2
-                self.ax_waveform.plot(time_points, wf, color=color, 
-                                    alpha=alpha, linewidth=linewidth)
-            
-            # Calculate statistics for the context window
-            context_mean = np.mean(context_waveforms, axis=0)
-            context_std = np.std(context_waveforms, axis=0)
-            
-            # Plot mean ± std as filled area
-            self.ax_waveform.fill_between(
-                time_points,
-                context_mean - context_std,
-                context_mean + context_std,
-                alpha=0.2,
-                color='blue',
-                label='Local Mean ± SD'
-            )
-            
-            title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
+            if self.umap_mode == 'kmeans' and hasattr(self, 'kmeans_labels'):
+                # For K-means mode, show all waveforms from the selected cluster
+                centroid_idx = self.umap_indices[data_idx]
+                cluster_waveforms = self.waveform_data[self.kmeans_labels == centroid_idx]
+                selected_centroid = self.kmeans_centroids[centroid_idx]
+                
+                # Time points
+                time_points = np.arange(len(selected_centroid))
+                
+                # Plot centroid
+                self.ax_waveform.plot(time_points, selected_centroid, 'r-', 
+                                    linewidth=3, label='K-means Centroid')
+                
+                # Plot a subset of cluster waveforms
+                max_plot_waveforms = 200
+                if len(cluster_waveforms) > max_plot_waveforms:
+                    plot_indices = np.random.choice(len(cluster_waveforms), 
+                                                  max_plot_waveforms, replace=False)
+                    plot_waveforms = cluster_waveforms[plot_indices]
+                else:
+                    plot_waveforms = cluster_waveforms
+                
+                for wf in plot_waveforms:
+                    self.ax_waveform.plot(time_points, wf, 'gray', 
+                                        alpha=0.1, linewidth=0.5)
+                
+                # Calculate statistics for the cluster
+                cluster_mean = np.mean(cluster_waveforms, axis=0)
+                cluster_std = np.std(cluster_waveforms, axis=0)
+                
+                # Plot mean ± std as filled area
+                self.ax_waveform.fill_between(
+                    time_points,
+                    cluster_mean - cluster_std,
+                    cluster_mean + cluster_std,
+                    alpha=0.2,
+                    color='blue',
+                    label='Cluster Mean ± SD'
+                )
+                
+                title = f'K-means Cluster {centroid_idx}: {len(cluster_waveforms)} waveforms'
+                
+            else:
+                # For subsample mode, show the specific waveform and nearby waveforms
+                actual_idx = self.umap_indices[data_idx]
+                selected_waveform = self.waveform_data[actual_idx]
+                
+                # Get a window of waveforms around the selected one for context
+                window_size = 100
+                start_idx = max(0, actual_idx - window_size // 2)
+                end_idx = min(len(self.waveform_data), actual_idx + window_size // 2)
+                context_waveforms = self.waveform_data[start_idx:end_idx]
+                
+                # Time points
+                time_points = np.arange(len(selected_waveform))
+                
+                # Plot context waveforms
+                for i, wf in enumerate(context_waveforms):
+                    alpha = 0.3 if start_idx + i != actual_idx else 1.0
+                    color = 'gray' if start_idx + i != actual_idx else 'red'
+                    linewidth = 0.5 if start_idx + i != actual_idx else 2
+                    self.ax_waveform.plot(time_points, wf, color=color, 
+                                        alpha=alpha, linewidth=linewidth)
+                
+                # Calculate statistics for the context window
+                context_mean = np.mean(context_waveforms, axis=0)
+                context_std = np.std(context_waveforms, axis=0)
+                
+                # Plot mean ± std as filled area
+                self.ax_waveform.fill_between(
+                    time_points,
+                    context_mean - context_std,
+                    context_mean + context_std,
+                    alpha=0.2,
+                    color='blue',
+                    label='Local Mean ± SD'
+                )
+                
+                title = f'Waveform {actual_idx} (red) with {len(context_waveforms)} neighbors'
             
         else:
             # For sorted data, show all waveforms from the selected unit
@@ -358,8 +447,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Explore unsorted waveforms from electrode 5
+  # Explore unsorted waveforms from electrode 5 (subsample mode)
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5
+  
+  # Explore unsorted waveforms using K-means mode
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
   
   # Explore specific sorted units
   python blech_unit_explorer.py /path/to/data --mode sorted --units 0 1 2 5
@@ -378,6 +470,12 @@ Examples:
                        help='Unit numbers to visualize (for sorted mode)')
     parser.add_argument('--all-units', action='store_true',
                        help='Visualize all available sorted units')
+    parser.add_argument('--umap-mode', choices=['subsample', 'kmeans'],
+                       default='subsample', help='Method for handling large datasets')
+    parser.add_argument('--max-waveforms', type=int, default=5000,
+                       help='Maximum waveforms for subsample mode')
+    parser.add_argument('--kmeans-k', type=int, default=1000,
+                       help='Number of K-means clusters for kmeans mode')
     
     args = parser.parse_args()
     
@@ -394,7 +492,10 @@ Examples:
             mode=args.mode,
             electrode=args.electrode,
             units=args.units,
-            all_units=args.all_units
+            all_units=args.all_units,
+            umap_mode=args.umap_mode,
+            max_waveforms=args.max_waveforms,
+            kmeans_k=args.kmeans_k
         )
         
         print("Click on points in the UMAP plot to explore waveforms")
