@@ -52,7 +52,7 @@ from blech_utils import imp_metadata
 class BllechUnitExplorer:
     def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
                  umap_mode='subsample', max_waveforms=5000, kmeans_k=1000,
-                 use_pca=False, pca_variance=0.95, kde_bandwidth=None):
+                 use_pca=False, pca_variance=0.95, kde_bandwidth=None, flip_positive=False):
         """
         Initialize the unit explorer
         
@@ -80,6 +80,8 @@ class BllechUnitExplorer:
             Amount of variance to retain with PCA (0.0-1.0)
         kde_bandwidth : float or None
             Bandwidth for KDE. If None, uses automatic bandwidth selection
+        flip_positive : bool
+            Whether to flip units with positive deflections to negative
         """
         self.data_dir = data_dir
         self.mode = mode
@@ -92,6 +94,7 @@ class BllechUnitExplorer:
         self.use_pca = use_pca
         self.pca_variance = pca_variance
         self.kde_bandwidth = kde_bandwidth
+        self.flip_positive = flip_positive
         
         # Load metadata
         self.metadata_handler = imp_metadata([[], data_dir])
@@ -151,6 +154,10 @@ class BllechUnitExplorer:
         self.data_labels = [f'Electrode_{electrode_num}_waveform_{i}' 
                            for i in range(len(self.waveform_data))]
         self.electrode_info = [(electrode_num, len(self.waveform_data))]
+        
+        # Apply polarity flipping if requested
+        if self.flip_positive:
+            self._flip_positive_waveforms()
     
     def _load_all_electrodes(self):
         """Load waveforms from all available electrodes"""
@@ -202,6 +209,10 @@ class BllechUnitExplorer:
         # Concatenate all waveforms
         self.waveform_data = np.vstack(all_waveforms)
         self.data_labels = all_labels
+        
+        # Apply polarity flipping if requested
+        if self.flip_positive:
+            self._flip_positive_waveforms()
     
     def _load_sorted_data(self):
         """Load sorted units from HDF5 file"""
@@ -242,11 +253,83 @@ class BllechUnitExplorer:
                 self.data_labels.append(unit_name)
         
         self.unit_means = np.array(self.unit_means)
+        
+        # Apply polarity flipping if requested
+        if self.flip_positive:
+            self._flip_positive_units()
+        
         self.umap_data = self.unit_means
         self.umap_labels = self.data_labels
         
         print(f"Loaded {len(selected_units)} sorted units")
     
+    def _flip_positive_waveforms(self):
+        """Flip waveforms that have positive deflections to negative"""
+        if not hasattr(self, 'waveform_data') or len(self.waveform_data) == 0:
+            return
+        
+        # Determine spike snapshot window (assuming it's centered around the spike)
+        # For typical blech_clust data, the spike is usually around the middle
+        waveform_length = self.waveform_data.shape[1]
+        center_idx = waveform_length // 2
+        
+        # Define a window around the spike (e.g., ±5 samples from center)
+        window_size = min(10, waveform_length // 4)
+        start_idx = max(0, center_idx - window_size // 2)
+        end_idx = min(waveform_length, center_idx + window_size // 2)
+        
+        flipped_count = 0
+        for i in range(len(self.waveform_data)):
+            # Check if the spike window has a positive deflection
+            spike_window = self.waveform_data[i, start_idx:end_idx]
+            
+            # Find the extremum in the spike window
+            min_val = np.min(spike_window)
+            max_val = np.max(spike_window)
+            
+            # If the maximum absolute value is positive, flip the waveform
+            if abs(max_val) > abs(min_val):
+                self.waveform_data[i] = -self.waveform_data[i]
+                flipped_count += 1
+        
+        if flipped_count > 0:
+            print(f"Flipped {flipped_count} positive waveforms to negative")
+    
+    def _flip_positive_units(self):
+        """Flip sorted units that have positive deflections to negative"""
+        if not hasattr(self, 'unit_data') or len(self.unit_data) == 0:
+            return
+        
+        flipped_units = []
+        for unit_name in self.unit_data.keys():
+            unit_waveforms = self.unit_data[unit_name]
+            unit_mean = np.mean(unit_waveforms, axis=0)
+            
+            # Determine spike snapshot window
+            waveform_length = len(unit_mean)
+            center_idx = waveform_length // 2
+            
+            # Define a window around the spike
+            window_size = min(10, waveform_length // 4)
+            start_idx = max(0, center_idx - window_size // 2)
+            end_idx = min(waveform_length, center_idx + window_size // 2)
+            
+            # Check if the spike window has a positive deflection
+            spike_window = unit_mean[start_idx:end_idx]
+            min_val = np.min(spike_window)
+            max_val = np.max(spike_window)
+            
+            # If the maximum absolute value is positive, flip all waveforms for this unit
+            if abs(max_val) > abs(min_val):
+                self.unit_data[unit_name] = -unit_waveforms
+                # Update the unit mean in our list
+                unit_idx = self.data_labels.index(unit_name)
+                self.unit_means[unit_idx] = -unit_mean
+                flipped_units.append(unit_name)
+        
+        if flipped_units:
+            print(f"Flipped {len(flipped_units)} positive units to negative: {flipped_units}")
+
     def _prepare_umap_data(self):
         """Prepare data for UMAP based on the selected mode"""
         if self.mode == 'sorted':
@@ -331,6 +414,7 @@ class BllechUnitExplorer:
             'kmeans_k': self.kmeans_k,
             'use_pca': self.use_pca,
             'pca_variance': self.pca_variance,
+            'flip_positive': self.flip_positive,
             'data_shape': data_for_hash.shape,
             'data_hash': hashlib.md5(data_for_hash.tobytes()).hexdigest()[:16]  # Short hash of data
         }
@@ -470,6 +554,8 @@ class BllechUnitExplorer:
                 title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
         if self.use_pca:
             title += f'\nPCA: {self.pca_variance:.1%} variance'
+        if self.flip_positive:
+            title += f'\nPositive units flipped'
         
         self.ax_umap.set_title(title)
         self.ax_umap.set_xlabel('UMAP 1')
@@ -745,6 +831,9 @@ Examples:
   # Use custom KDE bandwidth for smoother/sharper density visualization
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
   
+  # Flip positive units to focus on shape rather than polarity
+  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --flip-positive
+  
   # Clear UMAP embedding cache
   python blech_unit_explorer.py /path/to/data --clear-cache
         """
@@ -771,6 +860,8 @@ Examples:
                        help='Variance to retain with PCA (0.0-1.0)')
     parser.add_argument('--kde-bandwidth', type=float, default=None,
                        help='KDE bandwidth (None for automatic selection)')
+    parser.add_argument('--flip-positive', action='store_true',
+                       help='Flip units with positive deflections to negative')
     parser.add_argument('--clear-cache', action='store_true',
                        help='Clear UMAP embedding cache and exit')
     
@@ -810,7 +901,8 @@ Examples:
             kmeans_k=args.kmeans_k,
             use_pca=args.use_pca,
             pca_variance=args.pca_variance,
-            kde_bandwidth=args.kde_bandwidth
+            kde_bandwidth=args.kde_bandwidth,
+            flip_positive=args.flip_positive
         )
         
         print("Click on points in the UMAP plot to explore waveforms")
