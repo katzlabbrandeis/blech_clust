@@ -271,34 +271,21 @@ class BllechUnitExplorer:
         
         # Extract spike window parameters from blech_clust params
         spike_snapshot_before = self.params_dict['spike_snapshot_before']
-        spike_snapshot_after = self.params_dict['spike_snapshot_after']
         sampling_rate = self.params_dict['sampling_rate']
         
-        # Convert time to samples
-        before_samples = int(spike_snapshot_before * sampling_rate / 1000)
-        after_samples = int(spike_snapshot_after * sampling_rate / 1000)
-        
-        # The spike should be at the transition from before to after
-        spike_idx = before_samples
-        
-        # Define a window around the spike (use a portion of the total window)
-        window_size = min(10, (before_samples + after_samples) // 4)
-        start_idx = max(0, spike_idx - window_size // 2)
-        end_idx = min(self.waveform_data.shape[1], spike_idx + window_size // 2)
+        # Convert time to samples - the aligning point is at the end of spike_snapshot_before
+        spike_align_idx = int(spike_snapshot_before * sampling_rate / 1000)
         
         flipped_count = 0
         for i in range(len(self.waveform_data)):
-            # Check if the spike window has a positive deflection
-            spike_window = self.waveform_data[i, start_idx:end_idx]
-            
-            # Find the extremum in the spike window
-            min_val = np.min(spike_window)
-            max_val = np.max(spike_window)
-            
-            # If the maximum absolute value is positive, flip the waveform
-            if abs(max_val) > abs(min_val):
-                self.waveform_data[i] = -self.waveform_data[i]
-                flipped_count += 1
+            # Check the value at the spike aligning point
+            if spike_align_idx < self.waveform_data.shape[1]:
+                spike_value = self.waveform_data[i, spike_align_idx]
+                
+                # If the spike value is positive, flip the waveform
+                if spike_value > 0:
+                    self.waveform_data[i] = -self.waveform_data[i]
+                    flipped_count += 1
         
         if flipped_count > 0:
             print(f"Flipped {flipped_count} positive waveforms to negative")
@@ -310,38 +297,27 @@ class BllechUnitExplorer:
         
         # Extract spike window parameters from blech_clust params
         spike_snapshot_before = self.params_dict['spike_snapshot_before']
-        spike_snapshot_after = self.params_dict['spike_snapshot_after']
         sampling_rate = self.params_dict['sampling_rate']
         
-        # Convert time to samples
-        before_samples = int(spike_snapshot_before * sampling_rate / 1000)
-        after_samples = int(spike_snapshot_after * sampling_rate / 1000)
-        
-        # The spike should be at the transition from before to after
-        spike_idx = before_samples
+        # Convert time to samples - the aligning point is at the end of spike_snapshot_before
+        spike_align_idx = int(spike_snapshot_before * sampling_rate / 1000)
         
         flipped_units = []
         for unit_name in self.unit_data.keys():
             unit_waveforms = self.unit_data[unit_name]
             unit_mean = np.mean(unit_waveforms, axis=0)
             
-            # Define a window around the spike (use a portion of the total window)
-            window_size = min(10, (before_samples + after_samples) // 4)
-            start_idx = max(0, spike_idx - window_size // 2)
-            end_idx = min(len(unit_mean), spike_idx + window_size // 2)
-            
-            # Check if the spike window has a positive deflection
-            spike_window = unit_mean[start_idx:end_idx]
-            min_val = np.min(spike_window)
-            max_val = np.max(spike_window)
-            
-            # If the maximum absolute value is positive, flip all waveforms for this unit
-            if abs(max_val) > abs(min_val):
-                self.unit_data[unit_name] = -unit_waveforms
-                # Update the unit mean in our list
-                unit_idx = self.data_labels.index(unit_name)
-                self.unit_means[unit_idx] = -unit_mean
-                flipped_units.append(unit_name)
+            # Check the value at the spike aligning point
+            if spike_align_idx < len(unit_mean):
+                spike_value = unit_mean[spike_align_idx]
+                
+                # If the spike value is positive, flip all waveforms for this unit
+                if spike_value > 0:
+                    self.unit_data[unit_name] = -unit_waveforms
+                    # Update the unit mean in our list
+                    unit_idx = self.data_labels.index(unit_name)
+                    self.unit_means[unit_idx] = -unit_mean
+                    flipped_units.append(unit_name)
         
         if flipped_units:
             print(f"Flipped {len(flipped_units)} positive units to negative: {flipped_units}")
