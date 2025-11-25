@@ -116,6 +116,9 @@ class BllechUnitExplorer:
         # Calculate UMAP embedding (with caching)
         self._calculate_umap()
         
+        # Print parameters being used
+        self._print_parameters()
+        
         # Set up the interactive plot
         self.setup_plot()
     
@@ -556,6 +559,52 @@ class BllechUnitExplorer:
             embedding_data['pca_reducer'] = pca_reducer
         
         self._save_embedding_to_cache(cache_key, embedding_data)
+    
+    def _print_parameters(self):
+        """Print the parameters being used for visualization"""
+        print("\n" + "="*60)
+        print("VISUALIZATION PARAMETERS")
+        print("="*60)
+        print(f"Mode: {self.mode}")
+        
+        if self.mode == 'unsorted':
+            if self.electrode == -1:
+                electrode_nums = [info[0] for info in self.electrode_info]
+                print(f"Electrodes: All ({min(electrode_nums)}-{max(electrode_nums)})")
+            elif isinstance(self.electrode, list):
+                print(f"Electrodes: {self.electrode}")
+            else:
+                print(f"Electrode: {self.electrode}")
+            print(f"UMAP mode: {self.umap_mode}")
+            if self.umap_mode == 'subsample':
+                print(f"Max waveforms for UMAP: {self.max_waveforms}")
+            elif self.umap_mode == 'kmeans':
+                print(f"K-means clusters: {self.kmeans_k}")
+        else:
+            if self.all_units:
+                print("Units: All available units")
+            else:
+                print(f"Units: {self.units}")
+        
+        print(f"PCA enabled: {self.use_pca}")
+        if self.use_pca:
+            print(f"PCA variance retained: {self.pca_variance:.1%}")
+        
+        print(f"KDE bandwidth: {self.kde_bandwidth}")
+        print(f"Flip positive units: {self.flip_positive}")
+        
+        if hasattr(self, 'electrode_info') and len(self.electrode_info) > 1:
+            print("\nElectrode waveform counts:")
+            for electrode_num, count in self.electrode_info:
+                print(f"  Electrode {electrode_num}: {count} waveforms")
+        
+        if hasattr(self, 'waveform_data'):
+            print(f"\nTotal waveforms loaded: {len(self.waveform_data)}")
+        elif hasattr(self, 'unit_means'):
+            print(f"\nTotal units loaded: {len(self.unit_means)}")
+        
+        print(f"Data points used for UMAP: {len(self.umap_data)}")
+        print("="*60 + "\n")
     
     def setup_plot(self):
         """Set up the interactive matplotlib plot"""
