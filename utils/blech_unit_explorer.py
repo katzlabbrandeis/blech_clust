@@ -38,6 +38,7 @@ from matplotlib.widgets import Button
 import umap
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from scipy import stats
 import warnings
 
@@ -47,7 +48,8 @@ from blech_utils import imp_metadata
 
 class BllechUnitExplorer:
     def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
-                 umap_mode='subsample', max_waveforms=5000, kmeans_k=1000):
+                 umap_mode='subsample', max_waveforms=5000, kmeans_k=1000,
+                 use_pca=False, pca_variance=0.95):
         """
         Initialize the unit explorer
         
@@ -69,6 +71,10 @@ class BllechUnitExplorer:
             Maximum number of waveforms to use for UMAP (subsample mode)
         kmeans_k : int
             Number of K-means clusters to use (kmeans mode)
+        use_pca : bool
+            Whether to apply PCA before UMAP
+        pca_variance : float
+            Amount of variance to retain with PCA (0.0-1.0)
         """
         self.data_dir = data_dir
         self.mode = mode
@@ -78,6 +84,8 @@ class BllechUnitExplorer:
         self.umap_mode = umap_mode
         self.max_waveforms = max_waveforms
         self.kmeans_k = kmeans_k
+        self.use_pca = use_pca
+        self.pca_variance = pca_variance
         
         # Load metadata
         self.metadata_handler = imp_metadata([[], data_dir])
@@ -228,6 +236,14 @@ class BllechUnitExplorer:
             # For sorted data, use the unit means
             data_scaled = scaler.fit_transform(self.umap_data)
         
+        # Apply PCA if requested
+        if self.use_pca:
+            print(f"Applying PCA to retain {self.pca_variance:.1%} variance...")
+            pca = PCA(n_components=self.pca_variance, random_state=42)
+            data_scaled = pca.fit_transform(data_scaled)
+            self.pca_reducer = pca
+            print(f"PCA reduced dimensionality from {self.umap_data.shape[1]} to {data_scaled.shape[1]} components")
+        
         # Compute UMAP embedding
         n_neighbors = min(15, len(data_scaled) - 1)
         self.umap_reducer = umap.UMAP(
@@ -256,6 +272,8 @@ class BllechUnitExplorer:
         title = f'UMAP of {self.mode.title()} Data\n(Click on points to explore)'
         if self.mode == 'unsorted':
             title += f' - Electrode {self.electrode} ({self.umap_mode} mode)'
+        if self.use_pca:
+            title += f'\nPCA: {self.pca_variance:.1%} variance'
         
         self.ax_umap.set_title(title)
         self.ax_umap.set_xlabel('UMAP 1')
@@ -453,11 +471,14 @@ Examples:
   # Explore unsorted waveforms using K-means mode
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
   
+  # Explore unsorted waveforms with PCA preprocessing
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --use-pca --pca-variance 0.9
+  
   # Explore specific sorted units
   python blech_unit_explorer.py /path/to/data --mode sorted --units 0 1 2 5
   
-  # Explore all sorted units
-  python blech_unit_explorer.py /path/to/data --mode sorted --all-units
+  # Explore all sorted units with PCA
+  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --use-pca --pca-variance 0.95
         """
     )
     
@@ -476,6 +497,10 @@ Examples:
                        help='Maximum waveforms for subsample mode')
     parser.add_argument('--kmeans-k', type=int, default=1000,
                        help='Number of K-means clusters for kmeans mode')
+    parser.add_argument('--use-pca', action='store_true',
+                       help='Apply PCA before UMAP')
+    parser.add_argument('--pca-variance', type=float, default=0.95,
+                       help='Variance to retain with PCA (0.0-1.0)')
     
     args = parser.parse_args()
     
@@ -486,6 +511,9 @@ Examples:
     if args.mode == 'sorted' and not args.all_units and args.units is None:
         parser.error("Either --units or --all-units is required for sorted mode")
     
+    if args.pca_variance <= 0 or args.pca_variance > 1:
+        parser.error("--pca-variance must be between 0 and 1")
+    
     try:
         explorer = BllechUnitExplorer(
             args.data_dir, 
@@ -495,7 +523,9 @@ Examples:
             all_units=args.all_units,
             umap_mode=args.umap_mode,
             max_waveforms=args.max_waveforms,
-            kmeans_k=args.kmeans_k
+            kmeans_k=args.kmeans_k,
+            use_pca=args.use_pca,
+            pca_variance=args.pca_variance
         )
         
         print("Click on points in the UMAP plot to explore waveforms")
