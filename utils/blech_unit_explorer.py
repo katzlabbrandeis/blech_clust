@@ -94,13 +94,18 @@ class BllechUnitExplorer:
         if self.electrode is None:
             raise ValueError("Electrode number required for unsorted mode")
         
-        # Load waveforms from spike_waveforms
-        electrode_path = f'/spike_waveforms/electrode{self.electrode:02d}/spike_waveforms'
+        # Load waveforms from spike_waveforms directory (saved as .npy files)
+        waveforms_file = os.path.join(
+            self.data_dir, 
+            'spike_waveforms', 
+            f'electrode{self.electrode:02d}', 
+            'spike_waveforms.npy'
+        )
         
-        if electrode_path not in self.h5:
-            raise ValueError(f"No waveforms found for electrode {self.electrode}")
+        if not os.path.exists(waveforms_file):
+            raise ValueError(f"No waveforms found for electrode {self.electrode} at {waveforms_file}")
         
-        self.waveform_data = self.h5.get_node(electrode_path)[:]
+        self.waveform_data = np.load(waveforms_file)
         self.data_labels = [f'Electrode_{self.electrode}_waveform_{i}' 
                            for i in range(len(self.waveform_data))]
         
