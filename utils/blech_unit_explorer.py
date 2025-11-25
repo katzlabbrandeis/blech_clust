@@ -52,7 +52,7 @@ from blech_utils import imp_metadata
 class BllechUnitExplorer:
     def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
                  umap_mode='subsample', max_waveforms=5000, kmeans_k=1000,
-                 use_pca=False, pca_variance=0.95, kde_bandwidth=None, flip_positive=False):
+                 use_pca=True, pca_variance=0.95, kde_bandwidth=0.1, flip_positive=False):
         """
         Initialize the unit explorer
         
@@ -76,11 +76,11 @@ class BllechUnitExplorer:
         kmeans_k : int
             Number of K-means clusters to use (kmeans mode)
         use_pca : bool
-            Whether to apply PCA before UMAP
+            Whether to apply PCA before UMAP (default: True)
         pca_variance : float
             Amount of variance to retain with PCA (0.0-1.0)
         kde_bandwidth : float or None
-            Bandwidth for KDE. If None, uses automatic bandwidth selection
+            Bandwidth for KDE. If None, uses automatic bandwidth selection (default: 0.1)
         flip_positive : bool
             Whether to flip units with positive deflections to negative
         """
@@ -851,20 +851,20 @@ Examples:
   # Explore unsorted waveforms using K-means mode
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
   
-  # Explore multiple electrodes with K-means and PCA
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23 --umap-mode kmeans --use-pca
+  # Explore multiple electrodes with K-means (PCA enabled by default)
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23 --umap-mode kmeans
   
-  # Explore all electrodes with K-means and PCA
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --use-pca
+  # Explore all electrodes with K-means, disable PCA
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --no-pca
   
-  # Explore unsorted waveforms with PCA preprocessing
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --use-pca --pca-variance 0.9
+  # Explore unsorted waveforms with custom PCA variance
+  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --pca-variance 0.9
   
   # Explore specific sorted units
   python blech_unit_explorer.py /path/to/data --mode sorted --units 0 1 2 5
   
-  # Explore all sorted units with PCA
-  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --use-pca --pca-variance 0.95
+  # Explore all sorted units with custom PCA variance
+  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --pca-variance 0.95
   
   # Use custom KDE bandwidth for smoother/sharper density visualization
   python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
@@ -907,11 +907,11 @@ Examples:
                        help='Maximum waveforms for subsample mode')
     parser.add_argument('--kmeans-k', type=int, default=1000,
                        help='Number of K-means clusters for kmeans mode')
-    parser.add_argument('--use-pca', action='store_true',
-                       help='Apply PCA before UMAP')
+    parser.add_argument('--no-pca', action='store_true',
+                       help='Disable PCA before UMAP (PCA is enabled by default)')
     parser.add_argument('--pca-variance', type=float, default=0.95,
                        help='Variance to retain with PCA (0.0-1.0)')
-    parser.add_argument('--kde-bandwidth', type=float, default=None,
+    parser.add_argument('--kde-bandwidth', type=float, default=0.1,
                        help='KDE bandwidth (None for automatic selection)')
     parser.add_argument('--flip-positive', action='store_true',
                        help='Flip units with positive deflections to negative')
@@ -952,7 +952,7 @@ Examples:
             umap_mode=args.umap_mode,
             max_waveforms=args.max_waveforms,
             kmeans_k=args.kmeans_k,
-            use_pca=args.use_pca,
+            use_pca=not args.no_pca,
             pca_variance=args.pca_variance,
             kde_bandwidth=args.kde_bandwidth,
             flip_positive=args.flip_positive
