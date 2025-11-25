@@ -334,7 +334,7 @@ def extract_recording_params(dir_path, header=None):
     if header is not None:
         try:
             freq_params = header.get('frequency_parameters', {})
-            
+
             recording_params = {
                 'sampling_rate': header.get('sample_rate'),
                 'notch_filter_frequency': header.get('notch_filter_frequency'),
@@ -346,12 +346,12 @@ def extract_recording_params(dir_path, header=None):
                 'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
                 'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
             }
-            
+
             return recording_params
         except Exception as e:
             print(f'Error extracting recording parameters from header: {e}')
             return None
-    
+
     # Otherwise, try to read from info.rhd file
     info_rhd_path = os.path.join(dir_path, 'info.rhd')
 
