@@ -631,10 +631,10 @@ class BllechUnitExplorer:
         self.selected_point = self.ax_umap.scatter(
             self.umap_embedding[closest_idx, 0],
             self.umap_embedding[closest_idx, 1],
-            c='red',
-            s=100,
+            c='black',
+            s=200,
             marker='x',
-            linewidths=3
+            linewidths=4
         )
         
         # Plot the selected data
