@@ -724,7 +724,7 @@ class BllechUnitExplorer:
             
             # Set custom bandwidth if provided
             if self.kde_bandwidth is not None:
-                kde.set_bandwidth(self.kde_bandwidth)
+                kde.set_bandwidth(float(self.kde_bandwidth))
             
             # Create a grid for plotting the KDE
             x_min, x_max = self.umap_embedding[:, 0].min(), self.umap_embedding[:, 0].max()
