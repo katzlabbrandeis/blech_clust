@@ -445,7 +445,8 @@ class BllechUnitExplorer:
             'pca_variance': self.pca_variance,
             'flip_positive': self.flip_positive,
             'data_shape': data_for_hash.shape,
-            'data_hash': hashlib.md5(data_for_hash.tobytes()).hexdigest()[:16]  # Short hash of data
+            'data_hash': hashlib.md5(data_for_hash.tobytes()).hexdigest()[:16],  # Short hash of data
+            'electrode_info': self.electrode_info if hasattr(self, 'electrode_info') else None
         }
         
         # Convert to string and hash
@@ -563,16 +564,8 @@ class BllechUnitExplorer:
         # Create KDE background
         self._plot_kde_background()
         
-        # Plot UMAP embedding on top of KDE
-        self.scatter = self.ax_umap.scatter(
-            self.umap_embedding[:, 0], 
-            self.umap_embedding[:, 1],
-            c='red', 
-            alpha=0.7, 
-            s=30,
-            edgecolors='white',
-            linewidth=0.5
-        )
+        # Plot UMAP embedding on top of KDE with electrode-specific colors
+        self._plot_umap_points()
         
         title = f'UMAP of {self.mode.title()} Data\n(Click on points to explore)'
         if self.mode == 'unsorted':
@@ -605,6 +598,56 @@ class BllechUnitExplorer:
         self.selected_point = None
         
         plt.tight_layout()
+    
+    def _plot_umap_points(self):
+        """Plot UMAP points with electrode-specific colors if multiple electrodes"""
+        if (self.mode == 'unsorted' and 
+            (self.electrode == -1 or isinstance(self.electrode, list)) and 
+            len(self.electrode_info) > 1):
+            
+            # Create color map for electrodes
+            electrode_nums = [info[0] for info in self.electrode_info]
+            colors = plt.cm.tab10(np.linspace(0, 1, len(electrode_nums)))
+            electrode_color_map = dict(zip(electrode_nums, colors))
+            
+            # Create color array for each point
+            point_colors = []
+            for label in self.umap_labels:
+                electrode_num = int(label.split('_')[1])
+                point_colors.append(electrode_color_map[electrode_num])
+            
+            # Plot points with electrode-specific colors
+            self.scatter = self.ax_umap.scatter(
+                self.umap_embedding[:, 0], 
+                self.umap_embedding[:, 1],
+                c=point_colors, 
+                alpha=0.7, 
+                s=30,
+                edgecolors='white',
+                linewidth=0.5
+            )
+            
+            # Add legend
+            legend_elements = []
+            for electrode_num, color in electrode_color_map.items():
+                count = next(info[1] for info in self.electrode_info if info[0] == electrode_num)
+                legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                                markerfacecolor=color, markersize=8,
+                                                label=f'Electrode {electrode_num} ({count})'))
+            
+            self.ax_umap.legend(handles=legend_elements, loc='upper right', 
+                              bbox_to_anchor=(1.0, 1.0), framealpha=0.9)
+        else:
+            # Single electrode or sorted mode - use single color
+            self.scatter = self.ax_umap.scatter(
+                self.umap_embedding[:, 0], 
+                self.umap_embedding[:, 1],
+                c='red', 
+                alpha=0.7, 
+                s=30,
+                edgecolors='white',
+                linewidth=0.5
+            )
     
     def _plot_kde_background(self):
         """Plot KDE density background for UMAP points"""
