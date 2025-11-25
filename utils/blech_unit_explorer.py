@@ -403,9 +403,9 @@ class BllechUnitExplorer:
                 # Use MiniBatchKMeans for large datasets (>10,000 points)
                 if len(self.waveform_data) > 10000:
                     print(f"Using MiniBatchKMeans for {len(self.waveform_data)} data points (>10,000)")
-                    kmeans = MiniBatchKMeans(n_clusters=self.kmeans_k, random_state=42, n_init='auto')
+                    kmeans = MiniBatchKMeans(n_clusters=int(self.kmeans_k), random_state=42, n_init='auto')
                 else:
-                    kmeans = KMeans(n_clusters=self.kmeans_k, random_state=42, n_init=10)
+                    kmeans = KMeans(n_clusters=int(self.kmeans_k), random_state=42, n_init=10)
                 
                 kmeans.fit(kmeans_data)
                 
