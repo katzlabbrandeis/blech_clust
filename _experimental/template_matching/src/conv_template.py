@@ -19,12 +19,14 @@ from functools import partial
 from numba import njit
 from blech_clust.utils.ephys_data import visualize as vz
 
-base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
+# base_dir = '/home/abuzarmahmood/projects/blech_clust/_experimental/template_matching/'
+base_dir = '/home/abuzarmahmood/Desktop/blech_clust/_experimental/template_matching/'
 plot_dir = os.path.join(base_dir, 'plots')
 artifacts_dir = os.path.join(base_dir, 'artifacts')
 
 # data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
-data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
+# data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
+data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
 data_basename = os.path.basename(data_dir)
 electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes', data_basename)
 os.makedirs(electrode_artifacts_dir, exist_ok=True)
@@ -105,7 +107,16 @@ def scaled_xcorr(snippet, template):
     return np.dot(snippet, template)
 
 threshold = 0.8
+reprocess_bool = False
 for electrode_num in electrode_nums:
+
+    artifact_save_path = os.path.join(
+        electrode_artifacts_dir,
+        f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'
+        )
+    if os.path.exists(artifact_save_path) and not reprocess_bool:
+        print(f"Spike waveforms for electrode {electrode_num} already exist, skipping...")
+        continue
 
     print(f"Processing Electrode {electrode_num}")
     electrode = bpu.electrode_handler(
@@ -221,7 +232,7 @@ for electrode_num in electrode_nums:
     }
     
     np.savez(
-        os.path.join(electrode_artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'),
+        artifact_save_path,
         **electrode_spike_data
     )
 
