@@ -364,12 +364,22 @@ if auto_car_inference:
     # Create a dictionary to store cluster predictions for each CAR group
     all_predictions = np.zeros(len(electrode_layout_frame), dtype=int)
 
+    # Check if original_CAR_group exists and use it to avoid re-splitting
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        print("Using original CAR groups to avoid re-splitting clusters")
+        car_groups_to_process = electrode_layout_frame.original_CAR_group.unique()
+    else:
+        car_groups_to_process = electrode_layout_frame.CAR_group.unique()
+
     # Process each CAR group separately
-    for group_idx, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+    for group_idx, group_name in enumerate(car_groups_to_process):
         print(f"\nProcessing CAR group: {group_name}")
 
-        # Get indices for this CAR group
-        group_mask = electrode_layout_frame.CAR_group == group_name
+        # Get indices for this CAR group using original groups if available
+        if 'original_CAR_group' in electrode_layout_frame.columns:
+            group_mask = electrode_layout_frame.original_CAR_group == group_name
+        else:
+            group_mask = electrode_layout_frame.CAR_group == group_name
         group_indices = np.where(group_mask)[0]
 
         if len(group_indices) <= 1:
@@ -417,13 +427,20 @@ if auto_car_inference:
     # Store all predictions in the electrode layout frame
     electrode_layout_frame['predicted_clusters'] = all_predictions
 
-    # Save original CAR_groups as backup
-    electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
+    # Save original CAR_groups as backup only if not already present
+    if 'original_CAR_group' not in electrode_layout_frame.columns:
+        electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
     # Append cluster numbers to CAR group names
-    electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
-    )
+    # Use original_CAR_group if available to build new names
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+            lambda row: f"{row['original_CAR_group']}-{row['predicted_clusters']:02}", axis=1
+        )
+    else:
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+            lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
+        )
     num_groups = electrode_layout_frame.CAR_group.nunique()
 
     pred_map = dict(zip(
@@ -454,6 +471,10 @@ if auto_car_inference:
     out_electrode_layout_frame = metadata_handler.layout.copy()
     out_electrode_layout_frame.at[fin_bool,
                                   'predicted_clusters'] = all_predictions
+    # Preserve original_CAR_group if it exists
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        out_electrode_layout_frame.at[fin_bool,
+                                      'original_CAR_group'] = electrode_layout_frame['original_CAR_group'].values
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
