@@ -68,38 +68,38 @@ FAIL_COUNT=0
 
 while IFS= read -r DIR || [ -n "$DIR" ]; do
     LINE_NUM=$((LINE_NUM + 1))
-    
+
     # Skip empty lines
     if [ -z "$DIR" ]; then
         continue
     fi
-    
+
     # Skip lines starting with # (comments)
     if [[ "$DIR" =~ ^[[:space:]]*# ]]; then
         continue
     fi
-    
+
     # Trim whitespace
     DIR=$(echo "$DIR" | xargs)
-    
+
     echo ""
     echo "[$LINE_NUM] Processing: $DIR"
     echo "----------------------------------------"
-    
+
     # Check if directory exists
     if [ ! -d "$DIR" ]; then
         echo "Warning: Directory '$DIR' does not exist, skipping..."
         FAIL_COUNT=$((FAIL_COUNT + 1))
         continue
     fi
-    
+
     # Run blech_autosort.sh
     if [ -n "$FORCE_FLAG" ]; then
         bash "$SCRIPT_DIR/blech_autosort.sh" "$DIR" --force
     else
         bash "$SCRIPT_DIR/blech_autosort.sh" "$DIR"
     fi
-    
+
     # Check exit status
     if [ $? -eq 0 ]; then
         echo "✓ Successfully processed: $DIR"
@@ -108,7 +108,7 @@ while IFS= read -r DIR || [ -n "$DIR" ]; do
         echo "✗ Failed to process: $DIR"
         FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
-    
+
 done < "$FILE_PATH"
 
 echo ""
