@@ -28,7 +28,8 @@ artifacts_dir = os.path.join(base_dir, 'artifacts')
 # data_dir = '/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233'
 data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
 data_basename = os.path.basename(data_dir)
-electrode_artifacts_dir = os.path.join(artifacts_dir, 'individual_electrodes', data_basename)
+electrode_artifacts_dir = os.path.join(
+    artifacts_dir, 'individual_electrodes', data_basename)
 os.makedirs(electrode_artifacts_dir, exist_ok=True)
 # Find h5 file
 h5_path = glob(os.path.join(data_dir, '*.h5'))[0]
@@ -40,7 +41,8 @@ h5 = tables.open_file(h5_path, mode='r')
 #     - electrodeXX
 # Get all electrode names
 electrode_names = h5.root.raw._v_children.keys()
-electrode_nums = [int(name.replace('electrode', '')) for name in electrode_names]
+electrode_nums = [int(name.replace('electrode', ''))
+                  for name in electrode_names]
 
 # Only electrode 2 and 29 have spikes
 # Check how that compares with the template matching
@@ -60,8 +62,10 @@ optimized_filters = npz['filter_pca_components'][0]
 plt.plot(optimized_filters.T)
 plt.show()
 
-assert np.isclose(norm(optimized_filters), 1), "Optimized filters must be unit norm" 
-assert np.isclose(np.mean(optimized_filters), 0), "Optimized filters must be mean subtracted"
+assert np.isclose(norm(optimized_filters),
+                  1), "Optimized filters must be unit norm"
+assert np.isclose(np.mean(optimized_filters),
+                  0), "Optimized filters must be mean subtracted"
 
 # perform scaled cross-correlation with all electrodes
 import blech_clust.utils.blech_process_utils as bpu  # noqa
@@ -80,7 +84,7 @@ this_plot_dir = os.path.join(
     plot_dir,
     'template_conv_results',
     data_basename
-    )
+)
 os.makedirs(this_plot_dir, exist_ok=True)
 
 # all_spike_waveforms = {}
@@ -99,12 +103,15 @@ os.makedirs(this_plot_dir, exist_ok=True)
 #
 # all_filtered_data = np.stack(all_filtered_data, axis=0)
 
+
 @njit
 def scaled_xcorr(snippet, template):
-    assert len(snippet) == len(template), "Snippet and template must be of same length"
+    assert len(snippet) == len(
+        template), "Snippet and template must be of same length"
     snippet = snippet - np.mean(snippet)
     snippet = snippet / norm(snippet)
     return np.dot(snippet, template)
+
 
 threshold = 0.8
 reprocess_bool = False
@@ -113,9 +120,10 @@ for electrode_num in electrode_nums:
     artifact_save_path = os.path.join(
         electrode_artifacts_dir,
         f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz'
-        )
+    )
     if os.path.exists(artifact_save_path) and not reprocess_bool:
-        print(f"Spike waveforms for electrode {electrode_num} already exist, skipping...")
+        print(
+            f"Spike waveforms for electrode {electrode_num} already exist, skipping...")
         continue
 
     print(f"Processing Electrode {electrode_num}")
@@ -140,11 +148,9 @@ for electrode_num in electrode_nums:
     #         segment = segment - np.mean(segment)
     #         segment_norm = norm(segment)
     #         # Don't have to normalize since both segment and template are normalized
-    #         scc = np.dot(segment, template) 
+    #         scc = np.dot(segment, template)
     #         scc_values.append(scc)
-    #         pbar.set_description(f"Processing {len(scc_values)/(len(signal) - template_length + 1)*100:.2f}%") 
-
-
+    #         pbar.set_description(f"Processing {len(scc_values)/(len(signal) - template_length + 1)*100:.2f}%")
 
     # test_xcorr = scaled_xcorr(
     #     filtered_data[1000:1000 + len(optimized_filters)],
@@ -161,9 +167,10 @@ for electrode_num in electrode_nums:
         window_shape=len(optimized_filters),
     )
 
-    outs = [scaled_xcorr(data, optimized_filters) for data in tqdm(data_snippets)]
+    outs = [scaled_xcorr(data, optimized_filters)
+            for data in tqdm(data_snippets)]
     outs = np.array(outs)
-        
+
     # # # Plot filtered data downsampled
     downsample_factor = 100
     fig, ax = plt.subplots(3, 1, figsize=(15, 10), sharex=True, sharey=False)
@@ -172,15 +179,16 @@ for electrode_num in electrode_nums:
     ax[1].plot(filtered_data[::downsample_factor], color='blue', alpha=0.5)
     ax[1].set_title('Filtered Data (Downsampled)')
     ax[2].plot(outs[::downsample_factor]**2, color='red', alpha=0.5)
-    ax[2].set_title('Scaled Cross-Correlation Output (squared to emphasize peaks)')
+    ax[2].set_title(
+        'Scaled Cross-Correlation Output (squared to emphasize peaks)')
     plt.xlabel('Samples (Downsampled)')
     plt.tight_layout()
     fig.savefig(
         os.path.join(
             this_plot_dir,
             f'electrode_{electrode_num}_data_and_scaled_xcorr.png'
-            )
         )
+    )
     plt.close()
 
     # Pull out waveforms where abs(outs) > threshold
@@ -190,13 +198,15 @@ for electrode_num in electrode_nums:
 
     # Plot histogram of abs(outs)
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.hist(np.abs(outs[::downsample_factor]), bins=np.arange(0, 1.01, 0.01), color='green', alpha=0.7)
+    ax.hist(np.abs(outs[::downsample_factor]), bins=np.arange(
+        0, 1.01, 0.01), color='green', alpha=0.7)
     plt.xlabel('Absolute Scaled Cross-Correlation Value')
     plt.ylabel('Frequency')
     plt.yscale('log')
-    plt.axvline(threshold, color='red', linestyle='dashed', linewidth=2, label='Threshold')
-    ax.set_title(f'Histogram of Absolute Scaled Cross-Correlation Output\n' +\
-            f'Electrode {electrode_num}\nTotal Spikes Detected: {len(spike_indices)}')
+    plt.axvline(threshold, color='red', linestyle='dashed',
+                linewidth=2, label='Threshold')
+    ax.set_title(f'Histogram of Absolute Scaled Cross-Correlation Output\n' +
+                 f'Electrode {electrode_num}\nTotal Spikes Detected: {len(spike_indices)}')
     plt.tight_layout()
     # plt.show()
     plt.savefig(
@@ -206,7 +216,6 @@ for electrode_num in electrode_nums:
         )
     )
     plt.close()
-
 
     # Plot some spike waveforms
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -230,7 +239,7 @@ for electrode_num in electrode_nums:
         'spike_waveforms': spike_waveforms,
         'xcorr_values': spike_xcorr_values
     }
-    
+
     np.savez(
         artifact_save_path,
         **electrode_spike_data
@@ -245,7 +254,7 @@ for electrode_num in electrode_nums:
     #
     # outs = Parallel(n_jobs=4)(
     #     delayed(scaled_xcorr_partial)(
-    #         this_snippet 
+    #         this_snippet
     #     ) for this_snippet in tqdm(data_snippets)
     # )
 
@@ -255,8 +264,11 @@ for electrode_num in electrode_nums:
 # 2) Classifier probs vs scaled xcorr values
 
 # Load spike waveforms for each electrode individually
+
+
 def load_xcorr_waveforms_for_electrode(electrode_num):
-    npz_path = os.path.join(electrode_artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz')
+    npz_path = os.path.join(
+        electrode_artifacts_dir, f'template_matching_spike_waveforms_electrode_{electrode_num:02d}.npz')
     if os.path.exists(npz_path):
         npz_data = np.load(npz_path)
         return {
@@ -265,6 +277,7 @@ def load_xcorr_waveforms_for_electrode(electrode_num):
             'xcorr_values': npz_data['xcorr_values']
         }
     return None
+
 
 import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
 
@@ -280,11 +293,11 @@ for electrode_num in electrode_nums:
     ) = post_utils.load_data_from_disk(data_dir, electrode_num, 10)
 
     clf_list_path = glob(
-            os.path.join(
-                data_dir,
-                f'spike_waveforms/electrode{electrode_num:02d}/clf_prob.npy'
-                )
-            )
+        os.path.join(
+            data_dir,
+            f'spike_waveforms/electrode{electrode_num:02d}/clf_prob.npy'
+        )
+    )
     clf_probs = np.load(clf_list_path[0])
 
     all_clust_waveforms[electrode_num] = {
@@ -296,7 +309,8 @@ for electrode_num in electrode_nums:
 for this_electrode_num in electrode_nums:
     xcorr_data = load_xcorr_waveforms_for_electrode(this_electrode_num)
     if xcorr_data is None:
-        print(f"No xcorr data found for electrode {this_electrode_num}, skipping...")
+        print(
+            f"No xcorr data found for electrode {this_electrode_num}, skipping...")
         continue
     clust_data = all_clust_waveforms[this_electrode_num]
 
@@ -318,30 +332,30 @@ for this_electrode_num in electrode_nums:
     clust_waveforms = clust_data['spike_waveforms']
 
     # Plot waveform comparison
-    fig, ax = plt.subplots(1,2, figsize=(15,5))
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
     for waveform in xcorr_waveforms[:1000]:
         ax[0].plot(waveform, color='orange', alpha=0.05)
-    ax[0].set_title('Template Matching Detected Waveforms'+\
-            f'\nTotal Detected: {len(xcorr_waveforms)}')
+    ax[0].set_title('Template Matching Detected Waveforms' +
+                    f'\nTotal Detected: {len(xcorr_waveforms)}')
     for waveform in clust_waveforms[:1000]:
         ax[1].plot(waveform, color='purple', alpha=0.05)
-    ax[1].set_title('Blech Clust Detected Waveforms'+\
-            f'\nTotal Detected: {len(clust_waveforms)}')
+    ax[1].set_title('Blech Clust Detected Waveforms' +
+                    f'\nTotal Detected: {len(clust_waveforms)}')
     plt.suptitle(f'Electrode {this_electrode_num} Waveform Comparison')
     # plt.show()
     plt.tight_layout()
-    fig.savefig( 
-          os.path.join(
-               this_plot_dir,
-               f'electrode_{this_electrode_num}_waveform_comparison.png'
-          )
-     )
+    fig.savefig(
+        os.path.join(
+            this_plot_dir,
+            f'electrode_{this_electrode_num}_waveform_comparison.png'
+        )
+    )
     plt.close()
 
     # For the matched indices, plot classifier probs vs scaled xcorr values
     matched_clf_probs = clust_data['clf_probs'][clust_matched_indices]
     matched_xcorr_values = xcorr_data['xcorr_values'][xcorr_matched_indices]
-    fig, ax = plt.subplots(figsize=(10,5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     ax.scatter(
         np.abs(matched_xcorr_values),
         matched_clf_probs,
@@ -350,34 +364,35 @@ for this_electrode_num in electrode_nums:
     )
     ax.set_xlabel('Scaled Cross-Correlation Value')
     ax.set_ylabel('Classifier Probability')
-    ax.set_title(f'Classifier Probability vs Scaled Cross-Correlation Value\nElectrode {this_electrode_num}')
+    ax.set_title(
+        f'Classifier Probability vs Scaled Cross-Correlation Value\nElectrode {this_electrode_num}')
     # plt.show()
     fig.savefig(
-            os.path.join(
-                 this_plot_dir,
-                 f'electrode_{this_electrode_num}_clf_prob_vs_xcorr_value.png'
-            )
-         )
+        os.path.join(
+            this_plot_dir,
+            f'electrode_{this_electrode_num}_clf_prob_vs_xcorr_value.png'
+        )
+    )
     plt.close()
 
     # Plot overlapping waveforms for matched spikes
-    fig, ax = plt.subplots(1,2, figsize=(15,5))
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
     matched_clust_waveforms = clust_waveforms[clust_matched_indices]
     matched_xcorr_waveforms = xcorr_waveforms[xcorr_matched_indices]
     ax[0].plot(matched_xcorr_waveforms.T, color='orange', alpha=0.05)
     ax[0].set_title('Template Matching Matched Waveforms')
     ax[1].plot(matched_clust_waveforms.T, color='purple', alpha=0.05)
     ax[1].set_title('Blech Clust Matched Waveforms')
-    plt.suptitle(f'Electrode {this_electrode_num} Matched Waveform Comparison\n'+\
-            f'Number of Matched Spikes: {len(clust_matched_indices)}'
+    plt.suptitle(f'Electrode {this_electrode_num} Matched Waveform Comparison\n' +
+                 f'Number of Matched Spikes: {len(clust_matched_indices)}'
                  )
     # plt.show()
-    fig.savefig( 
-          os.path.join(
-               this_plot_dir,
-               f'electrode_{this_electrode_num}_matched_waveform_comparison.png'
-          )
-     )
+    fig.savefig(
+        os.path.join(
+            this_plot_dir,
+            f'electrode_{this_electrode_num}_matched_waveform_comparison.png'
+        )
+    )
     plt.close()
 
 # Make plot of detected spike counts for all electrodes
@@ -389,11 +404,12 @@ for el_num in electrode_nums:
     else:
         all_xcorr_waveform_counts.append(0)
 
-fig, ax = plt.subplots(figsize=(10,5))
+fig, ax = plt.subplots(figsize=(10, 5))
 ax.bar(electrode_nums, all_xcorr_waveform_counts, color='cyan', alpha=0.7)
 # Put anootations on top of bars
 for i, count in enumerate(all_xcorr_waveform_counts):
-    ax.text(electrode_nums[i], count + 1, f"#{i}: {count}", ha='center', va='bottom', rotation=90, fontsize=8) 
+    ax.text(electrode_nums[i], count + 1, f"#{i}: {count}",
+            ha='center', va='bottom', rotation=90, fontsize=8)
 ax.set_xlabel('Electrode Number')
 ax.set_ylabel('Number of Detected Spikes (Template Matching)')
 ax.set_title('Detected Spike Counts per Electrode (Template Matching)')
@@ -408,7 +424,7 @@ fig.savefig(
 plt.close()
 
 # Plot CDFs of scaled xcorr values for all electrodes
-fig, ax = plt.subplots(figsize=(10,5))
+fig, ax = plt.subplots(figsize=(10, 5))
 for el_num in electrode_nums:
     xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
     if xcorr_data is not None:
@@ -434,13 +450,14 @@ plt.close()
 plot_threshold = 0.9
 max_plot_waveforms = 1000
 fig, ax = vz.gen_square_subplots(
-        len(electrode_nums),
-        figsize=(15, 15),
-    )
+    len(electrode_nums),
+    figsize=(15, 15),
+)
 for i, el_num in enumerate(electrode_nums):
     xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
     if xcorr_data is not None:
-        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_indices = np.where(
+            np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
         high_xcorr_waveforms = xcorr_data['spike_waveforms'][high_xcorr_indices]
         ax.flatten()[i].plot(
             high_xcorr_waveforms[:max_plot_waveforms].T,
@@ -448,7 +465,8 @@ for i, el_num in enumerate(electrode_nums):
             alpha=0.05
         )
     ax.flatten()[i].set_title(f'{el_num}:: n={len(high_xcorr_indices)}')
-plt.suptitle(f'Waveforms with Scaled Cross-Correlation > {plot_threshold} Across Electrodes')
+plt.suptitle(
+    f'Waveforms with Scaled Cross-Correlation > {plot_threshold} Across Electrodes')
 plt.tight_layout()
 fig.savefig(
     os.path.join(
@@ -460,15 +478,16 @@ plt.close()
 
 # Plot xcorr values over time for all electrodes for all waveforms with xcorr > plot threshold
 fig, ax = vz.gen_square_subplots(
-        len(electrode_nums),
-        figsize=(25, 25),
-        sharex=True,
-        sharey=True,
-    )
+    len(electrode_nums),
+    figsize=(25, 25),
+    sharex=True,
+    sharey=True,
+)
 for i, el_num in enumerate(electrode_nums):
     xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
     if xcorr_data is not None:
-        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_indices = np.where(
+            np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
         high_xcorr_values = xcorr_data['xcorr_values'][high_xcorr_indices]
         high_xcorr_spike_times = xcorr_data['spike_indices'][high_xcorr_indices]
         ax.flatten()[i].scatter(
@@ -481,8 +500,8 @@ for i, el_num in enumerate(electrode_nums):
     ax.flatten()[i].set_title(f'{el_num}:: n={len(high_xcorr_indices)}')
     ax.flatten()[i].set_xlabel('Sample Index')
     ax.flatten()[i].set_ylabel('Scaled Cross-Correlation Value')
-plt.suptitle(f'Scaled Cross-Correlation Values Over Time\n' +\
-        f'Only Showing Values > {plot_threshold} Across Electrodes')
+plt.suptitle(f'Scaled Cross-Correlation Values Over Time\n' +
+             f'Only Showing Values > {plot_threshold} Across Electrodes')
 plt.tight_layout()
 fig.savefig(
     os.path.join(
@@ -499,7 +518,8 @@ all_negative_counts = []
 for el_num in electrode_nums:
     xcorr_data = load_xcorr_waveforms_for_electrode(el_num)
     if xcorr_data is not None:
-        high_xcorr_indices = np.where(np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
+        high_xcorr_indices = np.where(
+            np.abs(xcorr_data['xcorr_values']) > plot_threshold)[0]
         high_xcorr_values = xcorr_data['xcorr_values'][high_xcorr_indices]
         positive_count = np.sum(high_xcorr_values > 0)
         negative_count = np.sum(high_xcorr_values < 0)
@@ -510,12 +530,15 @@ for el_num in electrode_nums:
         all_negative_counts.append(0)
 x = np.arange(len(electrode_nums))
 width = 0.35
-fig, ax = plt.subplots(figsize=(12,6))
-ax.bar(x - width/2, all_positive_counts, width, label='Positive XCorr Counts', color='limegreen', alpha=0.7)
-ax.bar(x + width/2, all_negative_counts, width, label='Negative XCorr Counts', color='salmon', alpha=0.7)
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.bar(x - width/2, all_positive_counts, width,
+       label='Positive XCorr Counts', color='limegreen', alpha=0.7)
+ax.bar(x + width/2, all_negative_counts, width,
+       label='Negative XCorr Counts', color='salmon', alpha=0.7)
 ax.set_xlabel('Electrode Number')
 ax.set_ylabel('Counts of High Magnitude XCorr Values')
-ax.set_title(f'Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
+ax.set_title(
+    f'Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
 ax.set_xticks(x)
 ax.set_xticklabels(electrode_nums)
 ax.legend()
@@ -530,12 +553,13 @@ plt.close()
 
 # Bar plot of differences in positive and negative counts
 diff_counts = np.array(all_positive_counts) - np.array(all_negative_counts)
-diff_colors = ['green' if diff >=0 else 'red' for diff in diff_counts]
-fig, ax = plt.subplots(figsize=(12,6))
-ax.bar(electrode_nums, diff_counts, color=diff_colors, alpha=0.7) 
+diff_colors = ['green' if diff >= 0 else 'red' for diff in diff_counts]
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.bar(electrode_nums, diff_counts, color=diff_colors, alpha=0.7)
 ax.set_xlabel('Electrode Number')
 ax.set_ylabel('Difference in Counts (Positive - Negative)')
-ax.set_title(f'Difference in Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
+ax.set_title(
+    f'Difference in Counts of Positive vs Negative Scaled Cross-Correlation Values > {plot_threshold}')
 plt.tight_layout()
 fig.savefig(
     os.path.join(

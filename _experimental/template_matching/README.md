@@ -20,7 +20,7 @@ The template matching system consists of three main components:
 ### 2. Basis Function Construction
 The system uses raised cosine basis functions to parameterize templates:
 - **Forward basis**: Covers the main spike region (samples 30-75)
-- **Backward basis**: Covers the pre-spike region (samples 0-30) 
+- **Backward basis**: Covers the pre-spike region (samples 0-30)
 - **Mirrored combination**: Creates full-length templates spanning the entire waveform
 
 ### 3. Template Optimization
@@ -71,7 +71,7 @@ def scaled_xcorr(snippet, template):
 ## Key Features
 
 - **Shape-based detection**: Focuses on waveform morphology rather than just amplitude
-- **Multiple templates**: Can detect different spike types with orthogonal templates  
+- **Multiple templates**: Can detect different spike types with orthogonal templates
 - **Quantitative scoring**: Provides correlation scores for spike quality assessment
 - **Validation framework**: Built-in comparison with existing spike sorting results
 - **Interactive exploration**: Tools to visualize and understand template performance
