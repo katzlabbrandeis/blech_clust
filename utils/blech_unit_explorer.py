@@ -96,18 +96,17 @@ class BllechUnitExplorer:
         self.pca_variance = pca_variance
         self.kde_bandwidth = kde_bandwidth
         self.flip_positive = flip_positive
-        
-        # Initialize the explorer
-        self.initialize()
-    
-    def initialize(self):
-        """
-        Initialize the unit explorer by loading data and setting up visualization
-        """
+
+    def load_metadata(self):
         # Load metadata
         self.metadata_handler = imp_metadata([[], self.data_dir])
         self.hdf5_path = os.path.join(self.data_dir, self.metadata_handler.hdf5_name)
         self.params_dict = self.metadata_handler.params_dict
+        
+    def initialize(self):
+        """
+        Initialize the unit explorer by loading data and setting up visualization
+        """
         
         # Open HDF5 file
         self.h5 = tables.open_file(self.hdf5_path, mode='r')
@@ -415,7 +414,11 @@ class BllechUnitExplorer:
                 # Use MiniBatchKMeans for large datasets (>10,000 points)
                 if len(self.waveform_data) > 10000:
                     print(f"Using MiniBatchKMeans for {len(self.waveform_data)} data points (>10,000)")
-                    kmeans = MiniBatchKMeans(n_clusters=int(self.kmeans_k), random_state=42, n_init='auto')
+                    kmeans = MiniBatchKMeans(
+                            n_clusters=int(self.kmeans_k), 
+                            random_state=42, 
+                            init='k-means++',
+                            )
                 else:
                     kmeans = KMeans(n_clusters=int(self.kmeans_k), random_state=42, n_init=10)
                 
@@ -1102,6 +1105,8 @@ def main():
             kde_bandwidth=args.kde_bandwidth,
             flip_positive=args.flip_positive
         )
+        explorer.load_metadata()
+        explorer.initialize()
         
         print("Click on points in the UMAP plot to explore waveforms")
         print("Close the plot window to exit")
