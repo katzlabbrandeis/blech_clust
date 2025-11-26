@@ -438,6 +438,23 @@ class BllechUnitExplorer:
                 self.kmeans_labels = kmeans.labels_
                 self.kmeans_centroids = self.umap_data  # Centroids in original space
                 self.umap_indices = np.arange(self.kmeans_k)  # Indices into centroids
+                
+                # Track electrode information for each cluster
+                self.cluster_electrode_info = {}
+                for cluster_id in range(self.kmeans_k):
+                    cluster_indices = np.where(self.kmeans_labels == cluster_id)[0]
+                    electrode_counts = {}
+                    for idx in cluster_indices:
+                        label = self.data_labels[idx]
+                        if label.startswith('Electrode_'):
+                            electrode_num = int(label.split('_')[1])
+                            electrode_counts[electrode_num] = electrode_counts.get(electrode_num, 0) + 1
+                    # Assign cluster to electrode with most waveforms
+                    if electrode_counts:
+                        dominant_electrode = max(electrode_counts.items(), key=lambda x: x[1])[0]
+                        self.cluster_electrode_info[cluster_id] = dominant_electrode
+                    else:
+                        self.cluster_electrode_info[cluster_id] = list(self.electrode_info)[0][0]  # Fallback
             else:
                 # Not enough data for K-means, fall back to using all data
                 self.umap_data = self.waveform_data
@@ -685,14 +702,14 @@ class BllechUnitExplorer:
             
             # Create color array for each point
             point_colors = []
-            for label in self.umap_labels:
+            for i, label in enumerate(self.umap_labels):
                 # Handle different label formats (Electrode_X_waveform_Y vs KMeans_centroid_X)
                 if label.startswith('Electrode_'):
                     electrode_num = int(label.split('_')[1])
                 elif label.startswith('KMeans_centroid_'):
-                    # For K-means centroids, we need to map back to original data
-                    # This is more complex, so for now use a default color
-                    electrode_num = list(electrode_color_map.keys())[0]  # Use first electrode color
+                    # For K-means centroids, use the tracked electrode information
+                    cluster_id = int(label.split('_')[2])
+                    electrode_num = self.cluster_electrode_info.get(cluster_id, list(electrode_color_map.keys())[0])
                 else:
                     electrode_num = list(electrode_color_map.keys())[0]  # Fallback
                 point_colors.append(electrode_color_map[electrode_num])
