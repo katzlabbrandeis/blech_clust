@@ -46,8 +46,7 @@ import hashlib
 import pickle
 
 # Add blech_clust utils to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from blech_utils import imp_metadata
+from blech_clust.utils.blech_utils import imp_metadata
 
 class BllechUnitExplorer:
     def __init__(self, data_dir, mode='sorted', electrode=None, units=None, all_units=False,
@@ -124,6 +123,8 @@ class BllechUnitExplorer:
     
     def _load_unsorted_data(self):
         """Load unsorted waveforms from specified electrode(s)"""
+        print("Loading unsorted waveforms...")
+
         if self.electrode is None:
             raise ValueError("Electrode number required for unsorted mode")
         
@@ -257,6 +258,9 @@ class BllechUnitExplorer:
     
     def _load_sorted_data(self):
         """Load sorted units from HDF5 file"""
+
+        print("Loading sorted units...")
+
         if '/sorted_units' not in self.h5:
             raise ValueError("No sorted units found in HDF5 file")
         
@@ -505,6 +509,9 @@ class BllechUnitExplorer:
     
     def _calculate_umap(self):
         """Calculate UMAP embedding of the data with caching"""
+
+        print("Calculating UMAP embedding...")
+
         # Generate cache key
         cache_key = self._get_cache_key()
         
@@ -945,89 +952,108 @@ class BllechUnitExplorer:
 
 def main():
     """Main function to run the unit explorer"""
-    parser = argparse.ArgumentParser(
-        description='Interactive unit explorer for blech_clust data',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Explore unsorted waveforms from electrode 5 (subsample mode)
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5
-  
-  # Explore unsorted waveforms from all electrodes
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1
-  
-  # Explore unsorted waveforms from specific electrodes
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23
-  
-  # Explore unsorted waveforms using K-means mode
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
-  
-  # Explore multiple electrodes with K-means (PCA enabled by default)
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23 --umap-mode kmeans
-  
-  # Explore all electrodes with K-means, disable PCA
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --no-pca
-  
-  # Explore unsorted waveforms with custom PCA variance
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --pca-variance 0.9
-  
-  # Explore specific sorted units
-  python blech_unit_explorer.py /path/to/data --mode sorted --units 0 1 2 5
-  
-  # Explore all sorted units with custom PCA variance
-  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --pca-variance 0.95
-  
-  # Use custom KDE bandwidth for smoother/sharper density visualization
-  python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
-  
-  # Flip positive units to focus on shape rather than polarity
-  python blech_unit_explorer.py /path/to/data --mode sorted --all-units --flip-positive
-  
-  # Clear UMAP embedding cache
-  python blech_unit_explorer.py /path/to/data --clear-cache
-        """
-    )
-    
-    parser.add_argument('data_dir', help='Path to blech_clust data directory')
-    parser.add_argument('--mode', choices=['unsorted', 'sorted'], 
-                       default='sorted', help='Visualization mode')
-    def parse_electrode_arg(electrode_str):
-        """Parse electrode argument - can be single int, -1, or comma-separated list"""
-        if str(electrode_str) == '-1':
-            return -1
-        elif ',' in str(electrode_str):
-            try:
-                return [int(x.strip()) for x in str(electrode_str).split(',')]
-            except ValueError:
-                raise argparse.ArgumentTypeError(f"Invalid electrode list: {electrode_str}")
-        else:
-            try:
-                return int(electrode_str)
-            except ValueError:
-                raise argparse.ArgumentTypeError(f"Invalid electrode number: {electrode_str}")
-    
-    parser.add_argument('--electrode', type=parse_electrode_arg, 
-                       help='Electrode number (required for unsorted mode). Use -1 for all electrodes, or comma-separated list (e.g., "1,5,23").')
-    parser.add_argument('--units', type=int, nargs='+', 
-                       help='Unit numbers to visualize (for sorted mode)')
-    parser.add_argument('--all-units', action='store_true',
-                       help='Visualize all available sorted units')
-    parser.add_argument('--umap-mode', choices=['subsample', 'kmeans'],
-                       default='subsample', help='Method for handling large datasets')
-    parser.add_argument('--max-waveforms', type=int, default=5000,
-                       help='Maximum waveforms for subsample mode')
-    parser.add_argument('--kmeans-k', type=int, default=1000,
-                       help='Number of K-means clusters for kmeans mode')
-    parser.add_argument('--no-pca', action='store_true',
-                       help='Disable PCA before UMAP (PCA is enabled by default)')
-    parser.add_argument('--pca-variance', type=float, default=0.95,
-                       help='Variance to retain with PCA (0.0-1.0)')
-    parser.add_argument('--kde-bandwidth', type=float, default=0.1,
-                       help='KDE bandwidth (None for automatic selection)')
-    parser.add_argument('--flip-positive', action='store_true',
-                       help='Flip units with positive deflections to negative')
-    parser.add_argument('--clear-cache', action='store_true',
-                       help='Clear UMAP embedding cache and exit')
+
+    test_bool = False
+    if test_bool:
+        args = argparse.Namespace(
+            data_dir='/home/abuzarmahmood/Desktop/test_data/AC5_D4_odors_tastes_251102_090233',
+            mode='unsorted',
+            electrode=23,
+            units=None,
+            all_units=False,
+            umap_mode='kmeans',
+            max_waveforms=5000,
+            kmeans_k=1000,
+            no_pca=False,
+            pca_variance=0.95,
+            kde_bandwidth=0.1,
+            flip_positive=True,
+            clear_cache=False
+        )
+    else:
+        parser = argparse.ArgumentParser(
+            description='Interactive unit explorer for blech_clust data',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+    Examples:
+      # Explore unsorted waveforms from electrode 5 (subsample mode)
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5
+      
+      # Explore unsorted waveforms from all electrodes
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1
+      
+      # Explore unsorted waveforms from specific electrodes
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23
+      
+      # Explore unsorted waveforms using K-means mode
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --umap-mode kmeans --kmeans-k 500
+      
+      # Explore multiple electrodes with K-means (PCA enabled by default)
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 1,5,23 --umap-mode kmeans
+      
+      # Explore all electrodes with K-means, disable PCA
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode -1 --umap-mode kmeans --no-pca
+      
+      # Explore unsorted waveforms with custom PCA variance
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --pca-variance 0.9
+      
+      # Explore specific sorted units
+      python blech_unit_explorer.py /path/to/data --mode sorted --units 0 1 2 5
+      
+      # Explore all sorted units with custom PCA variance
+      python blech_unit_explorer.py /path/to/data --mode sorted --all-units --pca-variance 0.95
+      
+      # Use custom KDE bandwidth for smoother/sharper density visualization
+      python blech_unit_explorer.py /path/to/data --mode unsorted --electrode 5 --kde-bandwidth 0.5
+      
+      # Flip positive units to focus on shape rather than polarity
+      python blech_unit_explorer.py /path/to/data --mode sorted --all-units --flip-positive
+      
+      # Clear UMAP embedding cache
+      python blech_unit_explorer.py /path/to/data --clear-cache
+            """
+        )
+        
+        parser.add_argument('data_dir', help='Path to blech_clust data directory')
+        parser.add_argument('--mode', choices=['unsorted', 'sorted'], 
+                           default='sorted', help='Visualization mode')
+        def parse_electrode_arg(electrode_str):
+            """Parse electrode argument - can be single int, -1, or comma-separated list"""
+            if str(electrode_str) == '-1':
+                return -1
+            elif ',' in str(electrode_str):
+                try:
+                    return [int(x.strip()) for x in str(electrode_str).split(',')]
+                except ValueError:
+                    raise argparse.ArgumentTypeError(f"Invalid electrode list: {electrode_str}")
+            else:
+                try:
+                    return int(electrode_str)
+                except ValueError:
+                    raise argparse.ArgumentTypeError(f"Invalid electrode number: {electrode_str}")
+        
+        parser.add_argument('--electrode', type=parse_electrode_arg, 
+                           help='Electrode number (required for unsorted mode). Use -1 for all electrodes, or comma-separated list (e.g., "1,5,23").')
+        parser.add_argument('--units', type=int, nargs='+', 
+                           help='Unit numbers to visualize (for sorted mode)')
+        parser.add_argument('--all-units', action='store_true',
+                           help='Visualize all available sorted units')
+        parser.add_argument('--umap-mode', choices=['subsample', 'kmeans'],
+                           default='subsample', help='Method for handling large datasets')
+        parser.add_argument('--max-waveforms', type=int, default=5000,
+                           help='Maximum waveforms for subsample mode')
+        parser.add_argument('--kmeans-k', type=int, default=1000,
+                           help='Number of K-means clusters for kmeans mode')
+        parser.add_argument('--no-pca', action='store_true',
+                           help='Disable PCA before UMAP (PCA is enabled by default)')
+        parser.add_argument('--pca-variance', type=float, default=0.95,
+                           help='Variance to retain with PCA (0.0-1.0)')
+        parser.add_argument('--kde-bandwidth', type=float, default=0.1,
+                           help='KDE bandwidth (None for automatic selection)')
+        parser.add_argument('--flip-positive', action='store_true',
+                           help='Flip units with positive deflections to negative')
+        parser.add_argument('--clear-cache', action='store_true',
+                           help='Clear UMAP embedding cache and exit')
     
     args = parser.parse_args()
     
@@ -1038,7 +1064,7 @@ Examples:
     if args.mode == 'sorted' and not args.all_units and args.units is None:
         parser.error("Either --units or --all-units is required for sorted mode")
     
-    if args.pca_variance <= 0 or args.pca_variance > 1:
+    if float(args.pca_variance) <= 0 or args.pca_variance > 1:
         parser.error("--pca-variance must be between 0 and 1")
     
     # Handle cache clearing
