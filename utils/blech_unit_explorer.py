@@ -83,6 +83,7 @@ class BllechUnitExplorer:
         flip_positive : bool
             Whether to flip units with positive deflections to negative
         """
+        # Assign input parameters to attributes
         self.data_dir = data_dir
         self.mode = mode
         self.electrode = electrode
@@ -96,18 +97,25 @@ class BllechUnitExplorer:
         self.kde_bandwidth = kde_bandwidth
         self.flip_positive = flip_positive
         
+        # Initialize the explorer
+        self.initialize()
+    
+    def initialize(self):
+        """
+        Initialize the unit explorer by loading data and setting up visualization
+        """
         # Load metadata
-        self.metadata_handler = imp_metadata([[], data_dir])
-        self.hdf5_path = os.path.join(data_dir, self.metadata_handler.hdf5_name)
+        self.metadata_handler = imp_metadata([[], self.data_dir])
+        self.hdf5_path = os.path.join(self.data_dir, self.metadata_handler.hdf5_name)
         self.params_dict = self.metadata_handler.params_dict
         
         # Open HDF5 file
         self.h5 = tables.open_file(self.hdf5_path, mode='r')
         
         # Load data based on mode
-        if mode == 'unsorted':
+        if self.mode == 'unsorted':
             self._load_unsorted_data()
-        elif mode == 'sorted':
+        elif self.mode == 'sorted':
             self._load_sorted_data()
         else:
             raise ValueError("Mode must be 'unsorted' or 'sorted'")
