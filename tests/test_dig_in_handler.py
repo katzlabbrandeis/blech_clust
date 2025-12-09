@@ -17,6 +17,7 @@ Test Coverage:
 - Long descriptive names
 - Consistency across multiple runs
 """
+from utils.read_file import DigInHandler
 import os
 import sys
 import pytest
@@ -27,8 +28,6 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the path
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
-
-from utils.read_file import DigInHandler
 
 
 class TestDigInHandlerFilenamesParsing:
@@ -57,12 +56,14 @@ class TestDigInHandlerFilenamesParsing:
         handler.get_dig_in_files()
 
         assert handler.dig_in_num == [0, 1, 2]
-        assert handler.dig_in_name == ['board-DI-00', 'board-DI-01', 'board-DI-02']
+        assert handler.dig_in_name == [
+            'board-DI-00', 'board-DI-01', 'board-DI-02']
         assert len(handler.dig_in_file_list) == 3
 
     def test_numeric_format_board_din(self, temp_data_dir):
         """Test DIN numeric format: board-DIN-09.dat"""
-        filenames = ['board-DIN-09.dat', 'board-DIN-11.dat', 'board-DIN-13.dat']
+        filenames = ['board-DIN-09.dat',
+                     'board-DIN-11.dat', 'board-DIN-13.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -70,11 +71,13 @@ class TestDigInHandlerFilenamesParsing:
 
         # Should extract numbers and sort numerically
         assert handler.dig_in_num == [9, 11, 13]
-        assert handler.dig_in_name == ['board-DIN-09', 'board-DIN-11', 'board-DIN-13']
+        assert handler.dig_in_name == [
+            'board-DIN-09', 'board-DIN-11', 'board-DIN-13']
 
     def test_arbitrary_string_names(self, temp_data_dir):
         """Test arbitrary string names: board-DI-Suc.dat"""
-        filenames = ['board-DI-Suc.dat', 'board-DI-NaCl.dat', 'board-DI-CitricAcid.dat']
+        filenames = ['board-DI-Suc.dat',
+                     'board-DI-NaCl.dat', 'board-DI-CitricAcid.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -83,11 +86,13 @@ class TestDigInHandlerFilenamesParsing:
         # Should sort alphabetically and assign sequential numbers
         assert handler.dig_in_num == [0, 1, 2]
         # Alphabetical order: CitricAcid, NaCl, Suc
-        assert handler.dig_in_name == ['board-DI-CitricAcid', 'board-DI-NaCl', 'board-DI-Suc']
+        assert handler.dig_in_name == [
+            'board-DI-CitricAcid', 'board-DI-NaCl', 'board-DI-Suc']
 
     def test_arbitrary_string_names_different_order(self, temp_data_dir):
         """Test that arbitrary strings are sorted alphabetically"""
-        filenames = ['board-DI-Water.dat', 'board-DI-Sucrose.dat', 'board-DI-Quinine.dat']
+        filenames = ['board-DI-Water.dat',
+                     'board-DI-Sucrose.dat', 'board-DI-Quinine.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -95,11 +100,13 @@ class TestDigInHandlerFilenamesParsing:
 
         # Alphabetical: Quinine, Sucrose, Water
         assert handler.dig_in_num == [0, 1, 2]
-        assert handler.dig_in_name == ['board-DI-Quinine', 'board-DI-Sucrose', 'board-DI-Water']
+        assert handler.dig_in_name == [
+            'board-DI-Quinine', 'board-DI-Sucrose', 'board-DI-Water']
 
     def test_string_names_with_embedded_numbers(self, temp_data_dir):
         """Test string names with embedded numbers: board-DI-Suc300mM.dat"""
-        filenames = ['board-DI-Suc300mM.dat', 'board-DI-NaCl500mM.dat', 'board-DI-Water0mM.dat']
+        filenames = ['board-DI-Suc300mM.dat',
+                     'board-DI-NaCl500mM.dat', 'board-DI-Water0mM.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -107,7 +114,8 @@ class TestDigInHandlerFilenamesParsing:
 
         # Should extract last number found (300, 500, 0) and sort numerically
         assert handler.dig_in_num == [0, 300, 500]
-        assert handler.dig_in_name == ['board-DI-Water0mM', 'board-DI-Suc300mM', 'board-DI-NaCl500mM']
+        assert handler.dig_in_name == [
+            'board-DI-Water0mM', 'board-DI-Suc300mM', 'board-DI-NaCl500mM']
 
     def test_mixed_formats_not_recommended(self, temp_data_dir):
         """Test mixed numeric and string formats (edge case)"""
@@ -122,7 +130,8 @@ class TestDigInHandlerFilenamesParsing:
         # Since there's a None, should fall back to alphabetical sorting
         assert handler.dig_in_num == [0, 1, 2]
         # Alphabetical: board-DI-00, board-DI-02, board-DI-Suc
-        assert handler.dig_in_name == ['board-DI-00', 'board-DI-02', 'board-DI-Suc']
+        assert handler.dig_in_name == [
+            'board-DI-00', 'board-DI-02', 'board-DI-Suc']
 
     def test_single_arbitrary_string_file(self, temp_data_dir):
         """Test single file with arbitrary string name"""
@@ -137,7 +146,8 @@ class TestDigInHandlerFilenamesParsing:
 
     def test_case_sensitive_sorting(self, temp_data_dir):
         """Test that sorting is case-sensitive (Python default)"""
-        filenames = ['board-DI-water.dat', 'board-DI-Sucrose.dat', 'board-DI-QUININE.dat']
+        filenames = ['board-DI-water.dat',
+                     'board-DI-Sucrose.dat', 'board-DI-QUININE.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -146,11 +156,13 @@ class TestDigInHandlerFilenamesParsing:
         # Python sorts uppercase before lowercase
         # Expected order: QUININE, Sucrose, water
         assert handler.dig_in_num == [0, 1, 2]
-        assert handler.dig_in_name == ['board-DI-QUININE', 'board-DI-Sucrose', 'board-DI-water']
+        assert handler.dig_in_name == [
+            'board-DI-QUININE', 'board-DI-Sucrose', 'board-DI-water']
 
     def test_special_characters_in_names(self, temp_data_dir):
         """Test filenames with special characters"""
-        filenames = ['board-DI-H2O.dat', 'board-DI-NaCl_500mM.dat', 'board-DI-Citric-Acid.dat']
+        filenames = ['board-DI-H2O.dat',
+                     'board-DI-NaCl_500mM.dat', 'board-DI-Citric-Acid.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         handler = DigInHandler(temp_data_dir, 'one file per channel')
@@ -160,7 +172,8 @@ class TestDigInHandlerFilenamesParsing:
         # Since there's a None (Citric-Acid), falls back to alphabetical
         assert handler.dig_in_num == [0, 1, 2]
         # Alphabetical order
-        expected_names = sorted(['board-DI-H2O', 'board-DI-NaCl_500mM', 'board-DI-Citric-Acid'])
+        expected_names = sorted(
+            ['board-DI-H2O', 'board-DI-NaCl_500mM', 'board-DI-Citric-Acid'])
         assert handler.dig_in_name == expected_names
 
     def test_empty_directory(self, temp_data_dir):
@@ -212,7 +225,8 @@ class TestDigInHandlerFilenamesParsing:
 
     def test_numeric_stability_across_runs(self, temp_data_dir):
         """Test that the same files produce consistent numbering"""
-        filenames = ['board-DI-Suc.dat', 'board-DI-NaCl.dat', 'board-DI-Water.dat']
+        filenames = ['board-DI-Suc.dat',
+                     'board-DI-NaCl.dat', 'board-DI-Water.dat']
         self.create_dummy_dat_files(temp_data_dir, filenames)
 
         # Run twice
