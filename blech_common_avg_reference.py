@@ -170,12 +170,12 @@ def cluster_electrodes(features, max_clusters=10):
     # Try different numbers of clusters
     for n_clusters in range(min_clusters, max_possible_clusters + 1):
         cluster_range.append(n_clusters)
-        
+
         # Run multiple repeats to avoid local minima
         n_repeats = 10
         best_repeat_bic = np.inf
         best_repeat_kmeans = None
-        
+
         for repeat in range(n_repeats):
             kmeans = KMeans(
                 n_clusters=n_clusters,
@@ -183,15 +183,15 @@ def cluster_electrodes(features, max_clusters=10):
                 n_init=10  # Multiple initializations to find best solution
             )
             kmeans.fit(features)
-            
+
             # Calculate BIC score for this repeat
             bic = calculate_bic(kmeans, features)
-            
+
             # Keep the best repeat for this n_clusters
             if bic < best_repeat_bic:
                 best_repeat_bic = bic
                 best_repeat_kmeans = kmeans
-        
+
         # Use the best repeat for this n_clusters
         predictions = best_repeat_kmeans.labels_
         bic_scores.append(best_repeat_bic)
