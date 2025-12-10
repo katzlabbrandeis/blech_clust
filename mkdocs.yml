@@ -70,6 +70,7 @@ nav:
   - Getting Started:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
+  - Workflow Diagrams: workflow.md
   - Tutorials: tutorials.md
   - API Reference:
       - Overview: reference/index.md
