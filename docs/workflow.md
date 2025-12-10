@@ -82,14 +82,14 @@ Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) t
 [<frame>EMG Analysis|
   [blech_init] -> [blech_make_arrays]
   [blech_make_arrays] -> [emg_filter]
-  
+
   [<frame>BSA/STFT Branch|
     [emg_filter] -> [emg_freq_setup]
     [emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
     [bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
     [emg_freq_post_process] -> [emg_freq_plot]
   ]
-  
+
   [<frame>QDA Branch|
     [emg_freq_setup] -> [get_gapes_Li]
   ]
