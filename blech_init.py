@@ -444,7 +444,9 @@ if len(laser_dig_in) > 0:
     for marker in laser_markers:
         plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
                     zorder=-1)
-plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
+
+digIndex = [list(this_dig_handler.dig_in_frame.dig_in_nums).index(digN) for digN in dig_in_map.keys()]
+plt.yticks(digIndex, dig_in_str)
 plt.title('Digital Inputs')
 plt.xlabel('Time (s)')
 plt.ylabel('Digital Input Channel')
