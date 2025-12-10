@@ -145,6 +145,9 @@ make blechrnn  # BlechRNN for firing rate estimation
 make prefect   # Prefect workflow management (for testing)
 make dev       # Development dependencies
 make optional  # Optional analysis tools
+
+# For building documentation locally:
+pip install -r requirements/requirements-docs.txt
 ```
 
 #### Parameter Setup

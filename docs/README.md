@@ -28,6 +28,11 @@ To build the documentation locally, you need:
 1. **Python 3.8+**
 2. **MkDocs and dependencies**:
    ```bash
+   pip install -r requirements/requirements-docs.txt
+   ```
+   
+   Or install individually:
+   ```bash
    pip install mkdocs-material mkdocstrings[python] pymdown-extensions
    ```
 
