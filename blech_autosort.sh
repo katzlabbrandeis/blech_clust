@@ -1,3 +1,15 @@
+echo "=========================================="
+echo "⚠️  WARNING: EXPERIMENTAL SCRIPT"
+echo "=========================================="
+echo "This script has not been fully tested."
+echo "It automates the full spike sorting pipeline"
+echo "with auto-clustering enabled."
+echo ""
+echo "Please review outputs carefully and report"
+echo "any issues to the repository maintainers."
+echo "=========================================="
+echo ""
+
 if [ "$2" == "--force" ]; then
     FORCE=1
 else
