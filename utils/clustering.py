@@ -266,15 +266,15 @@ def dejitter_abu3(slices,
     return slices_dejittered, spike_times
 
 
-def interpolate_waveforms_to_30khz(slices, spike_snapshot=[0.5, 1.0], 
-                                    actual_sampling_rate=30000.0,
-                                    target_sampling_rate=30000.0):
+def interpolate_waveforms_to_30khz(slices, spike_snapshot=[0.5, 1.0],
+                                   actual_sampling_rate=30000.0,
+                                   target_sampling_rate=30000.0):
     """
     Interpolate waveforms to match expected number of datapoints at target sampling rate.
-    
+
     Allows classifier trained on 30kHz data to work with data recorded at different
     sampling rates, as long as pre/post windows are the same.
-    
+
     Parameters
     ----------
     slices : np.ndarray
@@ -285,7 +285,7 @@ def interpolate_waveforms_to_30khz(slices, spike_snapshot=[0.5, 1.0],
         Actual sampling rate of the data in Hz
     target_sampling_rate : float
         Target sampling rate to interpolate to (typically 30000 Hz)
-        
+
     Returns
     -------
     interpolated_slices : np.ndarray
@@ -293,21 +293,22 @@ def interpolate_waveforms_to_30khz(slices, spike_snapshot=[0.5, 1.0],
     """
     if actual_sampling_rate == target_sampling_rate:
         return slices
-    
+
     # Calculate expected number of samples at each rate
     total_window_ms = spike_snapshot[0] + spike_snapshot[1]
     actual_n_samples = slices.shape[1]
     target_n_samples = int((total_window_ms / 1000.0) * target_sampling_rate)
-    
+
     # Create interpolation function for each waveform
     x_actual = np.linspace(0, total_window_ms, actual_n_samples)
     x_target = np.linspace(0, total_window_ms, target_n_samples)
-    
+
     interpolated_slices = np.zeros((slices.shape[0], target_n_samples))
     for i, waveform in enumerate(slices):
-        f = interp1d(x_actual, waveform, kind='cubic', fill_value='extrapolate')
+        f = interp1d(x_actual, waveform, kind='cubic',
+                     fill_value='extrapolate')
         interpolated_slices[i] = f(x_target)
-    
+
     return interpolated_slices
 
 

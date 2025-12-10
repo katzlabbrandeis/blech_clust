@@ -1121,7 +1121,7 @@ class spike_handler():
     def interpolate_waveforms(self, target_sampling_rate=30000.0):
         """
         Interpolate waveforms to match expected sampling rate for classifier.
-        
+
         This allows the classifier to work with data recorded at different
         sampling rates as long as pre/post windows are the same.
         """
