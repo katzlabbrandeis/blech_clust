@@ -41,6 +41,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -107,6 +114,7 @@ jobs:
           conda run -n blech_clust python -c "import scipy; print('SciPy version:', scipy.__version__)"
           conda run -n blech_clust python -c "import matplotlib; print('Matplotlib version:', matplotlib.__version__)"
           conda run -n blech_clust python -c "import sklearn; print('Scikit-learn version:', sklearn.__version__)"
+          conda run -n blech_clust python -c "import blech_clust; print('blech_clust package installed successfully')"
 
       - name: Test basic functionality
         run: |

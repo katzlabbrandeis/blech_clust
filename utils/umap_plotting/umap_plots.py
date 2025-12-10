@@ -1,6 +1,6 @@
 from joblib import load, delayed, Parallel, cpu_count
 from itertools import combinations
-from utils.blech_utils import imp_metadata
+from blech_clust.utils.blech_utils import imp_metadata
 from glob import glob
 import re
 import pandas as pd

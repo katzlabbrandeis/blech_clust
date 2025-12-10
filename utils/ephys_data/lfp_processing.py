@@ -29,7 +29,7 @@ Here are some common usage patterns:
 
 Workflow 1: Basic LFP Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for LFP extraction
 params = {
@@ -52,7 +52,7 @@ lfp_processing.extract_lfps(
 
 Workflow 2: EMG Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for EMG extraction
 params = {
@@ -76,7 +76,7 @@ Workflow 3: Quality Control for LFP Trials
 import numpy as np
 import tables
 import matplotlib.pyplot as plt
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Load LFP data from HDF5 file
 with tables.open_file('/path/to/data/session.h5', 'r') as hf5:
@@ -478,15 +478,23 @@ def extract_emgs(dir_name,
                  trial_durations):
     """Extract EMG data from raw recordings
 
+    Extracts EMG (electromyography) data from raw .dat files, applies bandpass filtering,
+    downsamples, segments into trials, and saves to HDF5 file.
+
     Args:
-        dir_name: Directory containing data files
+        dir_name: Directory containing data files and HDF5 file
         emg_electrode_nums: List of electrode numbers for EMG channels
-        freq_bounds: [low, high] frequency bounds for filtering
-        sampling_rate: Original sampling rate
-        taste_signal_choice: 'Start' or 'End' for trial alignment
-        fin_sampling_rate: Final sampling rate after downsampling
-        dig_in_list: List of digital input channels to process
-        trial_durations: [pre_trial, post_trial] durations in ms
+        freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
+        sampling_rate: Original sampling rate of raw data in Hz
+        taste_signal_choice: 'Start' or 'End' for trial alignment point
+        fin_sampling_rate: Final sampling rate after downsampling in Hz
+        dig_in_list: List of digital input channel indices to process
+        trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
+
+    Side Effects:
+        - Creates /raw_emg and /Parsed_EMG nodes in HDF5 file
+        - Creates dig_in_X_EMGs arrays for each digital input
+        - Removes /raw_emg node after processing to save space
     """
 
     if taste_signal_choice == 'Start':
@@ -740,8 +748,15 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3):
 
 def return_good_lfp_trials(data, MAD_threshold=3):
     """Return good trials (for all channels) based on MAD threshold
-        data : shape (n_channels, n_trials, n_timepoints)
-        MAD_threshold : number of MADs to use as threshold for individual timepoints
+
+    Filters out trials with excessive deviation from median LFP using MAD-based thresholding.
+
+    Args:
+        data: LFP data array, shape (n_channels, n_trials, n_timepoints)
+        MAD_threshold: Number of MADs to use as threshold for trial deviation (default: 3)
+
+    Returns:
+        np.array: Filtered LFP data containing only good trials, shape (n_channels, n_good_trials, n_timepoints)
     """
     good_trials_bool = return_good_lfp_trial_inds(
         data, MAD_threshold)

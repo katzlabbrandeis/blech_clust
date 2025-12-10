@@ -25,8 +25,8 @@ script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.basename(script_path))
 sys.path.append(blech_clust_dir)
 # Necessary blech_clust modules
-from utils.blech_process_utils import path_handler  # noqa: E402
-from utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
+from blech_clust.utils.blech_process_utils import path_handler  # noqa: E402
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
 from utils import qa_utils as qa  # noqa: E402
 from utils import read_file  # noqa: E402
 
