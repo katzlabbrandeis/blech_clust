@@ -45,6 +45,12 @@ For comprehensive documentation, visit **[katzlabbrandeis.github.io/blech_clust]
 - **[API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)** - Complete module documentation
 - **[Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html)** - Updates and insights
 
+# For building documentation locally:
+```
+pip install -r requirements/requirements-docs.txt
+mkdocs serve
+```
+
 ## Pipeline Overview
 
 ### Spike Sorting
