@@ -1,0 +1,85 @@
+site_name: blech_clust Documentation
+site_description: Python and R based code for clustering and sorting electrophysiology data
+site_author: Katz Lab
+site_url: https://katzlabbrandeis.github.io/blech_clust/
+
+repo_name: katzlabbrandeis/blech_clust
+repo_url: https://github.com/katzlabbrandeis/blech_clust
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.expand
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - Tutorials: tutorials.md
+  - API Reference:
+      - Overview: reference/index.md
+      - Core Pipeline: reference/core-pipeline.md
+      - Utilities: reference/utilities.md
+      - Ephys Data: reference/ephys-data.md
+      - QA Tools: reference/qa-tools.md
+      - EMG Analysis: reference/emg-analysis.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/katzlabbrandeis/blech_clust

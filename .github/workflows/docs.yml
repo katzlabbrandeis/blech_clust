@@ -7,6 +7,7 @@ on:
     paths:
       - '**.py'
       - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - '**.py'
       - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -38,28 +40,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.10'
           cache: 'pip'
 
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          version: '1.6.39'
-
-      - name: Render documentation with Quarto
+      - name: Install MkDocs and dependencies
         run: |
-          cd docs
-          quarto render
+          pip install mkdocs-material mkdocstrings[python] pymdown-extensions
 
-      # Note: quartodoc auto-generation is configured in _quarto.yml but not
-      # run in CI due to version compatibility issues with the project structure.
-      # The manual documentation pages provide comprehensive coverage.
-      # To use auto-generation locally: cd docs && quartodoc build && quarto render
+      - name: Build documentation with MkDocs
+        run: |
+          mkdocs build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/_site
+          path: site
 
   deploy:
     # Only deploy on push to master, not on PRs
