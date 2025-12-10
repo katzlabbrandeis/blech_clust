@@ -25,8 +25,8 @@ script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.basename(script_path))
 sys.path.append(blech_clust_dir)
 # Necessary blech_clust modules
-from utils.blech_process_utils import path_handler  # noqa: E402
-from utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
+from blech_clust.utils.blech_process_utils import path_handler  # noqa: E402
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata  # noqa: E402
 from utils import qa_utils as qa  # noqa: E402
 from utils import read_file  # noqa: E402
 
@@ -82,8 +82,13 @@ electrodes_list = sorted(electrodes_list)
 dig_in_list = sorted(dig_in_list)
 
 # Use info file for port list calculation
-info_file = np.fromfile(dir_name + '/info.rhd', dtype=np.dtype('float32'))
-sampling_rate = int(info_file[2])
+info_file_path = os.path.join(dir_name, 'info.rhd')
+if os.path.exists(info_file_path):
+    info_file = np.fromfile(info_file_path, dtype=np.dtype('float32'))
+    sampling_rate = int(info_file[2])
+else:
+    print("info.rhd file not found. Please enter the sampling rate manually:")
+    sampling_rate = int(input("Sampling rate (Hz): "))
 
 # Read the time.dat file for use in separating out
 # the one file per signal type data

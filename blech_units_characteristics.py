@@ -11,6 +11,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
+import shutil
 from tqdm import tqdm
 import pingouin as pg
 import matplotlib.pyplot as plt
@@ -25,31 +26,42 @@ import os
 import json
 import glob
 import itertools
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.ephys_data import ephys_data
-from utils.ephys_data import visualize as vz
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+from blech_clust.utils.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import visualize as vz
 import pandas as pd
+from ast import literal_eval
 pd.options.mode.chained_assignment = None
 tqdm.pandas()
 
 # Ask for the directory where the hdf5 file sits, and change to that directory
 # Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
+test_bool = False
+
+if test_bool:
+    # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
+    data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+else:
+    metadata_handler = imp_metadata(sys.argv)
+    dir_name = metadata_handler.dir_name
+    # Perform pipeline graph check
+    script_path = os.path.realpath(__file__)
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
-if not os.path.exists(plot_dir):
-    os.makedirs(plot_dir)
+if os.path.exists(plot_dir):
+    shutil.rmtree(plot_dir)
+os.makedirs(plot_dir)
 
 agg_plot_dir = os.path.join(plot_dir, 'aggregated')
-if not os.path.exists(agg_plot_dir):
-    os.makedirs(agg_plot_dir)
-
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if os.path.exists(agg_plot_dir):
+    shutil.rmtree(agg_plot_dir)
+os.makedirs(agg_plot_dir)
 
 os.chdir(dir_name)
 
@@ -88,8 +100,26 @@ mean_seq_firing['time_val'] = [firing_t_vec[x]
                                for x in mean_seq_firing.time_num]
 mean_seq_firing['taste'] = [taste_names[x] for x in mean_seq_firing.taste_num]
 
+# Cut by psth_params['durations']
+mean_seq_firing = mean_seq_firing.loc[
+    (mean_seq_firing.time_val >= -psth_params['durations'][0]) &
+    (mean_seq_firing.time_val <= psth_params['durations'][1])
+]
+sequestered_spikes_frame = this_dat.sequestered_spikes_frame.copy()
+sequestered_spikes_frame['time_num'] -= stim_time
+sequestered_spikes_frame = sequestered_spikes_frame.loc[
+    (sequestered_spikes_frame.time_num >= -psth_params['durations'][0]) &
+    (sequestered_spikes_frame.time_num <= psth_params['durations'][1])
+]
+
+# Convert laser_tuple to tuple
+mean_seq_firing['laser_tuple'] = [literal_eval(x) for x in
+                                  mean_seq_firing.laser_tuple]
+sequestered_spikes_frame['laser_tuple'] = [
+    literal_eval(x) for x in sequestered_spikes_frame.laser_tuple]
+
 # Plot firing rates
-laser_conditions = mean_seq_firing.laser_tuple.unique()
+laser_conditions = np.sort(mean_seq_firing.laser_tuple.unique())
 n_laser_conditions = len(laser_conditions)
 
 # List of len = n_tastes
@@ -98,9 +128,10 @@ waveform_dir = os.path.join(dir_name, 'unit_waveforms_plots', 'waveforms_only')
 spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
+print('=== Creating overlay PSTH plots ===')
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     n_rows = np.max([n_laser_conditions, 2])
-    fig, ax = plt.subplots(n_rows, 3, figsize=(15, 5*n_laser_conditions),
+    fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
                            # sharex=True, sharey='col')
                            )
     # Remove axis for lower row if only one laser condition
@@ -112,16 +143,15 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             (mean_seq_firing.neuron_num == nrn_ind) &
             (mean_seq_firing.laser_tuple == laser_cond)
         ]
-        this_spikes = this_dat.sequestered_spikes_frame.loc[
-            (this_dat.sequestered_spikes_frame.neuron_num == nrn_ind) &
-            (this_dat.sequestered_spikes_frame.laser_tuple == laser_cond)
+        this_spikes = sequestered_spikes_frame.loc[
+            (sequestered_spikes_frame.neuron_num == nrn_ind) &
+            (sequestered_spikes_frame.laser_tuple == laser_cond)
         ]
         this_spikes.sort_values(['taste_num', 'trial_num'], inplace=True)
         this_spikes['cum_trial_num'] = \
             this_spikes['taste_num'] * \
             (this_spikes['trial_num'].max()+1) + this_spikes['trial_num']
         this_spikes['cum_trial_num'] += 0.5
-        this_spikes['time_num'] -= stim_time
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
         sns.lineplot(
@@ -131,15 +161,23 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             hue='taste',
             ax=ax[i, 0],
         )
+        # Plot laser condition
+        if laser_cond != (0, 0):
+            ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
+                             color='y', label='Laser condition')
+        # Put legend to left of plot
+        ax[i, 0].legend(title='Taste', bbox_to_anchor=(1.05, 1),
+                        loc='upper left')
         ax[i, 0].legend()
         sns.scatterplot(
             data=this_spikes,
             x='time_num',
             y='cum_trial_num',
             color='k',
-            marker='|',
+            marker='s',
             ax=ax[i, 1],
             legend=False,
+            s=10,
         )
         for block_i in range(len(taste_blocks)-1):
             block_start = taste_blocks[block_i]
@@ -170,6 +208,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
 
 # If more than one laser condition, plot firing rates for each taste separately
 # with laser conditions as hue
+print('=== Creating overlay PSTH plots for each taste ===')
 if n_laser_conditions > 1:
     for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         this_firing = mean_seq_firing.loc[
@@ -247,7 +286,7 @@ seq_spikes_frame = seq_spikes_frame.loc[
 ]
 seq_spikes_frame['spikes'] = 1
 # mark pre and post stim periods
-seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
+seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= 0
 # NOTE: DON'T SUM SPIKES...NOT VALID UNLESS PRE-STIM and POST-STIM PERIODS ARE
 # OF EQUAL LENGTH
 seq_spike_counts = seq_spikes_frame.groupby(
@@ -284,6 +323,7 @@ group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
 group_frames = [x[1] for x in group_list]
+print('=== Calculating responsiveness ===')
 pval_list = []
 for this_frame in tqdm(group_frames):
     this_pval = ttest_rel(
@@ -408,6 +448,7 @@ seq_spike_counts.drop(columns=['time_num'], inplace=True)
 seq_spike_counts.fillna(0, inplace=True)
 
 # Make sure all inds are present
+print('=== Calculating discriminability ===')
 seq_spike_counts.set_index(index_cols+['bin_num'], inplace=True)
 for this_ind in tqdm(firing_frame_group_inds):
     # Iterate of post_stim
@@ -426,6 +467,7 @@ seq_spike_counts.reset_index(inplace=True)
 
 # For each neuron_num and laser_tuple, run 2-way ANOVA with taste_num and bin_num
 # as factors
+print('=== Calculating taste-dynamics ANOVA ===')
 group_cols = ['neuron_num', 'laser_tuple']
 group_list = list(seq_spike_counts.groupby(group_cols))
 group_inds = [x[0] for x in group_list]
@@ -732,5 +774,6 @@ out_frame.to_hdf(
     mode='a',
 )
 
-# Mark as completed
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not test_bool:
+    # Mark as completed
+    this_pipeline_check.write_to_log(script_path, 'completed')

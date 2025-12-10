@@ -1,9 +1,9 @@
 {
     "graph": {
         "": {
-            "blech_clust.py": "blech_exp_info.py",
-            "blech_common_avg_reference.py": "blech_clust.py",
-            "blech_make_arrays.py": "blech_clust.py",
+            "blech_init.py": "blech_exp_info.py",
+            "blech_common_avg_reference.py": "blech_init.py",
+            "blech_make_arrays.py": "blech_init.py",
             "blech_process.py": "blech_common_avg_reference.py",
             "blech_post_process.py": "blech_process.py",
             "blech_units_plot.py": "blech_post_process.py",
@@ -14,6 +14,7 @@
             ],
             "utils/qa_utils/unit_similarity.py": "blech_post_process.py",
             "utils/qa_utils/drift_check.py": "blech_post_process.py",
+            "utils/qa_utils/elbo_drift.py": "blech_post_process.py",
             "utils/infer_rnn_rates.py": "blech_make_arrays.py"
         },
         "emg/": {

@@ -50,7 +50,13 @@ This module provides utilities for handling and processing electrophysiological 
 
 - `auto_process_electrode`: Processes a single electrode's data for automatic sorting, including loading data, calculating merge sets, and generating plots.
 """
-import os
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
 import tables
 import numpy as np
 import easygui
@@ -60,8 +66,8 @@ import pylab as plt
 import matplotlib.image as mpimg
 import pandas as pd
 import hashlib
-from utils.blech_utils import entry_checker, imp_metadata
-from utils.blech_process_utils import gen_isi_hist
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata
+from blech_units_plot import gen_isi_hist
 from utils import blech_waveforms_datashader
 from datetime import datetime
 from scipy.stats import chisquare
@@ -85,6 +91,8 @@ class sort_file_handler():
             sort_table.sort_values(
                 ['len_cluster', 'Split'],
                 ascending=False, inplace=True)
+            if 'level_0' in sort_table.columns:
+                sort_table.drop(columns=['level_0'], inplace=True)
             sort_table.reset_index(inplace=True)
             sort_table['unit_saved'] = False
             self.sort_table = sort_table
@@ -221,7 +229,8 @@ def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
             ax[cluster_num, 0].axis('off')
             ax[cluster_num, 1].imshow(waveform_plot, aspect='auto')
             ax[cluster_num, 1].axis('off')
-    fig.suptitle('Are these the neurons you want to select?')
+    fig.suptitle(
+        'Are these the neurons you want to select? Press q to exit plot')
     fig.tight_layout()
     plt.show()
 
@@ -279,12 +288,21 @@ def generate_cluster_plots(
     plt.show()
 
 
-def get_clustering_params():
+def get_clustering_params(this_sort_file_handler):
     """
     Ask user for clustering parameters
     """
     # Get clustering parameters from user
-    n_clusters = int(input('Number of clusters (default=5): ') or "5")
+    if (this_sort_file_handler.sort_table is not None):
+        dat_row = this_sort_file_handler.current_row
+        split_val = re.findall('[0-9]+', str(dat_row.Split))
+        if (len(split_val) > 0):
+            n_clusters = int(
+                input(f'Number of clusters (default={split_val[0]}): ') or split_val[0])
+        else:
+            n_clusters = int(input('Number of clusters (default=5): ') or "5")
+    else:
+        n_clusters = int(input('Number of clusters (default=5): ') or "5")
     fields = [
         'Max iterations',
         'Convergence criterion',
@@ -712,6 +730,18 @@ class unit_descriptor_handler():
         hash_str = str(hash_value)[:10]
         return hash_str
 
+    @staticmethod
+    def calc_snr(
+            electrode_num,
+            unit_waveforms,
+            layout_frame,
+    ):
+        frame_ind = layout_frame['electrode_ind'] == electrode_num
+        MAD_val = layout_frame['mad_val'][frame_ind].values[0]
+        mean_amp = np.mean(np.max(np.abs(unit_waveforms), axis=1))
+        snr = mean_amp / MAD_val
+        return snr
+
     def save_unit(
             self,
             unit_waveforms,
@@ -720,6 +750,7 @@ class unit_descriptor_handler():
             this_sort_file_handler,
             split_or_merge,
             override_ask=False,
+            layout_frame=None,
     ):
         """
         Save unit to hdf5 file
@@ -774,6 +805,13 @@ class unit_descriptor_handler():
             'unit_metadata',
             description=sorted_unit_metadata)
 
+        # Calc SNR
+        snr = self.calc_snr(
+            electrode_num,
+            unit_waveforms,
+            layout_frame,
+        )
+
         # Get a new unit_descriptor table row for this new unit
         unit_description = unit_table.row
         # Add to unit_descriptor table
@@ -783,6 +821,7 @@ class unit_descriptor_handler():
         unit_description['single_unit'] = unit_properties['single_unit']
         unit_description['regular_spiking'] = unit_properties['regular_spiking']
         unit_description['fast_spiking'] = unit_properties['fast_spiking']
+        unit_description['snr'] = snr
         unit_description.append()
 
         # Flush table and hf5
@@ -1029,6 +1068,7 @@ class sorted_unit_metadata(tables.IsDescription):
     fast_spiking = tables.Int32Col()
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
+    snr = tables.Float32Col()
 
 # Define a unit_descriptor class to be used to add things (anything!)
 # about the sorted units to a pytables table
@@ -1042,6 +1082,7 @@ class unit_descriptor(tables.IsDescription):
     fast_spiking = tables.Int32Col()
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
+    snr = tables.Float32Col()
 
 
 class split_merge_signal:
@@ -1080,11 +1121,12 @@ class split_merge_signal:
     def check_split_sort_file(self):
         if self.this_sort_file_handler.sort_table is not None:
             dat_row = self.this_sort_file_handler.current_row
-            if len(dat_row.Split) > 0:
+            split_val = re.findall('[0-9]+', str(dat_row.Split))
+            if (len(str(dat_row.Split).strip()) > 0):
                 self.split = True
             else:
                 self.split = False
-            print('== Got split details from sort file ==')
+            print(f'==== Got split details from sort file: {split_val} ====\n')
             return True
         else:
             return None
@@ -1519,9 +1561,9 @@ def auto_process_electrode(
     )
 
     if len(final_merge_sets) > 0:
-        print(f'=== Merging {len(final_merge_sets)} Clusters ===')
+        print(f'=== Merging {len(final_merge_sets)} Clusters ===\n')
         for this_merge_set, new_name in zip(final_merge_sets, new_clust_names):
-            print(f'==== {this_merge_set} => {new_name} ====')
+            print(f'==== {this_merge_set} => {new_name} ====\n')
 
         fig, ax = gen_plot_auto_merged_clusters(
             spike_waveforms,

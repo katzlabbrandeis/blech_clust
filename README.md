@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/119422765.svg)](https://doi.org/10.5281/zenodo.15175272)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/katzlabbrandeis/blech_clust/master.svg)](https://results.pre-commit.ci/latest/github/katzlabbrandeis/blech_clust/master)
 
 # blech_clust
@@ -16,7 +17,7 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 1. `python blech_exp_info.py`
     - Pre-clustering step. Annotate recorded channels and save experimental parameters
     - Takes template for info and electrode layout as argument
-2. `python blech_clust.py`
+2. `python blech_init.py`
     - Setup directories and define clustering parameters
 3. `python blech_common_avg_reference.py`
     - Perform common average referencing to remove large artifacts
@@ -32,6 +33,10 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
     - Quality assurance: spike-time collisions and drift analysis
 9. `python blech_unit_characteristics.py`
     - Analyze unit characteristics
+10. `python utils/blech_data_summary.py`
+    - Generate comprehensive dataset summary
+11. `python utils/grade_dataset.py`
+    - Grade dataset quality based on metrics
 
 **EMG Analysis Pipelines:**
 
@@ -62,65 +67,208 @@ website at https://sites.google.com/a/brandeis.edu/katzlab/
 
 - [Ephys Data Module](utils/ephys_data/README.md): Documentation for analyzing electrophysiology data
 
+### Dataset Quality Assessment
+<details>
+The pipeline includes tools for assessing and grading dataset quality:
+
+1. **Data Summary Generation** (`utils/blech_data_summary.py`):
+   - Aggregates key metrics from analysis outputs
+   - Summarizes unit counts, responsiveness, drift metrics, and more
+   - Creates a comprehensive `data_summary.json` file
+
+2. **Dataset Grading** (`utils/grade_dataset.py`):
+   - Evaluates dataset quality based on configurable criteria
+   - Grades datasets on unit counts, unit quality, and drift metrics
+   - Uses thresholds defined in `utils/grading_metrics.json`
+   - Outputs grades to `QA_output/grading.json`
+
+These tools help standardize quality assessment across datasets and identify recordings that meet experimental quality standards.
+
+</details>
+
 ### Blog
 
 For more insights and updates, visit our [Blog Page](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html).
 
-### Setup
+### Contributing
+
+We welcome contributions to the blech_clust project! If you're interested in contributing, please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to get started. Whether it's reporting issues, submitting pull requests, or improving documentation, your help is appreciated.
+
+### Acknowledgments
+
+This work used ACCESS-allocated resources at Brandeis University through allocation BIO230103 from the [Advanced Cyberinfrastructure Coordination Ecosystem: Services & Support](https://access-ci.org/) (ACCESS) program, which is supported by U.S. National Science Foundation grants #2138259, #2138286, #2138307, #2137603, and #2138296.
+
+The project titled "Computational Processing and Modeling of Neural Ensembles in Identifying the Nonlinear Dynamics of Taste Perception" was led by PI Abuzar Mahmood. The computational allocation was active from 2023-06-26 to 2024-06-25.
+
+### Installation
+
+The installation process is managed through a Makefile that handles all dependencies and environment setup automatically.
+
+#### Prerequisites
+
+- **Conda/Miniconda**: Required for environment management
+- **Git**: For cloning repositories
+- **System packages**: GNU parallel (optional, for parallel processing)
+
+#### Quick Start (Recommended)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/katzlabbrandeis/blech_clust.git
+   cd blech_clust
+   ```
+
+2. **Install everything:**
+   ```bash
+   make all
+   ```
+   This installs the base environment, EMG analysis tools, neuRecommend classifier, BlechRNN, and all optional dependencies.
+
+3. **Activate the environment:**
+   ```bash
+   conda activate blech_clust
+   ```
+
+#### Custom Installation
+
+For more control over what gets installed:
+
+```bash
+# Core spike sorting functionality only
+make core
+
+# Or install components individually:
+make base      # Base environment and core dependencies (required)
+make emg       # EMG analysis requirements (BSA/STFT, QDA)
+make neurec    # neuRecommend waveform classifier
+make blechrnn  # BlechRNN for firing rate estimation
+make prefect   # Prefect workflow management (for testing)
+make dev       # Development dependencies
+make optional  # Optional analysis tools
 ```
-conda deactivate                                            # Make sure we're in the base environemnt
-conda update -n base conda                                  # Update conda to have the new Libmamba solver
 
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda clean --all -y                                        # Removes unused packages and caches
-conda create --name blech_clust python=3.8.13 -y            # Create "blech_clust" environment with conda requirements
-conda activate blech_clust                                  # Activate blech_clust environment
-conda install -c conda-forge -y --file conda_requirements_base.txt # Install conda requirements
-bash install_gnu_parallel.sh                                # Install GNU Parallel
-pip install -r pip_requirements_base.txt                    # Install pip requirements (not covered by conda)
-bash patch_dependencies.sh                                  # Fix issues with dependencies
+#### Parameter Setup
 
-### Install neuRecommend (classifier)
-cd ~/Desktop                                                # Relocate to download classifier library
-git clone https://github.com/abuzarmahmood/neuRecommend.git # Download classifier library
-pip install -r neuRecommend/requirements.txt
+After installation, set up parameter templates:
 
-### Install EMG (BSA) requirements (OPTIONAL)
-# Tested with installation after neuRecommend requirements
-cd <path_to_blech_clust>/requirements                       # Move into blech_clust folder with requirements files
-conda config --set channel_priority strict                  # Set channel priority to strict, THIS IS IMPORTANT, flexible channel priority may not work
-bash emg_install.sh                                         # Install EMG requirements
+```bash
+# Copy parameter templates (if none exist)
+make params
 
-### Install BlechRNN for firing rate estimation (OPTIONAL)
-cd ~/Desktop                                                # Relocate to download BlechRNN
-git clone https://github.com/abuzarmahmood/blechRNN.git     # Download BlechRNN
-cd blechRNN                                                 # Move into BlechRNN directory
-pip install $(cat requirements.txt | egrep "torch")         # Install only pytorch requirements
-**Note: If you'd like to use GPU, you'll need to install CUDA
--- Suggested resource : https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266
-
+# Edit the parameter files according to your experimental setup
 ```
-- Parameter files will need to be setup according to [Setting up params](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params)
+
+See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter configuration.
+
+#### GPU Support (Optional)
+
+If you plan to use GPU acceleration with BlechRNN:
+
+1. Install CUDA toolkit separately (see [PyTorch GPU installation guide](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266))
+2. Reinstall PyTorch with GPU support:
+   ```bash
+   conda activate blech_clust
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   ```
+
+#### Troubleshooting
+
+- **Clean installation:** If you encounter issues, remove the environment and start fresh:
+  ```bash
+  make clean
+  make all
+  ```
+
+- **Partial installation:** If a component fails, you can retry individual components:
+  ```bash
+  make base    # Retry base installation
+  make emg     # Retry EMG components
+  ```
+
+- **Environment activation:** Always activate the environment before running scripts:
+  ```bash
+  conda activate blech_clust
+  ```
 
 ### Testing
-```
-cd <path_to_blech_clust>                                    # Move to blech_clust directory
-conda activate blech_clust                                  # Activate blech_clust environment
-pip install -U prefect                                      # Update prefect
-python pipeline_testing/prefect_pipeline.py --all           # Run all tests
+<details>
+
+#### Local Testing with Prefect
+The project uses Prefect for orchestrating test pipelines locally. To run tests:
+
+1. Start the Prefect server in a separate terminal:
+```bash
+prefect server start
 ```
 
-Use `prefect server start` to start the prefect server in a different terminal window, and monitor the progress of the pipeline in th Prefect UI.
+2. In another terminal, run the tests:
+```bash
+cd <path_to_blech_clust>                # Move to blech_clust directory
+make prefect                            # Install/update Prefect
+```
 
+3. Run specific test suites:
+```bash
+# Run all tests
+python pipeline_testing/prefect_pipeline.py --all
+
+# Run only spike sorting tests
+python pipeline_testing/prefect_pipeline.py -s
+
+# Run only EMG analysis tests
+python pipeline_testing/prefect_pipeline.py -e
+
+# Run spike sorting followed by EMG analysis
+python pipeline_testing/prefect_pipeline.py --spike-emg
+```
+
+You can monitor test progress and results in the Prefect UI at http://localhost:4200
+
+#### Continuous Integration
+The project uses GitHub Actions for automated testing on pull requests:
+
+- Pre-commit checks run automatically on all PRs to enforce code style and quality
+- The full test suite runs on self-hosted runners when PRs are labeled with 'install'
+- Test results are reported in the PR checks interface
+- The workflow configuration is in `.github/workflows/python_workflow_test.yml`
+
+</details>
 
 ### Convenience scripts
 - blech_clust_pre.sh : Runs steps 2-5
 - blech_clust_post.sh : Runs steps 7-14
 
+### blech_autosort.sh Script
+
+The `blech_autosort.sh` script is designed to automate the process of clustering and post-processing electrophysiology data. It ensures that the necessary parameters are set correctly and executes the pre-processing, clustering, and post-processing steps in sequence.
+
+**Usage:**
+```bash
+bash blech_autosort.sh <data_directory> [--force]
+```
+
+- `<data_directory>`: Path to the directory containing the raw data files.
+- `--force`: Optional flag to force re-processing even if previous results exist.
+
+**Functionality:**
+- Checks for the existence of required parameter files and verifies that specific settings are enabled.
+- Executes the `blech_clust_pre.sh` script to perform initial processing.
+- Runs `blech_post_process.py` to add sorted units to the HDF5 file.
+- Completes the workflow with `blech_clust_post.sh` for further processing.
+
+Ensure that the parameter files `sorting_params_template.json` and `waveform_classifier_params.json` are correctly configured before running this script.
+
 ### Operations Workflow Visual
 ![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
 
+### Quality Assessment Workflow
+```
+blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+```
+
 ### Workflow Walkthrough
+<details>
+
 *This section is being expanded, in progress.*
 
 Open a terminal, and run:
@@ -152,7 +300,7 @@ The next prompt (```Laser dig_in index, <BLANK> for none::: "x" to exit ::```) a
 
 Our final prompt (```::: Please enter any notes about the experiment.```) just asks for notes. Enter any pertinent comments, or just hit ```enter``` to finish running ```blech_exp_info.py```
 
-Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_clust.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
+Once we've finished with ```blech_exp_info.py```, we'll want to continue on with either blech_init.py or blech_clust_pre.sh. However, before we can run either thing, we'll need to set up a params file. First, copy blech_clust/params/_templates/sorting_params_template.json to blech_clust/params/sorting_params_template.json and update as needed.
 
 While you're there, you should also copy and adapt the other two params templates (`waveform_classifier_params.json` and `emg_params.json`), or you will probably be haunted by errors.
 
@@ -161,8 +309,11 @@ bash blech_clust_pre.sh $DIR   # Perform steps up to spike extraction and UMAP
 python blech_post_process.py   # Add sorted units to HDF5 (CLI or .CSV as input)
 bash blech_clust_post.sh       # Perform steps up to PSTH generation
 ```
+</details>
 
 ### Utilities
+<details>
+
 #### utils/infer_rnn_rates.py
 
 This script is used to infer firing rates from spike trains using a Recurrent Neural Network (RNN). The RNN is trained on the spike trains and the firing rates are inferred from the trained model. The script uses the `BlechRNN` library for training the RNN.
@@ -197,6 +348,7 @@ optional arguments:
                         Time limits inferred firing rates (default: [1500,
                         4500])
 ```
+</details>
 
 ### Test Dataset
 We are grateful to Brandeis University Google Filestream for hosting this dataset <br>
@@ -204,19 +356,21 @@ Data to test workflow available at:<br>
 https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sharing
 
 ### Dependency Graph (for use with https://www.nomnoml.com/)
-
+<details>
 - **Spike Sorting**
-- - [blech_exp_info] -> [blech_clust]
-- - [blech_clust] -> [blech_common_average_reference]
+- - [blech_exp_info] -> [blech_init]
+- - [blech_init] -> [blech_common_average_reference]
 - - [blech_common_average_reference] -> [bash blech_run_process.sh]
 - - [bash blech_run_process.sh] -> [blech_post_process]
 - - [blech_post_process] -> [blech_units_plot]
 - - [blech_units_plot] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [bash blech_run_QA.sh]
 - - [bash blech_run_QA.sh] -> [blech_unit_characteristics]
+- - [blech_unit_characteristics] -> [blech_data_summary]
+- - [blech_data_summary] -> [grade_dataset]
 
 - **EMG shared**
-- - [blech_clust] -> [blech_make_arrays]
+- - [blech_init] -> [blech_make_arrays]
 - - [blech_make_arrays] -> [emg_filter]
 
 - **BSA/STFT**
@@ -227,3 +381,34 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 
 - **QDA (Jenn Li)**
 - - [emg_freq_setup] -> [get_gapes_Li]
+</details>
+
+### Citation
+If you use this code in your research, please cite the following paper:
+
+```bibtex
+@software{blech_clust_katz,
+  author       = {Mahmood, Abuzar and
+                  Mukherjee, Narendra and
+                  Stone, Bradly and
+                  Raymond, Martin and
+                  Germaine, Hannah and
+                  Lin, Jian-You and
+                  Mazzio, Christina and
+                  Katz, Donald},
+  title        = {katzlabbrandeis/blech\_clust: v1.1.0},
+  month        = apr,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {1.1.0},
+  doi          = {10.5281/zenodo.15175273},
+  url          = {https://doi.org/10.5281/zenodo.15175273},
+  swhid        = {swh:1:dir:3970ccd774c6854819d510a288871435b6df3102
+                   ;origin=https://doi.org/10.5281/zenodo.15175272;vi
+                   sit=swh:1:snp:8c3e68b1e08e872f071a89982e99270c5846
+                   0e87;anchor=swh:1:rel:c90c05b9e71fc340ac44e6c742b2
+                   00fe3c655588;path=katzlabbrandeis-
+                   blech\_clust-10c7fab
+                  },
+}
+```

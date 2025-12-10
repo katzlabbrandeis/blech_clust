@@ -67,7 +67,11 @@ parser.add_argument('--show-plot',
                     action='store_true')
 parser.add_argument('--keep-raw', help='Keep raw data in hdf5 file',
                     action='store_true')
+parser.add_argument('--manual', help='Force manual processing logic',
+                    action='store_true')
 parser.add_argument('--skip-processed', help='Skip already processed electrodes',
+                    action='store_true')
+parser.add_argument('--delete-existing', help='Delete existing units',
                     action='store_true')
 args = parser.parse_args()
 
@@ -75,8 +79,15 @@ args = parser.parse_args()
 # First handle arguments
 # This allows the -h flag to run without loading imports
 ############################################################
-import utils.blech_post_process_utils as post_utils  # noqa
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+# Set environment variables to limit the number of threads used by various libraries
+# Do it at the start of the script to ensure it applies to all imported libraries
+import os  # noqa
+os.environ['OMP_NUM_THREADS'] = '1'  # noqa
+os.environ['MKL_NUM_THREADS'] = '1'  # noqa
+os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
+
+import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa
@@ -88,8 +99,7 @@ from sklearn.mixture import GaussianMixture  # noqa
 import pylab as plt  # noqa
 import numpy as np  # noqa
 import tables  # noqa
-import os  # noqa
-import warnings  # noqa
+
 
 ############################################################
 # Imports and Settings
@@ -163,7 +173,40 @@ post_utils.clean_memory_monitor_data()
 
 
 # Make the sorted_units group in the hdf5 file if it doesn't already exist
-if not '/sorted_units' in hf5:
+sorted_units_exist_bool = '/sorted_units' in hf5
+if args.delete_existing and sorted_units_exist_bool:
+    hf5.remove_node('/sorted_units', recursive=True)
+    hf5.create_group('/', 'sorted_units')
+    print('==== Cleared saved units. ====\n')
+    sorted_units_exist_bool = False
+elif sorted_units_exist_bool:
+    overwrite_hf5, continue_bool = entry_checker(
+        msg='Saved units detected; remove them? (y/[n]): ',
+        check_func=lambda x: x.lower() in ['y', 'n'],
+        fail_response='Please enter y or n',
+    )
+    if not continue_bool:
+        print('Exiting post-processing.')
+        hf5.close()
+        exit()
+    if overwrite_hf5.lower() == 'y':
+        # Double check if the user wants to delete existing units
+        overwrite_hf5, continue_bool = entry_checker(
+            msg='Are you sure you want to delete existing units? (y/[n]): ',
+            check_func=lambda x: x.lower() in ['y', 'n'],
+            fail_response='Please enter y or n',
+        )
+        if not continue_bool:
+            print('Exiting post-processing.')
+            hf5.close()
+            exit()
+    if overwrite_hf5.lower() == 'y':
+        # Remove the sorted_units group and create a new one
+        hf5.remove_node('/sorted_units', recursive=True)
+        hf5.create_group('/', 'sorted_units')
+        print('==== Cleared saved units. ====\n')
+        sorted_units_exist_bool = False
+else:
     hf5.create_group('/', 'sorted_units')
 
 ############################################################
@@ -173,10 +216,12 @@ if not '/sorted_units' in hf5:
 # pick clusters from the electrodes
 
 # Providing a sort file will force use of the sort file and
-# skip auto_post_process
+# skip auto_post_process. Manual processing will occur if
+# auto_post_process is False, no sort file is provided, or
+# if the --manual flag is set.
 
-# This section will run if not auto_post_process
-while (not auto_post_process) or (args.sort_file is not None):
+# This section will run if not auto_post_process or if manual flag is set
+while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
     ############################################################
     # Get unit details and load data
@@ -240,7 +285,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         ##############################
         # Get clustering parameters from user
         continue_bool, n_clusters, n_iter, thresh, n_restarts = \
-            post_utils.get_clustering_params()
+            post_utils.get_clustering_params(this_sort_file_handler)
         if not continue_bool:
             continue
 
@@ -405,6 +450,7 @@ while (not auto_post_process) or (args.sort_file is not None):
         electrode_num,
         this_sort_file_handler,
         split_or_merge,
+        layout_frame=metadata_handler.layout,
     )
 
     if continue_bool and (this_sort_file_handler.sort_table is not None):
@@ -412,13 +458,13 @@ while (not auto_post_process) or (args.sort_file is not None):
 
     hf5.flush()
 
-    print('==== {} Complete ===\n'.format(unit_name))
-    print('==== Iteration Ended ===\n')
+    print('==== {} Complete ====\n'.format(unit_name))
+    print('==== Iteration Ended ====\n')
 
 # Run auto-processing only if clustering was ALSO automatic
 # As currently, this does not have functionality to determine
 # correct number of clusters
-if auto_post_process and auto_cluster and (args.sort_file is None):
+if auto_post_process and auto_cluster and (args.sort_file is None) and not sorted_units_exist_bool:
     print('==== Auto Post-Processing ====\n')
 
     autosort_output_dir = os.path.join(
@@ -517,6 +563,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
                         this_sort_file_handler,
                         split_or_merge=None,
                         override_ask=True,
+                        layout_frame=metadata_handler.layout,
                     )
                 else:
                     continue_bool = True
@@ -525,6 +572,10 @@ if auto_post_process and auto_cluster and (args.sort_file is None):
 
     print('==== Auto Post-Processing Complete ====\n')
     print('==== Post-Processing Exiting ====\n')
+else:
+    if sorted_units_exist_bool:
+        print('==== Auto Post-Processing skipped ====\n')
+        print('Sorted units already exist. Please delete them before running auto_post_process.')
 
 ############################################################
 # Final write of unit_descriptor and cleanup
@@ -550,7 +601,7 @@ current_unit_table.to_csv(
 
 
 print()
-print('== Post-processing exiting ==')
+print('==== Post-processing exiting ====\n')
 # Close the hdf5 file
 hf5.close()
 

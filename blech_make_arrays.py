@@ -19,11 +19,12 @@ import sys
 import os
 import pandas as pd
 from tqdm import tqdm
-from utils.clustering import get_filtered_electrode
-from utils.blech_process_utils import return_cutoff_values
-from utils.blech_utils import imp_metadata, pipeline_graph_check
-from utils.read_file import DigInHandler
+from blech_clust.utils.clustering import get_filtered_electrode
+from blech_clust.utils.blech_process_utils import return_cutoff_values
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
+from blech_clust.utils.read_file import DigInHandler
 from ast import literal_eval
+import matplotlib.pyplot as plt
 
 # def get_dig_in_data(hf5):
 #     dig_in_nodes = hf5.list_nodes('/digital_in')
@@ -122,13 +123,19 @@ if __name__ == '__main__':
     # Ask for the directory where the hdf5 file sits, and change to that directory
     # Get name of directory with the data files
 
-    metadata_handler = imp_metadata(sys.argv)
+    test_bool = False
 
-    # Perform pipeline graph check
-    script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
+    if test_bool:
+        data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
+        metadata_handler = imp_metadata([[], data_dir])
+    else:
+        metadata_handler = imp_metadata(sys.argv)
+
+        # Perform pipeline graph check
+        script_path = os.path.realpath(__file__)
+        this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
+        this_pipeline_check.check_previous(script_path)
+        this_pipeline_check.write_to_log(script_path, 'attempted')
 
     os.chdir(metadata_handler.dir_name)
     print(f'Processing: {metadata_handler.dir_name}')
@@ -246,19 +253,32 @@ if __name__ == '__main__':
 
     if len(laser_info_list) > 0:
         laser_info_frame = pd.concat(laser_info_list)
-
-        # Match laser starts to taste starts within tolerance
-        match_tol = (2*sampling_rate)/10  # 200 ms
         laser_starts = laser_info_frame['start'].values
         match_trials_ind = []
-        for this_start in laser_starts:
-            match_ind = np.where(
-                np.abs(taste_info_frame['start'] - this_start) < match_tol
-            )[0]
-            if not len(match_ind) == 1:
-                error_str = f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
-                raise ValueError(error_str)
-            match_trials_ind.append(match_ind[0])
+
+        if len(info_dict['laser_params']['onset_duration']) == 1:
+
+            # Match laser starts to taste starts within tolerance
+            match_tol = (2*sampling_rate)/10  # 200 ms
+            print(
+                f'Aligning laser to taste using exact match with tolerance of {match_tol/sampling_rate} sec')
+            for this_start in laser_starts:
+                match_ind = np.where(
+                    np.abs(taste_info_frame['start'] - this_start) < match_tol
+                )[0]
+                if not len(match_ind) == 1:
+                    error_str = f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
+                    raise ValueError(error_str)
+                match_trials_ind.append(match_ind[0])
+
+        else:
+            print('Aligning laser to taste using closest trial match')
+            for this_start in laser_starts:
+                match_ind = np.argmin(
+                    np.abs(taste_info_frame['start'] - this_start)
+                )
+                match_trials_ind.append(match_ind)
+
         match_trials = taste_info_frame.iloc[match_trials_ind]['abs_trial_num'].values
         laser_info_frame['abs_trial_num'] = match_trials
 
@@ -289,7 +309,7 @@ if __name__ == '__main__':
         trial_info_frame['end_laser'] - trial_info_frame['start_laser']
     )
     trial_info_frame['laser_lag'] = (
-        trial_info_frame['start_taste'] - trial_info_frame['start_laser']
+        trial_info_frame['start_laser'] - trial_info_frame['start_taste']
     )
 
     # Convert to sec
@@ -302,15 +322,11 @@ if __name__ == '__main__':
 
     ###############
     # Correct laser timing using info_dict
-    # Assume only 1 laser condition!!
 
-    print('=====================')
-    print('Correcting laser timing using info_dict')
-    print('Assuming only 1 laser condition')
-    print('=====================')
-
-    laser_onset = info_dict['laser_params']['onset']
-    laser_duration = info_dict['laser_params']['duration']
+    # laser_onset = info_dict['laser_params']['onset']
+    # laser_duration = info_dict['laser_params']['duration']
+    laser_onset_duration_params = np.array(
+        info_dict['laser_params']['onset_duration'])
 
     trial_info_frame['laser_duration_ms'].fillna(0, inplace=True)
     trial_info_frame['laser_lag_ms'].fillna(0, inplace=True)
@@ -320,11 +336,40 @@ if __name__ == '__main__':
     trial_info_frame['laser_lag_ms'] = \
         trial_info_frame['laser_lag_ms'].astype(int)
 
-    if isinstance(laser_onset, int):
+    # Save originals to make figure
+    orig_duration = trial_info_frame['laser_duration_ms'].copy()
+    orig_lag = trial_info_frame['laser_lag_ms'].copy()
+
+    # Match by closest vector match
+    if len(laser_onset_duration_params) > 0:
         nonzero_inds = trial_info_frame['laser_duration_ms'] > 0
-        trial_info_frame.loc[nonzero_inds, 'laser_lag_ms'] = laser_onset
+        onset_duration_vectors = np.array(
+            [trial_info_frame['laser_lag_ms'].values[nonzero_inds],
+             trial_info_frame['laser_duration_ms'].values[nonzero_inds]]
+        ).T
+        match_ind = [
+            np.argmin(np.linalg.norm(x - laser_onset_duration_params, axis=1))
+            for x in onset_duration_vectors
+        ]
+        trial_info_frame.loc[nonzero_inds, 'laser_lag_ms'] = [
+            laser_onset_duration_params[x][0] for x in match_ind
+        ]
         trial_info_frame.loc[nonzero_inds,
-                             'laser_duration_ms'] = laser_duration
+                             'laser_duration_ms'] = [
+            laser_onset_duration_params[x][1] for x in match_ind
+        ]
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ax.scatter(orig_lag, orig_duration, label='Original', alpha=0.5)
+    ax.scatter(trial_info_frame['laser_lag_ms'],
+               trial_info_frame['laser_duration_ms'], label='Corrected')
+    ax.set_xlabel('Laser Lag (ms)')
+    ax.set_ylabel('Laser Duration (ms)')
+    ax.legend()
+    # plt.show()
+    fig.savefig(os.path.join(metadata_handler.dir_name, 'QA_output', 'laser_timing_correction.png'),
+                bbox_inches='tight')
+    plt.close()
 
     ##############################
     # Save trial info frame to hdf5 file and csv

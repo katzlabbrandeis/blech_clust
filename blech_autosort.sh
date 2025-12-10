@@ -71,6 +71,10 @@ else
 fi
 
 echo === Post Process ===
-python blech_post_process.py $DIR &&
+if [ $FORCE -eq 1 ]; then
+    python blech_post_process.py $DIR --delete-existing
+else
+    python blech_post_process.py $DIR
+fi
 
 bash blech_clust_post.sh $DIR

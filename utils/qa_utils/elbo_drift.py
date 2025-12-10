@@ -34,8 +34,8 @@ script_path = os.path.realpath(__file__)
 script_dir_path = os.path.dirname(script_path)
 blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
-from utils.ephys_data import ephys_data  # noqa: E402
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 
 def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
@@ -170,10 +170,12 @@ max_time = int(np.ceil(max([x[-1] for x in spike_times])))
 bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
+# Shape: n_neurons x n_bins
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Perform PCA and keep 5 components
-pca = PCA(n_components=5, whiten=True)
+n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
+pca = PCA(n_components=n_components, whiten=True)
 pca.fit(zscored_hists.T)
 tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)

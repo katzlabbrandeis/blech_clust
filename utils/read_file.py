@@ -26,7 +26,7 @@ import pandas as pd
 # Code for loading traditional intan format from
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
-from utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.importrhdutilities import load_file, read_header
 
 
 class DigInHandler:
@@ -281,6 +281,9 @@ def read_traditional_intan(
                 else:
                     hf5_el_array = hf5.get_node('/raw_emg', array_name)
                 hf5_el_array.append(this_amp)
+            # Skip channels with no CAR group
+            elif electrode_layout_frame.loc[i].CAR_group.lower() in ['none', 'na']:
+                continue
             else:
                 array_name = f'electrode{i:02}'
                 if os.path.join('/raw', array_name) not in hf5:
