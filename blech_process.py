@@ -221,7 +221,7 @@ if classifier_params['use_classifier']:
         raise ValueError(
             "Classifier cannot be used unless 'spike_snapshot_before' is 1 and 'spike_snapshot_after' is 1.5.")
     if params_dict['sampling_rate'] != 30000:
-         raise ValueError(
+        raise ValueError(
             "Sampling rate is not 30KHz. Classifier requires 30Khz.")
 
 if classifier_params['use_classifier'] and \
