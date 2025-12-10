@@ -16,23 +16,46 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: Clean working directory
+        run: |
+          echo "Cleaning working directory to ensure fresh code"
+          rm -rf /home/exouser/Desktop/blech_clust
+          mkdir -p /home/exouser/Desktop/blech_clust
+
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
       - run: pwd
       - run: which python
       - run: conda info --envs
+
       - name: Set up repo
         uses: actions/checkout@v4
+
       - run: git status
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+
       - name: check labels
         run: echo "${{ github.event.pull_request.labels.*.name }}"
+
       - name: Copy files to working-directory
         run: cp -r ./* /home/exouser/Desktop/blech_clust
+
       - name: Check files in working-directory
         run: ls -R /home/exouser/Desktop/blech_clust
+
       - name: Setup params
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
+
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
+      - name: Install blech_clust package
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: make base
 
   Spike-EMG:
     runs-on: self-hosted
@@ -70,3 +93,10 @@ jobs:
                 ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
                 exit 1;
               fi
+
+      - name: Cleanup after tests
+        if: always()
+        run: |
+          echo "Cleaning up working directory and test artifacts"
+          rm -rf /home/exouser/Desktop/blech_clust
+          echo "Note: Test data in ~/.blech_clust_test_data is preserved for reuse"

@@ -8,7 +8,7 @@ Below are examples of common analysis workflows:
 
 Workflow 1: Basic Data Loading and Processing
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 # Initialize with data directory
 data = ephys_data(data_dir='/path/to/data')
@@ -26,7 +26,7 @@ lfps = data.lfp_array        # Access LFP data
 
 Workflow 2: Region-Based Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 
 # Initialize and load data
@@ -58,7 +58,7 @@ for region in data.region_names:
 
 Workflow 3: Laser Condition Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -94,7 +94,7 @@ if data.laser_exists:
 
 Workflow 4: Palatability Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -120,7 +120,7 @@ print(f"Neurons with strong palatability coding: {strong_pal_neurons}")
 
 Workflow 5: Time-Frequency Analysis
 -----------------------------------------------------
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import matplotlib.pyplot as plt
 
 # Initialize and load data
@@ -574,7 +574,11 @@ class ephys_data():
         Convenience method that calls all extraction methods in sequence.
 
         Side Effects:
-            Sets attributes: unit_descriptors, spikes, firing_array, lfp_array
+            Sets attributes:
+                - unit_descriptors: Array of unit descriptor records from HDF5
+                - spikes: List of spike arrays, one per taste/dig_in
+                - firing_array: 4D array of firing rates (n_tastes, n_neurons, n_trials, n_timepoints)
+                - lfp_array: 4D array of LFP data (n_tastes, n_channels, n_trials, n_timepoints)
         """
         self.get_unit_descriptors()
         self.get_spikes()
@@ -587,7 +591,13 @@ class ephys_data():
         Convenience method that separates spikes, firing rates, and LFPs by laser condition.
 
         Side Effects:
-            Sets attributes: on_spikes, off_spikes, on_firing, off_firing, on_lfp, off_lfp
+            Sets attributes:
+                - on_spikes: Spike arrays for laser on trials
+                - off_spikes: Spike arrays for laser off trials
+                - on_firing: Firing rate arrays for laser on trials
+                - off_firing: Firing rate arrays for laser off trials
+                - on_lfp: LFP arrays for laser on trials
+                - off_lfp: LFP arrays for laser off trials
         """
         self.separate_laser_spikes()
         self.separate_laser_firing()
@@ -596,21 +606,28 @@ class ephys_data():
     def get_unit_descriptors(self):
         """Extract unit descriptors from HDF5 file
 
+        Reads the unit_descriptor table from the HDF5 file containing information
+        about each sorted unit (neuron).
+
         Side Effects:
-            Sets self.unit_descriptors: Array of unit descriptor records from HDF5
+            Sets self.unit_descriptors: Structured array with fields including:
+                - electrode_number: Electrode where unit was recorded
+                - single_unit: Boolean indicating if unit is single or multi-unit
+                - regular_spiking: Boolean indicating regular spiking classification
+                - fast_spiking: Boolean indicating fast spiking classification
         """
         with tables.open_file(self.hdf5_path, 'r+') as hf5_file:
             self.unit_descriptors = hf5_file.root.unit_descriptor[:]
 
     def check_laser(self):
-        """
-        Check if laser trials exist in the data
+        """Check if laser trials exist in the data
 
-        Generates:
-            - laser_exists : bool
-                True if laser trials exist, False otherwise
-            - laser_durations : np.array
-                Array of laser durations if they exist, otherwise None
+        Examines trial_info_frame to determine if any trials have non-zero laser durations.
+
+        Side Effects:
+            Sets attributes:
+                - laser_exists: bool, True if laser trials exist, False otherwise
+                - laser_durations: list of np.arrays, laser durations for each taste in ms
         """
         if 'trial_info_frame' not in dir(self):
             print('Trial info frame not found...Loading')
@@ -718,6 +735,8 @@ class ephys_data():
         Side Effects:
             - Loads info_dict and trial_info_frame if not present
             - Calls lfp_processing.extract_lfps which creates /Parsed_LFP node in HDF5
+            - Creates dig_in_X_LFPs arrays in HDF5 for each digital input
+            - Generates LFP channel check plots for quality control
         """
         if 'info_dict' not in dir(self):
             print('Info dict not found...Loading')
@@ -744,7 +763,7 @@ class ephys_data():
         reading the large LFP arrays when only channel information is needed.
 
         Side Effects:
-            Sets self.parsed_lfp_channels: Array of electrode numbers used for LFP
+            Sets self.parsed_lfp_channels: 1D array of electrode channel indices used for LFP recording
         """
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/Parsed_LFP_channels' not in hf5:
@@ -762,8 +781,11 @@ class ephys_data():
     def check_file_type(self):
         """Check if file type is compatible with LFP processing
 
+        Verifies that the data directory contains raw .dat files needed for LFP extraction.
+        Prints warning if incompatible (traditional format).
+
         Returns:
-            bool: True if file type is compatible, False if traditional format
+            bool: True if file type is compatible (not traditional), False if traditional format
         """
         if 'info_dict' not in dir(self):
             print('Info dict not found...Loading')
@@ -857,7 +879,12 @@ class ephys_data():
         based on the specified method type ('conv' or 'baks').
 
         Returns:
-            function: Configured firing rate calculation function
+            function: Configured firing rate calculation function that takes spike_array
+                     as input and returns (firing_rate, time_vector) tuple
+
+        Raises:
+            Exception: If firing_rate_params['type'] is not 'conv' or 'baks'
+            Exception: If required parameters for selected method are missing
 
         Raises:
             Exception: If required parameters are missing or invalid
@@ -1125,7 +1152,13 @@ class ephys_data():
         """Load experiment information from .info JSON file
 
         Loads the .info file containing experimental parameters and metadata.
-        Sets self.info_dict attribute.
+
+        Side Effects:
+            Sets self.info_dict: Dictionary containing:
+                - file_type: Type of data file ('one file' or 'traditional')
+                - taste_params: Dictionary with taste delivery parameters
+                - electrode_layout: Dictionary mapping brain regions to electrode lists
+                - palatability_ranks: List of palatability rankings for each taste
 
         Raises:
             Exception: If no .info file is found in data directory
@@ -1140,7 +1173,12 @@ class ephys_data():
         """Extract sorting parameters from .params file
 
         Side Effects:
-            Sets self.sorting_params_dict: Dictionary of spike sorting parameters
+            Sets self.sorting_params_dict: Dictionary containing:
+                - spike_array_durations: [pre_stim, post_stim] durations in ms
+                - sampling_rate: Sampling rate in Hz
+                - voltage_cutoff: Voltage threshold for spike detection
+                - max_breach_rate: Maximum breach rate for artifact rejection
+                - max_secs_above_cutoff: Maximum seconds above cutoff for artifact rejection
 
         Raises:
             Exception: If no .params file is found in data directory
@@ -1317,8 +1355,12 @@ class ephys_data():
     def get_lfp_electrodes(self):
         """Extract LFP electrode indices organized by brain region
 
+        Maps LFP channels to brain regions based on electrode layout information
+        from the .info file.
+
         Side Effects:
-            Sets self.lfp_region_electrodes: List of electrode indices for each region
+            Sets self.lfp_region_electrodes: List of arrays, each containing electrode
+                                            indices for a specific brain region
         """
         if not self.check_file_type():
             return
@@ -1468,8 +1510,14 @@ class ephys_data():
                         hf5.create_array(dir_path, name, obj)
 
     def return_region_lfps(self):
-        """
-        Return list containing LFPs for each region and region names
+        """Return list containing LFPs for each region and region names
+
+        Extracts LFP data organized by brain region based on electrode assignments.
+
+        Returns:
+            tuple: (region_lfp, region_names)
+                - region_lfp: List of arrays, each with shape (n_tastes, n_channels_in_region, n_trials, n_timepoints)
+                - region_names: List of region name strings
         """
         if not self.check_file_type():
             return
@@ -1483,8 +1531,16 @@ class ephys_data():
         return region_lfp, self.region_names
 
     def return_representative_lfp_channels(self):
-        """
-        Return one electrode per region that is closest to the mean
+        """Return one electrode per region that is closest to the mean
+
+        Identifies a single representative LFP channel for each brain region by
+        finding the channel with minimum deviation from the region's mean LFP.
+
+        Returns:
+            tuple: (wanted_channel_inds, region_names, region_lfps)
+                - wanted_channel_inds: List of channel indices, one per region
+                - region_names: List of region name strings (sorted alphabetically)
+                - region_lfps: List of LFP arrays for each region
         """
         if not self.check_file_type():
             return
@@ -1543,7 +1599,13 @@ class ephys_data():
 
         Loads trial_info_frame.csv containing trial metadata including
         taste identities, laser conditions, and timing information.
-        Sets self.trial_info_frame attribute.
+
+        Side Effects:
+            Sets self.trial_info_frame: pandas DataFrame with columns including:
+                - dig_in_num_taste: Digital input number for taste delivery
+                - laser_duration_ms: Duration of laser stimulation in ms
+                - start_taste_ms: Trial start time in ms
+                - end_taste_ms: Trial end time in ms
         """
         self.trial_info_frame = pd.read_csv(
             os.path.join(self.data_dir, 'trial_info_frame.csv'))
@@ -1553,6 +1615,12 @@ class ephys_data():
 
         Groups trials by taste identity and laser parameters, creating
         a DataFrame with trial indices for each unique combination.
+
+        Side Effects:
+            Sets self.trial_inds_frame: pandas DataFrame with columns:
+                - dig_in_num_taste: Digital input number
+                - laser_duration_ms: Laser duration in ms
+                - trial_inds: List of trial indices for this condition
 
         Side Effects:
             Sets self.trial_inds_frame: DataFrame with columns:
