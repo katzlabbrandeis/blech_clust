@@ -146,7 +146,7 @@ import tables
 with tables.open_file('data.h5', 'r') as hf5:
     # Read spike times
     spike_times = hf5.root.spike_times[:]
-    
+
     # Read unit information
     units = hf5.root.units[:]
 ```

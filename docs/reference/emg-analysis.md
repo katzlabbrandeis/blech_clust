@@ -229,7 +229,7 @@ import numpy as np
 # Load filtered EMG data
 with tables.open_file('data.h5', 'r') as hf5:
     emg_filtered = hf5.root.emg.filtered[:]
-    
+
 # Load gape events
 with tables.open_file('data.h5', 'r') as hf5:
     gape_times = hf5.root.emg.gapes.onset_times[:]
@@ -262,7 +262,7 @@ print(f"Mean duration: {np.mean(gape_durations):.2f} ms")
 
 ## References
 
-Li, J. X., et al. (2016). "Gape detection using quadratic discriminant analysis." 
+Li, J. X., et al. (2016). "Gape detection using quadratic discriminant analysis."
 Journal of Neurophysiology, 116(4), 1748-1763.
 
 ## See Also
