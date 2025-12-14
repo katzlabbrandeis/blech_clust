@@ -46,9 +46,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def load_file(filename):
+def load_file(filename, silent=False):
     """Loads .rhd file with provided filename, returning 'result' dict and
     'data_present' Boolean.
+
+    Args:
+        filename: Path to .rhd file
+        silent: If True, suppress progress output
     """
     # Start timing
     tic = time.time()
@@ -58,16 +62,17 @@ def load_file(filename):
     filesize = os.path.getsize(filename)
 
     # Read file header
-    header = read_header(fid)
+    header = read_header(fid, silent=silent)
 
     # Calculate how much data is present and summarize to console.
     data_present, filesize, num_blocks, num_samples = (
-        calculate_data_size(header, filename, fid))
+        calculate_data_size(header, filename, fid, silent=silent))
 
     # If .rhd file contains data, read all present data blocks into 'data'
     # dict, and verify the amount of data read.
     if data_present:
-        data = read_all_data_blocks(header, num_samples, num_blocks, fid)
+        data = read_all_data_blocks(
+            header, num_samples, num_blocks, fid, silent=silent)
         check_end_of_file(filesize, fid)
 
     # Save information in 'header' to 'result' dict.
@@ -77,8 +82,8 @@ def load_file(filename):
     # If .rhd file contains data, parse data into readable forms and, if
     # necessary, apply the same notch filter that was active during recording.
     if data_present:
-        parse_data(header, data)
-        apply_notch_filter(header, data)
+        parse_data(header, data, silent=silent)
+        apply_notch_filter(header, data, silent=silent)
 
         # Save recorded data in 'data' to 'result' dict.
         data_to_result(header, data, result)
@@ -90,7 +95,8 @@ def load_file(filename):
         data = []
 
     # Report how long read took.
-    print('Done!  Elapsed time: {0:0.1f} seconds'.format(time.time() - tic))
+    if not silent:
+        print('Done!  Elapsed time: {0:0.1f} seconds'.format(time.time() - tic))
 
     # Return 'result' dict.
     return result, data_present
@@ -185,14 +191,14 @@ def find_channel_in_header(channel_name, header):
     return False, '', 0
 
 
-def read_header(fid):
+def read_header(fid, silent=False):
     """Reads the Intan File Format header from the given file.
     """
     check_magic_number(fid)
 
     header = {}
 
-    read_version_number(header, fid)
+    read_version_number(header, fid, silent=silent)
     set_num_samples_per_data_block(header)
 
     freq = {}
@@ -211,7 +217,7 @@ def read_header(fid):
 
     initialize_channels(header)
 
-    read_signal_summary(header, fid)
+    read_signal_summary(header, fid, silent=silent)
 
     return header
 
@@ -225,7 +231,7 @@ def check_magic_number(fid):
         raise UnrecognizedFileError('Unrecognized file type.')
 
 
-def read_version_number(header, fid):
+def read_version_number(header, fid, silent=False):
     """Reads version number (major and minor) from fid. Stores them into
     header['version']['major'] and header['version']['minor'].
     """
@@ -233,8 +239,9 @@ def read_version_number(header, fid):
     (version['major'], version['minor']) = struct.unpack('<hh', fid.read(4))
     header['version'] = version
 
-    print('\nReading Intan Technologies RHD Data File, Version {}.{}\n'
-          .format(version['major'], version['minor']))
+    if not silent:
+        print('\nReading Intan Technologies RHD Data File, Version {}.{}\n'
+              .format(version['major'], version['minor']))
 
 
 def set_num_samples_per_data_block(header):
@@ -358,7 +365,7 @@ def initialize_channels(header):
     header['board_dig_out_channels'] = []
 
 
-def read_signal_summary(header, fid):
+def read_signal_summary(header, fid, silent=False):
     """Reads signal summary from data file header and stores information for
     all signal groups and their channels in 'header' dict.
     """
@@ -366,7 +373,7 @@ def read_signal_summary(header, fid):
     for signal_group in range(1, number_of_signal_groups + 1):
         add_signal_group_information(header, fid, signal_group)
     add_num_channels(header)
-    print_header_summary(header)
+    print_header_summary(header, silent=silent)
 
 
 def add_signal_group_information(header, fid, signal_group):
@@ -495,9 +502,12 @@ def header_to_result(header, result):
     return result
 
 
-def print_header_summary(header):
+def print_header_summary(header, silent=False):
     """Prints summary of contents of RHD header to console.
     """
+    if silent:
+        return
+        
     print('Found {} amplifier channel{}.'.format(
         header['num_amplifier_channels'],
         plural(header['num_amplifier_channels'])))
@@ -875,12 +885,18 @@ def read_qstring(fid):
     return ''.join([chr(c) for c in data])
 
 
-def calculate_data_size(header, filename, fid):
+def calculate_data_size(header, filename, fid, silent=False):
     """Calculates how much data is present in this file. Returns:
     data_present: Bool, whether any data is present in file
     filesize: Int, size (in bytes) of file
     num_blocks: Int, number of 60 or 128-sample data blocks present
     num_samples: Int, number of samples present in file
+
+    Args:
+        header: File header information
+        filename: Path to file
+        fid: File identifier
+        silent: If True, suppress output
     """
     bytes_per_block = get_bytes_per_data_block(header)
 
@@ -904,7 +920,8 @@ def calculate_data_size(header, filename, fid):
 
     print_record_time_summary(num_samples['amplifier'],
                               header['sample_rate'],
-                              data_present)
+                              data_present,
+                              silent=silent)
 
     return data_present, filesize, num_blocks, num_samples
 
@@ -924,10 +941,19 @@ def calculate_num_samples(header, num_data_blocks):
     return num_samples
 
 
-def print_record_time_summary(num_amp_samples, sample_rate, data_present):
+def print_record_time_summary(num_amp_samples, sample_rate, data_present, silent=False):
     """Prints summary of how much recorded data is present in RHD file
     to console.
+
+    Args:
+        num_amp_samples: Number of amplifier samples
+        sample_rate: Sampling rate
+        data_present: Whether data is present in file
+        silent: If True, suppress output
     """
+    if silent:
+        return
+
     record_time = num_amp_samples / sample_rate
 
     if data_present:
@@ -940,27 +966,37 @@ def print_record_time_summary(num_amp_samples, sample_rate, data_present):
               .format(sample_rate / 1000))
 
 
-def read_all_data_blocks(header, num_samples, num_blocks, fid):
+def read_all_data_blocks(header, num_samples, num_blocks, fid, silent=False):
     """Reads all data blocks present in file, allocating memory for and
     returning 'data' dict containing all data.
+
+    Args:
+        header: File header information
+        num_samples: Number of samples to read
+        num_blocks: Number of data blocks
+        fid: File identifier
+        silent: If True, suppress progress output
     """
-    data, indices = initialize_memory(header, num_samples)
-    print("Reading data from file...")
+    data, indices = initialize_memory(header, num_samples, silent=silent)
+    if not silent:
+        print("Reading data from file...")
     print_step = 10
     percent_done = print_step
     for i in range(num_blocks):
         read_one_data_block(data, header, indices, fid)
         advance_indices(indices, header['num_samples_per_data_block'])
-        percent_done = print_progress(i, num_blocks, print_step, percent_done)
+        percent_done = print_progress(
+            i, num_blocks, print_step, percent_done, silent=silent)
     return data
 
 
-def initialize_memory(header, num_samples):
+def initialize_memory(header, num_samples, silent=False):
     """Pre-allocates NumPy arrays for each signal type that will be filled
     during this read, and initializes unique indices for data access to each
     signal type.
     """
-    print('\nAllocating memory for data...')
+    if not silent:
+        print('\nAllocating memory for data...')
     data = {}
 
     # Create zero array for amplifier timestamps.
@@ -1062,29 +1098,31 @@ def check_end_of_file(filesize, fid):
         raise FileSizeError('Error: End of file not reached.')
 
 
-def parse_data(header, data):
+def parse_data(header, data, silent=False):
     """Parses raw data into user readable and interactable forms (for example,
     extracting raw digital data to separate channels and scaling data to units
     like microVolts, degrees Celsius, or seconds.)
     """
-    print('Parsing data...')
+    if not silent:
+        print('Parsing data...')
     extract_digital_data(header, data)
     scale_analog_data(header, data)
-    scale_timestamps(header, data)
+    scale_timestamps(header, data, silent=silent)
 
 
-def scale_timestamps(header, data):
+def scale_timestamps(header, data, silent=False):
     """Verifies no timestamps are missing, and scales timestamps to seconds.
     """
     # Check for gaps in timestamps.
     num_gaps = np.sum(np.not_equal(
         data['t_amplifier'][1:]-data['t_amplifier'][:-1], 1))
-    if num_gaps == 0:
-        print('No missing timestamps in data.')
-    else:
-        print('Warning: {0} gaps in timestamp data found.  '
-              'Time scale will not be uniform!'
-              .format(num_gaps))
+    if not silent:
+        if num_gaps == 0:
+            print('No missing timestamps in data.')
+        else:
+            print('Warning: {0} gaps in timestamp data found.  '
+                  'Time scale will not be uniform!'
+                  .format(num_gaps))
 
     # Scale time steps (units = seconds).
     data['t_amplifier'] = data['t_amplifier'] / header['sample_rate']
@@ -1153,9 +1191,14 @@ def extract_digital_data(header, data):
             0)
 
 
-def apply_notch_filter(header, data):
+def apply_notch_filter(header, data, silent=False):
     """Checks header to determine if notch filter should be applied, and if so,
     apply notch filter to all signals in data['amplifier_data'].
+
+    Args:
+        header: File header information
+        data: Data dictionary containing amplifier data
+        silent: If True, suppress progress output
     """
     # If data was not recorded with notch filter turned on, return without
     # applying notch filter. Similarly, if data was recorded from Intan RHX
@@ -1166,7 +1209,8 @@ def apply_notch_filter(header, data):
         return
 
     # Apply notch filter individually to each channel in order
-    print('Applying notch filter...')
+    if not silent:
+        print('Applying notch filter...')
     print_step = 10
     percent_done = print_step
     for i in range(header['num_amplifier_channels']):
@@ -1177,7 +1221,7 @@ def apply_notch_filter(header, data):
             10)
 
         percent_done = print_progress(i, header['num_amplifier_channels'],
-                                      print_step, percent_done)
+                                      print_step, percent_done, silent=silent)
 
 
 def notch_filter(signal_in, f_sample, f_notch, bandwidth):
@@ -1259,13 +1303,21 @@ def calculate_iir(i, signal_in, signal_out, iir_parameters):
     return sample
 
 
-def print_progress(i, target, print_step, percent_done):
+def print_progress(i, target, print_step, percent_done, silent=False):
     """Prints progress of an arbitrary process based on position i / target,
     printing a line showing completion percentage for each print_step / 100.
+
+    Args:
+        i: Current position in process
+        target: Total number of items to process
+        print_step: Percentage increment for progress updates
+        percent_done: Current percentage completed
+        silent: If True, suppress progress output
     """
     fraction_done = 100 * (1.0 * i / target)
     if fraction_done >= percent_done:
-        print('{}% done...'.format(percent_done))
+        if not silent:
+            print('{}% done...'.format(percent_done))
         percent_done += print_step
 
     return percent_done

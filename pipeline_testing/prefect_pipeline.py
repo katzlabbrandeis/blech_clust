@@ -35,7 +35,8 @@ if test_bool:
         spike_emg=False,
         fail_fast=False,
         file_type='ofpc',
-        dummy_upload=False
+        dummy_upload=False,
+        silent=False
     )
 else:
     parser = argparse.ArgumentParser(
@@ -76,6 +77,8 @@ else:
                         help='Run tests expected to fail')
     parser.add_argument('--fail-popen', action='store_true',
                         help='Run fail check using Popen')
+    parser.add_argument('--silent', action='store_true',
+                        help='Suppress progress bars and verbose output in scripts')
     args = parser.parse_args()
     script_path = os.path.realpath(__file__)
 
@@ -121,6 +124,13 @@ if verbose:
     print('Verbose mode enabled')
     print('====================')
 
+# Set silent flag for suppressing progress bars
+silent = args.silent
+if silent:
+    print('====================')
+    print('Silent mode enabled - suppressing progress bars')
+    print('====================')
+
 
 def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
     # Print current data_type
@@ -151,12 +161,10 @@ def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
 emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
 if not os.path.exists(emg_params_path):
     print('=== Environment params file not found. ===')
+    print(f'Expected path: {emg_params_path}')
     print(
-        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
+        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/emg_params.json ]] and update as needed.')
     exit()
-with open(emg_params_path) as f:
-    env_params = json.load(f)
-emg_env_path = env_params['emg_env']
 
 # data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
 # data_subdir = 'pipeline_testing/test_data_handling/eb24_behandephys_11_12_24_241112_114659_copy'
@@ -273,8 +281,10 @@ def run_blech_init(data_dir):
     if verbose:
         print(f'[DEBUG] run_blech_init: Starting with data_dir={data_dir}')
     script_name = 'blech_init.py'
-    process = Popen(["python", script_name, data_dir],
-                    stdout=PIPE, stderr=PIPE)
+    cmd = ["python", script_name, data_dir]
+    if silent:
+        cmd.append("--silent")
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
@@ -379,8 +389,10 @@ def quality_assurance(data_dir):
     if verbose:
         print(f'[DEBUG] quality_assurance: Starting with data_dir={data_dir}')
     script_name = 'blech_run_QA.sh'
-    process = Popen(["bash", script_name, data_dir],
-                    stdout=PIPE, stderr=PIPE)
+    cmd = ["bash", script_name, data_dir]
+    if silent:
+        cmd.append("--silent")
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
@@ -390,8 +402,10 @@ def units_plot(data_dir):
     if verbose:
         print(f'[DEBUG] units_plot: Starting with data_dir={data_dir}')
     script_name = 'blech_units_plot.py'
-    process = Popen(["python", script_name, data_dir],
-                    stdout=PIPE, stderr=PIPE)
+    cmd = ["python", script_name, data_dir]
+    if silent:
+        cmd.append("--silent")
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 
@@ -402,8 +416,10 @@ def units_characteristics(data_dir):
         print(
             f'[DEBUG] units_characteristics: Starting with data_dir={data_dir}')
     script_name = 'blech_units_characteristics.py'
-    process = Popen(["python", script_name, data_dir],
-                    stdout=PIPE, stderr=PIPE)
+    cmd = ["python", script_name, data_dir]
+    if silent:
+        cmd.append("--silent")
+    process = Popen(cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout, fail_fast)
 

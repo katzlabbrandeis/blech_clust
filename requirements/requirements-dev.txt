@@ -1,3 +1,8 @@
 prefect==2.20.22
 gdown
 boto3
+pytest
+pytest-cov
+flake8
+black
+pre-commit

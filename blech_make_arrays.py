@@ -19,6 +19,7 @@ import sys
 import os
 import pandas as pd
 from tqdm import tqdm
+import argparse
 from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
@@ -128,8 +129,18 @@ if __name__ == '__main__':
     if test_bool:
         data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
         metadata_handler = imp_metadata([[], data_dir])
+        silent = False
     else:
-        metadata_handler = imp_metadata(sys.argv)
+        # Parse arguments
+        parser = argparse.ArgumentParser()
+        parser.add_argument('dir_name', type=str,
+                            help='Directory containing data')
+        parser.add_argument('--silent', action='store_true',
+                            help='Suppress progress bars and verbose output')
+        args = parser.parse_args()
+
+        silent = args.silent
+        metadata_handler = imp_metadata([[], args.dir_name])
 
         # Perform pipeline graph check
         script_path = os.path.realpath(__file__)
@@ -159,7 +170,8 @@ if __name__ == '__main__':
 
     this_dig_handler = DigInHandler(
         metadata_handler.dir_name,
-        info_dict['file_type']
+        info_dict['file_type'],
+        silent=silent
     )
     this_dig_handler.load_dig_in_frame()
     print('DigIn data loaded')
@@ -403,7 +415,7 @@ if __name__ == '__main__':
         print(emg_electrode_names)
         print('===============================================')
         cutoff_data = []
-        for this_el in tqdm(raw_emg_electrodes):
+        for this_el in tqdm(raw_emg_electrodes, disable=silent):
             raw_el = this_el[:]
             # High bandpass filter the raw electrode recordings
             filt_el = get_filtered_electrode(

@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params dev optional test prefect update make_env
+.PHONY: all base emg neurec blechrnn clean params dev optional prefect update make_env
 
 # Consolidated pip-based installation - no sudo required for base packages
 
@@ -19,12 +19,10 @@ update:
 	@echo "Updating conda..."
 	conda update -n base -c conda-forge conda -y
 
-make_env: params
+make_env: 
 	@echo "Setting up base blech_clust environment..."
 	@echo "Deactivating any active conda environment..."
 	conda deactivate || true
-	@echo "Cleaning conda cache..."
-	conda clean --all -y
 	@echo "Creating blech_clust environment with Python 3.8..."
 	conda create --name blech_clust python=3.8 -y
 
@@ -87,13 +85,13 @@ blechrnn:
 # This is to prevent overwriting existing parameter files
 # If no json files exist, copy templates
 params:
-	@echo "Checking parameter files..."
-	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
+	@echo "Checking parameter files in params directory = $(strip $(SCRIPT_DIR))/params..."
+	@if [ $$(ls $(strip $(SCRIPT_DIR))/params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
 		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
-	elif [ $$(ls params/*.json 2>/dev/null | wc -l) -eq 1 ]; then \
-		echo "Copying parameter templates to params directory..."; \
 	else \
-		echo "No parameter files found. Templates should be copied if available."; \
+		echo "No parameter files found."; \
+		echo "Copying parameter templates to params directory..."; \
+		cp $(strip $(SCRIPT_DIR))/params/_templates/* params/; \
 	fi
 
 dev:
@@ -106,11 +104,6 @@ optional:
 	conda run -n blech_clust pip install --no-cache-dir -e .[optional]
 	@echo "Optional dependencies installation complete!"
 
-test:
-	@echo "Installing test dependencies..."
-	conda run -n blech_clust pip install --no-cache-dir -e .[test]
-	@echo "Test dependencies installation complete!"
-
 # Install Prefect
 prefect:
 	@echo "Installing Prefect workflow management..."
@@ -120,5 +113,11 @@ prefect:
 # Clean up environments
 clean:
 	@echo "Cleaning up blech_clust environment..."
-	conda env remove -n blech_clust -y
-	@echo "Environment cleanup complete!"
+	@if conda env list | grep -q "blech_clust"; then \
+		conda env remove -n blech_clust -y; \
+		echo "Environment cleanup complete!"; \
+	else \
+		echo "blech_clust environment does not exist, nothing to clean"; \
+	fi
+	@echo "Cleaning conda cache..."
+	conda clean --all -y

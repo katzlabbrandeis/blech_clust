@@ -11,10 +11,14 @@ import os
 import matplotlib.pyplot as plt
 import shutil
 from tqdm import tqdm, trange
+import argparse
 
 # Import 3rd part code
 from utils import blech_waveforms_datashader
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
+
+# Global flag for silent mode
+silent = False
 
 
 def setup_environment(args):
@@ -252,7 +256,7 @@ def process_all_units(
         output_dir: Directory to save plots
     """
     # Now plot the waveforms from the units in this directory one by one
-    for unit in trange(len(units)):
+    for unit in trange(len(units), disable=silent):
         try:
             unit_descriptor = hf5.root.unit_descriptor[unit]
             plot_unit_summary(
@@ -286,7 +290,7 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
     plot_dir = os.path.join('unit_waveforms_plots', output_subdir)
     os.mkdir(plot_dir)
 
-    for unit in trange(len(units)):
+    for unit in trange(len(units), disable=silent):
         waveforms = units[unit].waveforms[:]
         x = np.arange(waveforms.shape[1]) + 1
         times = units[unit].times[:]
@@ -316,6 +320,16 @@ def save_individual_plots(units, output_subdir="waveforms_only"):
 
 def main():
     """Main function to process neural data and generate plots."""
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dir_name', type=str, help='Directory containing data')
+    parser.add_argument('--silent', action='store_true',
+                        help='Suppress progress bars and verbose output')
+    args = parser.parse_args()
+
+    global silent
+    silent = args.silent
+
     # Setup environment
     test_bool = False
     if not test_bool:
@@ -326,7 +340,7 @@ def main():
             layout_frame,
             this_pipeline_check,
             script_path,
-        ) = setup_environment(sys.argv)
+        ) = setup_environment([[], args.dir_name])
     else:
         data_dir = '/media/storage/NM_resorted_data/laser_2500ms/NM43_2500ms_160515_104159'
         metadata_handler = imp_metadata([[], data_dir])

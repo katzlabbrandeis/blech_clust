@@ -39,7 +39,7 @@ class DigInHandler:
 
     """
 
-    def __init__(self, data_dir, file_type):
+    def __init__(self, data_dir, file_type, silent=False):
         """
         Initializes DigInHandler object
 
@@ -48,9 +48,12 @@ class DigInHandler:
                         Directory containing digital input files
                 file_format: str
                         Format of digital input files
+                silent: bool
+                        If True, suppress progress bars and verbose output
         """
         self.data_dir = data_dir
         self.file_type = file_type
+        self.silent = silent
 
     def get_dig_in_files(self):
         """
@@ -92,7 +95,7 @@ class DigInHandler:
         else:
             rhd_file_list = [x for x in file_list if 'rhd' in x]
             with open(os.path.join(self.data_dir, rhd_file_list[0]), 'rb') as f:
-                header = read_header(f)
+                header = read_header(f, silent=self.silent)
             dig_in_file_list = sorted([x for x in rhd_file_list if 'rhd' in x])
             dig_in_name = [x['native_channel_name'].lower()
                            for x in header['board_dig_in_channels']]
@@ -154,9 +157,9 @@ class DigInHandler:
 
             pulse_times = {}
             counter = 0
-            for this_file in tqdm(self.dig_in_file_list):
+            for this_file in tqdm(self.dig_in_file_list, disable=self.silent):
                 this_file_data, data_present = load_file(
-                    os.path.join(self.data_dir, this_file))
+                    os.path.join(self.data_dir, this_file), silent=self.silent)
                 dig_inputs = this_file_data['board_dig_in_data']
                 dig_inputs = dig_inputs.astype('int')
                 # Shape: (num_dig_ins, num_samples)
@@ -240,6 +243,7 @@ def read_traditional_intan(
     hdf5_name,
     file_list,
     electrode_layout_frame,
+    silent=False,
 ):
     """
     Reads traditional intan format data and saves to hdf5
@@ -251,6 +255,8 @@ def read_traditional_intan(
                     List of file names to read
             electrode_layout_frame: pandas.DataFrame
                     Dataframe containing details of electrode layout
+            silent: bool
+                    If True, suppress progress bars
 
     Writes:
             hdf5 file with raw and raw_emg data
@@ -262,12 +268,17 @@ def read_traditional_intan(
     # hdf5_path = os.path.join(dir_name, hdf5_name)
     hf5 = tables.open_file(hdf5_name, 'r+')
 
-    pbar = tqdm(total=len(file_list))
-    for this_file in file_list:
-        # Update progress bar with file name
-        pbar.set_description(os.path.basename(this_file))
+    if not silent:
+        pbar = tqdm(total=len(file_list), disable=False)
+    
+    for i, this_file in enumerate(file_list):
+        if silent:
+            print(f"File {i+1}/{len(file_list)} has been loaded")
+        else:
+            # Update progress bar with file name
+            pbar.set_description(os.path.basename(this_file))
         # this_file_data = read_data(this_file)
-        this_file_data, data_present = load_file(this_file)
+        this_file_data, data_present = load_file(this_file, silent=silent)
         # Get channel details
         # For each anplifier channel, read data and save to hdf5
         for i, this_amp in enumerate(this_file_data['amplifier_data']):
@@ -293,22 +304,25 @@ def read_traditional_intan(
                     hf5_el_array = hf5.get_node('/raw', array_name)
                 hf5_el_array.append(this_amp)
             hf5.flush()
-        pbar.update(1)
-    pbar.close()
+        if not silent:
+            pbar.update(1)
+    if not silent:
+        pbar.close()
     hf5.close()
 
 
 # TODO: Remove exec statements throughout file
-def read_emg_channels(hdf5_name, electrode_layout_frame):
+def read_emg_channels(hdf5_name, electrode_layout_frame, silent=False):
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
     hf5 = tables.open_file(hdf5_name, 'r+')
-    for num, row in tqdm(electrode_layout_frame.iterrows()):
+    for num, row in tqdm(electrode_layout_frame.iterrows(), disable=silent):
         # Loading should use file name
         # but writing should use channel ind so that channels from
         # multiple boards are written into a monotonic sequence
         if 'emg' in row.CAR_group.lower():
-            print(f'Reading : {row.filename, row.CAR_group}')
+            if not silent:
+                print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
             data = np.fromfile(row.filename, dtype=np.dtype('int16'))
@@ -321,7 +335,7 @@ def read_emg_channels(hdf5_name, electrode_layout_frame):
     hf5.close()
 
 
-def read_electrode_channels(hdf5_name, electrode_layout_frame):
+def read_electrode_channels(hdf5_name, electrode_layout_frame, silent=False):
     """
     # Loading should use file name
     # but writing should use channel ind so that channels from
@@ -332,11 +346,12 @@ def read_electrode_channels(hdf5_name, electrode_layout_frame):
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
     hf5 = tables.open_file(hdf5_name, 'r+')
-    for num, row in tqdm(electrode_layout_frame.iterrows()):
+    for num, row in tqdm(electrode_layout_frame.iterrows(), disable=silent):
         emg_bool = 'emg' not in row.CAR_group.lower()
         none_bool = row.CAR_group.lower() not in ['none', 'na']
         if emg_bool and none_bool:
-            print(f'Reading : {row.filename, row.CAR_group}')
+            if not silent:
+                print(f'Reading : {row.filename, row.CAR_group}')
             port = row.port
             channel_ind = row.electrode_ind
             data = np.fromfile(row.filename, dtype=np.dtype('int16'))

@@ -120,6 +120,8 @@ def parse_arguments():
 
         # Additional information
         parser.add_argument('--notes', help='Experiment notes')
+        parser.add_argument('--silent', action='store_true',
+                            help='Suppress progress bars and verbose output')
 
         return parser.parse_args()
 
@@ -1327,7 +1329,7 @@ def main():
     # Process Digital Inputs
     ##################################################
     print("\n=== Processing Digital Inputs ===")
-    this_dig_handler = DigInHandler(dir_path, file_type)
+    this_dig_handler = DigInHandler(dir_path, file_type, silent=args.silent)
 
     ##################################################
     # Process Taste Parameters
