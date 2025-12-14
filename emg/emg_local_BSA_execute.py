@@ -22,6 +22,7 @@ import easygui
 import os
 import sys
 import datetime
+import json
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
@@ -49,7 +50,16 @@ class Logger(object):
 
 
 ############################################################
-# Read blech.dir, and cd to that directory.
+# Load BSA parameters from JSON
+emg_params_path = os.path.join(blech_clust_dir, 'params/emg_params.json')
+if not os.path.exists(emg_params_path):
+    print(f'No emg_params.json found at {emg_params_path}.' +
+          'Please copy the template from {os.path.join(blech_clust_dir, "params/_templates/emg_params.json")} and fill it in.'
+          )
+with open(emg_params_path, 'r') as f:
+    emg_params = json.load(f)
+bsa_params = emg_params['bsa_params']
+
 with open('BSA_run.dir', 'r') as f:
     dir_name = [x.strip() for x in f.readlines()][0]
 
@@ -83,9 +93,10 @@ rpy2.robjects.numpy2ri.activate()
 # Fire up BaSAR on R
 basar = importr('BaSAR')
 
-# Make the time array and assign it to t on R
-T = (np.arange(7000) + 1)/1000.0
-t_r = ro.r.matrix(T, nrow=1, ncol=7000)
+# Create time array using pre and post-stimulus durations
+dat_len = emg_env.shape[-1]
+T = (np.arange(dat_len) + 1) / 1000.0  # Convert to seconds
+t_r = ro.r.matrix(T, nrow=1, ncol=len(T))
 ro.r.assign('t_r', t_r)
 ro.r('t = c(t_r)')
 
@@ -95,7 +106,7 @@ input_data = emg_env[task]
 # Check that trial is non-zero, if it isn't, don't try to run BSA
 if not any(np.isnan(input_data)):
 
-    Br = ro.r.matrix(input_data, nrow=1, ncol=7000)
+    Br = ro.r.matrix(input_data, nrow=1, ncol=dat_len)
     ro.r.assign('B', Br)
     ro.r('x = c(B[1,])')
 
@@ -103,7 +114,12 @@ if not any(np.isnan(input_data)):
     # we scan periods from 0.1s (10 Hz) to 1s (1 Hz) in 20 steps.
     # Window size is 300ms.
     # There are no background functions (=0)
-    ro.r('r_local = BaSAR.local(x, 0.1, 1, 20, t, 0, 300)')
+    period_min = bsa_params['period_range'][0]
+    period_max = bsa_params['period_range'][1]
+    period_steps = bsa_params['period_steps']
+    window_size = bsa_params['window_size']
+    ro.r(
+        f'r_local = BaSAR.local(x, {period_min}, {period_max}, {period_steps}, t, 0, {window_size})')
     p_r = r['r_local']
     # r_local is returned as a length 2 object,
     # with the first element being omega and the second being the
