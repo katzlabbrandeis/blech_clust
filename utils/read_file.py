@@ -81,7 +81,7 @@ class DigInHandler:
             dig_in_file_list = [
                 name for name in file_list if name.startswith('board-DI')]
             dig_in_name = [x.split('.')[0] for x in dig_in_file_list]
-            dig_in_num = [(x.split('-')[-1]) for x in dig_in_name]
+            dig_in_num = [str(x.split('-')[-1]) for x in dig_in_name]
 
             # Sort by dig-in number
             sort_inds = np.argsort(dig_in_num)
