@@ -688,11 +688,10 @@ class ephys_data():
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
                 # Sort dig_in_list by the digital input number to ensure consistent ordering
-                dig_in_list = sorted(
-                    dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
+                print("Debug Output dig_in_list:")
+                dig_in_list = sorted(dig_in_list, key=lambda x: (x._v_name.split('_')[-1]))
                 self.dig_in_name_list = [x._v_name for x in dig_in_list]
-                self.dig_in_num_list = [int(x.split('_')[-1])
-                                        for x in self.dig_in_name_list]
+                self.dig_in_num_list = [(x.split('_')[-1]) for x in self.dig_in_name_list]
             else:
                 raise Exception('No spike trains found in HF5')
 
