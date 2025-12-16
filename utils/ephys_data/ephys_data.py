@@ -1673,8 +1673,6 @@ class ephys_data():
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
-            print('Debug output:')
-            print(this_row['dig_in_num_taste'])
             taste_ind = np.where(
                 np.array(self.dig_in_num_list, dtype = str) == str(this_row['dig_in_num_taste'])
             )[0][0]
