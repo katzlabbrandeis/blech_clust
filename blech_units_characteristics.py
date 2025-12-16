@@ -578,9 +578,7 @@ def palatability_corr(x):
     rho, p = spearmanr(x.firing, x.pal_rank)
     return pd.Series({'rho': rho, 'pval': p})
 
-
-pal_frame = seq_firing_frame.groupby(
-    group_cols).progress_apply(palatability_corr)
+pal_frame = seq_firing_frame.groupby(group_cols).apply(palatability_corr)
 pal_frame.reset_index(inplace=True)
 pal_frame['abs_rho'] = pal_frame.rho.abs()
 pal_frame['pal_sig'] = (pal_frame['pval'] < alpha)*1
