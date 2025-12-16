@@ -36,13 +36,13 @@ import pandas as pd
 from tqdm import tqdm
 
 # Local imports
-from utils.blech_utils import (
+from blech_clust.utils.blech_utils import (
     entry_checker,
     imp_metadata,
     pipeline_graph_check,
 )
-from utils.importrhdutilities import load_file, read_header
-from utils.read_file import DigInHandler
+from blech_clust.utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.read_file import DigInHandler
 
 # Constants
 test_bool = False  # noqa
@@ -317,6 +317,70 @@ def parse_laser_params(s):
             "Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
     # Convert to integers and return as list of tuples
     return [(int(onset), int(duration)) for onset, duration in matches]
+
+
+def extract_recording_params(dir_path, header=None):
+    """
+    Extract recording parameters from info.rhd file or from provided header.
+
+    Args:
+        dir_path: Path to the directory containing info.rhd
+        header: Optional pre-loaded header dict (for traditional format)
+
+    Returns:
+        Dictionary containing recording parameters, or None if not available
+    """
+    # If header is provided (traditional format), use it directly
+    if header is not None:
+        try:
+            freq_params = header.get('frequency_parameters', {})
+
+            recording_params = {
+                'sampling_rate': header.get('sample_rate'),
+                'notch_filter_frequency': header.get('notch_filter_frequency'),
+                'dsp_enabled': freq_params.get('dsp_enabled'),
+                'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+                'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+                'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+                'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+                'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+                'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+            }
+
+            return recording_params
+        except Exception as e:
+            print(f'Error extracting recording parameters from header: {e}')
+            return None
+
+    # Otherwise, try to read from info.rhd file
+    info_rhd_path = os.path.join(dir_path, 'info.rhd')
+
+    if not os.path.exists(info_rhd_path):
+        print('info.rhd file not found. Recording parameters will not be included.')
+        return None
+
+    try:
+        with open(info_rhd_path, 'rb') as f:
+            header = read_header(f)
+
+        freq_params = header.get('frequency_parameters', {})
+
+        recording_params = {
+            'sampling_rate': header.get('sample_rate'),
+            'notch_filter_frequency': header.get('notch_filter_frequency'),
+            'dsp_enabled': freq_params.get('dsp_enabled'),
+            'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+            'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+            'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+            'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+            'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+            'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+        }
+
+        return recording_params
+    except Exception as e:
+        print(f'Error reading info.rhd: {e}')
+        return None
 
 
 def extract_metadata_from_dir_name(dir_name):
@@ -1241,6 +1305,8 @@ def main():
         file_type = 'one file per channel'
 
     # Initialize electrodes_list based on file type
+    # Also store header for traditional format to extract recording params
+    rhd_header = None
     if file_type == 'one file per signal type':
         electrodes_list = ['amplifier.dat']
     elif file_type == 'one file per channel':
@@ -1252,10 +1318,10 @@ def main():
         electrodes_list = []
         rhd_file_list = [x for x in file_list if 'rhd' in x]
         with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
-            header = read_header(f)
-        ports = [x['port_prefix'] for x in header['amplifier_channels']]
+            rhd_header = read_header(f)
+        ports = [x['port_prefix'] for x in rhd_header['amplifier_channels']]
         electrode_files = [x['native_channel_name']
-                           for x in header['amplifier_channels']]
+                           for x in rhd_header['amplifier_channels']]
 
     ##################################################
     # Process Digital Inputs
@@ -1322,6 +1388,13 @@ def main():
     else:
         laser_digin_trials = []
 
+    ##################################################
+    # Extract Recording Parameters
+    ##################################################
+    print("\n=== Extracting Recording Parameters ===")
+    # Pass header if available (traditional format)
+    recording_params = extract_recording_params(dir_path, header=rhd_header)
+
     # Create final dictionary
     fin_dict = {
         'version': '0.0.3',
@@ -1355,6 +1428,10 @@ def main():
         },
         'notes': notes
     }
+
+    # Add recording parameters if available
+    if recording_params is not None:
+        fin_dict['recording_params'] = recording_params
 
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))

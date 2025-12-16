@@ -52,7 +52,7 @@ This module is designed for handling and processing electrophysiological data, s
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-from utils.blech_utils import ifisdir_rmdir
+from blech_clust.utils.blech_utils import ifisdir_rmdir
 import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
@@ -76,7 +76,7 @@ from scipy.spatial.distance import mahalanobis
 from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
-import utils.clustering as clust
+import blech_clust.utils.clustering as clust
 from blech_units_plot import plot_unit_summary, gen_isi_hist
 # import subprocess
 # import sys
