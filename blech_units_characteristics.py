@@ -128,14 +128,14 @@ waveform_dir = os.path.join(dir_name, 'unit_waveforms_plots', 'waveforms_only')
 spike_array = this_dat.spikes
 cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
-#%%Plotting Loop
+# %%Plotting Loop
 print('=== Creating overlay PSTH plots ===')
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
     n_rows = np.max([n_laser_conditions, 2])
     if n_laser_conditions > 1:
         fig, ax = plt.subplots(n_rows, 3, figsize=(15, 5*n_laser_conditions),
-                        # sharex=True, sharey='col')
-                        )
+                               # sharex=True, sharey='col')
+                               )
         ax_img1 = ax[0, -1]
         ax_img2 = ax[1, -1]
 
@@ -168,10 +168,12 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         trial_lens = this_spikes.groupby('taste_num').trial_num.max() + 1
         trialNs = this_spikes.groupby('taste_num').trial_num.size()
         taste_blocks = np.concatenate([[0], np.cumsum(trial_lens)])
-        cumTrialN = np.concatenate([[taste_blocks[stimN]] * trialNs[stimN] for stimN in range(len(trial_lens))])
-        this_spikes['cum_trial_num'] = cumTrialN + this_spikes['trial_num'] + 0.5
+        cumTrialN = np.concatenate(
+            [[taste_blocks[stimN]] * trialNs[stimN] for stimN in range(len(trial_lens))])
+        this_spikes['cum_trial_num'] = cumTrialN + \
+            this_spikes['trial_num'] + 0.5
         this_spikes['time_num'] -= stim_time
-        lineAx = ax_line if n_laser_conditions == 1 else ax[i,0]
+        lineAx = ax_line if n_laser_conditions == 1 else ax[i, 0]
         sns.lineplot(
             data=this_firing,
             x='time_val',
@@ -186,7 +188,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         lineAx.legend()
         lineAx.axvline(0, color='r', linestyle='--', linewidth=2)
 
-        scatterAx = ax_scatter if n_laser_conditions == 1 else ax[i,1]
+        scatterAx = ax_scatter if n_laser_conditions == 1 else ax[i, 1]
         sns.scatterplot(
             data=this_spikes,
             x='time_num',
@@ -204,7 +206,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             block_start = taste_blocks[block_i]
             block_end = taste_blocks[block_i+1]
             scatterAx.axhspan(block_start, block_end, alpha=0.2, zorder=-1,
-                             color=colors[block_i])
+                              color=colors[block_i])
         scatterAx.axvline(0, color='r', linestyle='--', linewidth=2)
 
         # Plot waveforms
@@ -224,7 +226,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             ax_img2.axis('off')
     # g.set_title(f'Neuron {nrn_ind}')
     fig.suptitle(f'Neuron {nrn_ind}')
-    #%% Figure Saving
+    # %% Figure Saving
     plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_firing_rate.png'),
                 bbox_inches='tight')
     plt.close()
@@ -600,6 +602,7 @@ group_frames = [x[1] for x in group_list]
 def palatability_corr(x):
     rho, p = spearmanr(x.firing, x.pal_rank)
     return pd.Series({'rho': rho, 'pval': p})
+
 
 pal_frame = seq_firing_frame.groupby(group_cols).apply(palatability_corr)
 pal_frame.reset_index(inplace=True)
