@@ -172,7 +172,6 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             [[taste_blocks[stimN]] * trialNs[stimN] for stimN in range(len(trial_lens))])
         this_spikes['cum_trial_num'] = cumTrialN + \
             this_spikes['trial_num'] + 0.5
-        this_spikes['time_num'] -= stim_time
         lineAx = ax_line if n_laser_conditions == 1 else ax[i, 0]
         sns.lineplot(
             data=this_firing,
