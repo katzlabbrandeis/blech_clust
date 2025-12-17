@@ -128,7 +128,7 @@ def create_aux_trials_for_digin(
     Create AUX trial arrays for a specific digital input
     AUX data mapping: 1=X, 2=Y, 3=Z
     Uses same trial parameters as spike-trains
-    
+
     Args:
         this_starts: Trial start times
         dig_in_basename: Name for the dig-in (e.g., 'dig_in_0')

@@ -81,7 +81,8 @@ class HDF5Handler:
         """
         self.dir_name = dir_name
         self.force_run = force_run
-        self.group_list = ['raw', 'raw_emg', 'raw_aux', 'digital_in', 'digital_out']
+        self.group_list = ['raw', 'raw_emg',
+                           'raw_aux', 'digital_in', 'digital_out']
         self.setup_hdf5()
 
     def setup_hdf5(self):

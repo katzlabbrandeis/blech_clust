@@ -403,13 +403,13 @@ def read_aux_channels(hdf5_name, electrode_layout_frame):
     """
     Read AUX data from auxiliary channels and save to hdf5
     AUX files are UINT16 format. AUX mapping: 1=X, 2=Y, 3=Z
-    
+
     Input:
             hdf5_name: str
                     Name of hdf5 file to save data to
             electrode_layout_frame: pandas.DataFrame
                     Dataframe containing details of electrode layout
-    
+
     Writes:
             hdf5 file with raw_aux data
             - raw_aux: AUX data (X, Y, Z channels)
@@ -436,7 +436,7 @@ def read_aux_channels_single_file(hdf5_name, electrode_layout_frame, aux_channel
     """
     Read AUX data from single auxiliary file and save to hdf5
     AUX files are UINT16 format. AUX mapping: 1=X, 2=Y, 3=Z
-    
+
     Input:
             hdf5_name: str
                     Name of hdf5 file to save data to
@@ -446,14 +446,14 @@ def read_aux_channels_single_file(hdf5_name, electrode_layout_frame, aux_channel
                     List of AUX channel indices
             num_recorded_samples: int
                     Number of recorded samples
-    
+
     Writes:
             hdf5 file with raw_aux data
             - raw_aux: AUX data (X, Y, Z channels)
     """
     hf5 = tables.open_file(hdf5_name, 'r+')
     atom = tables.IntAtom()
-    
+
     # Read auxiliary data file (UINT16 format)
     aux_data_file = 'auxiliary.dat'  # Standard name for single file per signal type
     if os.path.exists(aux_data_file):
@@ -462,7 +462,7 @@ def read_aux_channels_single_file(hdf5_name, electrode_layout_frame, aux_channel
         if num_aux_channels > 0:
             aux_reshape = np.reshape(aux_data, (int(
                 len(aux_data)/num_aux_channels), num_aux_channels)).T
-            
+
             for i, channel_ind in enumerate(aux_channels):
                 array_name = f'aux{channel_ind:02}'
                 el = hf5.create_earray(

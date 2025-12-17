@@ -992,7 +992,7 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     # Process AUX information
     fin_aux_port = []
     orig_aux_electrodes = []
-    
+
     if any(['aux' in x for x in layout_dict.keys()]):
         orig_aux_electrodes = [layout_dict[x][0]
                                for x in layout_dict.keys() if 'aux' in x]
