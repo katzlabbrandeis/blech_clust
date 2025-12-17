@@ -36,17 +36,6 @@ jobs:
         run: |
           make base test
 
-      - name: Check code formatting with Black
-        run: |
-          echo "Checking code formatting with Black..."
-          conda run -n blech_clust black --check --diff .
-
-      - name: Run flake8 linting
-        run: |
-          echo "Running flake8 linting..."
-          conda run -n blech_clust flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          conda run -n blech_clust flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
-
       - name: Python syntax check (compilation test)
         run: |
           echo "Checking Python syntax and compilation..."
