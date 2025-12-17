@@ -11,7 +11,7 @@ import pylab as plt
 from tqdm import tqdm
 
 
-def plot_channels(dir_path, qa_out_path, file_type):
+def plot_channels(dir_path, qa_out_path, file_type, downsample=100):
     """
     Generate plots for all channels and digital inputs
 
@@ -19,6 +19,7 @@ def plot_channels(dir_path, qa_out_path, file_type):
         dir_path: Directory containing the data files
         qa_out_path: Directory to save the plots
         file_type: Either 'one file per channel' or 'one file per signal type'
+        downsample: Downsampling factor for plotting (default: 100)
     """
     if file_type not in ['one file per channel', 'one file per signal type']:
         raise ValueError(
@@ -56,7 +57,6 @@ def plot_channels(dir_path, qa_out_path, file_type):
 
     # Plot files
     print("Now plotting ampilfier signals")
-    downsample = 100
     row_lim = 8
     if file_type == 'one file per channel':
         row_num = np.min((row_lim, len(amp_files)))
@@ -142,8 +142,10 @@ if __name__ == '__main__':
                         choices=['one file per channel',
                                  'one file per signal type'],
                         help='The type of file organization')
+    parser.add_argument('--downsample', type=int, default=100,
+                        help='Downsampling factor for plotting (default: 100)')
     args = parser.parse_args()
 
     dir_path = args.dir_path
 
-    plot_channels(dir_path, args.file_type)
+    plot_channels(dir_path, dir_path, args.file_type, args.downsample)
