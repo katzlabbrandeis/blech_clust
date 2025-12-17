@@ -253,9 +253,10 @@ def read_traditional_intan(
                     Dataframe containing details of electrode layout
 
     Writes:
-            hdf5 file with raw and raw_emg data
+            hdf5 file with raw, raw_emg, and raw_aux data
             - raw: amplifier data
             - raw_emg: EMG data
+            - raw_aux: AUX data (X, Y, Z channels)
     """
     atom = tables.IntAtom()
     # Read EMG data from amplifier channels
@@ -272,6 +273,7 @@ def read_traditional_intan(
         # For each anplifier channel, read data and save to hdf5
         for i, this_amp in enumerate(this_file_data['amplifier_data']):
             # If the amplifier channel is an EMG channel, save to raw_emg
+            # If the amplifier channel is an AUX channel, save to raw_aux
             # Otherwise, save to raw
             if 'emg' in electrode_layout_frame.loc[i].CAR_group.lower():
                 array_name = f'emg{i:02}'
@@ -281,6 +283,15 @@ def read_traditional_intan(
                 else:
                     hf5_el_array = hf5.get_node('/raw_emg', array_name)
                 hf5_el_array.append(this_amp)
+            elif 'aux' in electrode_layout_frame.loc[i].CAR_group.lower():
+                array_name = f'aux{i:02}'
+                if os.path.join('/raw_aux', array_name) not in hf5:
+                    hf5_el_array = hf5.create_earray(
+                        '/raw_aux', array_name, atom, (0,))
+                else:
+                    hf5_el_array = hf5.get_node('/raw_aux', array_name)
+                # Convert to int32 for consistency (AUX data is UINT16)
+                hf5_el_array.append(this_amp.astype(np.int32))
             # Skip channels with no CAR group
             elif electrode_layout_frame.loc[i].CAR_group.lower() in ['none', 'na']:
                 continue
@@ -385,4 +396,78 @@ def read_electrode_emg_channels_single_file(
                 '/raw_emg', f'emg{channel_ind:02}', atom, (0,))
             exec(
                 f"hf5.root.raw_emg.emg{channel_ind:02}.append(amp_reshape[num,:])")
+    hf5.close()
+
+
+def read_aux_channels(hdf5_name, electrode_layout_frame):
+    """
+    Read AUX data from auxiliary channels and save to hdf5
+    AUX files are UINT16 format. AUX mapping: 1=X, 2=Y, 3=Z
+    
+    Input:
+            hdf5_name: str
+                    Name of hdf5 file to save data to
+            electrode_layout_frame: pandas.DataFrame
+                    Dataframe containing details of electrode layout
+    
+    Writes:
+            hdf5 file with raw_aux data
+            - raw_aux: AUX data (X, Y, Z channels)
+    """
+    atom = tables.IntAtom()
+    hf5 = tables.open_file(hdf5_name, 'r+')
+    for num, row in tqdm(electrode_layout_frame.iterrows()):
+        if 'aux' in row.CAR_group.lower():
+            print(f'Reading AUX: {row.filename, row.CAR_group}')
+            port = row.port
+            channel_ind = row.electrode_ind
+            # AUX files are UINT16 format
+            data = np.fromfile(row.filename, dtype=np.dtype('uint16'))
+            # Label raw_aux with electrode_ind for identification
+            array_name = f'aux{channel_ind:02}'
+            hf5_aux_array = hf5.create_earray(
+                '/raw_aux', array_name, atom, (0,))
+            hf5_aux_array.append(data.astype(np.int32))
+            hf5.flush()
+    hf5.close()
+
+
+def read_aux_channels_single_file(hdf5_name, electrode_layout_frame, aux_channels, num_recorded_samples):
+    """
+    Read AUX data from single auxiliary file and save to hdf5
+    AUX files are UINT16 format. AUX mapping: 1=X, 2=Y, 3=Z
+    
+    Input:
+            hdf5_name: str
+                    Name of hdf5 file to save data to
+            electrode_layout_frame: pandas.DataFrame
+                    Dataframe containing details of electrode layout
+            aux_channels: list
+                    List of AUX channel indices
+            num_recorded_samples: int
+                    Number of recorded samples
+    
+    Writes:
+            hdf5 file with raw_aux data
+            - raw_aux: AUX data (X, Y, Z channels)
+    """
+    hf5 = tables.open_file(hdf5_name, 'r+')
+    atom = tables.IntAtom()
+    
+    # Read auxiliary data file (UINT16 format)
+    aux_data_file = 'auxiliary.dat'  # Standard name for single file per signal type
+    if os.path.exists(aux_data_file):
+        aux_data = np.fromfile(aux_data_file, dtype=np.dtype('uint16'))
+        num_aux_channels = len(aux_channels)
+        if num_aux_channels > 0:
+            aux_reshape = np.reshape(aux_data, (int(
+                len(aux_data)/num_aux_channels), num_aux_channels)).T
+            
+            for i, channel_ind in enumerate(aux_channels):
+                array_name = f'aux{channel_ind:02}'
+                el = hf5.create_earray(
+                    '/raw_aux', array_name, atom, (0,))
+                # Convert UINT16 to INT32 for consistency
+                el.append(aux_reshape[i, :].astype(np.int32))
+                hf5.flush()
     hf5.close()

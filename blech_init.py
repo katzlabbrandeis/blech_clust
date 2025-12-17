@@ -81,7 +81,7 @@ class HDF5Handler:
         """
         self.dir_name = dir_name
         self.force_run = force_run
-        self.group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+        self.group_list = ['raw', 'raw_emg', 'raw_aux', 'digital_in', 'digital_out']
         self.setup_hdf5()
 
     def setup_hdf5(self):
@@ -340,6 +340,11 @@ emg_info = info_dict['emg']
 emg_port = emg_info['port']
 emg_channels = sorted(emg_info['electrodes'])
 
+# Get AUX info if available
+aux_info = info_dict.get('aux', {'port': [], 'electrodes': []})
+aux_port = aux_info['port']
+aux_channels = sorted(aux_info['electrodes']) if aux_info['electrodes'] else []
+
 
 layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
 electrode_layout_frame = pd.read_csv(layout_path)
@@ -352,11 +357,16 @@ if reload_data_str in ['y', 'yes']:
         read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
         if len(emg_channels) > 0:
             read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
+        if len(aux_channels) > 0:
+            read_file.read_aux_channels(hdf5_name, electrode_layout_frame)
     elif file_type == 'one file per signal type':
         # read_file.read_digins_single_file(hdf5_name, dig_in_int, dig_in_file_list)
         # This next line takes care of both electrodes and emgs
         read_file.read_electrode_emg_channels_single_file(
             hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
+        if len(aux_channels) > 0:
+            read_file.read_aux_channels_single_file(
+                hdf5_name, electrode_layout_frame, aux_channels, num_recorded_samples)
     elif file_type == 'traditional':
         read_file.read_traditional_intan(
             hdf5_name,

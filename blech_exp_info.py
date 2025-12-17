@@ -989,7 +989,19 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
                 raise ValueError(
                     'EMG muscle name not provided, use --emg-muscle')
 
-    return layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
+    # Process AUX information
+    fin_aux_port = []
+    orig_aux_electrodes = []
+    
+    if any(['aux' in x for x in layout_dict.keys()]):
+        orig_aux_electrodes = [layout_dict[x][0]
+                               for x in layout_dict.keys() if 'aux' in x]
+        orig_aux_electrodes = [x for y in orig_aux_electrodes for x in y]
+        fin_aux_port = layout_frame_filled.port.loc[
+            layout_frame_filled.electrode_ind.isin(orig_aux_electrodes)].unique()
+        fin_aux_port = list(fin_aux_port)
+
+    return layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str, fin_aux_port, orig_aux_electrodes
 
 
 def process_electrode_files(file_type, electrodes_list, dir_path):
@@ -1369,7 +1381,7 @@ def main():
         file_type, electrodes_list, dir_path)
 
     # Process electrode layout
-    layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str = process_electrode_layout(
+    layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str, fin_aux_port, orig_aux_electrodes = process_electrode_layout(
         dir_path, dir_name, electrode_files, ports, electrode_num_list,
         args, existing_info, cache, cache_file_path)
 
@@ -1410,6 +1422,11 @@ def main():
             'port': fin_emg_port,
             'electrodes': orig_emg_electrodes,
             'muscle': emg_muscle_str
+        },
+        'aux': {
+            'port': fin_aux_port,
+            'electrodes': orig_aux_electrodes,
+            'mapping': {1: 'X', 2: 'Y', 3: 'Z'}
         },
         'electrode_layout': layout_dict,
         'taste_params': {
