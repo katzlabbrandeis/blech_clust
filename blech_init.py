@@ -387,27 +387,47 @@ print('Calculating correlation matrix for quality check')
 # qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
 n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
 qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
-down_dat_stack, chan_names = channel_corr.get_all_channels(
-    hdf5_name,
-    n_corr_samples=n_corr_samples)
-corr_mat = channel_corr.intra_corr(down_dat_stack)
 qa_out_path = os.path.join(dir_name, 'QA_output')
-if not os.path.exists(qa_out_path):
-    os.mkdir(qa_out_path)
-else:
-    # Delete dir and remake
-    shutil.rmtree(qa_out_path)
-    os.mkdir(qa_out_path)
-channel_corr.gen_corr_output(corr_mat,
-                             qa_out_path,
-                             qa_threshold,)
-# Also write out the correlation matrix to qa_out_path
-np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
+
+# Check if correlation already exists
+corr_mat_path = os.path.join(qa_out_path, 'channel_corr_mat.npy')
+run_correlation = True
+
+if os.path.exists(corr_mat_path) and not force_run:
+    redo_corr_msg = 'Correlation matrix already exists. Redo correlation check? (yes/y/n/no) ::: '
+    redo_corr_str, continue_bool = entry_checker(
+        msg=redo_corr_msg,
+        check_func=lambda x: x in ['y', 'yes', 'n', 'no'],
+        fail_response='Please enter (yes/y/n/no)')
+    if continue_bool and redo_corr_str in ['n', 'no']:
+        run_correlation = False
+        print('Skipping correlation check')
+        corr_mat = np.load(corr_mat_path)
+
+if run_correlation:
+    down_dat_stack, chan_names = channel_corr.get_all_channels(
+        hdf5_name,
+        n_corr_samples=n_corr_samples)
+    corr_mat = channel_corr.intra_corr(down_dat_stack)
+    if not os.path.exists(qa_out_path):
+        os.mkdir(qa_out_path)
+    else:
+        # Delete dir and remake
+        shutil.rmtree(qa_out_path)
+        os.mkdir(qa_out_path)
+    channel_corr.gen_corr_output(corr_mat,
+                                 qa_out_path,
+                                 qa_threshold,)
+    # Also write out the correlation matrix to qa_out_path
+    np.save(corr_mat_path, corr_mat)
 
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one file per channel', 'one file per signal type']:
     print('\nGenerating channel profile plots')
-    plot_channels(dir_name, qa_out_path, file_type)
+    channel_profile_downsample = all_params_dict["qa_params"].get(
+        "channel_profile_downsample", 100)
+    plot_channels(dir_name, qa_out_path, file_type,
+                  downsample=channel_profile_downsample)
 ##############################
 
 ##############################
