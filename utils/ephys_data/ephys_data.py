@@ -1755,7 +1755,14 @@ class ephys_data():
         self.get_sequestered_spikes()
         self.get_sequestered_firing()
 
-    def get_stable_units(self, p_val_threshold=0.05):
+    def compute_psths(self):
+        """
+        Compute PSTHs by averaging firing rates for each taste.
+        """
+        if 'firing_list' not in dir(self):
+            self.get_firing_rates()
+
+        self.psths = [np.mean(firing, axis=0) for firing in self.firing_list]
         """
         Load drift check results from a CSV file and mark units as stable or unstable
         based on a p-value threshold.
@@ -1795,7 +1802,9 @@ class ephys_data():
         # Rename "trial_bin" column to "p_val"
         self.drift_results.rename(columns={'trial_bin': 'p_val'}, inplace=True)
 
-        # Mark stable
+        # Define p_val_threshold if not provided
+        if 'p_val_threshold' not in dir(self):
+            p_val_threshold = 0.05  # Default value
         self.drift_results['stable'] = self.drift_results['p_val'] >= p_val_threshold
 
         # Get the indices of stable and unstable units
