@@ -10,5 +10,13 @@
         "signal_window": 400,
         "window_overlap": 399
     },
-    "use_BSA": true
+    "use_BSA": true,
+    "bsa_params": {
+        "period_range": [
+            0.1,
+            1
+        ],
+        "period_steps": 20,
+        "window_size": 300
+    }
 }
