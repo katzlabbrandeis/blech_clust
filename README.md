@@ -383,6 +383,18 @@ https://drive.google.com/drive/folders/1ne5SNU3Vxf74tbbWvOYbYOE1mSBkJ3u3?usp=sha
 - - [emg_freq_setup] -> [get_gapes_Li]
 </details>
 
+- **Additional Standalone Scripts**
+- - [utils/blech_data_summary] -> [Generates a comprehensive dataset summary]
+- - [utils/infer_rnn_rates] -> [Infers firing rates using RNN]
+- - [utils/cluster_stability] -> [Analyzes cluster stability]
+- - [utils/blech_channel_profile] -> [Profiles channel data]
+- - [utils/blech_waveforms_datashader] -> [Visualizes waveforms using datashader]
+- - [utils/makeRaisedCosBasis] -> [Generates raised cosine basis functions]
+- - [utils/blech_hdf5_repack] -> [Repackages HDF5 files]
+- - [utils/read_file] -> [Reads EMG channel data]
+- - [utils/blech_held_units_detect] -> [Detects held units across sessions]
+- - [utils/ram_monitor] -> [Monitors RAM usage]
+
 ### Citation
 If you use this code in your research, please cite the following paper:
 
