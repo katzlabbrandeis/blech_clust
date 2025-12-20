@@ -35,6 +35,36 @@ def waveforms_datashader(
         ax=None,
         include_envelope=False
 ):
+    """
+    Creates a datashader image from a numpy array of waveforms.
+    Parameters:
+    -----------
+    waveforms : numpy.ndarray, shape (n_waveforms, n_timepoints)
+    x_values : numpy.ndarray, shape (n_timepoints,)
+    downsample : bool, optional
+    threshold : float, optional
+    dir_name : str, optional
+    ax : matplotlib.axes.Axes, optional
+    include_envelope : bool, optional
+
+    Returns:
+    --------
+    fig : matplotlib.figure.Figure
+    ax : matplotlib.axes.Axes
+    """
+
+    assert isinstance(waveforms, np.ndarray), \
+        "waveforms must be a numpy array"
+    assert isinstance(x_values, np.ndarray), \
+        "x_values must be a numpy array"
+    assert waveforms.ndim == 2, \
+        "waveforms must be a 2D numpy array"
+    assert x_values.ndim == 1, \
+        "x_values must be a 1D numpy array"
+    assert waveforms.shape[1] == x_values.shape[0], \
+        "waveforms and x_values must have the same number of timepoints"
+    assert len(waveforms) > 0, \
+        "waveforms must not be empty"
 
     # Make a pandas dataframe with two columns, x and y,
     # holding all the data. The individual waveforms are separated by a row of NaNs
@@ -43,6 +73,7 @@ def waveforms_datashader(
     # (to remove the effects of 10 times upsampling during de-jittering)
     if downsample:
         waveforms = waveforms[:, ::10]
+        x_values = x_values[::10]
 
     # Then make a new array of waveforms -
     # the last element of each waveform is a NaN
@@ -149,6 +180,20 @@ def waveform_envelope_plot(waveforms, x_values, threshold=None, ax=None):
     ax : matplotlib.axes.Axes
         Axes object with the plot
     """
+
+    assert isinstance(waveforms, np.ndarray), \
+        "waveforms must be a numpy array"
+    assert isinstance(x_values, np.ndarray), \
+        "x_values must be a numpy array"
+    assert waveforms.ndim == 2, \
+        "waveforms must be a 2D numpy array"
+    assert x_values.ndim == 1, \
+        "x_values must be a 1D numpy array"
+    assert waveforms.shape[1] == x_values.shape[0], \
+        "waveforms and x_values must have the same number of timepoints"
+    assert len(waveforms) > 0, \
+        "waveforms must not be empty"
+
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
     else:
