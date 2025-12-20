@@ -195,13 +195,14 @@ plt.close(fig)
 
 # ------------------------------------------------------------
 # Rolling threshold plot
-rolling_fig, _ = bpu.gen_rolling_threshold_plot(
+rt_times, rt_thresholds = bpu.compute_rolling_threshold(
     filtered_data,
     params_dict['sampling_rate'],
     window_len=5.0,
     step_len=5.0,
     threshold_mult=params_dict['waveform_threshold'],
 )
+rolling_fig, _ = bpu.plot_rolling_threshold(rt_times, rt_thresholds)
 rolling_fig.savefig(
     f'./Plots/{electrode_num:02}/rolling_threshold.png',
     bbox_inches='tight', dpi=300,
