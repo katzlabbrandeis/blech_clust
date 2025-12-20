@@ -192,6 +192,23 @@ fig = bpu.gen_window_plots(
 fig.savefig(f'./Plots/{electrode_num:02}/bandapass_trace_snippets.png',
             bbox_inches='tight', dpi=300)
 plt.close(fig)
+
+# ------------------------------------------------------------
+# Rolling threshold plot
+rolling_fig, _ = bpu.gen_rolling_threshold_plot(
+    filtered_data,
+    params_dict['sampling_rate'],
+    window_len=5.0,
+    step_len=5.0,
+    threshold_mult=params_dict['waveform_threshold'],
+)
+rolling_fig.savefig(
+    f'./Plots/{electrode_num:02}/rolling_threshold.png',
+    bbox_inches='tight', dpi=300,
+)
+plt.close(rolling_fig)
+# ------------------------------------------------------------
+
 ############################################################
 
 # Delete filtered electrode from memory
