@@ -467,7 +467,7 @@ if auto_car_inference:
 
 
 fig, ax = gen_square_subplots(len(electrode_layout_frame),
-                              sharex=True, sharey=True, figsize=(15, 15))
+                              sharex=True, sharey=False, figsize=(15, 15))
 n_plot_points = 10_000
 rec_length = raw_electrodes[0][:].shape[0]
 plot_inds = np.arange(0, rec_length, rec_length // n_plot_points)
