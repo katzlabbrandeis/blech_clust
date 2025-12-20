@@ -1229,7 +1229,6 @@ def gen_window_plots(
     return fig
 
 
-
 def gen_rolling_threshold_plot(
     filt_el: np.ndarray,
     sampling_rate: int | float,
@@ -1284,7 +1283,7 @@ def gen_rolling_threshold_plot(
     starts = np.arange(0, len(filt_el) - win_samp + 1, step_samp, dtype=int)
     thresholds = np.empty_like(starts, dtype=float)
     for i, s in enumerate(starts):
-        window = filt_el[s : s + win_samp]
+        window = filt_el[s: s + win_samp]
         mad_val = np.median(np.abs(window - np.median(window)))
         thresholds[i] = threshold_mult * mad_val / 0.6745
 
