@@ -1256,7 +1256,7 @@ def compute_rolling_threshold(
     starts = np.arange(0, len(filt_el) - win_samp + 1, step_samp, dtype=int)
     thresholds = np.empty_like(starts, dtype=float)
     for i, s in enumerate(starts):
-        window = filt_el[s : s + win_samp]
+        window = filt_el[s: s + win_samp]
         mad_val = np.median(np.abs(window - np.median(window)))
         thresholds[i] = threshold_mult * mad_val / 0.6745
     times_sec = starts / sampling_rate + window_len / 2
@@ -1279,7 +1279,6 @@ def plot_rolling_threshold(
     ax.set_title("Rolling spike detection threshold")
     ax.legend()
     return fig, ax
-
 
 
 def gen_rolling_threshold_plot(
