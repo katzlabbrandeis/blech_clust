@@ -406,11 +406,14 @@ np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
 
 # Check average intra-CAR similarity and write a warning if it's below threshold
 try:
-    avg_threshold = all_params_dict.get('qa_params', {}).get('avg_intra_car_similarity_threshold', None)
+    avg_threshold = all_params_dict.get('qa_params', {}).get(
+        'avg_intra_car_similarity_threshold', None)
     if avg_threshold is not None:
         # Exclude emg and none CAR groups from analysis
-        emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg', case=False)
-        none_bool = ~electrode_layout_frame.CAR_group.str.contains('none', case=False)
+        emg_bool = ~electrode_layout_frame.CAR_group.str.contains(
+            'emg', case=False)
+        none_bool = ~electrode_layout_frame.CAR_group.str.contains(
+            'none', case=False)
         fin_bool = np.logical_and(emg_bool, none_bool)
         elec_frame = electrode_layout_frame[fin_bool]
 
@@ -418,15 +421,18 @@ try:
         for group_name in elec_frame.CAR_group.unique():
             # Get electrode numbers for this group
             try:
-                electrode_nums = elec_frame.loc[elec_frame.CAR_group == group_name, 'electrode_num'].astype(int).values
+                electrode_nums = elec_frame.loc[elec_frame.CAR_group ==
+                                                group_name, 'electrode_num'].astype(int).values
             except Exception:
                 # If electrode_num column is missing, fall back to electrode_ind
-                electrode_nums = elec_frame.loc[elec_frame.CAR_group == group_name, 'electrode_ind'].astype(int).values
+                electrode_nums = elec_frame.loc[elec_frame.CAR_group ==
+                                                group_name, 'electrode_ind'].astype(int).values
 
             # Find indices in chan_names corresponding to these electrode numbers
             # chan_names is returned from get_all_channels (list of channel numbers)
             try:
-                chan_inds = [i for i, c in enumerate(chan_names) if int(c) in electrode_nums]
+                chan_inds = [i for i, c in enumerate(
+                    chan_names) if int(c) in electrode_nums]
             except Exception:
                 chan_inds = []
 
@@ -447,7 +453,8 @@ try:
                 with open(warnings_path, 'a') as wf:
                     wf.write('\n')
                     wf.write('=== Average intra-CAR similarity warning ===\n')
-                    wf.write(f'Average intra-CAR similarity across groups: {overall_avg:.4f}\n')
+                    wf.write(
+                        f'Average intra-CAR similarity across groups: {overall_avg:.4f}\n')
                     wf.write(f'Threshold: {avg_threshold:.4f}\n')
                     wf.write('Per-group mean similarities:\n')
                     for gname, gmean in zip(elec_frame.CAR_group.unique(), group_means):
