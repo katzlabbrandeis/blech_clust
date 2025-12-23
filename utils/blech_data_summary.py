@@ -73,7 +73,7 @@ def extract_unit_characteristics(dir_name):
 
     Returns:
         DataFrame with unit-level characteristics including:
-        - Source: Type of characteristic (responsiveness, discriminability, 
+        - Source: Type of characteristic (responsiveness, discriminability,
                   palatability, dynamic, stable)
         - laser_tuple: Laser condition
         - sig_count: Count of significant units
@@ -82,21 +82,21 @@ def extract_unit_characteristics(dir_name):
     # Try to use the new profile_units method from ephys_data
     try:
         from blech_clust.utils.ephys_data.ephys_data import ephys_data
-        
+
         print("Using ephys_data.profile_units() to extract unit characteristics...")
         data = ephys_data(data_dir=dir_name)
         profile_df = data.profile_units(save_to_file=True)
-        
+
         # Convert profile_df to the expected format
         # profile_df has columns: neuron_num, laser_tuple, responsive, responsive_pval,
         # discriminative, discriminative_pval, palatable, palatable_pval,
         # dynamic, dynamic_pval, stable, stable_pval
-        
+
         results = []
         for laser in profile_df.laser_tuple.unique():
             laser_data = profile_df[profile_df.laser_tuple == laser]
             n_units = len(laser_data)
-            
+
             # Responsiveness
             resp_count = laser_data['responsive'].sum()
             results.append({
@@ -105,7 +105,7 @@ def extract_unit_characteristics(dir_name):
                 'sig_count': resp_count,
                 'sig_fraction': resp_count / n_units if n_units > 0 else 0
             })
-            
+
             # Discriminability
             discrim_count = laser_data['discriminative'].sum()
             results.append({
@@ -114,7 +114,7 @@ def extract_unit_characteristics(dir_name):
                 'sig_count': discrim_count,
                 'sig_fraction': discrim_count / n_units if n_units > 0 else 0
             })
-            
+
             # Palatability
             pal_count = laser_data['palatable'].sum()
             results.append({
@@ -123,7 +123,7 @@ def extract_unit_characteristics(dir_name):
                 'sig_count': pal_count,
                 'sig_fraction': pal_count / n_units if n_units > 0 else 0
             })
-            
+
             # Dynamic
             dyn_count = laser_data['dynamic'].sum()
             results.append({
@@ -132,7 +132,7 @@ def extract_unit_characteristics(dir_name):
                 'sig_count': dyn_count,
                 'sig_fraction': dyn_count / n_units if n_units > 0 else 0
             })
-            
+
             # Stability (note: stable means NOT drifting)
             # Count units that are stable (not showing drift)
             stable_data = laser_data['stable'].dropna()
@@ -144,13 +144,13 @@ def extract_unit_characteristics(dir_name):
                     'sig_count': stable_count,
                     'sig_fraction': stable_count / len(stable_data)
                 })
-        
+
         return pd.DataFrame(results)
-        
+
     except Exception as e:
         print(f"Could not use profile_units method: {e}")
         print("Falling back to aggregated_characteristics.csv...")
-    
+
     # Fallback: read from aggregated_characteristics.csv
     characteristics_path = os.path.join(
         dir_name, 'aggregated_characteristics.csv')
