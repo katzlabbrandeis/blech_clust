@@ -1902,7 +1902,8 @@ class ephys_data():
         seq_spike_counts = seq_spikes_frame.groupby(
             ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'post_stim']
         ).mean().reset_index()
-        seq_spike_counts.drop(columns=['time_num'], inplace=True, errors='ignore')
+        seq_spike_counts.drop(
+            columns=['time_num'], inplace=True, errors='ignore')
 
         # Add zeros where no spikes were seen
         index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
