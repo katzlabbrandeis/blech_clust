@@ -1813,12 +1813,12 @@ class ephys_data():
     def calculate_responsiveness(self, stim_time, seq_spikes_frame, params_dict):
         """
         Calculate unit responsiveness based on pre and post-stimulus firing rates.
-        
+
         Args:
             stim_time: Time of stimulus presentation.
             seq_spikes_frame: DataFrame containing spike data.
             params_dict: Dictionary of parameters for responsiveness calculation.
-        
+
         Returns:
             dict: A dictionary of responsiveness p-values for each unit.
         """
@@ -1827,7 +1827,7 @@ class ephys_data():
         responsive_inds = ((stim_time-responsive_window[0], stim_time),
                            (stim_time, stim_time+responsive_window[1]))
         min_ind, max_ind = min(responsive_inds[0]), max(responsive_inds[1])
-        
+
         seq_spikes_frame = seq_spikes_frame.copy()
         seq_spikes_frame = seq_spikes_frame.loc[
             (seq_spikes_frame.time_num >= min_ind) &
@@ -1835,18 +1835,18 @@ class ephys_data():
         ]
         seq_spikes_frame['spikes'] = 1
         seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
-        
+
         seq_spike_counts = seq_spikes_frame.groupby(
             ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'post_stim']
         ).mean().reset_index()
         seq_spike_counts.drop(
             columns=['time_num'], inplace=True, errors='ignore')
-        
+
         # Add zeros where no spikes were seen
         index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
         firing_frame_group_inds = list(
             self.sequestered_firing_frame.groupby(index_cols).groups.keys())
-        
+
         seq_spike_counts.set_index(index_cols+['post_stim'], inplace=True)
         resp_pvals = {}
         for this_ind in firing_frame_group_inds:
@@ -1857,7 +1857,7 @@ class ephys_data():
                     seq_spike_counts = pd.concat(
                         [seq_spike_counts, this_row.to_frame().T])
         seq_spike_counts.reset_index(inplace=True)
-        
+
         # Calculate responsiveness p-values
         for (nrn, taste, laser), group in seq_spike_counts.groupby(group_cols):
             try:
@@ -1876,11 +1876,11 @@ class ephys_data():
     def calculate_discriminability(self, seq_spikes_anova, params_dict):
         """
         Calculate unit discriminability based on ANOVA analysis.
-        
+
         Args:
             seq_spikes_anova: DataFrame containing spike data for ANOVA.
             params_dict: Dictionary of parameters for discriminability calculation.
-        
+
         Returns:
             dict: A dictionary of discriminability p-values for each unit.
         """
@@ -1892,7 +1892,7 @@ class ephys_data():
             stim_time,
             stim_time + (anova_bin_num*anova_bin_width),
             anova_bin_num+1))
-        
+
         seq_spikes_anova = seq_spikes_anova.copy()
         min_lim, max_lim = min(bin_lims), max(bin_lims)
         seq_spikes_anova = seq_spikes_anova.loc[
@@ -1912,7 +1912,7 @@ class ephys_data():
         seq_spike_anova_counts.drop(
             columns=['time_num'], inplace=True, errors='ignore')
         seq_spike_anova_counts.fillna(0, inplace=True)
-        
+
         # Add zeros where no spikes were seen
         seq_spike_anova_counts.set_index(index_cols+['bin_num'], inplace=True)
         for this_ind in firing_frame_group_inds:
@@ -1923,7 +1923,7 @@ class ephys_data():
                     seq_spike_anova_counts = pd.concat(
                         [seq_spike_anova_counts, this_row.to_frame().T])
         seq_spike_anova_counts.reset_index(inplace=True)
-        
+
         # Calculate discriminability p-values
         discrim_pvals = {}
         group_cols = ['neuron_num', 'laser_tuple']
@@ -1948,7 +1948,7 @@ class ephys_data():
             except Exception:
                 taste_pval = 1.0
                 bin_pval = 1.0
-            
+
             if np.isnan(taste_pval):
                 taste_pval = 1.0
             if np.isnan(bin_pval):
@@ -1959,19 +1959,19 @@ class ephys_data():
     def calculate_palatability(self, seq_firing_frame, pal_ranks):
         """
         Calculate unit palatability based on correlation with palatability rankings.
-        
+
         Args:
             seq_firing_frame: DataFrame containing firing data.
             pal_ranks: List of palatability rankings for each taste.
-        
+
         Returns:
             dict: A dictionary of palatability p-values for each unit.
         """
         pal_pvals = {}
         seq_firing_frame['time_val'] = [firing_t_vec[x]
-                                            for x in seq_firing_frame.time_num]
+                                        for x in seq_firing_frame.time_num]
         seq_firing_frame['pal_rank'] = [pal_ranks[i]
-                                            for i in seq_firing_frame.taste_num]
+                                        for i in seq_firing_frame.taste_num]
         group_cols = ['neuron_num', 'time_val', 'laser_tuple']
         for (nrn, time_val, laser), group in seq_firing_frame.groupby(group_cols):
             try:
@@ -1987,11 +1987,11 @@ class ephys_data():
     def calculate_dynamicity(self, seq_spikes_anova, params_dict):
         """
         Calculate unit dynamicity based on ANOVA analysis.
-        
+
         Args:
             seq_spikes_anova: DataFrame containing spike data for dynamicity analysis.
             params_dict: Dictionary of parameters for dynamicity calculation.
-        
+
         Returns:
             dict: A dictionary of dynamicity p-values for each unit.
         """
@@ -2003,7 +2003,7 @@ class ephys_data():
             stim_time,
             stim_time + (dynamic_bin_num*dynamic_bin_width),
             dynamic_bin_num+1))
-        
+
         seq_spikes_anova = seq_spikes_anova.copy()
         min_lim, max_lim = min(bin_lims), max(bin_lims)
         seq_spikes_anova = seq_spikes_anova.loc[
@@ -2023,9 +2023,10 @@ class ephys_data():
         seq_spike_dynamic_counts.drop(
             columns=['time_num'], inplace=True, errors='ignore')
         seq_spike_dynamic_counts.fillna(0, inplace=True)
-        
+
         # Add zeros where no spikes were seen
-        seq_spike_dynamic_counts.set_index(index_cols+['bin_num'], inplace=True)
+        seq_spike_dynamic_counts.set_index(
+            index_cols+['bin_num'], inplace=True)
         for this_ind in firing_frame_group_inds:
             for bin_num in range(dynamic_bin_num):
                 fin_ind = tuple((*this_ind, bin_num))
@@ -2034,7 +2035,7 @@ class ephys_data():
                     seq_spike_dynamic_counts = pd.concat(
                         [seq_spike_dynamic_counts, this_row.to_frame().T])
         seq_spike_dynamic_counts.reset_index(inplace=True)
-        
+
         # Calculate dynamicity p-values
         dynamic_pvals = {}
         group_cols = ['neuron_num', 'laser_tuple']
@@ -2059,7 +2060,7 @@ class ephys_data():
             except Exception:
                 taste_pval = 1.0
                 bin_pval = 1.0
-            
+
             if np.isnan(taste_pval):
                 taste_pval = 1.0
             if np.isnan(bin_pval):
@@ -2070,22 +2071,23 @@ class ephys_data():
     def check_stability(self, drift_results, p_val_threshold):
         """
         Check the stability of units based on drift check results.
-        
+
         Args:
             drift_results: DataFrame containing drift check results.
             p_val_threshold: Threshold for determining stability.
-        
+
         Returns:
             dict: A dictionary indicating stable and unstable units.
         """
         drift_results['stable'] = drift_results['p_val'] >= p_val_threshold
         stable_units = drift_results[drift_results['stable']]['unit'].values
         unstable_units = drift_results[~drift_results['stable']]['unit'].values
-        
+
         print(f"Loaded drift check results for {len(drift_results)} units")
-        print(f"Found {len(stable_units)} stable units and {len(unstable_units)} unstable units")
+        print(
+            f"Found {len(stable_units)} stable units and {len(unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
-        
+
         return stable_units, unstable_units
 
     def profile_units(self, save_to_file=True, alpha=0.05):
@@ -2117,17 +2119,21 @@ class ephys_data():
         firing_t_vec -= stim_time
 
         # Calculate responsiveness
-        resp_pvals = self.calculate_responsiveness(stim_time, self.sequestered_spikes_frame, params_dict)
+        resp_pvals = self.calculate_responsiveness(
+            stim_time, self.sequestered_spikes_frame, params_dict)
 
         # Calculate discriminability
-        discrim_pvals = self.calculate_discriminability(self.sequestered_spikes_frame, params_dict)
+        discrim_pvals = self.calculate_discriminability(
+            self.sequestered_spikes_frame, params_dict)
 
         # Calculate palatability
         pal_ranks = info_dict['taste_params'].get('pal_rankings', None)
-        pal_pvals = self.calculate_palatability(self.sequestered_firing_frame, pal_ranks)
+        pal_pvals = self.calculate_palatability(
+            self.sequestered_firing_frame, pal_ranks)
 
         # Check stability
-        stable_units, unstable_units = self.check_stability(self.drift_results, alpha)
+        stable_units, unstable_units = self.check_stability(
+            self.drift_results, alpha)
 
         # ==================== BUILD RESULTS DATAFRAME ====================
         results = []
