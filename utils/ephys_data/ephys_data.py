@@ -1997,7 +1997,7 @@ class ephys_data():
 
         return discrim_pvals, dynamicity_pvals
 
-    def calculate_palatability(self, pal_ranks, firing_t_vec):
+    def calculate_palatability(self, pal_ranks, firing_t_vec, stim_time):
         """
         Calculate unit palatability based on correlation with palatability rankings.
 
@@ -2027,7 +2027,39 @@ class ephys_data():
         for (nrn, time_val, laser), group in tqdm(seq_firing_frame.groupby(group_cols)):
                 rho, pval = spearmanr(group.firing, group.pal_rank)
                 pal_pvals[(nrn, laser, time_val)] = pval
-        return pal_pvals
+
+        # Aggregate across time
+        pal_pval_df = pd.DataFrame([
+            {'neuron_num': key[0],
+             'laser_tuple': key[1],
+             'time_val': key[2],
+             'p_val': val}
+            for key, val in pal_pvals.items()
+        ])
+
+        if 'sorting_params_dict' not in dir(self):
+            self.get_sorting_params_dict()
+
+        pal_window = self.sorting_params_dict.get('palatability_window') 
+        pal_window = np.array(pal_window) + stim_time
+
+        wanted_pal_pval_df = pal_pval_df.loc[
+            (pal_pval_df.time_val >= pal_window[0]) &
+            (pal_pval_df.time_val < pal_window[1])
+        ]
+
+        # Get median p-val across time window
+        wanted_pal_pval_df = wanted_pal_pval_df.groupby(
+            ['neuron_num', 'laser_tuple']
+        ).median().reset_index()
+        wanted_pal_pval_df.drop(columns=['time_val'], inplace=True)
+
+        # Convert to dictionary
+        wanted_pal_pval_df.set_index(
+            ['neuron_num', 'laser_tuple'], inplace=True)
+        pal_pvals = wanted_pal_pval_df['p_val'].to_dict()
+
+        return pal_pvals, pal_pval_df
 
     def check_stability(self, drift_results, p_val_threshold):
         """
@@ -2051,7 +2083,7 @@ class ephys_data():
 
         return stable_units, unstable_units
 
-    def profile_units(self, save_to_file=True, alpha=0.05):
+    def profile_units(self, save_to_file=True, alpha=0.05, recalculate=False):
         """
         Generate a DataFrame containing unit characteristics including:
         - Unit responsiveness (pre vs post-stimulus firing rate comparison)
@@ -2059,6 +2091,19 @@ class ephys_data():
         - Unit palatability (correlation with palatability rankings)
         - Unit drift/stability (from drift check results)
         """
+
+        print("="*40)
+        print("Unit Profiling")
+        print("="*40)
+        csv_path = os.path.join(self.data_dir, 'unit_profile.csv')
+        if os.path.exists(csv_path) and not recalculate:
+            print(f"Loading existing unit profile from {csv_path}")
+            print("***To recalculate, set recalculate=True***")
+            profile_df = pd.read_csv(csv_path)
+            print('Storing unit profile in self.unit_profile')
+            self.unit_profile = profile_df
+            return
+
         # Ensure we have the necessary data loaded
         if not hasattr(self, 'sequestered_spikes_frame') or \
            not hasattr(self, 'sequestered_firing_frame'):
@@ -2090,9 +2135,11 @@ class ephys_data():
         # Calculate palatability
         pal_ranks = info_dict['taste_params'].get('pal_rankings', None)
         pal_pvals = self.calculate_palatability(
-            pal_ranks, firing_t_vec)
+            pal_ranks, firing_t_vec, stim_time)[0]
 
         # Check stability
+        if 'drift_results' not in dir(self):
+            self.get_stable_units(p_val_threshold=alpha)
         stable_units, unstable_units = self.check_stability(
             self.drift_results, alpha)
 
@@ -2122,23 +2169,10 @@ class ephys_data():
         profile_df = pd.DataFrame(results)
 
         # Store as attribute
+        print('Storing unit profile in self.unit_profile')
         self.unit_profile = profile_df
 
         # Save to file if requested
         if save_to_file:
-            csv_path = os.path.join(self.data_dir, 'unit_profile.csv')
             profile_df.to_csv(csv_path, index=False)
             print(f"Unit profile saved to {csv_path}")
-
-            # Save to HDF5
-            try:
-                profile_df.to_hdf(
-                    self.hdf5_path,
-                    key='ancillary_analysis/unit_profile',
-                    mode='a',
-                )
-                print(f"Unit profile saved to HDF5: {self.hdf5_path}")
-            except Exception as e:
-                print(f"Warning: Could not save to HDF5: {e}")
-
-        return profile_df
