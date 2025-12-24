@@ -73,7 +73,8 @@ The following diagram shows the complete operations workflow for the blech_clust
 10. **blech_data_summary.py** - Generate comprehensive dataset summary
 11. **grade_dataset.py** - Grade dataset quality based on metrics
 
-#### Nomnoml Schema
+<details>
+<summary>Nomnoml Schema</summary>
 
 Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) to generate the complete workflow diagram:
 
@@ -111,6 +112,7 @@ Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) t
   ]
 ]
 ```
+</details>
 
 ### EMG Analysis
 
