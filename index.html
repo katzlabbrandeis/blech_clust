@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1181,33 +1181,9 @@
 </ul>
 <h2 id="pipeline-overview">Pipeline Overview<a class="headerlink" href="#pipeline-overview" title="Permanent link">&para;</a></h2>
 <h3 id="spike-sorting-pipeline">Spike Sorting Pipeline<a class="headerlink" href="#spike-sorting-pipeline" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>blech_exp_info.py</strong> - Pre-clustering step to annotate channels and save experimental parameters</li>
-<li><strong>blech_clust.py</strong> - Setup directories and define clustering parameters</li>
-<li><strong>blech_common_avg_reference.py</strong> - Perform common average referencing</li>
-<li><strong>blech_run_process.sh</strong> - Parallel spike extraction and clustering</li>
-<li><strong>blech_post_process.py</strong> - Add selected units to HDF5 file</li>
-<li><strong>blech_units_plot.py</strong> - Plot waveforms of selected spikes</li>
-<li><strong>blech_make_arrays.py</strong> - Generate spike-train arrays</li>
-<li><strong>blech_run_QA.sh</strong> - Quality assurance checks</li>
-<li><strong>blech_unit_characteristics.py</strong> - Analyze unit characteristics</li>
-<li><strong>blech_data_summary.py</strong> - Generate comprehensive dataset summary</li>
-<li><strong>grade_dataset.py</strong> - Grade dataset quality based on metrics</li>
-</ol>
+<p>For the complete main spike-sorting pipeline (including the operations workflow diagram, detailed steps, and nomnoml schema), please refer to the <a href="https://github.com/katzlabbrandeis/blech_clust#main-spike-sorting-pipeline">README</a>.</p>
 <h3 id="emg-analysis-pipelines">EMG Analysis Pipelines<a class="headerlink" href="#emg-analysis-pipelines" title="Permanent link">&para;</a></h3>
-<p><strong>Shared Steps:</strong></p>
-<ol>
-<li>Complete spike sorting through <code>blech_make_arrays.py</code></li>
-<li><code>emg_filter.py</code> - Filter EMG signals</li>
-</ol>
-<p><strong>BSA/STFT Branch:</strong></p>
-<ul>
-<li>Bayesian Spectrum Analysis and Short-Time Fourier Transform for frequency analysis</li>
-</ul>
-<p><strong>QDA Branch:</strong></p>
-<ul>
-<li>Quadratic Discriminant Analysis for gape detection (based on Li et al.'s methodology)</li>
-</ul>
+<p>For details on EMG analysis workflows, see the <a href="https://github.com/katzlabbrandeis/blech_clust#emg-analysis">README</a> and <a href="workflow/">Workflow Documentation</a>.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>The installation process is managed through a Makefile that handles all dependencies:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Clone the repository</span>
@@ -1325,10 +1301,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.expand", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.expand", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
