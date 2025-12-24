@@ -1084,7 +1084,7 @@ class spike_handler():
                 spike_snapshot=[self.params_dict['spike_snapshot_before'],
                                 self.params_dict['spike_snapshot_after']],
                 sampling_rate=self.params_dict['sampling_rate'],
-                threshold_mult=self.params_dict['waveform_threshold'])
+                threshold_mult=self.params_dict['waveform_deviation_threshold'])
 
         self.slices = slices
         self.spike_times = spike_times

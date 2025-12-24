@@ -1,15 +1,21 @@
 {
     "max_parallel_cpu": 16,
-    "waveform_threshold": 5,
-    "voltage_cutoff": 10000,
-    "max_breach_rate": 1,
-    "max_secs_above_cutoff": 60,
-    "max_mean_breach_rate_persec": 100,
-    "wf_amplitude_sd_cutoff": 3,
-    "bandpass_lower_cutoff": 300,
-    "bandpass_upper_cutoff": 3000,
-    "spike_snapshot_before": 1,
-    "spike_snapshot_after": 1.5,
+    "waveform_deviation_threshold": 5,
+    "breach_detection_params": {
+        "voltage_cutoff": 10000,
+        "max_breach_rate": 1,
+        "max_secs_above_cutoff": 60,
+        "max_mean_breach_rate_persec": 100,
+        "wf_amplitude_sd_cutoff": 3
+    },
+    "bandpass_params": {
+        "bandpass_lower_cutoff": 300,
+        "bandpass_upper_cutoff": 3000
+    },
+    "spike_snapshot": {
+        "spike_snapshot_before": 1,
+        "spike_snapshot_after": 1.5
+    },
     "auto_CAR": {
         "use_auto_CAR": false,
         "max_clusters": 10
