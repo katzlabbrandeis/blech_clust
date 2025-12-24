@@ -202,7 +202,7 @@ import tables
 import copy
 import multiprocessing as mp
 from scipy.special import gamma
-from scipy.stats import zscore, spearmanr
+from scipy.stats import zscore, spearmanr, ttest_rel
 import scipy
 import scipy.signal
 import glob
@@ -1810,7 +1810,7 @@ class ephys_data():
             f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
 
-    def calculate_responsiveness(self, stim_time, seq_spikes_frame, params_dict):
+    def calculate_responsiveness(self, stim_time, params_dict):
         """
         Calculate unit responsiveness based on pre and post-stimulus firing rates.
 
@@ -1822,55 +1822,83 @@ class ephys_data():
         Returns:
             dict: A dictionary of responsiveness p-values for each unit.
         """
+
+        if 'sequestered_firing_frame' not in dir(self) or \
+                'sequestered_spikes_frame' not in dir(self):
+            self.get_sequestered_data()
+        
+        print("="*40)
+        print("Calculating unit responsiveness")
+        print("="*40)
+
         responsive_window = params_dict.get(
             'responsiveness_pre_post_durations', [1000, 2000])
         responsive_inds = ((stim_time-responsive_window[0], stim_time),
                            (stim_time, stim_time+responsive_window[1]))
         min_ind, max_ind = min(responsive_inds[0]), max(responsive_inds[1])
 
-        seq_spikes_frame = seq_spikes_frame.copy()
+        seq_spikes_frame = self.sequestered_spikes_frame.copy() 
         seq_spikes_frame = seq_spikes_frame.loc[
             (seq_spikes_frame.time_num >= min_ind) &
             (seq_spikes_frame.time_num < max_ind)
         ]
         seq_spikes_frame['spikes'] = 1
+
+
         seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
 
+        # Get mean spikes per condition 
         seq_spike_counts = seq_spikes_frame.groupby(
             ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'post_stim']
-        ).mean().reset_index()
+        ).count().reset_index()
         seq_spike_counts.drop(
             columns=['time_num'], inplace=True, errors='ignore')
 
-        # Add zeros where no spikes were seen
+        # Adjust for differing window sizes
+        pre_window, post_window = responsive_window
+        seq_spike_counts['window_len'] = seq_spike_counts['post_stim'].apply(
+                lambda x: post_window if x else pre_window)
+        seq_spike_counts['rate'] = seq_spike_counts['spikes'] / seq_spike_counts['window_len']
+
+        # Correct for missing zero-spike entries 
         index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
         firing_frame_group_inds = list(
             self.sequestered_firing_frame.groupby(index_cols).groups.keys())
+        
+        firing_frame_group_inds = pd.DataFrame(
+            firing_frame_group_inds, columns=index_cols)
 
-        seq_spike_counts.set_index(index_cols+['post_stim'], inplace=True)
-        resp_pvals = {}
-        for this_ind in firing_frame_group_inds:
-            for this_post_stim in [False, True]:
-                fin_ind = tuple((*this_ind, this_post_stim))
-                if fin_ind not in seq_spike_counts.index:
-                    this_row = pd.Series(dict(spikes=0), name=fin_ind)
-                    seq_spike_counts = pd.concat(
-                        [seq_spike_counts, this_row.to_frame().T])
-        seq_spike_counts.reset_index(inplace=True)
+        # Stack 2 for post/pre
+        firing_frame_group_inds = pd.concat(
+            [firing_frame_group_inds.assign(post_stim=False),
+             firing_frame_group_inds.assign(post_stim=True)],
+            ignore_index=True,
+        )
+        
+        # Make sure post-stim in both is boolean
+        firing_frame_group_inds['post_stim'] = firing_frame_group_inds['post_stim'].astype(bool)
+        seq_spike_counts['post_stim'] = seq_spike_counts['post_stim'].astype(bool)
+
+        seq_spike_counts = pd.merge(
+            firing_frame_group_inds,
+            seq_spike_counts,
+            on=index_cols + ['post_stim'],
+            how='left',
+        )
+        seq_spike_counts.fillna(0, inplace=True)
+
 
         # Calculate responsiveness p-values
-        for (nrn, taste, laser), group in seq_spike_counts.groupby(group_cols):
-            try:
+        resp_pvals = {}
+        group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
+        for (nrn, taste, laser), group in tqdm(seq_spike_counts.groupby(group_cols)):
                 pval = ttest_rel(
-                    group.loc[group.post_stim, 'spikes'].values,
-                    group.loc[~group.post_stim, 'spikes'].values,
+                    group.loc[group.post_stim, 'rate'].values,
+                    group.loc[~group.post_stim, 'rate'].values,
                 )[1]
-            except Exception:
-                pval = 1.0
-            if np.isnan(pval):
-                pval = 1.0
-            resp_pvals[(nrn, laser)] = min(
-                resp_pvals.get((nrn, laser), 1.0), pval)
+                resp_pvals[(nrn, laser)] = min(
+                    resp_pvals.get((nrn, laser), 1.0), pval)
+
         return resp_pvals
 
     def calculate_discriminability(self, seq_spikes_anova, params_dict):
@@ -2120,7 +2148,7 @@ class ephys_data():
 
         # Calculate responsiveness
         resp_pvals = self.calculate_responsiveness(
-            stim_time, self.sequestered_spikes_frame, params_dict)
+            stim_time, params_dict)
 
         # Calculate discriminability
         discrim_pvals = self.calculate_discriminability(
