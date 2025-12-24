@@ -1,4 +1,4 @@
-.PHONY: all base emg neurec blechrnn clean params dev optional test prefect update make_env
+.PHONY: all base emg neurec blechrnn clean params dev optional test prefect update make_env docker-build docker-run docker-shell docker-stop docker-clean
 
 # Consolidated pip-based installation - no sudo required for base packages
 
@@ -122,3 +122,85 @@ clean:
 	@echo "Cleaning up blech_clust environment..."
 	conda env remove -n blech_clust -y
 	@echo "Environment cleanup complete!"
+
+# ============================================================================
+# Docker Commands
+# ============================================================================
+
+# Build Docker image
+docker-build:
+	@echo "Building blech_clust Docker image..."
+	docker build -t blech_clust:latest .
+	@echo "Docker image built successfully!"
+	@echo "Run 'make docker-shell' to start an interactive shell"
+
+# Run container with docker-compose (maintains file permissions)
+docker-run:
+	@echo "Starting blech_clust container with docker-compose..."
+	@echo "Current user: $(shell id -u):$(shell id -g)"
+	UID=$(shell id -u) GID=$(shell id -g) docker-compose up -d
+	@echo "Container started! Run 'make docker-shell' to enter the container"
+
+# Open an interactive shell in the running container
+docker-shell:
+	@echo "Opening shell in blech_clust container..."
+	@if [ "$$(docker ps -q -f name=blech_clust)" ]; then \
+		docker exec -it blech_clust bash; \
+	else \
+		echo "Container not running. Starting container..."; \
+		UID=$(shell id -u) GID=$(shell id -g) docker-compose up -d; \
+		sleep 2; \
+		docker exec -it blech_clust bash; \
+	fi
+
+# Run a command in the container (usage: make docker-exec CMD="python script.py")
+docker-exec:
+	@if [ -z "$(CMD)" ]; then \
+		echo "Error: Please provide a command using CMD variable"; \
+		echo "Example: make docker-exec CMD='python blech_exp_info.py'"; \
+		exit 1; \
+	fi
+	@if [ "$$(docker ps -q -f name=blech_clust)" ]; then \
+		docker exec -it blech_clust bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate blech_clust && $(CMD)"; \
+	else \
+		echo "Container not running. Starting container..."; \
+		UID=$(shell id -u) GID=$(shell id -g) docker-compose up -d; \
+		sleep 2; \
+		docker exec -it blech_clust bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate blech_clust && $(CMD)"; \
+	fi
+
+# Stop the running container
+docker-stop:
+	@echo "Stopping blech_clust container..."
+	docker-compose down
+	@echo "Container stopped!"
+
+# Clean up Docker resources (remove containers and images)
+docker-clean:
+	@echo "Cleaning up Docker resources..."
+	docker-compose down -v
+	docker rmi blech_clust:latest || true
+	@echo "Docker cleanup complete!"
+
+# Quick start guide for Docker
+docker-help:
+	@echo "Blech_clust Docker Commands:"
+	@echo ""
+	@echo "  make docker-build     - Build the Docker image"
+	@echo "  make docker-run       - Start the container in the background"
+	@echo "  make docker-shell     - Open an interactive shell in the container"
+	@echo "  make docker-exec CMD='<command>' - Execute a command in the container"
+	@echo "  make docker-stop      - Stop the running container"
+	@echo "  make docker-clean     - Remove containers and images"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  1. Build: make docker-build"
+	@echo "  2. Run:   make docker-shell"
+	@echo "  3. Use blech_clust commands as usual inside the container"
+	@echo ""
+	@echo "The container has read-write-execute access to:"
+	@echo "  - Current directory (mounted at /workspace)"
+	@echo "  - ./data directory (mounted at /data)"
+	@echo "  - ./output directory (mounted at /output)"
+	@echo ""
+	@echo "All files created will maintain your user permissions!"

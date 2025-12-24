@@ -102,15 +102,86 @@ The project titled "Computational Processing and Modeling of Neural Ensembles in
 
 ### Installation
 
-The installation process is managed through a Makefile that handles all dependencies and environment setup automatically.
+The installation process can be done in two ways: using Docker (recommended for quick start and portability) or using Conda for native installation.
 
-#### Prerequisites
+#### Option 1: Docker Installation (Recommended)
 
+Docker provides an isolated, reproducible environment that works across different systems without manual dependency management.
+
+**Prerequisites:**
+- Docker (version 20.10 or later)
+- Docker Compose (optional, but recommended for easier management)
+
+**Quick Start with Docker:**
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/katzlabbrandeis/blech_clust.git
+   cd blech_clust
+   ```
+
+2. **Build and run the Docker container:**
+   ```bash
+   make docker-build
+   make docker-shell
+   ```
+
+   This will build a Docker image with all dependencies (Python 3.8, R 3.6, and all required packages) and open an interactive shell inside the container.
+
+3. **Use blech_clust as normal:**
+   ```bash
+   # Inside the container
+   python blech_exp_info.py
+   python blech_init.py
+   # ... continue with your analysis
+   ```
+
+**Docker Commands:**
+
+```bash
+make docker-build      # Build the Docker image
+make docker-shell      # Open an interactive shell in the container
+make docker-run        # Start the container in the background
+make docker-stop       # Stop the running container
+make docker-clean      # Remove containers and images
+make docker-help       # Show detailed Docker usage information
+
+# Execute a single command in the container
+make docker-exec CMD="python blech_exp_info.py"
+```
+
+**File Access and Permissions:**
+
+The Docker container is configured to:
+- Mount your current directory at `/workspace` inside the container
+- Mount `./data` at `/data` for input data
+- Mount `./output` at `/output` for results
+- Maintain your user permissions on all files (no root ownership issues!)
+
+You can modify the mount points by setting environment variables:
+```bash
+DATA_PATH=/path/to/your/data OUTPUT_PATH=/path/to/output make docker-run
+```
+
+**Using Pre-built Images:**
+
+Docker images are automatically built and published to GitHub Container Registry when PRs with the `install` label are merged. You can pull and use these images directly:
+
+```bash
+docker pull ghcr.io/katzlabbrandeis/blech_clust:latest
+docker run -it -v $(pwd):/workspace ghcr.io/katzlabbrandeis/blech_clust:latest
+```
+
+#### Option 2: Conda Installation (Native)
+
+For native installation without Docker, use the Makefile to manage Conda environments.
+
+**Prerequisites:**
 - **Conda/Miniconda**: Required for environment management
 - **Git**: For cloning repositories
 - **System packages**: GNU parallel (optional, for parallel processing)
 
-#### Quick Start (Recommended)
+**Quick Start (Recommended):**
 
 1. **Clone the repository:**
    ```bash
@@ -129,7 +200,7 @@ The installation process is managed through a Makefile that handles all dependen
    conda activate blech_clust
    ```
 
-#### Custom Installation
+**Custom Installation:**
 
 For more control over what gets installed:
 
