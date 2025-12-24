@@ -1832,7 +1832,6 @@ class ephys_data():
         print("Calculating unit responsiveness")
         print("="*40)
 
-
         # Get data in responsive window
         responsive_window = params_dict.get(
             'responsiveness_pre_post_durations', [1000, 2000])
@@ -1934,7 +1933,7 @@ class ephys_data():
             stim_time + (anova_bin_num*anova_bin_width),
             anova_bin_num+1))
 
-        seq_spikes_anova = self.sequestered_spikes_frame.copy() 
+        seq_spikes_anova = self.sequestered_spikes_frame.copy()
         min_lim, max_lim = min(bin_lims), max(bin_lims)
         seq_spikes_anova = seq_spikes_anova.loc[
             (seq_spikes_anova.time_num >= min_lim) &
@@ -1955,11 +1954,11 @@ class ephys_data():
             columns=['time_num'], inplace=True, errors='ignore')
         seq_spike_anova_counts.fillna(0, inplace=True)
 
-        # Correct for missing zero-spike entries 
+        # Correct for missing zero-spike entries
         index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
         firing_frame_group_inds = list(
             self.sequestered_firing_frame.groupby(index_cols).groups.keys())
-        
+
         firing_frame_group_inds = pd.DataFrame(
             firing_frame_group_inds, columns=index_cols)
 
@@ -1968,7 +1967,7 @@ class ephys_data():
             [firing_frame_group_inds.assign(bin_num=bin_num)
              for bin_num in range(anova_bin_num)],
             ignore_index=True,
-            )
+        )
 
         seq_spike_anova_counts = pd.merge(
             firing_frame_group_inds,
@@ -2011,7 +2010,7 @@ class ephys_data():
         Returns:
             dict: A dictionary of palatability p-values for each unit.
         """
-        
+
         if 'sequestered_firing_frame' not in dir(self):
             self.get_sequestered_data()
 
@@ -2028,8 +2027,8 @@ class ephys_data():
                                         for i in seq_firing_frame.taste_num]
         group_cols = ['neuron_num', 'time_val', 'laser_tuple']
         for (nrn, time_val, laser), group in tqdm(seq_firing_frame.groupby(group_cols)):
-                rho, pval = spearmanr(group.firing, group.pal_rank)
-                pal_pvals[(nrn, laser, time_val)] = pval
+            rho, pval = spearmanr(group.firing, group.pal_rank)
+            pal_pvals[(nrn, laser, time_val)] = pval
 
         # Aggregate across time
         pal_pval_df = pd.DataFrame([
@@ -2043,7 +2042,7 @@ class ephys_data():
         if 'sorting_params_dict' not in dir(self):
             self.get_sorting_params_dict()
 
-        pal_window = self.sorting_params_dict.get('palatability_window') 
+        pal_window = self.sorting_params_dict.get('palatability_window')
         pal_window = np.array(pal_window) + stim_time
 
         wanted_pal_pval_df = pal_pval_df.loc[
