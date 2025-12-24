@@ -216,6 +216,7 @@ from . import lfp_processing
 from pprint import pprint as pp
 import numpy as np
 import pandas as pd
+import pingouin as pg
 
 #  ______       _                      _____        _
 # |  ____|     | |                    |  __ \      | |
@@ -1831,6 +1832,8 @@ class ephys_data():
         print("Calculating unit responsiveness")
         print("="*40)
 
+
+        # Get data in responsive window
         responsive_window = params_dict.get(
             'responsiveness_pre_post_durations', [1000, 2000])
         responsive_inds = ((stim_time-responsive_window[0], stim_time),
@@ -1844,7 +1847,7 @@ class ephys_data():
         ]
         seq_spikes_frame['spikes'] = 1
 
-
+        # Mark pre/post stimulus
         seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
 
         # Get mean spikes per condition 
@@ -1887,7 +1890,6 @@ class ephys_data():
         )
         seq_spike_counts.fillna(0, inplace=True)
 
-
         # Calculate responsiveness p-values
         resp_pvals = {}
         group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
@@ -1901,7 +1903,7 @@ class ephys_data():
 
         return resp_pvals
 
-    def calculate_discriminability(self, seq_spikes_anova, params_dict):
+    def calculate_discriminability(self, stim_time, params_dict):
         """
         Calculate unit discriminability based on ANOVA analysis.
 
@@ -1912,6 +1914,14 @@ class ephys_data():
         Returns:
             dict: A dictionary of discriminability p-values for each unit.
         """
+
+        print("="*40)
+        print("Calculating unit discriminability")
+        print("="*40)
+
+        if 'sequestered_spikes_frame' not in dir(self):
+            self.get_sequestered_data()
+
         discrim_params = params_dict.get(
             'discrim_analysis_params', {'bin_width': 500, 'bin_num': 4})
         anova_bin_width = discrim_params['bin_width']
@@ -1921,7 +1931,7 @@ class ephys_data():
             stim_time + (anova_bin_num*anova_bin_width),
             anova_bin_num+1))
 
-        seq_spikes_anova = seq_spikes_anova.copy()
+        seq_spikes_anova = self.sequestered_spikes_frame.copy() 
         min_lim, max_lim = min(bin_lims), max(bin_lims)
         seq_spikes_anova = seq_spikes_anova.loc[
             (seq_spikes_anova.time_num >= min_lim) &
@@ -1934,57 +1944,58 @@ class ephys_data():
             include_lowest=True,
         )
         seq_spikes_anova['spikes'] = 1
+        # Since all bins are the same size, no need to normalize spike counts
         seq_spike_anova_counts = seq_spikes_anova.groupby(
             ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'bin_num']
-        ).mean().reset_index()
+        ).count().reset_index()
         seq_spike_anova_counts.drop(
             columns=['time_num'], inplace=True, errors='ignore')
         seq_spike_anova_counts.fillna(0, inplace=True)
 
-        # Add zeros where no spikes were seen
-        seq_spike_anova_counts.set_index(index_cols+['bin_num'], inplace=True)
-        for this_ind in firing_frame_group_inds:
-            for bin_num in range(anova_bin_num):
-                fin_ind = tuple((*this_ind, bin_num))
-                if fin_ind not in seq_spike_anova_counts.index:
-                    this_row = pd.Series(dict(spikes=0), name=fin_ind)
-                    seq_spike_anova_counts = pd.concat(
-                        [seq_spike_anova_counts, this_row.to_frame().T])
-        seq_spike_anova_counts.reset_index(inplace=True)
+        # Correct for missing zero-spike entries 
+        index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
+        firing_frame_group_inds = list(
+            self.sequestered_firing_frame.groupby(index_cols).groups.keys())
+        
+        firing_frame_group_inds = pd.DataFrame(
+            firing_frame_group_inds, columns=index_cols)
+
+        # Stack for all bins
+        firing_frame_group_inds = pd.concat(
+            [firing_frame_group_inds.assign(bin_num=bin_num)
+             for bin_num in range(anova_bin_num)],
+            ignore_index=True,
+            )
+
+        seq_spike_anova_counts = pd.merge(
+            firing_frame_group_inds,
+            seq_spike_anova_counts,
+            on=index_cols + ['bin_num'],
+            how='left',
+        )
+        seq_spike_anova_counts.fillna(0, inplace=True)
 
         # Calculate discriminability p-values
         discrim_pvals = {}
         group_cols = ['neuron_num', 'laser_tuple']
-        for (nrn, laser), group in seq_spike_anova_counts.groupby(group_cols):
-            try:
-                anova_out = pg.anova(
-                    data=group,
-                    dv='spikes',
-                    between=['taste_num', 'bin_num'],
-                )
-                anova_out = anova_out.loc[anova_out.Source != 'Residual']
-                if 'p-unc' in anova_out.columns:
-                    taste_pval = anova_out.loc[
-                        anova_out.Source == 'taste_num', 'p-unc'].values
-                    bin_pval = anova_out.loc[
-                        anova_out.Source == 'bin_num', 'p-unc'].values
-                    taste_pval = taste_pval[0] if len(taste_pval) > 0 else 1.0
-                    bin_pval = bin_pval[0] if len(bin_pval) > 0 else 1.0
-                else:
-                    taste_pval = 1.0
-                    bin_pval = 1.0
-            except Exception:
-                taste_pval = 1.0
-                bin_pval = 1.0
-
-            if np.isnan(taste_pval):
-                taste_pval = 1.0
-            if np.isnan(bin_pval):
-                bin_pval = 1.0
+        for (nrn, laser), group in tqdm(seq_spike_anova_counts.groupby(group_cols)):
+            anova_out = pg.anova(
+                data=group,
+                dv='spikes',
+                between=['taste_num', 'bin_num'],
+            )
+            anova_out = anova_out.loc[anova_out.Source != 'Residual']
+            taste_pval = anova_out.loc[
+                anova_out.Source == 'taste_num', 'p-unc'].values
+            bin_pval = anova_out.loc[
+                anova_out.Source == 'bin_num', 'p-unc'].values
+            taste_pval = taste_pval[0] if len(taste_pval) > 0 else 1.0
+            bin_pval = bin_pval[0] if len(bin_pval) > 0 else 1.0
             discrim_pvals[(nrn, laser)] = taste_pval
+
         return discrim_pvals
 
-    def calculate_palatability(self, seq_firing_frame, pal_ranks):
+    def calculate_palatability(self, pal_ranks, firing_t_vec):
         """
         Calculate unit palatability based on correlation with palatability rankings.
 
@@ -1995,21 +2006,25 @@ class ephys_data():
         Returns:
             dict: A dictionary of palatability p-values for each unit.
         """
+        
+        if 'sequestered_firing_frame' not in dir(self):
+            self.get_sequestered_data()
+
+        print("="*40)
+        print("Calculating unit palatability")
+        print("="*40)
+
+        seq_firing_frame = self.sequestered_firing_frame.copy()
+
         pal_pvals = {}
         seq_firing_frame['time_val'] = [firing_t_vec[x]
                                         for x in seq_firing_frame.time_num]
         seq_firing_frame['pal_rank'] = [pal_ranks[i]
                                         for i in seq_firing_frame.taste_num]
         group_cols = ['neuron_num', 'time_val', 'laser_tuple']
-        for (nrn, time_val, laser), group in seq_firing_frame.groupby(group_cols):
-            try:
+        for (nrn, time_val, laser), group in tqdm(seq_firing_frame.groupby(group_cols)):
                 rho, pval = spearmanr(group.firing, group.pal_rank)
-            except Exception:
-                pval = 1.0
-            if np.isnan(pval):
-                pval = 1.0
-            pal_pvals[(nrn, laser)] = min(
-                pal_pvals.get((nrn, laser), 1.0), pval)
+                pal_pvals[(nrn, laser, time_val)] = pval
         return pal_pvals
 
     def calculate_dynamicity(self, seq_spikes_anova, params_dict):
@@ -2152,7 +2167,7 @@ class ephys_data():
 
         # Calculate discriminability
         discrim_pvals = self.calculate_discriminability(
-            self.sequestered_spikes_frame, params_dict)
+            stim_time, params_dict)
 
         # Calculate palatability
         pal_ranks = info_dict['taste_params'].get('pal_rankings', None)
