@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  blech_clust:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: blech_clust:latest
+    container_name: blech_clust
+    # Run as current user to maintain file permissions
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      # Mount current directory for development
+      - .:/workspace
+      # Mount data directory - adjust this path to your data location
+      - ${DATA_PATH:-./data}:/data
+      # Mount output directory
+      - ${OUTPUT_PATH:-./output}:/output
+    working_dir: /workspace
+    # Keep container running
+    stdin_open: true
+    tty: true
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CONDA_DEFAULT_ENV=blech_clust
+    # Share network with host for easy access
+    network_mode: host
+    # Give container access to all host resources if needed for HPC workloads
+    # Uncomment if you need more resources
+    # shm_size: '2gb'
+    # Enable GPU support if available (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
