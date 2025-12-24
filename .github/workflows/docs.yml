@@ -57,7 +57,8 @@ jobs:
           path: site
 
   deploy:
-    # Only deploy on push to master, not on PRs
+    # Deploy on push to master (includes direct pushes and merged PRs)
+    # PRs only build for testing but do not deploy
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     environment:
