@@ -55,18 +55,79 @@ mkdocs serve
 
 ### Main Spike-Sorting Pipeline
 
-Refer to the documentation for the main spike-sorting flow.
-```
-blech_exp_info → blech_clust → blech_common_avg_reference →
-blech_run_process → blech_post_process → blech_units_plot →
-blech_make_arrays → blech_run_QA → blech_unit_characteristics
+The following diagram shows the complete operations workflow for the blech_clust pipeline:
+
+![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+
+#### Detailed Pipeline Steps
+
+1. **blech_exp_info.py** - Pre-clustering step to annotate channels and save experimental parameters
+2. **blech_clust.py** - Setup directories and define clustering parameters
+3. **blech_common_avg_reference.py** - Perform common average referencing
+4. **blech_run_process.sh** - Parallel spike extraction and clustering
+5. **blech_post_process.py** - Add selected units to HDF5 file
+6. **blech_units_plot.py** - Plot waveforms of selected spikes
+7. **blech_make_arrays.py** - Generate spike-train arrays
+8. **blech_run_QA.sh** - Quality assurance checks
+9. **blech_unit_characteristics.py** - Analyze unit characteristics
+10. **blech_data_summary.py** - Generate comprehensive dataset summary
+11. **grade_dataset.py** - Grade dataset quality based on metrics
+
+#### Nomnoml Schema
+
+Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) to generate the complete workflow diagram:
+
+```nomnoml
+#direction: down
+#spacing: 80
+#padding: 10
+
+[<frame>Spike Sorting Pipeline|
+  [blech_exp_info] -> [blech_init]
+  [blech_init] -> [blech_common_average_reference]
+  [blech_common_average_reference] -> [bash blech_run_process.sh]
+  [bash blech_run_process.sh] -> [blech_post_process]
+  [blech_post_process] -> [blech_units_plot]
+  [blech_units_plot] -> [blech_make_arrays]
+  [blech_make_arrays] -> [bash blech_run_QA.sh]
+  [bash blech_run_QA.sh] -> [blech_unit_characteristics]
+  [blech_unit_characteristics] -> [blech_data_summary]
+  [blech_data_summary] -> [grade_dataset]
+]
+
+[<frame>EMG Analysis|
+  [blech_init] -> [blech_make_arrays]
+  [blech_make_arrays] -> [emg_filter]
+
+  [<frame>BSA/STFT Branch|
+    [emg_filter] -> [emg_freq_setup]
+    [emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
+    [bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
+    [emg_freq_post_process] -> [emg_freq_plot]
+  ]
+
+  [<frame>QDA Branch|
+    [emg_freq_setup] -> [get_gapes_Li]
+  ]
+]
 ```
 
 ### EMG Analysis
-- **BSA/STFT**: Bayesian Spectrum Analysis and Short-Time Fourier Transform
-- **QDA**: Quadratic Discriminant Analysis for gape detection
 
-See the [Core Pipeline Documentation](https://katzlabbrandeis.github.io/blech_clust/reference/core-pipeline.html) for details.
+**Shared Steps:**
+
+1. Complete spike sorting through `blech_make_arrays.py`
+2. `emg_filter.py` - Filter EMG signals
+
+**BSA/STFT Branch:**
+
+- Bayesian Spectrum Analysis and Short-Time Fourier Transform for frequency analysis
+
+**QDA Branch:**
+
+- Quadratic Discriminant Analysis for gape detection (based on Li et al.'s methodology)
+
+See the [Workflow Documentation](https://katzlabbrandeis.github.io/blech_clust/workflow.html) for additional workflow details and diagrams.
 
 ## Test Dataset
 

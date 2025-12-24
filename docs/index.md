@@ -31,34 +31,11 @@ Visit the [Katz lab website](https://sites.google.com/a/brandeis.edu/katzlab/) f
 
 ### Spike Sorting Pipeline
 
-Refer to the README for the main spike-sorting flow.
-
-1. **blech_exp_info.py** - Pre-clustering step to annotate channels and save experimental parameters
-2. **blech_clust.py** - Setup directories and define clustering parameters
-3. **blech_common_avg_reference.py** - Perform common average referencing
-4. **blech_run_process.sh** - Parallel spike extraction and clustering
-5. **blech_post_process.py** - Add selected units to HDF5 file
-6. **blech_units_plot.py** - Plot waveforms of selected spikes
-7. **blech_make_arrays.py** - Generate spike-train arrays
-8. **blech_run_QA.sh** - Quality assurance checks
-9. **blech_unit_characteristics.py** - Analyze unit characteristics
-10. **blech_data_summary.py** - Generate comprehensive dataset summary
-11. **grade_dataset.py** - Grade dataset quality based on metrics
+For the complete main spike-sorting pipeline (including the operations workflow diagram, detailed steps, and nomnoml schema), please refer to the [README](https://github.com/katzlabbrandeis/blech_clust#main-spike-sorting-pipeline).
 
 ### EMG Analysis Pipelines
 
-**Shared Steps:**
-
-1. Complete spike sorting through `blech_make_arrays.py`
-2. `emg_filter.py` - Filter EMG signals
-
-**BSA/STFT Branch:**
-
-- Bayesian Spectrum Analysis and Short-Time Fourier Transform for frequency analysis
-
-**QDA Branch:**
-
-- Quadratic Discriminant Analysis for gape detection (based on Li et al.'s methodology)
+For details on EMG analysis workflows, see the [README](https://github.com/katzlabbrandeis/blech_clust#emg-analysis) and [Workflow Documentation](workflow.md).
 
 ## Installation
 
