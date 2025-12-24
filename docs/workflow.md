@@ -9,7 +9,7 @@ For the complete spike-sorting pipeline workflow (including the operations workf
 ## Quality Assessment Workflow
 
 ```
-blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+blech_units_characteristics.py → blech_data_summary.py → grade_dataset.py
 ```
 
 ## Additional Workflow Details
@@ -24,8 +24,8 @@ blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
 [blech_post_process] -> [blech_units_plot]
 [blech_units_plot] -> [blech_make_arrays]
 [blech_make_arrays] -> [bash blech_run_QA.sh]
-[bash blech_run_QA.sh] -> [blech_unit_characteristics]
-[blech_unit_characteristics] -> [blech_data_summary]
+[bash blech_run_QA.sh] -> [blech_units_characteristics]
+[blech_units_characteristics] -> [blech_data_summary]
 [blech_data_summary] -> [grade_dataset]
 ```
 
@@ -42,15 +42,18 @@ blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
 
 ```
 [emg_filter] -> [emg_freq_setup]
-[emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
+[emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh (generated)]
 [bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
 [emg_freq_post_process] -> [emg_freq_plot]
 ```
 
-**QDA Branch (Jenn Li):**
+**Note:** `emg_freq_setup.py` generates the `blech_emg_jetstream_parallel.sh` script for parallel processing.
+
+**QDA Branch:**
 
 ```
-[emg_freq_setup] -> [get_gapes_Li]
+[emg_filter] -> [emg_freq_setup]
+[emg_freq_setup] -> [gape_QDA_classifier/get_gapes_Li]
 ```
 
 ## Using the Diagrams

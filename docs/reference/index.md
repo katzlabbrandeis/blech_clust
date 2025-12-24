@@ -19,7 +19,7 @@ The blech_clust codebase is organized into several key modules:
 Located in the repository root, these modules form the main spike sorting pipeline:
 
 - `blech_exp_info.py` - Experiment setup and metadata
-- `blech_clust.py` - Clustering configuration
+- `blech_init.py` - Directory initialization and data preparation
 - `blech_common_avg_reference.py` - Common average referencing
 - `blech_process.py` - Spike extraction and clustering
 - `blech_post_process.py` - Post-processing and unit selection
@@ -49,7 +49,7 @@ Located in `emg/`, these handle EMG signal analysis:
 
 ```python
 # Import utility functions
-from blech_utils import Tee, path_handler, imp_metadata
+from utils.blech_utils import Tee, path_handler, imp_metadata
 
 # Import ephys data tools
 from utils.ephys_data import ephys_data

@@ -123,7 +123,7 @@ The `blech_autosort.sh` script:
 After processing, assess the quality of your dataset:
 
 ```bash
-python blech_unit_characteristics.py  # Analyze unit characteristics
+python blech_units_characteristics.py  # Analyze unit characteristics
 python utils/blech_data_summary.py    # Generate comprehensive dataset summary
 python utils/grade_dataset.py         # Grade dataset quality based on metrics
 ```
@@ -143,19 +143,21 @@ python utils/grade_dataset.py         # Grade dataset quality based on metrics
 For Bayesian Spectrum Analysis and Short-Time Fourier Transform:
 
 ```bash
-python emg_freq_setup.py              # Configure parameters for frequency analysis
-bash blech_emg_jetstream_parallel.sh  # Parallel processing of EMG signals
+python emg_freq_setup.py              # Configure parameters and generate parallel processing scripts
+bash blech_emg_jetstream_parallel.sh  # Run the generated parallel processing script
 python emg_freq_post_process.py       # Aggregate and process results
 python emg_freq_plot.py               # Generate visualizations
 ```
+
+**Note:** The `emg_freq_setup.py` script generates the `blech_emg_jetstream_parallel.sh` script, which uses GNU parallel to process EMG signals in parallel.
 
 ### QDA Branch
 
 For Quadratic Discriminant Analysis (gape detection):
 
 ```bash
-python emg_freq_setup.py  # Setup parameters for gape detection
-python get_gapes_Li.py    # Detect gapes using QDA classifier
+python emg_freq_setup.py                      # Setup parameters for gape detection
+python emg/gape_QDA_classifier/get_gapes_Li.py  # Detect gapes using QDA classifier
 ```
 
 ## Testing Your Installation

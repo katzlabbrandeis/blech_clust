@@ -13,10 +13,11 @@ Core utility functions used throughout the codebase.
 Redirect stdout to both console and file for logging.
 
 ```python
-from blech_utils import Tee
+from utils.blech_utils import Tee
+import sys
 
 # Redirect output to file and console
-sys.stdout = Tee('/path/to/logfile.txt')
+sys.stdout = Tee('/path/to/data/dir', name='logfile.txt')
 print("This goes to both console and file")
 ```
 
@@ -25,13 +26,16 @@ print("This goes to both console and file")
 Handle file paths and directory operations.
 
 ```python
-from blech_utils import path_handler
+from utils.blech_utils import path_handler
 
-# Get data directory
-data_dir = path_handler.get_data_dir()
+# Instantiate path handler
+ph = path_handler()
 
-# Create output directory
-path_handler.make_dir('/path/to/output')
+# Access blech_clust directory
+blech_dir = ph.blech_clust_dir
+
+# Access home directory
+home = ph.home_dir
 ```
 
 #### imp_metadata
@@ -39,14 +43,16 @@ path_handler.make_dir('/path/to/output')
 Import and manage experimental metadata.
 
 ```python
-from blech_utils import imp_metadata
+from utils.blech_utils import imp_metadata
+import sys
 
-# Load metadata
-metadata = imp_metadata('/path/to/data')
+# Load metadata (requires sys.argv or list with directory path)
+metadata = imp_metadata([sys.argv, '/path/to/data'])
 
-# Access metadata fields
-tastes = metadata['taste_names']
-dig_ins = metadata['dig_in_channels']
+# Access metadata attributes
+hdf5_name = metadata.hdf5_name
+info_dict = metadata.info_dict
+layout_df = metadata.layout
 ```
 
 ## Clustering Utilities

@@ -22,20 +22,20 @@ Pre-clustering step to annotate channels and save experimental parameters.
 python blech_exp_info.py /path/to/data
 ```
 
-### blech_clust.py
+### blech_init.py
 
-Setup directories and define clustering parameters.
+Initialize directories and prepare data for clustering.
 
 **Key Functions:**
 
 - Directory structure creation
-- Parameter file initialization
-- Clustering configuration
+- Data file organization
+- Initial parameter setup
 
 **Usage:**
 
 ```bash
-python blech_clust.py
+python blech_init.py
 ```
 
 ### blech_common_avg_reference.py
@@ -127,7 +127,7 @@ Raw Data
     ↓
 blech_exp_info.py (Setup)
     ↓
-blech_clust.py (Configuration)
+blech_init.py (Initialization)
     ↓
 blech_common_avg_reference.py (Referencing)
     ↓

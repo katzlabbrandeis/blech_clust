@@ -62,14 +62,14 @@ The following diagram shows the complete operations workflow for the blech_clust
 #### Detailed Pipeline Steps
 
 1. **blech_exp_info.py** - Pre-clustering step to annotate channels and save experimental parameters
-2. **blech_clust.py** - Setup directories and define clustering parameters
+2. **blech_init.py** - Initialize directories and prepare data for clustering
 3. **blech_common_avg_reference.py** - Perform common average referencing
 4. **blech_run_process.sh** - Parallel spike extraction and clustering
 5. **blech_post_process.py** - Add selected units to HDF5 file
 6. **blech_units_plot.py** - Plot waveforms of selected spikes
 7. **blech_make_arrays.py** - Generate spike-train arrays
 8. **blech_run_QA.sh** - Quality assurance checks
-9. **blech_unit_characteristics.py** - Analyze unit characteristics
+9. **blech_units_characteristics.py** - Analyze unit characteristics
 10. **blech_data_summary.py** - Generate comprehensive dataset summary
 11. **grade_dataset.py** - Grade dataset quality based on metrics
 
@@ -91,8 +91,8 @@ Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) t
   [blech_post_process] -> [blech_units_plot]
   [blech_units_plot] -> [blech_make_arrays]
   [blech_make_arrays] -> [bash blech_run_QA.sh]
-  [bash blech_run_QA.sh] -> [blech_unit_characteristics]
-  [blech_unit_characteristics] -> [blech_data_summary]
+  [bash blech_run_QA.sh] -> [blech_units_characteristics]
+  [blech_units_characteristics] -> [blech_data_summary]
   [blech_data_summary] -> [grade_dataset]
 ]
 

@@ -26,14 +26,14 @@ python /path/to/blech_clust/blech_exp_info.py
 
 This will guide you through annotating your channels and setting up experimental parameters.
 
-### 2. Clustering Setup
+### 2. Data Initialization
 
 ```bash
-# Run clustering setup
-python /path/to/blech_clust/blech_clust.py
+# Initialize directory structure and prepare data
+python /path/to/blech_clust/blech_init.py
 ```
 
-This creates the necessary directory structure and parameter files.
+This creates the necessary directory structure and organizes data files.
 
 ### 3. Common Average Referencing
 
@@ -88,13 +88,17 @@ If you have EMG data, you can run the EMG analysis pipeline:
 # Filter EMG signals
 python /path/to/blech_clust/emg/emg_filter.py
 
+# Setup frequency analysis parameters
+python /path/to/blech_clust/emg/emg_freq_setup.py
+
 # Choose your analysis approach:
 
-# Option 1: BSA/STFT analysis
-python /path/to/blech_clust/emg/emg_BSA_STFT.py
+# Option 1: BSA/STFT frequency analysis
+python /path/to/blech_clust/emg/emg_freq_post_process.py
+python /path/to/blech_clust/emg/emg_freq_plot.py
 
 # Option 2: QDA-based gape detection
-python /path/to/blech_clust/emg/emg_QDA.py
+python /path/to/blech_clust/emg/gape_QDA_classifier/get_gapes_Li.py
 ```
 
 ## Parameter Configuration
