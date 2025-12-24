@@ -53,7 +53,9 @@ mkdocs serve
 
 ## Pipeline Overview
 
-### Spike Sorting
+### Main Spike-Sorting Pipeline
+
+Refer to the documentation for the main spike-sorting flow.
 ```
 blech_exp_info → blech_clust → blech_common_avg_reference →
 blech_run_process → blech_post_process → blech_units_plot →

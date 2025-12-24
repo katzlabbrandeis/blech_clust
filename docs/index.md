@@ -31,6 +31,8 @@ Visit the [Katz lab website](https://sites.google.com/a/brandeis.edu/katzlab/) f
 
 ### Spike Sorting Pipeline
 
+Refer to the README for the main spike-sorting flow.
+
 1. **blech_exp_info.py** - Pre-clustering step to annotate channels and save experimental parameters
 2. **blech_clust.py** - Setup directories and define clustering parameters
 3. **blech_common_avg_reference.py** - Perform common average referencing
