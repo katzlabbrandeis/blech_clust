@@ -1826,7 +1826,7 @@ class ephys_data():
         if 'sequestered_firing_frame' not in dir(self) or \
                 'sequestered_spikes_frame' not in dir(self):
             self.get_sequestered_data()
-        
+
         print("="*40)
         print("Calculating unit responsiveness")
         print("="*40)
@@ -1837,17 +1837,16 @@ class ephys_data():
                            (stim_time, stim_time+responsive_window[1]))
         min_ind, max_ind = min(responsive_inds[0]), max(responsive_inds[1])
 
-        seq_spikes_frame = self.sequestered_spikes_frame.copy() 
+        seq_spikes_frame = self.sequestered_spikes_frame.copy()
         seq_spikes_frame = seq_spikes_frame.loc[
             (seq_spikes_frame.time_num >= min_ind) &
             (seq_spikes_frame.time_num < max_ind)
         ]
         seq_spikes_frame['spikes'] = 1
 
-
         seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
 
-        # Get mean spikes per condition 
+        # Get mean spikes per condition
         seq_spike_counts = seq_spikes_frame.groupby(
             ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'post_stim']
         ).count().reset_index()
@@ -1857,14 +1856,15 @@ class ephys_data():
         # Adjust for differing window sizes
         pre_window, post_window = responsive_window
         seq_spike_counts['window_len'] = seq_spike_counts['post_stim'].apply(
-                lambda x: post_window if x else pre_window)
-        seq_spike_counts['rate'] = seq_spike_counts['spikes'] / seq_spike_counts['window_len']
+            lambda x: post_window if x else pre_window)
+        seq_spike_counts['rate'] = seq_spike_counts['spikes'] / \
+            seq_spike_counts['window_len']
 
-        # Correct for missing zero-spike entries 
+        # Correct for missing zero-spike entries
         index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
         firing_frame_group_inds = list(
             self.sequestered_firing_frame.groupby(index_cols).groups.keys())
-        
+
         firing_frame_group_inds = pd.DataFrame(
             firing_frame_group_inds, columns=index_cols)
 
@@ -1874,10 +1874,12 @@ class ephys_data():
              firing_frame_group_inds.assign(post_stim=True)],
             ignore_index=True,
         )
-        
+
         # Make sure post-stim in both is boolean
-        firing_frame_group_inds['post_stim'] = firing_frame_group_inds['post_stim'].astype(bool)
-        seq_spike_counts['post_stim'] = seq_spike_counts['post_stim'].astype(bool)
+        firing_frame_group_inds['post_stim'] = firing_frame_group_inds['post_stim'].astype(
+            bool)
+        seq_spike_counts['post_stim'] = seq_spike_counts['post_stim'].astype(
+            bool)
 
         seq_spike_counts = pd.merge(
             firing_frame_group_inds,
@@ -1887,17 +1889,16 @@ class ephys_data():
         )
         seq_spike_counts.fillna(0, inplace=True)
 
-
         # Calculate responsiveness p-values
         resp_pvals = {}
         group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
         for (nrn, taste, laser), group in tqdm(seq_spike_counts.groupby(group_cols)):
-                pval = ttest_rel(
-                    group.loc[group.post_stim, 'rate'].values,
-                    group.loc[~group.post_stim, 'rate'].values,
-                )[1]
-                resp_pvals[(nrn, laser)] = min(
-                    resp_pvals.get((nrn, laser), 1.0), pval)
+            pval = ttest_rel(
+                group.loc[group.post_stim, 'rate'].values,
+                group.loc[~group.post_stim, 'rate'].values,
+            )[1]
+            resp_pvals[(nrn, laser)] = min(
+                resp_pvals.get((nrn, laser), 1.0), pval)
 
         return resp_pvals
 
