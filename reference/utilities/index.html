@@ -1482,32 +1482,38 @@
 <h3 id="key-classes-and-functions">Key Classes and Functions<a class="headerlink" href="#key-classes-and-functions" title="Permanent link">&para;</a></h3>
 <h4 id="tee">Tee<a class="headerlink" href="#tee" title="Permanent link">&para;</a></h4>
 <p>Redirect stdout to both console and file for logging.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tee</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Redirect output to file and console</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">Tee</span><span class="p">(</span><span class="s1">&#39;/path/to/logfile.txt&#39;</span><span class="p">)</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This goes to both console and file&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">utils.blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tee</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Redirect output to file and console</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">Tee</span><span class="p">(</span><span class="s1">&#39;/path/to/data/dir&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;logfile.txt&#39;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This goes to both console and file&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h4 id="path_handler">path_handler<a class="headerlink" href="#path_handler" title="Permanent link">&para;</a></h4>
 <p>Handle file paths and directory operations.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">path_handler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">utils.blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">path_handler</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Get data directory</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">data_dir</span> <span class="o">=</span> <span class="n">path_handler</span><span class="o">.</span><span class="n">get_data_dir</span><span class="p">()</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Instantiate path handler</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">ph</span> <span class="o">=</span> <span class="n">path_handler</span><span class="p">()</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Create output directory</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">path_handler</span><span class="o">.</span><span class="n">make_dir</span><span class="p">(</span><span class="s1">&#39;/path/to/output&#39;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Access blech_clust directory</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">blech_dir</span> <span class="o">=</span> <span class="n">ph</span><span class="o">.</span><span class="n">blech_clust_dir</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Access home directory</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">home</span> <span class="o">=</span> <span class="n">ph</span><span class="o">.</span><span class="n">home_dir</span>
 </code></pre></div>
 <h4 id="imp_metadata">imp_metadata<a class="headerlink" href="#imp_metadata" title="Permanent link">&para;</a></h4>
 <p>Import and manage experimental metadata.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">imp_metadata</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Load metadata</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">metadata</span> <span class="o">=</span> <span class="n">imp_metadata</span><span class="p">(</span><span class="s1">&#39;/path/to/data&#39;</span><span class="p">)</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Access metadata fields</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">tastes</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;taste_names&#39;</span><span class="p">]</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">dig_ins</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;dig_in_channels&#39;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">utils.blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">imp_metadata</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Load metadata (requires sys.argv or list with directory path)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">metadata</span> <span class="o">=</span> <span class="n">imp_metadata</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="s1">&#39;/path/to/data&#39;</span><span class="p">])</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Access metadata attributes</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">hdf5_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">hdf5_name</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">info_dict</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">info_dict</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">layout_df</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">layout</span>
 </code></pre></div>
 <h2 id="clustering-utilities">Clustering Utilities<a class="headerlink" href="#clustering-utilities" title="Permanent link">&para;</a></h2>
 <p>Located in <code>utils/clustering/</code>, these modules provide clustering algorithms and tools.</p>

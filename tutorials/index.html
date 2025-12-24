@@ -1567,7 +1567,7 @@
 </ul>
 <h3 id="step-4-quality-assessment">Step 4: Quality Assessment<a class="headerlink" href="#step-4-quality-assessment" title="Permanent link">&para;</a></h3>
 <p>After processing, assess the quality of your dataset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>blech_unit_characteristics.py<span class="w">  </span><span class="c1"># Analyze unit characteristics</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>blech_units_characteristics.py<span class="w">  </span><span class="c1"># Analyze unit characteristics</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>python<span class="w"> </span>utils/blech_data_summary.py<span class="w">    </span><span class="c1"># Generate comprehensive dataset summary</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>python<span class="w"> </span>utils/grade_dataset.py<span class="w">         </span><span class="c1"># Grade dataset quality based on metrics</span>
 </code></pre></div>
@@ -1581,15 +1581,16 @@
 </ol>
 <h3 id="bsastft-branch">BSA/STFT Branch<a class="headerlink" href="#bsastft-branch" title="Permanent link">&para;</a></h3>
 <p>For Bayesian Spectrum Analysis and Short-Time Fourier Transform:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>emg_freq_setup.py<span class="w">              </span><span class="c1"># Configure parameters for frequency analysis</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>bash<span class="w"> </span>blech_emg_jetstream_parallel.sh<span class="w">  </span><span class="c1"># Parallel processing of EMG signals</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>emg_freq_setup.py<span class="w">              </span><span class="c1"># Configure parameters and generate parallel processing scripts</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>bash<span class="w"> </span>blech_emg_jetstream_parallel.sh<span class="w">  </span><span class="c1"># Run the generated parallel processing script</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>python<span class="w"> </span>emg_freq_post_process.py<span class="w">       </span><span class="c1"># Aggregate and process results</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>python<span class="w"> </span>emg_freq_plot.py<span class="w">               </span><span class="c1"># Generate visualizations</span>
 </code></pre></div>
+<p><strong>Note:</strong> The <code>emg_freq_setup.py</code> script generates the <code>blech_emg_jetstream_parallel.sh</code> script, which uses GNU parallel to process EMG signals in parallel.</p>
 <h3 id="qda-branch">QDA Branch<a class="headerlink" href="#qda-branch" title="Permanent link">&para;</a></h3>
 <p>For Quadratic Discriminant Analysis (gape detection):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>emg_freq_setup.py<span class="w">  </span><span class="c1"># Setup parameters for gape detection</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python<span class="w"> </span>get_gapes_Li.py<span class="w">    </span><span class="c1"># Detect gapes using QDA classifier</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>emg_freq_setup.py<span class="w">                      </span><span class="c1"># Setup parameters for gape detection</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python<span class="w"> </span>emg/gape_QDA_classifier/get_gapes_Li.py<span class="w">  </span><span class="c1"># Detect gapes using QDA classifier</span>
 </code></pre></div>
 <h2 id="testing-your-installation">Testing Your Installation<a class="headerlink" href="#testing-your-installation" title="Permanent link">&para;</a></h2>
 <h3 id="local-testing-with-prefect">Local Testing with Prefect<a class="headerlink" href="#local-testing-with-prefect" title="Permanent link">&para;</a></h3>

@@ -580,10 +580,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-clustering-setup" class="md-nav__link">
+  <a href="#2-data-initialization" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Clustering Setup
+        2. Data Initialization
       
     </span>
   </a>
@@ -1043,10 +1043,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-clustering-setup" class="md-nav__link">
+  <a href="#2-data-initialization" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Clustering Setup
+        2. Data Initialization
       
     </span>
   </a>
@@ -1192,11 +1192,11 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>python<span class="w"> </span>/path/to/blech_clust/blech_exp_info.py
 </code></pre></div>
 <p>This will guide you through annotating your channels and setting up experimental parameters.</p>
-<h3 id="2-clustering-setup">2. Clustering Setup<a class="headerlink" href="#2-clustering-setup" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Run clustering setup</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python<span class="w"> </span>/path/to/blech_clust/blech_clust.py
+<h3 id="2-data-initialization">2. Data Initialization<a class="headerlink" href="#2-data-initialization" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Initialize directory structure and prepare data</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python<span class="w"> </span>/path/to/blech_clust/blech_init.py
 </code></pre></div>
-<p>This creates the necessary directory structure and parameter files.</p>
+<p>This creates the necessary directory structure and organizes data files.</p>
 <h3 id="3-common-average-referencing">3. Common Average Referencing<a class="headerlink" href="#3-common-average-referencing" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Perform common average referencing</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>python<span class="w"> </span>/path/to/blech_clust/blech_common_avg_reference.py
@@ -1234,13 +1234,17 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Filter EMG signals</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_filter.py
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Choose your analysis approach:</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Option 1: BSA/STFT analysis</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_BSA_STFT.py
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Setup frequency analysis parameters</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_freq_setup.py
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># Choose your analysis approach:</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Option 2: QDA-based gape detection</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_QDA.py
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Option 1: BSA/STFT frequency analysis</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_freq_post_process.py
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>python<span class="w"> </span>/path/to/blech_clust/emg/emg_freq_plot.py
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># Option 2: QDA-based gape detection</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>python<span class="w"> </span>/path/to/blech_clust/emg/gape_QDA_classifier/get_gapes_Li.py
 </code></pre></div>
 <h2 id="parameter-configuration">Parameter Configuration<a class="headerlink" href="#parameter-configuration" title="Permanent link">&para;</a></h2>
 <p>Key parameter files to configure:</p>

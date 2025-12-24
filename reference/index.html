@@ -1155,7 +1155,7 @@
 <p>Located in the repository root, these modules form the main spike sorting pipeline:</p>
 <ul>
 <li><code>blech_exp_info.py</code> - Experiment setup and metadata</li>
-<li><code>blech_clust.py</code> - Clustering configuration</li>
+<li><code>blech_init.py</code> - Directory initialization and data preparation</li>
 <li><code>blech_common_avg_reference.py</code> - Common average referencing</li>
 <li><code>blech_process.py</code> - Spike extraction and clustering</li>
 <li><code>blech_post_process.py</code> - Post-processing and unit selection</li>
@@ -1180,7 +1180,7 @@
 <h2 id="using-the-api">Using the API<a class="headerlink" href="#using-the-api" title="Permanent link">&para;</a></h2>
 <h3 id="importing-modules">Importing Modules<a class="headerlink" href="#importing-modules" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Import utility functions</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tee</span><span class="p">,</span> <span class="n">path_handler</span><span class="p">,</span> <span class="n">imp_metadata</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">utils.blech_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tee</span><span class="p">,</span> <span class="n">path_handler</span><span class="p">,</span> <span class="n">imp_metadata</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Import ephys data tools</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">utils.ephys_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">ephys_data</span>

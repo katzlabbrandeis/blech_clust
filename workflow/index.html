@@ -1141,7 +1141,7 @@
 <h2 id="main-spike-sorting-pipeline">Main Spike-Sorting Pipeline<a class="headerlink" href="#main-spike-sorting-pipeline" title="Permanent link">&para;</a></h2>
 <p>For the complete spike-sorting pipeline workflow (including the operations workflow diagram, detailed steps, and nomnoml schema), please refer to the <a href="https://github.com/katzlabbrandeis/blech_clust#main-spike-sorting-pipeline">README</a>.</p>
 <h2 id="quality-assessment-workflow">Quality Assessment Workflow<a class="headerlink" href="#quality-assessment-workflow" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>blech_unit_characteristics.py → blech_data_summary.py → grade_dataset.py
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>blech_units_characteristics.py → blech_data_summary.py → grade_dataset.py
 </code></pre></div>
 <h2 id="additional-workflow-details">Additional Workflow Details<a class="headerlink" href="#additional-workflow-details" title="Permanent link">&para;</a></h2>
 <h3 id="spike-sorting-text-flow">Spike Sorting Text Flow<a class="headerlink" href="#spike-sorting-text-flow" title="Permanent link">&para;</a></h3>
@@ -1152,8 +1152,8 @@
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>[blech_post_process] -&gt; [blech_units_plot]
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>[blech_units_plot] -&gt; [blech_make_arrays]
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>[blech_make_arrays] -&gt; [bash blech_run_QA.sh]
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>[bash blech_run_QA.sh] -&gt; [blech_unit_characteristics]
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>[blech_unit_characteristics] -&gt; [blech_data_summary]
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>[bash blech_run_QA.sh] -&gt; [blech_units_characteristics]
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>[blech_units_characteristics] -&gt; [blech_data_summary]
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>[blech_data_summary] -&gt; [grade_dataset]
 </code></pre></div>
 <h3 id="emg-analysis-workflows">EMG Analysis Workflows<a class="headerlink" href="#emg-analysis-workflows" title="Permanent link">&para;</a></h3>
@@ -1163,12 +1163,14 @@
 </code></pre></div>
 <p><strong>BSA/STFT Branch:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[emg_filter] -&gt; [emg_freq_setup]
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>[emg_freq_setup] -&gt; [bash blech_emg_jetstream_parallel.sh]
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>[emg_freq_setup] -&gt; [bash blech_emg_jetstream_parallel.sh (generated)]
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>[bash blech_emg_jetstream_parallel.sh] -&gt; [emg_freq_post_process]
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>[emg_freq_post_process] -&gt; [emg_freq_plot]
 </code></pre></div>
-<p><strong>QDA Branch (Jenn Li):</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[emg_freq_setup] -&gt; [get_gapes_Li]
+<p><strong>Note:</strong> <code>emg_freq_setup.py</code> generates the <code>blech_emg_jetstream_parallel.sh</code> script for parallel processing.</p>
+<p><strong>QDA Branch:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[emg_filter] -&gt; [emg_freq_setup]
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>[emg_freq_setup] -&gt; [gape_QDA_classifier/get_gapes_Li]
 </code></pre></div>
 <h2 id="using-the-diagrams">Using the Diagrams<a class="headerlink" href="#using-the-diagrams" title="Permanent link">&para;</a></h2>
 <h3 id="viewing-the-workflow">Viewing the Workflow<a class="headerlink" href="#viewing-the-workflow" title="Permanent link">&para;</a></h3>
