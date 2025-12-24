@@ -1903,7 +1903,7 @@ class ephys_data():
 
         return resp_pvals
 
-    def calculate_discriminability(self, stim_time, params_dict):
+    def calculate_discriminability_dynamicity(self, stim_time, params_dict):
         """
         Calculate unit discriminability based on ANOVA analysis.
 
@@ -1916,7 +1916,7 @@ class ephys_data():
         """
 
         print("="*40)
-        print("Calculating unit discriminability")
+        print("Calculating unit discriminability and dynamicity")
         print("="*40)
 
         if 'sequestered_spikes_frame' not in dir(self):
@@ -1977,6 +1977,7 @@ class ephys_data():
 
         # Calculate discriminability p-values
         discrim_pvals = {}
+        dynamicity_pvals = {}
         group_cols = ['neuron_num', 'laser_tuple']
         for (nrn, laser), group in tqdm(seq_spike_anova_counts.groupby(group_cols)):
             anova_out = pg.anova(
@@ -1992,8 +1993,9 @@ class ephys_data():
             taste_pval = taste_pval[0] if len(taste_pval) > 0 else 1.0
             bin_pval = bin_pval[0] if len(bin_pval) > 0 else 1.0
             discrim_pvals[(nrn, laser)] = taste_pval
+            dynamicity_pvals[(nrn, laser)] = bin_pval
 
-        return discrim_pvals
+        return discrim_pvals, dynamicity_pvals
 
     def calculate_palatability(self, pal_ranks, firing_t_vec):
         """
@@ -2026,90 +2028,6 @@ class ephys_data():
                 rho, pval = spearmanr(group.firing, group.pal_rank)
                 pal_pvals[(nrn, laser, time_val)] = pval
         return pal_pvals
-
-    def calculate_dynamicity(self, seq_spikes_anova, params_dict):
-        """
-        Calculate unit dynamicity based on ANOVA analysis.
-
-        Args:
-            seq_spikes_anova: DataFrame containing spike data for dynamicity analysis.
-            params_dict: Dictionary of parameters for dynamicity calculation.
-
-        Returns:
-            dict: A dictionary of dynamicity p-values for each unit.
-        """
-        dynamic_params = params_dict.get(
-            'dynamicity_analysis_params', {'bin_width': 500, 'bin_num': 4})
-        dynamic_bin_width = dynamic_params['bin_width']
-        dynamic_bin_num = dynamic_params['bin_num']
-        bin_lims = np.vectorize(int)(np.linspace(
-            stim_time,
-            stim_time + (dynamic_bin_num*dynamic_bin_width),
-            dynamic_bin_num+1))
-
-        seq_spikes_anova = seq_spikes_anova.copy()
-        min_lim, max_lim = min(bin_lims), max(bin_lims)
-        seq_spikes_anova = seq_spikes_anova.loc[
-            (seq_spikes_anova.time_num >= min_lim) &
-            (seq_spikes_anova.time_num < max_lim)
-        ]
-        seq_spikes_anova['bin_num'] = pd.cut(
-            seq_spikes_anova.time_num,
-            bin_lims,
-            labels=np.arange(dynamic_bin_num),
-            include_lowest=True,
-        )
-        seq_spikes_anova['spikes'] = 1
-        seq_spike_dynamic_counts = seq_spikes_anova.groupby(
-            ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'bin_num']
-        ).mean().reset_index()
-        seq_spike_dynamic_counts.drop(
-            columns=['time_num'], inplace=True, errors='ignore')
-        seq_spike_dynamic_counts.fillna(0, inplace=True)
-
-        # Add zeros where no spikes were seen
-        seq_spike_dynamic_counts.set_index(
-            index_cols+['bin_num'], inplace=True)
-        for this_ind in firing_frame_group_inds:
-            for bin_num in range(dynamic_bin_num):
-                fin_ind = tuple((*this_ind, bin_num))
-                if fin_ind not in seq_spike_dynamic_counts.index:
-                    this_row = pd.Series(dict(spikes=0), name=fin_ind)
-                    seq_spike_dynamic_counts = pd.concat(
-                        [seq_spike_dynamic_counts, this_row.to_frame().T])
-        seq_spike_dynamic_counts.reset_index(inplace=True)
-
-        # Calculate dynamicity p-values
-        dynamic_pvals = {}
-        group_cols = ['neuron_num', 'laser_tuple']
-        for (nrn, laser), group in seq_spike_dynamic_counts.groupby(group_cols):
-            try:
-                anova_out = pg.anova(
-                    data=group,
-                    dv='spikes',
-                    between=['taste_num', 'bin_num'],
-                )
-                anova_out = anova_out.loc[anova_out.Source != 'Residual']
-                if 'p-unc' in anova_out.columns:
-                    taste_pval = anova_out.loc[
-                        anova_out.Source == 'taste_num', 'p-unc'].values
-                    bin_pval = anova_out.loc[
-                        anova_out.Source == 'bin_num', 'p-unc'].values
-                    taste_pval = taste_pval[0] if len(taste_pval) > 0 else 1.0
-                    bin_pval = bin_pval[0] if len(bin_pval) > 0 else 1.0
-                else:
-                    taste_pval = 1.0
-                    bin_pval = 1.0
-            except Exception:
-                taste_pval = 1.0
-                bin_pval = 1.0
-
-            if np.isnan(taste_pval):
-                taste_pval = 1.0
-            if np.isnan(bin_pval):
-                bin_pval = 1.0
-            dynamic_pvals[(nrn, laser)] = taste_pval
-        return dynamic_pvals
 
     def check_stability(self, drift_results, p_val_threshold):
         """
@@ -2166,13 +2084,13 @@ class ephys_data():
             stim_time, params_dict)
 
         # Calculate discriminability
-        discrim_pvals = self.calculate_discriminability(
+        discrim_pvals, dynamic_pvals = self.calculate_discriminability_dynamicity(
             stim_time, params_dict)
 
         # Calculate palatability
         pal_ranks = info_dict['taste_params'].get('pal_rankings', None)
         pal_pvals = self.calculate_palatability(
-            self.sequestered_firing_frame, pal_ranks)
+            pal_ranks, firing_t_vec)
 
         # Check stability
         stable_units, unstable_units = self.check_stability(
