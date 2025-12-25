@@ -1176,7 +1176,7 @@ class ephys_data():
             Sets self.sorting_params_dict: Dictionary containing:
                 - spike_array_durations: [pre_stim, post_stim] durations in ms
                 - sampling_rate: Sampling rate in Hz
-                - breach_detection_params: 
+                - breach_detection_params:
                     - voltage_cutoff: Voltage threshold for spike detection
                     - max_breach_rate: Maximum breach rate for artifact rejection
                     - max_secs_above_cutoff: Maximum seconds above cutoff for artifact rejection

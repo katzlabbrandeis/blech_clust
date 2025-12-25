@@ -78,7 +78,8 @@ def return_feature_pipeline(data_dir_name):
     metadata_handler = imp_metadata([[], data_dir_name])
     params_dict = metadata_handler.params_dict
     sampling_rate = params_dict['sampling_rate']
-    zero_ind = int(params_dict['spike_snapshot']['spike_snapshot_before']*sampling_rate/1000)
+    zero_ind = int(params_dict['spike_snapshot']
+                   ['spike_snapshot_before']*sampling_rate/1000)
 
     pca_pipeline = Pipeline(
         steps=[
