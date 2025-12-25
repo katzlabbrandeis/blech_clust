@@ -2146,7 +2146,7 @@ class ephys_data():
                     'dynamic': dynamic,
                     'dynamic_pval': dynamic_p,
                     'stable': stable,
-                    'stable_pval': stable_pval, 
+                    'stable_pval': stable_pval,
                 })
 
         profile_df = pd.DataFrame(results)
