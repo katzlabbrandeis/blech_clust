@@ -408,8 +408,8 @@ if __name__ == '__main__':
             # High bandpass filter the raw electrode recordings
             filt_el = get_filtered_electrode(
                 raw_el,
-                freq=[params_dict['bandpass_lower_cutoff'],
-                      params_dict['bandpass_upper_cutoff']],
+                freq=[params_dict['bandpass_params']['bandpass_lower_cutoff'],
+                      params_dict['bandpass_params']['bandpass_upper_cutoff']],
                 sampling_rate=params_dict['sampling_rate'])
 
             # Cut data to have integer number of seconds
@@ -424,10 +424,10 @@ if __name__ == '__main__':
             this_out = return_cutoff_values(
                 filt_el,
                 params_dict['sampling_rate'],
-                params_dict['voltage_cutoff'],
-                params_dict['max_breach_rate'],
-                params_dict['max_secs_above_cutoff'],
-                params_dict['max_mean_breach_rate_persec']
+                params_dict['breach_detection_params']['voltage_cutoff'],
+                params_dict['breach_detection_params']['max_breach_rate'],
+                params_dict['breach_detection_params']['max_secs_above_cutoff'],
+                params_dict['breach_detection_params']['max_mean_breach_rate_persec']
             )
             # First output of recording cutoff is processed filtered electrode
             cutoff_data.append(this_out)
