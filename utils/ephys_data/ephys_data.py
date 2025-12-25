@@ -2142,7 +2142,7 @@ class ephys_data():
                     'palatable': pal_p < alpha if not np.isnan(pal_p) else False,
                     'palatable_pval': pal_p,
                     'stable': stable,
-                    'stable_pval': stable_pval, 
+                    'stable_pval': stable_pval,
                 })
 
         profile_df = pd.DataFrame(results)
