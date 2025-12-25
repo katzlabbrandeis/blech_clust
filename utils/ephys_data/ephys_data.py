@@ -2131,6 +2131,8 @@ class ephys_data():
                 stable = nrn in self.stable_units
                 stable_pval = self.drift_results.loc[
                     self.drift_results['unit'] == nrn, 'p_val'].values[0]
+                dynamic_p = dynamic_pvals.get(key, 1.0)
+                dynamic = dynamic_p < alpha
 
                 results.append({
                     'neuron_num': nrn,
@@ -2141,6 +2143,8 @@ class ephys_data():
                     'discriminative_pval': discrim_p,
                     'palatable': pal_p < alpha if not np.isnan(pal_p) else False,
                     'palatable_pval': pal_p,
+                    'dynamic': dynamic,
+                    'dynamic_pval': dynamic_p,
                     'stable': stable,
                     'stable_pval': stable_pval, 
                 })
