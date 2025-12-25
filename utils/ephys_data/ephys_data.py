@@ -1780,7 +1780,6 @@ class ephys_data():
         Example:
         --------
         >>> data = ephys_data(data_dir='/path/to/data')
-        >>> data.get_stable_units('/path/to/drift_results.csv')
         >>> # Access stable units
         >>> stable_unit_indices = np.where(data.stable_units)[0]
         """
@@ -2063,28 +2062,6 @@ class ephys_data():
 
         return pal_pvals, pal_pval_df
 
-    def check_stability(self, drift_results, p_val_threshold):
-        """
-        Check the stability of units based on drift check results.
-
-        Args:
-            drift_results: DataFrame containing drift check results.
-            p_val_threshold: Threshold for determining stability.
-
-        Returns:
-            dict: A dictionary indicating stable and unstable units.
-        """
-        drift_results['stable'] = drift_results['p_val'] >= p_val_threshold
-        stable_units = drift_results[drift_results['stable']]['unit'].values
-        unstable_units = drift_results[~drift_results['stable']]['unit'].values
-
-        print(f"Loaded drift check results for {len(drift_results)} units")
-        print(
-            f"Found {len(stable_units)} stable units and {len(unstable_units)} unstable units")
-        print(f"Using p-value threshold of {p_val_threshold}")
-
-        return stable_units, unstable_units
-
     def profile_units(self, save_to_file=True, alpha=0.05, recalculate=False):
         """
         Generate a DataFrame containing unit characteristics including:
@@ -2142,8 +2119,6 @@ class ephys_data():
         # Check stability
         if 'drift_results' not in dir(self):
             self.get_stable_units(p_val_threshold=alpha)
-        stable_units, unstable_units = self.check_stability(
-            self.drift_results, alpha)
 
         # ==================== BUILD RESULTS DATAFRAME ====================
         results = []
@@ -2153,7 +2128,9 @@ class ephys_data():
                 resp_p = resp_pvals.get(key, 1.0)
                 discrim_p = discrim_pvals.get(key, 1.0)
                 pal_p = pal_pvals.get(key, np.nan)
-                stable = nrn in stable_units
+                stable = nrn in self.stable_units
+                stable_pval = self.drift_results.loc[
+                    self.drift_results['unit'] == nrn, 'p_val'].values[0]
 
                 results.append({
                     'neuron_num': nrn,
@@ -2165,7 +2142,7 @@ class ephys_data():
                     'palatable': pal_p < alpha if not np.isnan(pal_p) else False,
                     'palatable_pval': pal_p,
                     'stable': stable,
-                    'stable_pval': alpha if stable else 1.0,
+                    'stable_pval': stable_pval, 
                 })
 
         profile_df = pd.DataFrame(results)
