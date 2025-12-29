@@ -1,13 +1,16 @@
 # GitHub Actions workflow for automated testing
 # See: https://docs.github.com/en/actions
 #
-# This workflow runs Python tests on a self-hosted runner
-# Jobs are independent to allow partial success/failure reporting
+# This workflow runs Python tests on a self-hosted runner in proper sequence:
+# Preamble → Spike-EMG → EMG
+# Consolidated workflow to ensure tests don't jump between different PRs
 
 name: Python test
 run-name: python_test
 on:
   pull_request:
+    paths:
+      - '**.py'  # Only run when Python files change
   workflow_dispatch:
 jobs:
   Preamble:
@@ -53,9 +56,21 @@ jobs:
 
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
-      - name: Install blech_clust package
+      - name: Install blech_clust package with test dependencies
         working-directory: /home/exouser/Desktop/blech_clust
-        run: make base
+        run: make base test
+
+      - name: Run pytest tests
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          echo "Running pytest tests as part of Preamble phase"
+          conda run -n blech_clust python -m pytest tests/ -v
+
+      - name: Run pytest with coverage
+        working-directory: /home/exouser/Desktop/blech_clust
+        run: |
+          echo "Running pytest with coverage as part of Preamble phase"
+          conda run -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
 
   Spike-EMG:
     runs-on: self-hosted
@@ -96,7 +111,11 @@ jobs:
 
       - name: Cleanup after tests
         if: always()
+        working-directory: /home/exouser/Desktop/blech_clust
         run: |
           echo "Cleaning up working directory and test artifacts"
+          rm -rf .pytest_cache
+          rm -rf .coverage
+          rm -f coverage.xml
           rm -rf /home/exouser/Desktop/blech_clust
           echo "Note: Test data in ~/.blech_clust_test_data is preserved for reuse"
