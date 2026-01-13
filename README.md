@@ -6,7 +6,7 @@
 
 Python and R based code for clustering and sorting electrophysiology data recorded using the Intan RHD2132 chips. Originally written for cortical multi-electrode recordings in Don Katz's lab at Brandeis University.
 
-**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started/)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
+**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
 
 ## Features
 
@@ -39,11 +39,6 @@ For detailed instructions, see the [Getting Started Guide](https://katzlabbrande
 ## Documentation
 
 For comprehensive documentation, visit **[katzlabbrandeis.github.io/blech_clust](https://katzlabbrandeis.github.io/blech_clust/)**
-
-- **[Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started.html)** - Installation and setup
-- **[Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials.html)** - Step-by-step workflows
-- **[API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)** - Complete module documentation
-- **[Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html)** - Updates and insights
 
 ### For building documentation locally:
 ```
@@ -121,7 +116,8 @@ QDA (Jenn Li)
 
 - Quadratic Discriminant Analysis for gape detection (based on Li et al.'s methodology)
 
-See the [Workflow Documentation](https://katzlabbrandeis.github.io/blech_clust/workflow.html) for additional workflow details and diagrams.
+See the [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/) for detailed guides on using these features.
+See the [Workflow Diagram](https://katzlabbrandeis.github.io/blech_clust/workflow/) for a visual representation of the pipeline.
 
 ## Test Dataset
 
