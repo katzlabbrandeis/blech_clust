@@ -60,20 +60,18 @@ make params
 The following parameter files control pipeline behavior:
 
 - **sorting_params.json** - Spike sorting parameters:
-  - `bandpass_lower_cutoff` / `bandpass_upper_cutoff`: Filter frequencies (default: 300-3000 Hz)
-  - `waveform_threshold`: Spike detection threshold in standard deviations (default: 5)
-  - `spike_snapshot_before` / `spike_snapshot_after`: Waveform extraction window in ms
-  - `clustering_params`: GMM clustering settings
-  - `qa_params`: Quality assurance thresholds
-  - `psth_params`: PSTH calculation parameters
+    - `bandpass_lower_cutoff` / `bandpass_upper_cutoff`: Filter frequencies (default: 300-3000 Hz)
+    - `waveform_threshold`: Spike detection threshold in standard deviations (default: 5)
+    - `spike_snapshot_before` / `spike_snapshot_after`: Waveform extraction window in ms
+    - `clustering_params`: GMM clustering settings
+    - `qa_params`: Quality assurance thresholds
+    - `psth_params`: PSTH calculation parameters
 
 - **emg_params.json** - EMG analysis parameters:
-  - `stft_params`: Short-time Fourier transform settings
-  - `use_BSA`: Whether to use Bayesian Spectrum Analysis
+    - `stft_params`: Short-time Fourier transform settings
+    - `use_BSA`: Whether to use Bayesian Spectrum Analysis
 
 - **waveform_classifier_params.json** - neuRecommend classifier settings
-
-See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter configuration.
 
 ## Troubleshooting
 
