@@ -145,17 +145,24 @@ python emg/gape_QDA_classifier/get_gapes_Li.py
 
 ```
 data.h5
-├── emg/
-│   ├── raw/              # Raw EMG signals
-│   ├── filtered/         # Filtered EMG signals
-│   ├── frequency/        # Frequency analysis results
-│   │   ├── power/
-│   │   ├── phase/
-│   │   └── coherence/
-│   └── gapes/            # Detected gape events
-│       ├── onset_times/
-│       ├── durations/
-│       └── confidence/
+├── emg_data/
+│   ├── dig_in_<N>/
+│   │   ├── emg_array           # Raw EMG data
+│   │   └── processed_emg/
+│   │       ├── <car>_emg_filt  # Highpass filtered signal
+│   │       └── <car>_emg_env   # Envelope (lowpass filtered)
+│   ├── ind_electrode_map       # Electrode mapping
+│   └── emg_sig_trials          # Significant trial indicators
+├── emg_BSA_results/            # BSA/STFT frequency analysis
+│   ├── omega                   # Frequency values
+│   ├── <car>/
+│   │   └── taste<N>_p          # Power spectrum per taste
+│   ├── gapes                   # Detected gape events
+│   ├── licking                 # Detected licking events
+│   └── emg_BSA_results_final   # Combined results
+└── QDA_gapes/                  # QDA-based gape detection
+    ├── gapes_Li                # Gape detection results
+    └── first_gape_Li           # First gape timing
 ```
 
 ## Configuration
