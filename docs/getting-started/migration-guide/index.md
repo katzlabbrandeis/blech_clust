@@ -27,6 +27,7 @@ The changes focus on improved reproducibility, testing, documentation, and user 
 | Feature | Description |
 |---------|-------------|
 | Makefile-based installation | `make all` handles conda environment, dependencies, and R packages |
+| Pip-installable package | Alternative installation via pip |
 | Dev container support | `.devcontainer/` for consistent development environments |
 | Pre-commit hooks | Code quality enforcement |
 | Structured requirements | Separate files for base, dev, test, docs, and optional dependencies |
@@ -67,6 +68,25 @@ The original blech_clust used text entry boxes with no record of parameters. The
 | Feature visualization | Spike features over recording duration |
 | `blech_units_characteristics.py` | Unit characteristic analysis |
 | `utils/cluster_stability.py` | Cluster stability assessment |
+| Hierarchical clustering plots | Visual assessment of cluster quality |
+
+### RNN-Based Firing Rate Inference
+
+The `utils/infer_rnn_rates.py` module uses recurrent neural networks to infer firing rates from spike trains:
+
+```bash
+python utils/infer_rnn_rates.py /path/to/data --train_steps 15000 --hidden_size 8
+```
+
+Configuration via `params/_templates/blechrnn_params.json`.
+
+### Performance Improvements
+
+| Improvement | Description |
+|-------------|-------------|
+| Collision calculation | Optimized from O(n²) to O(n) |
+| Parallel electrode processing | Concurrent processing across electrodes |
+| Memory-efficient CAR | Finite samples instead of downsampled recording |
 
 ### Shell Scripts for Automation
 
@@ -115,6 +135,19 @@ EMG functionality has been reorganized into the `emg/` directory. See [EMG Analy
 | QA | None | Drift detection, grading metrics |
 | File formats | One format | Multiple format support |
 | Code organization | Flat structure | Modular directories |
+
+## Additional Resources
+
+### Development Blog
+
+The [blech_clust blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main) contains detailed posts about specific features and updates, including:
+
+- [Spike-Time Histograms for Drift Detection](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_315) - Improved drift detection methodology
+- [ELBO-Based Population Drift Detection](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_281) - Probabilistic drift detection
+- [Traditional Intan File Format Support](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_240) - Multi-format compatibility
+- [BlechRNN for Firing Rate Inference](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_226) - RNN-based analysis
+- [Automated Dataset Grading](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_474) - Quality assessment automation
+- [Parallel Processing for Electrodes](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_256) - Performance improvements
 
 ## Getting Help
 

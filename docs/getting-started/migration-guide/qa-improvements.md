@@ -13,6 +13,7 @@ The current fork includes quality assurance tools that were not present in the o
 | `utils/qa_utils/elbo_drift.py` | ELBO-based drift detection |
 | `utils/grade_dataset.py` | Dataset quality grading |
 | `utils/grading_metrics.json` | Configurable grading criteria |
+| `utils/blech_data_summary.py` | At-a-glance dataset insights |
 
 ## Running QA Checks
 
@@ -49,7 +50,7 @@ Drift can also be assessed at the single-unit level to identify units that may h
 
 ### ELBO-Based Drift
 
-The `elbo_drift.py` module uses Evidence Lower Bound (ELBO) metrics to detect drift:
+The `elbo_drift.py` module uses Evidence Lower Bound (ELBO) metrics from variational inference to detect population drift. This approach provides a probabilistic framework for identifying when neural activity patterns change significantly.
 
 ```python
 from utils.qa_utils import elbo_drift
@@ -57,6 +58,12 @@ from utils.qa_utils import elbo_drift
 # Analyze ELBO drift
 elbo_results = elbo_drift.analyze(data_dir='/path/to/data')
 ```
+
+Key features:
+- Uses `pymc` for Bayesian statistical modeling
+- Performs drift detection on spike-time histograms (more accurate than PCA of firing rates)
+- Supports flexible changepoints
+- Exports results to CSV for further analysis
 
 ---
 
@@ -67,6 +74,7 @@ The `channel_corr.py` module analyzes correlations between channels to identify:
 - Dead channels
 - Channels with excessive noise
 - Cross-talk between channels
+- Channels that should be excluded from common average reference
 
 ```python
 from utils.qa_utils import channel_corr
@@ -74,6 +82,8 @@ from utils.qa_utils import channel_corr
 # Analyze channel correlations
 corr_results = channel_corr.analyze(data_dir='/path/to/data')
 ```
+
+This enhancement bridges the gap between raw channel data and meaningful quality metrics.
 
 ---
 
@@ -94,11 +104,27 @@ similarity_results = unit_similarity.analyze(data_dir='/path/to/data')
 
 ---
 
+## Data Summary
+
+The `blech_data_summary.py` script provides at-a-glance dataset insights:
+
+```bash
+python utils/blech_data_summary.py /path/to/data
+```
+
+This generates a summary including:
+- Number of units and their quality
+- Recording duration and stability
+- Trial counts per condition
+- Basic firing rate statistics
+
+---
+
 ## Dataset Grading
 
 ### Grading Script
 
-The `grade_dataset.py` script assigns quality grades based on configurable metrics:
+The `grade_dataset.py` script assigns quality grades based on configurable metrics, automating the assessment process:
 
 ```bash
 python utils/grade_dataset.py /path/to/data
@@ -152,6 +178,14 @@ This helps identify:
 - Clusters that split or merge during recording
 - Units with unstable waveforms
 - Potential sorting errors
+
+### Hierarchical Clustering Visualization
+
+The pipeline includes hierarchical clustering plots for visual assessment of cluster quality. These plots help identify:
+
+- Well-separated clusters
+- Clusters that may need to be merged
+- Outlier waveforms
 
 ---
 
