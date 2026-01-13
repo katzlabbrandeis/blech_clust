@@ -6,7 +6,7 @@
 
 Python and R based code for clustering and sorting electrophysiology data recorded using the Intan RHD2132 chips. Originally written for cortical multi-electrode recordings in Don Katz's lab at Brandeis University.
 
-**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started.html)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials.html)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
+**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started/)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
 
 ## Features
 
