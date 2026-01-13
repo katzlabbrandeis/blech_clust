@@ -23,10 +23,10 @@ python emg/emg_filter.py
 
 **Filtering Steps:**
 
-1. Bandpass filtering (typically 300-3000 Hz)
-2. Notch filtering (remove line noise at 60 Hz)
-3. Rectification
-4. Smoothing
+1. Differencing EMG channels within CAR groups (if multiple channels)
+2. Highpass filtering at 300 Hz (2nd order Butterworth)
+3. Rectification (absolute value)
+4. Lowpass filtering at 15 Hz for envelope extraction
 
 **Output:**
 
