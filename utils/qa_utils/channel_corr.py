@@ -58,7 +58,7 @@ def get_all_channels(
     sort_order = np.argsort(chan_names)
     chan_names = np.array(chan_names)[sort_order]
     all_chans = np.stack(all_chans)[sort_order]
-    
+
     # Build channel labels with CAR group names if layout provided
     chan_labels = None
     if electrode_layout_frame is not None:
@@ -71,7 +71,7 @@ def get_all_channels(
                 chan_labels.append(f"{car_group}:{chan_num}")
             else:
                 chan_labels.append(str(chan_num))
-    
+
     return all_chans, np.array(chan_names), chan_labels
 
 
@@ -111,19 +111,19 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
     thresh_corr[thresh_corr < threshold] = np.nan
 
     save_path = os.path.join(plot_dir, 'raw_channel_corr_plot.png')
-    
+
     # Adjust figure size based on number of channels for readability
     n_chans = corr_mat.shape[0]
     fig_width = max(12, n_chans * 0.2)
     fig_height = max(6, n_chans * 0.1)
     fig, ax = plt.subplots(1, 2, figsize=(fig_width, fig_height))
-    
+
     im = ax[0].imshow(corr_mat, cmap='jet', vmin=0, vmax=1)
     ax[0].set_title('Raw Correlation Matrix')
     ax[0].set_xlabel('Channel')
     ax[0].set_ylabel('Channel')
     fig.colorbar(im, ax=ax[0])
-    
+
     im = ax[1].imshow(thresh_corr, cmap='jet')
     ax[1].set_title('Thresholded Correlation Matrix')
     ax[1].set_xlabel('Channel')
@@ -131,15 +131,16 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
     ax[1].imshow(thresh_corr,
                  interpolation='nearest')
     cbar = fig.colorbar(im, ax=ax[1])
-    
+
     # Add channel labels with CAR group names if provided
     if chan_labels is not None:
         for a in ax:
             a.set_xticks(range(len(chan_labels)))
             a.set_yticks(range(len(chan_labels)))
-            a.set_xticklabels(chan_labels, rotation=90, fontsize=max(4, 8 - n_chans // 20))
+            a.set_xticklabels(chan_labels, rotation=90,
+                              fontsize=max(4, 8 - n_chans // 20))
             a.set_yticklabels(chan_labels, fontsize=max(4, 8 - n_chans // 20))
-    
+
     fig.tight_layout()
     fig.savefig(save_path, dpi=150)
     plt.close(fig)
