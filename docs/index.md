@@ -25,7 +25,6 @@ Visit the [Katz lab website](https://sites.google.com/a/brandeis.edu/katzlab/) f
 - [API Reference](reference/index.md) - Complete API documentation
 - [Tutorials](tutorials.md) - Step-by-step guides
 - [GitHub Repository](https://github.com/katzlabbrandeis/blech_clust)
-- [Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html)
 
 ## Pipeline Overview
 

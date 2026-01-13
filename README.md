@@ -6,7 +6,7 @@
 
 Python and R based code for clustering and sorting electrophysiology data recorded using the Intan RHD2132 chips. Originally written for cortical multi-electrode recordings in Don Katz's lab at Brandeis University.
 
-**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started.html)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials.html)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
+**📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
 
 ## Features
 
@@ -34,16 +34,11 @@ python blech_exp_info.py /path/to/data
 bash blech_autosort.sh /path/to/data
 ```
 
-For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started.html).
+For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/).
 
 ## Documentation
 
 For comprehensive documentation, visit **[katzlabbrandeis.github.io/blech_clust](https://katzlabbrandeis.github.io/blech_clust/)**
-
-- **[Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started.html)** - Installation and setup
-- **[Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials.html)** - Step-by-step workflows
-- **[API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)** - Complete module documentation
-- **[Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html)** - Updates and insights
 
 ### For building documentation locally:
 ```
@@ -57,7 +52,7 @@ mkdocs serve
 
 The following diagram shows the complete operations workflow for the blech_clust pipeline:
 
-![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+![nomnoml](docs/images/workflow_schema.png)
 
 #### Detailed Pipeline Steps
 
@@ -79,37 +74,30 @@ The following diagram shows the complete operations workflow for the blech_clust
 Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) to generate the complete workflow diagram:
 
 ```nomnoml
-#direction: down
-#spacing: 80
-#padding: 10
+Spike Sorting
+[blech_exp_info] -> [blech_init]
+[blech_init] -> [blech_common_average_reference]
+[blech_common_average_reference] -> [bash blech_run_process.sh]
+[bash blech_run_process.sh] -> [blech_post_process]
+[blech_post_process] -> [blech_units_plot]
+[blech_units_plot] -> [blech_make_arrays]
+[blech_make_arrays] -> [bash blech_run_QA.sh]
+[bash blech_run_QA.sh] -> [blech_unit_characteristics]
+[blech_unit_characteristics] -> [blech_data_summary]
+[blech_data_summary] -> [grade_dataset]
 
-[<frame>Spike Sorting Pipeline|
-  [blech_exp_info] -> [blech_init]
-  [blech_init] -> [blech_common_average_reference]
-  [blech_common_average_reference] -> [bash blech_run_process.sh]
-  [bash blech_run_process.sh] -> [blech_post_process]
-  [blech_post_process] -> [blech_units_plot]
-  [blech_units_plot] -> [blech_make_arrays]
-  [blech_make_arrays] -> [bash blech_run_QA.sh]
-  [bash blech_run_QA.sh] -> [blech_units_characteristics]
-  [blech_units_characteristics] -> [blech_data_summary]
-  [blech_data_summary] -> [grade_dataset]
-]
+EMG shared
+[blech_init] -> [blech_make_arrays]
+[blech_make_arrays] -> [emg_filter]
 
-[<frame>EMG Analysis|
-  [blech_make_arrays] -> [emg_filter]
+BSA/STFT
+[emg_filter] -> [emg_freq_setup]
+[emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
+[bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
+[emg_freq_post_process] -> [emg_freq_plot]
 
-  [<frame>BSA/STFT Branch|
-    [emg_filter] -> [emg_freq_setup]
-    [emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
-    [bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
-    [emg_freq_post_process] -> [emg_freq_plot]
-  ]
-
-  [<frame>QDA Branch|
-    [emg_freq_setup] -> [get_gapes_Li]
-  ]
-]
+QDA (Jenn Li)
+[emg_freq_setup] -> [get_gapes_Li]
 ```
 </details>
 
@@ -128,7 +116,8 @@ Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) t
 
 - Quadratic Discriminant Analysis for gape detection (based on Li et al.'s methodology)
 
-See the [Workflow Documentation](https://katzlabbrandeis.github.io/blech_clust/workflow.html) for additional workflow details and diagrams.
+See the [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/) for detailed guides on using these features.
+See the [Workflow Diagram](https://katzlabbrandeis.github.io/blech_clust/workflow/) for a visual representation of the pipeline.
 
 ## Test Dataset
 

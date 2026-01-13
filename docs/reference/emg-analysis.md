@@ -146,11 +146,11 @@ EMG analysis parameters:
 
 - `emg_env`: Path to conda environment for EMG processing
 - `stft_params`: Short-time Fourier transform parameters
-  - `max_freq`: Maximum frequency to analyze (Hz)
-  - `time_range_tuple`: Time window for analysis (seconds)
-  - `Fs`: Sampling frequency (Hz)
-  - `signal_window`: Window size for STFT (samples)
-  - `window_overlap`: Overlap between windows (samples)
+      - `max_freq`: Maximum frequency to analyze (Hz)
+      - `time_range_tuple`: Time window for analysis (seconds)
+      - `Fs`: Sampling frequency (Hz)
+      - `signal_window`: Window size for STFT (samples)
+      - `window_overlap`: Overlap between windows (samples)
 - `use_BSA`: Whether to use Bayesian Spectrum Analysis (true) or STFT (false)
 
 ## Usage Examples
@@ -210,7 +210,8 @@ print(f"Mean duration: {np.mean(gape_durations):.2f} ms")
 
 ## References
 
-Mukherjee, N., Wachutka, J., & Katz, D. B. (2019). Impact of precisely-timed inhibition of gustatory cortex on taste behavior depends on single-trial ensemble dynamics. eLife, 8, e45968.
+- Mukherjee, N., Wachutka, J., & Katz, D. B. (2019). Impact of precisely-timed inhibition of gustatory cortex on taste behavior depends on single-trial ensemble dynamics. eLife, 8, e45968.
+- Li JX, Maier JX, Reid EE, Katz DB. Sensory Cortical Activity Is Related to the Selection of a Rhythmic Motor Action Pattern. J Neurosci. 2016 May 18;36(20):5596-607. doi: 10.1523/JNEUROSCI.3949-15.2016. PMID: 27194338; PMCID: PMC4871991.
 
 ## See Also
 

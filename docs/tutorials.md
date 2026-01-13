@@ -216,5 +216,3 @@ Options:
 ## Additional Resources
 
 - [Module Documentation](https://github.com/katzlabbrandeis/blech_clust/blob/master/utils/ephys_data/README.md): Detailed documentation for the ephys_data module
-- [Wiki](https://github.com/abuzarmahmood/blech_clust/wiki): Additional guides and information
-- [Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html): Insights and updates from the development team
