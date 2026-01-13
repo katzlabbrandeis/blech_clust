@@ -5,7 +5,7 @@ on:
     branches:
       - master
     branches-ignore:
-      - gh-pages
+      - 'gh-pages'
     paths:
       - '**.py'
       - 'docs/**'
