@@ -20,7 +20,7 @@ Before installing blech_clust, ensure you have:
    ```bash
    make all
    ```
-   This installs the base environment, EMG analysis tools, neuRecommend classifier, BlechRNN, and all optional dependencies.
+   This installs the base environment, EMG analysis tools, neuRecommend classifier, and all optional dependencies.
 
 3. **Activate the environment:**
    ```bash
@@ -39,7 +39,6 @@ make core
 make base      # Base environment and core dependencies (required)
 make emg       # EMG analysis requirements (BSA/STFT, QDA)
 make neurec    # neuRecommend waveform classifier
-make blechrnn  # BlechRNN for firing rate estimation
 make prefect   # Prefect workflow management (for testing)
 make dev       # Development dependencies
 make optional  # Optional analysis tools
@@ -74,20 +73,7 @@ The following parameter files control pipeline behavior:
 
 - **waveform_classifier_params.json** - neuRecommend classifier settings
 
-- **blechrnn_params.json** - BlechRNN firing rate estimation settings
-
 See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter configuration.
-
-## GPU Support (Optional)
-
-If you plan to use GPU acceleration with BlechRNN:
-
-1. Install CUDA toolkit separately (see [PyTorch GPU installation guide](https://medium.com/@jeanpierre_lv/installing-pytorch-with-gpu-support-on-ubuntu-a-step-by-step-guide-38dcf3f8f266))
-2. Reinstall PyTorch with GPU support:
-   ```bash
-   conda activate blech_clust
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-   ```
 
 ## Troubleshooting
 
