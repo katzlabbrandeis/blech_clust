@@ -223,40 +223,38 @@ plt.show()
 ### LFP Processing
 
 ```python
+from utils.ephys_data.ephys_data import ephys_data
 from utils.ephys_data import lfp_processing
 import numpy as np
-import tables
 import matplotlib.pyplot as plt
 
-# Set parameters for LFP extraction
-params = {
+# Load data using the ephys_data class
+data = ephys_data(data_dir='/path/to/data')
+
+# Set LFP parameters (optional - defaults will be used if not set)
+data.lfp_params = {
     'freq_bounds': [1, 300],          # Frequency range in Hz
     'sampling_rate': 30000,           # Original sampling rate
     'taste_signal_choice': 'Start',   # Trial alignment
     'fin_sampling_rate': 1000,        # Final sampling rate
-    'dig_in_list': [0, 1, 2, 3],      # Digital inputs to process
     'trial_durations': [2000, 5000]   # Pre/post trial durations in ms
 }
 
-# Extract LFPs from raw data files
-lfp_processing.extract_lfps(
-    dir_name='/path/to/data',
-    **params
-)
+# Extract LFPs (handles trial_info_frame internally)
+data.extract_lfps()
 
-# After extraction, load and analyze the LFP data
-with tables.open_file('/path/to/data/session.h5', 'r') as hf5:
-    # Get LFP data for a specific taste
-    lfp_data = hf5.root.Parsed_LFP.dig_in_0_LFPs[:]  # Shape: (channels, trials, time)
+# Load the extracted LFP data
+data.get_lfps()
+lfp_data = data.lfp_array  # Shape: (tastes, channels, trials, time)
 
-# Identify good quality trials
+# Identify good quality trials for a single taste
 good_trials_bool = lfp_processing.return_good_lfp_trial_inds(
-    data=lfp_data,
-    MAD_threshold=3  # Number of MADs to use as threshold
+    data=lfp_data[0],  # First taste, shape: (channels, trials, time)
+    MAD_threshold=3    # Number of MADs to use as threshold
 )
 
 # Get only the good trials
-good_lfp_data = lfp_data[:, good_trials_bool, :]
+good_lfp_data = lfp_data[0][:, good_trials_bool, :]
 
 # Plot mean of good trials
 plt.figure(figsize=(12, 6))
