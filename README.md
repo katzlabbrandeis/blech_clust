@@ -85,7 +85,7 @@ Spike Sorting
 [blech_common_average_reference] -> [bash blech_run_process.sh]
 [bash blech_run_process.sh] -> [blech_post_process]
 [blech_post_process] -> [blech_units_plot]
-[blech_units_plot] -> [blech_make_arrays] 
+[blech_units_plot] -> [blech_make_arrays]
 [blech_make_arrays] -> [bash blech_run_QA.sh]
 [bash blech_run_QA.sh] -> [blech_unit_characteristics]
 [blech_unit_characteristics] -> [blech_data_summary]
