@@ -210,8 +210,7 @@ print(f"Mean duration: {np.mean(gape_durations):.2f} ms")
 
 ## References
 
-Li, J. X., et al. (2016). "Gape detection using quadratic discriminant analysis."
-Journal of Neurophysiology, 116(4), 1748-1763.
+Mukherjee, N., Wachutka, J., & Katz, D. B. (2019). Impact of precisely-timed inhibition of gustatory cortex on taste behavior depends on single-trial ensemble dynamics. eLife, 8, e45968.
 
 ## See Also
 
