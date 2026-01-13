@@ -8,6 +8,10 @@ name: Python test
 run-name: python_test
 on:
   pull_request:
+    paths:
+      - '**.py'
+      - '**.sh'
+      - '.github/workflows/**'
   workflow_dispatch:
 jobs:
   Preamble:
