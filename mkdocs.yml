@@ -76,8 +76,6 @@ nav:
       - Overview: reference/index.md
       - Core Pipeline: reference/core-pipeline.md
       - Utilities: reference/utilities.md
-      - Ephys Data: reference/ephys-data.md
-      - QA Tools: reference/qa-tools.md
       - EMG Analysis: reference/emg-analysis.md
 
 extra:
