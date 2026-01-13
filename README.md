@@ -97,7 +97,6 @@ Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) t
 ]
 
 [<frame>EMG Analysis|
-  [blech_init] -> [blech_make_arrays]
   [blech_make_arrays] -> [emg_filter]
 
   [<frame>BSA/STFT Branch|
