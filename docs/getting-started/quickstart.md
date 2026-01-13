@@ -109,8 +109,6 @@ Key parameter files to configure:
 - **spike_detection_params.json**: Spike detection thresholds
 - **emg_params.json**: EMG analysis parameters (if using EMG)
 
-See the [Getting Started wiki](https://github.com/abuzarmahmood/blech_clust/wiki/Getting-Started#setting-up-params) for detailed parameter descriptions.
-
 ## Tips
 
 - Always activate the conda environment before running scripts
