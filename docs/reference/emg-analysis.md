@@ -4,10 +4,7 @@ Tools for analyzing electromyography (EMG) signals, including frequency analysis
 
 ## Overview
 
-The EMG analysis pipeline provides two main approaches:
-
-1. **BSA/STFT**: Bayesian Spectrum Analysis and Short-Time Fourier Transform for frequency analysis
-2. **QDA**: Quadratic Discriminant Analysis for gape detection
+The EMG analysis pipeline uses BSA/STFT (Bayesian Spectrum Analysis and Short-Time Fourier Transform) for frequency analysis.
 
 ## Shared Setup
 
@@ -104,41 +101,6 @@ python emg/emg_freq_plot.py
 - Frequency band comparisons
 - Trial-averaged responses
 
-## QDA Branch
-
-Gape detection using Quadratic Discriminant Analysis.
-
-### get_gapes_Li.py
-
-Detect gapes using QDA classifier based on Li et al.'s methodology.
-
-**Usage:**
-
-```bash
-python emg/gape_QDA_classifier/get_gapes_Li.py
-```
-
-**Method:**
-
-1. Extract EMG features
-2. Train QDA classifier on labeled data
-3. Predict gape events in test data
-4. Validate predictions
-
-**Features Used:**
-
-- EMG amplitude
-- Frequency content
-- Temporal patterns
-- Derivative features
-
-**Output:**
-
-- Gape onset times
-- Gape durations
-- Confidence scores
-- Validation metrics
-
 ## EMG Data Structure
 
 ### HDF5 Organization
@@ -160,9 +122,6 @@ data.h5
 │   ├── gapes                   # Detected gape events
 │   ├── licking                 # Detected licking events
 │   └── emg_BSA_results_final   # Combined results
-└── QDA_gapes/                  # QDA-based gape detection
-    ├── gapes_Li                # Gape detection results
-    └── first_gape_Li           # First gape timing
 ```
 
 ## Configuration
@@ -215,19 +174,6 @@ python emg/emg_freq_post_process.py
 python emg/emg_freq_plot.py
 ```
 
-### Complete QDA Workflow
-
-```bash
-# Filter EMG signals
-python emg/emg_filter.py
-
-# Setup gape detection
-python emg/emg_freq_setup.py
-
-# Detect gapes
-python emg/gape_QDA_classifier/get_gapes_Li.py
-```
-
 ### Programmatic Access
 
 ```python
@@ -255,12 +201,6 @@ print(f"Mean duration: {np.mean(gape_durations):.2f} ms")
 - Use appropriate frequency bands for your species/preparation
 - Adjust window size based on temporal resolution needs
 - Consider trial-to-trial variability
-
-### Gape Detection
-
-- Manually label training data carefully
-- Validate classifier performance on held-out data
-- Adjust confidence threshold based on false positive/negative trade-off
 
 ### Quality Control
 
