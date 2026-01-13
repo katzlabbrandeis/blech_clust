@@ -79,37 +79,30 @@ The following diagram shows the complete operations workflow for the blech_clust
 Copy and paste the following code into [nomnoml.com](https://www.nomnoml.com/) to generate the complete workflow diagram:
 
 ```nomnoml
-#direction: down
-#spacing: 80
-#padding: 10
+Spike Sorting
+[blech_exp_info] -> [blech_init]
+[blech_init] -> [blech_common_average_reference]
+[blech_common_average_reference] -> [bash blech_run_process.sh]
+[bash blech_run_process.sh] -> [blech_post_process]
+[blech_post_process] -> [blech_units_plot]
+[blech_units_plot] -> [blech_make_arrays] 
+[blech_make_arrays] -> [bash blech_run_QA.sh]
+[bash blech_run_QA.sh] -> [blech_unit_characteristics]
+[blech_unit_characteristics] -> [blech_data_summary]
+[blech_data_summary] -> [grade_dataset]
 
-[<frame>Spike Sorting Pipeline|
-  [blech_exp_info] -> [blech_init]
-  [blech_init] -> [blech_common_average_reference]
-  [blech_common_average_reference] -> [bash blech_run_process.sh]
-  [bash blech_run_process.sh] -> [blech_post_process]
-  [blech_post_process] -> [blech_units_plot]
-  [blech_units_plot] -> [blech_make_arrays]
-  [blech_make_arrays] -> [bash blech_run_QA.sh]
-  [bash blech_run_QA.sh] -> [blech_units_characteristics]
-  [blech_units_characteristics] -> [blech_data_summary]
-  [blech_data_summary] -> [grade_dataset]
-]
+EMG shared
+[blech_init] -> [blech_make_arrays]
+[blech_make_arrays] -> [emg_filter]
 
-[<frame>EMG Analysis|
-  [blech_make_arrays] -> [emg_filter]
+BSA/STFT
+[emg_filter] -> [emg_freq_setup]
+[emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
+[bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
+[emg_freq_post_process] -> [emg_freq_plot]
 
-  [<frame>BSA/STFT Branch|
-    [emg_filter] -> [emg_freq_setup]
-    [emg_freq_setup] -> [bash blech_emg_jetstream_parallel.sh]
-    [bash blech_emg_jetstream_parallel.sh] -> [emg_freq_post_process]
-    [emg_freq_post_process] -> [emg_freq_plot]
-  ]
-
-  [<frame>QDA Branch|
-    [emg_freq_setup] -> [get_gapes_Li]
-  ]
-]
+QDA (Jenn Li)
+[emg_freq_setup] -> [get_gapes_Li]
 ```
 </details>
 
