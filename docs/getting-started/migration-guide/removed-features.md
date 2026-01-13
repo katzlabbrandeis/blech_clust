@@ -108,15 +108,18 @@ Hidden Markov Model analysis scripts have been removed:
 | `variational_HMM_line_up_palatability_plot.py` | Palatability alignment plots |
 | `variational_HMM_setup.py` | Variational HMM setup |
 
-### Rationale
+### Alternatives
 
-HMM analysis is a specialized downstream analysis that:
+HMM analysis is available in dedicated repositories:
 
-- Requires significant computational resources
-- Has complex dependencies
-- Is not part of the core spike-sorting pipeline
+- **[PyHMM](https://github.com/narendramukherjee/PyHMM/tree/master)** - Original HMM implementation for neural data
+- **[pytau](https://github.com/abuzarmahmood/pytau)** - Updated HMM analysis toolkit
 
-Users requiring HMM analysis should consider dedicated HMM packages or contact the lab for the standalone HMM analysis code.
+These repositories provide HMM functionality with:
+
+- Dedicated dependencies and environment management
+- Active development and maintenance
+- Documentation specific to HMM analysis
 
 ---
 
