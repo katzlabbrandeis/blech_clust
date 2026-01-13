@@ -57,7 +57,7 @@ mkdocs serve
 
 The following diagram shows the complete operations workflow for the blech_clust pipeline:
 
-![nomnoml](https://github.com/user-attachments/assets/5a30d8f3-3653-4ce7-ae68-0623e3885210)
+![nomnoml](docs/images/workflow_schema.png)
 
 #### Detailed Pipeline Steps
 
