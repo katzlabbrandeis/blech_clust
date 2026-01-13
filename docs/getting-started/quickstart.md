@@ -120,4 +120,3 @@ Key parameter files to configure:
 
 - Explore the [Tutorials](../tutorials.md) for detailed walkthroughs
 - Check the [API Reference](../reference/index.md) for function details
-- Visit the [Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html) for tips and updates

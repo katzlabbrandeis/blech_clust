@@ -102,4 +102,3 @@ A test dataset is available to verify your installation:
 
 - Explore the [API Reference](../reference/index.md) to understand available functions
 - Read the [Tutorials](../tutorials.md) for step-by-step guides
-- Check out the [Blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main.html) for insights and updates
