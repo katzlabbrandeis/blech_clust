@@ -189,7 +189,7 @@ data.check_laser()
 if data.laser_exists:
     # Separate data by laser condition
     data.separate_laser_data()
-    
+
     # Access separated data
     on_spikes = data.on_spikes
     off_spikes = data.off_spikes
