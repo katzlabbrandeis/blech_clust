@@ -70,6 +70,11 @@ nav:
   - Getting Started:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
+      - Migration Guide:
+          - Overview: getting-started/migration-guide/index.md
+          - Removed Features: getting-started/migration-guide/removed-features.md
+          - File Mapping: getting-started/migration-guide/file-mapping.md
+          - QA Improvements: getting-started/migration-guide/qa-improvements.md
   - Workflow Diagrams: workflow.md
   - Tutorials: tutorials.md
   - API Reference:
