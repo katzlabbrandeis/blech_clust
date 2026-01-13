@@ -136,19 +136,6 @@ EMG functionality has been reorganized into the `emg/` directory. See [EMG Analy
 | File formats | One format | Multiple format support |
 | Code organization | Flat structure | Modular directories |
 
-## Additional Resources
-
-### Development Blog
-
-The [blech_clust blog](https://katzlabbrandeis.github.io/blech_clust/blogs/blogs_main) contains detailed posts about specific features and updates, including:
-
-- [Spike-Time Histograms for Drift Detection](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_315) - Improved drift detection methodology
-- [ELBO-Based Population Drift Detection](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_281) - Probabilistic drift detection
-- [Traditional Intan File Format Support](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_240) - Multi-format compatibility
-- [BlechRNN for Firing Rate Inference](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_226) - RNN-based analysis
-- [Automated Dataset Grading](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_474) - Quality assessment automation
-- [Parallel Processing for Electrodes](https://katzlabbrandeis.github.io/blech_clust/blogs/blech_clust_256) - Performance improvements
-
 ## Getting Help
 
 - **Documentation**: [katzlabbrandeis.github.io/blech_clust](https://katzlabbrandeis.github.io/blech_clust/)
