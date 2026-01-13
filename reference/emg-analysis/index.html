@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://katzlabbrandeis.github.io/blech_clust/reference/emg-analysis/">
       
       
-        <link rel="prev" href="../qa-tools/">
+        <link rel="prev" href="../utilities/">
       
       
       
@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -708,62 +708,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../ephys-data/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Ephys Data
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../qa-tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    QA Tools
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -927,34 +871,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#qda-branch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        QDA Branch
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="QDA Branch">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get_gapes_lipy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_gapes_Li.py
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#emg-data-structure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1034,17 +950,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#complete-qda-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Complete QDA Workflow
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#programmatic-access" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1077,17 +982,6 @@
     <span class="md-ellipsis">
       
         Frequency Analysis
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gape-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gape Detection
       
     </span>
   </a>
@@ -1275,34 +1169,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#qda-branch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        QDA Branch
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="QDA Branch">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get_gapes_lipy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_gapes_Li.py
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#emg-data-structure" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1382,17 +1248,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#complete-qda-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Complete QDA Workflow
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#programmatic-access" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1425,17 +1280,6 @@
     <span class="md-ellipsis">
       
         Frequency Analysis
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gape-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gape Detection
       
     </span>
   </a>
@@ -1508,11 +1352,7 @@
 <h1 id="emg-analysis">EMG Analysis<a class="headerlink" href="#emg-analysis" title="Permanent link">&para;</a></h1>
 <p>Tools for analyzing electromyography (EMG) signals, including frequency analysis and gape detection.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The EMG analysis pipeline provides two main approaches:</p>
-<ol>
-<li><strong>BSA/STFT</strong>: Bayesian Spectrum Analysis and Short-Time Fourier Transform for frequency analysis</li>
-<li><strong>QDA</strong>: Quadratic Discriminant Analysis for gape detection</li>
-</ol>
+<p>The EMG analysis pipeline uses BSA/STFT (Bayesian Spectrum Analysis and Short-Time Fourier Transform) for frequency analysis.</p>
 <h2 id="shared-setup">Shared Setup<a class="headerlink" href="#shared-setup" title="Permanent link">&para;</a></h2>
 <h3 id="emg_filterpy">emg_filter.py<a class="headerlink" href="#emg_filterpy" title="Permanent link">&para;</a></h3>
 <p>Filter EMG signals before analysis.</p>
@@ -1521,10 +1361,10 @@
 </code></pre></div>
 <p><strong>Filtering Steps:</strong></p>
 <ol>
-<li>Bandpass filtering (typically 300-3000 Hz)</li>
-<li>Notch filtering (remove line noise at 60 Hz)</li>
-<li>Rectification</li>
-<li>Smoothing</li>
+<li>Differencing EMG channels within CAR groups (if multiple channels)</li>
+<li>Highpass filtering at 300 Hz (2nd order Butterworth)</li>
+<li>Rectification (absolute value)</li>
+<li>Lowpass filtering at 15 Hz for envelope extraction</li>
 </ol>
 <p><strong>Output:</strong></p>
 <ul>
@@ -1580,117 +1420,85 @@
 <li>Frequency band comparisons</li>
 <li>Trial-averaged responses</li>
 </ul>
-<h2 id="qda-branch">QDA Branch<a class="headerlink" href="#qda-branch" title="Permanent link">&para;</a></h2>
-<p>Gape detection using Quadratic Discriminant Analysis.</p>
-<h3 id="get_gapes_lipy">get_gapes_Li.py<a class="headerlink" href="#get_gapes_lipy" title="Permanent link">&para;</a></h3>
-<p>Detect gapes using QDA classifier based on Li et al.'s methodology.</p>
-<p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>emg/gape_QDA_classifier/get_gapes_Li.py
-</code></pre></div>
-<p><strong>Method:</strong></p>
-<ol>
-<li>Extract EMG features</li>
-<li>Train QDA classifier on labeled data</li>
-<li>Predict gape events in test data</li>
-<li>Validate predictions</li>
-</ol>
-<p><strong>Features Used:</strong></p>
-<ul>
-<li>EMG amplitude</li>
-<li>Frequency content</li>
-<li>Temporal patterns</li>
-<li>Derivative features</li>
-</ul>
-<p><strong>Output:</strong></p>
-<ul>
-<li>Gape onset times</li>
-<li>Gape durations</li>
-<li>Confidence scores</li>
-<li>Validation metrics</li>
-</ul>
 <h2 id="emg-data-structure">EMG Data Structure<a class="headerlink" href="#emg-data-structure" title="Permanent link">&para;</a></h2>
 <h3 id="hdf5-organization">HDF5 Organization<a class="headerlink" href="#hdf5-organization" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>data.h5
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>├── emg/
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>│   ├── raw/              # Raw EMG signals
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>│   ├── filtered/         # Filtered EMG signals
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>│   ├── frequency/        # Frequency analysis results
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>│   │   ├── power/
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>│   │   ├── phase/
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>│   │   └── coherence/
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>│   └── gapes/            # Detected gape events
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>│       ├── onset_times/
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>│       ├── durations/
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>│       └── confidence/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>data.h5
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├── emg_data/
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>│   ├── dig_in_&lt;N&gt;/
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>│   │   ├── emg_array           # Raw EMG data
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>│   │   └── processed_emg/
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>│   │       ├── &lt;car&gt;_emg_filt  # Highpass filtered signal
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>│   │       └── &lt;car&gt;_emg_env   # Envelope (lowpass filtered)
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>│   ├── ind_electrode_map       # Electrode mapping
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>│   └── emg_sig_trials          # Significant trial indicators
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>├── emg_BSA_results/            # BSA/STFT frequency analysis
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>│   ├── omega                   # Frequency values
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>│   ├── &lt;car&gt;/
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>│   │   └── taste&lt;N&gt;_p          # Power spectrum per taste
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>│   ├── gapes                   # Detected gape events
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>│   ├── licking                 # Detected licking events
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>│   └── emg_BSA_results_final   # Combined results
 </code></pre></div>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <h3 id="emg_paramsjson">emg_params.json<a class="headerlink" href="#emg_paramsjson" title="Permanent link">&para;</a></h3>
 <p>EMG analysis parameters:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;filter&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">&quot;bandpass&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">300</span><span class="p">,</span><span class="w"> </span><span class="mi">3000</span><span class="p">],</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">&quot;notch&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">&quot;order&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">&quot;frequency&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">&quot;bands&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">      </span><span class="nt">&quot;low&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">300</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">      </span><span class="nt">&quot;mid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">],</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">      </span><span class="nt">&quot;high&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="mi">3000</span><span class="p">]</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="nt">&quot;window_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="nt">&quot;overlap&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">  </span><span class="nt">&quot;gape_detection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">    </span><span class="nt">&quot;features&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;amplitude&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;frequency&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;derivative&quot;</span><span class="p">],</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="nt">&quot;classifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;qda&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">    </span><span class="nt">&quot;validation_split&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nt">&quot;emg_env&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/conda/envs/emg_env&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">&quot;stft_params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">        </span><span class="nt">&quot;max_freq&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">        </span><span class="nt">&quot;time_range_tuple&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">],</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">        </span><span class="nt">&quot;Fs&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">        </span><span class="nt">&quot;signal_window&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">        </span><span class="nt">&quot;window_overlap&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">399</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="nt">&quot;use_BSA&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">}</span>
 </code></pre></div>
+<ul>
+<li><code>emg_env</code>: Path to conda environment for EMG processing</li>
+<li><code>stft_params</code>: Short-time Fourier transform parameters<ul>
+<li><code>max_freq</code>: Maximum frequency to analyze (Hz)</li>
+<li><code>time_range_tuple</code>: Time window for analysis (seconds)</li>
+<li><code>Fs</code>: Sampling frequency (Hz)</li>
+<li><code>signal_window</code>: Window size for STFT (samples)</li>
+<li><code>window_overlap</code>: Overlap between windows (samples)</li>
+</ul>
+</li>
+<li><code>use_BSA</code>: Whether to use Bayesian Spectrum Analysis (true) or STFT (false)</li>
+</ul>
 <h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
 <h3 id="complete-bsastft-workflow">Complete BSA/STFT Workflow<a class="headerlink" href="#complete-bsastft-workflow" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Filter EMG signals</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>python<span class="w"> </span>emg/emg_filter.py
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Setup frequency analysis</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>python<span class="w"> </span>emg/emg_freq_setup.py
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Run parallel analysis</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>bash<span class="w"> </span>blech_emg_jetstream_parallel.sh
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Post-process results</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>python<span class="w"> </span>emg/emg_freq_post_process.py
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># Generate plots</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>python<span class="w"> </span>emg/emg_freq_plot.py
-</code></pre></div>
-<h3 id="complete-qda-workflow">Complete QDA Workflow<a class="headerlink" href="#complete-qda-workflow" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Filter EMG signals</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>python<span class="w"> </span>emg/emg_filter.py
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Setup gape detection</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>python<span class="w"> </span>emg/emg_freq_setup.py
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># Detect gapes</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>python<span class="w"> </span>emg/gape_QDA_classifier/get_gapes_Li.py
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Filter EMG signals</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python<span class="w"> </span>emg/emg_filter.py
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Setup frequency analysis</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>python<span class="w"> </span>emg/emg_freq_setup.py
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Run parallel analysis</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>bash<span class="w"> </span>blech_emg_jetstream_parallel.sh
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Post-process results</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>python<span class="w"> </span>emg/emg_freq_post_process.py
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Generate plots</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>python<span class="w"> </span>emg/emg_freq_plot.py
 </code></pre></div>
 <h3 id="programmatic-access">Programmatic Access<a class="headerlink" href="#programmatic-access" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tables</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Load filtered EMG data</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">with</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="s1">&#39;data.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf5</span><span class="p">:</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">emg_filtered</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">filtered</span><span class="p">[:]</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># Load gape events</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="k">with</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="s1">&#39;data.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf5</span><span class="p">:</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">gape_times</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">gapes</span><span class="o">.</span><span class="n">onset_times</span><span class="p">[:]</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="n">gape_durations</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">gapes</span><span class="o">.</span><span class="n">durations</span><span class="p">[:]</span>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="c1"># Analyze gape timing</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gape_times</span><span class="p">)</span><span class="si">}</span><span class="s2"> gapes&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mean duration: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">gape_durations</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tables</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Load filtered EMG data</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">with</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="s1">&#39;data.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf5</span><span class="p">:</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">emg_filtered</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">filtered</span><span class="p">[:]</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># Load gape events</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="k">with</span> <span class="n">tables</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="s1">&#39;data.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf5</span><span class="p">:</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="n">gape_times</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">gapes</span><span class="o">.</span><span class="n">onset_times</span><span class="p">[:]</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="n">gape_durations</span> <span class="o">=</span> <span class="n">hf5</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">emg</span><span class="o">.</span><span class="n">gapes</span><span class="o">.</span><span class="n">durations</span><span class="p">[:]</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># Analyze gape timing</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">gape_times</span><span class="p">)</span><span class="si">}</span><span class="s2"> gapes&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mean duration: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">gape_durations</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="analysis-tips">Analysis Tips<a class="headerlink" href="#analysis-tips" title="Permanent link">&para;</a></h2>
 <h3 id="frequency-analysis">Frequency Analysis<a class="headerlink" href="#frequency-analysis" title="Permanent link">&para;</a></h3>
@@ -1699,12 +1507,6 @@
 <li>Adjust window size based on temporal resolution needs</li>
 <li>Consider trial-to-trial variability</li>
 </ul>
-<h3 id="gape-detection">Gape Detection<a class="headerlink" href="#gape-detection" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Manually label training data carefully</li>
-<li>Validate classifier performance on held-out data</li>
-<li>Adjust confidence threshold based on false positive/negative trade-off</li>
-</ul>
 <h3 id="quality-control">Quality Control<a class="headerlink" href="#quality-control" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Inspect filtered signals visually</li>
@@ -1712,8 +1514,10 @@
 <li>Validate detected events manually for subset of trials</li>
 </ul>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
-<p>Li, J. X., et al. (2016). "Gape detection using quadratic discriminant analysis."
-Journal of Neurophysiology, 116(4), 1748-1763.</p>
+<ul>
+<li>Mukherjee, N., Wachutka, J., &amp; Katz, D. B. (2019). Impact of precisely-timed inhibition of gustatory cortex on taste behavior depends on single-trial ensemble dynamics. eLife, 8, e45968.</li>
+<li>Li JX, Maier JX, Reid EE, Katz DB. Sensory Cortical Activity Is Related to the Selection of a Rhythmic Motor Action Pattern. J Neurosci. 2016 May 18;36(20):5596-607. doi: 10.1523/JNEUROSCI.3949-15.2016. PMID: 27194338; PMCID: PMC4871991.</li>
+</ul>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../core-pipeline/">Core Pipeline</a></li>
@@ -1791,10 +1595,10 @@ Journal of Neurophysiology, 116(4), 1748-1763.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.expand", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.expand", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>
