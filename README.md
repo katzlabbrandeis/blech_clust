@@ -34,7 +34,7 @@ python blech_exp_info.py /path/to/data
 bash blech_autosort.sh /path/to/data
 ```
 
-For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started.html).
+For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/).
 
 ## Documentation
 
