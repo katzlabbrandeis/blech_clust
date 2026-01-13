@@ -194,3 +194,4 @@ If you're looking for specific functionality from the original codebase:
 | LFP processing | `utils/ephys_data/lfp_processing.py` |
 | Unit similarity | `utils/qa_utils/unit_similarity.py` |
 | Drift detection | `utils/qa_utils/drift_check.py` |
+| PSTH overlay | `blech_units_characteristics.py`, `utils/ephys_data/` |

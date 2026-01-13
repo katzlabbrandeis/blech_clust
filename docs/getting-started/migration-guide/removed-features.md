@@ -221,6 +221,6 @@ Several root-level scripts have been removed or relocated:
 | Removed | Status |
 |---------|--------|
 | `blech_dat_file_join.py` | Functionality integrated into data loading |
-| `overlay_psth.py` | Functionality in ephys_data module |
+| `overlay_psth.py` | Functionality in `blech_units_characteristics.py` and `ephys_data` module |
 
 See [File Mapping](file-mapping.md) for scripts that were relocated rather than removed.
