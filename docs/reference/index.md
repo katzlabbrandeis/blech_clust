@@ -8,6 +8,7 @@ The blech_clust codebase is organized into several key modules:
 
 - **[Core Pipeline](core-pipeline.md)** - Main spike sorting pipeline modules
 - **[Utilities](utilities.md)** - Helper functions and utility classes
+- **[Ephys Data](ephys-data.md)** - Electrophysiology data handling and analysis
 - **[EMG Analysis](emg-analysis.md)** - EMG signal processing and analysis
 
 ## Module Organization
