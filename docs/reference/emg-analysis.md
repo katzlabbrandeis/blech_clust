@@ -173,27 +173,26 @@ EMG analysis parameters:
 
 ```json
 {
-  "filter": {
-    "bandpass": [300, 3000],
-    "notch": 60,
-    "order": 4
-  },
-  "frequency": {
-    "bands": {
-      "low": [300, 1000],
-      "mid": [1000, 2000],
-      "high": [2000, 3000]
+    "emg_env": "/path/to/conda/envs/emg_env",
+    "stft_params": {
+        "max_freq": 20,
+        "time_range_tuple": [0, 7],
+        "Fs": 1000,
+        "signal_window": 400,
+        "window_overlap": 399
     },
-    "window_size": 100,
-    "overlap": 50
-  },
-  "gape_detection": {
-    "features": ["amplitude", "frequency", "derivative"],
-    "classifier": "qda",
-    "validation_split": 0.2
-  }
+    "use_BSA": true
 }
 ```
+
+- `emg_env`: Path to conda environment for EMG processing
+- `stft_params`: Short-time Fourier transform parameters
+  - `max_freq`: Maximum frequency to analyze (Hz)
+  - `time_range_tuple`: Time window for analysis (seconds)
+  - `Fs`: Sampling frequency (Hz)
+  - `signal_window`: Window size for STFT (samples)
+  - `window_overlap`: Overlap between windows (samples)
+- `use_BSA`: Whether to use Bayesian Spectrum Analysis (true) or STFT (false)
 
 ## Usage Examples
 
