@@ -12,6 +12,10 @@ on:
       - '**.py'
       - '**.sh'
       - '.github/workflows/**'
+      - 'utils/**/*.py'
+      - 'utils/**/*.sh'
+      - 'emg/**/*.py'
+      - 'emg/**/*.sh'
   workflow_dispatch:
 jobs:
   Preamble:
