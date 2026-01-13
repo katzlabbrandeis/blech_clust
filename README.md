@@ -168,4 +168,4 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Visit the Katz Lab:** [sites.google.com/a/brandeis.edu/katzlab](https://sites.google.com/a/brandeis.edu/katzlab/)
+**Visit the Katz Lab:** [katzlab.squarespace.com](https://katzlab.squarespace.com/)
