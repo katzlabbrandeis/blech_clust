@@ -422,7 +422,8 @@ def display_existing_info(existing_info):
         print(f"Tastes: {taste_params.get('tastes', [])}")
         print(f"Concentrations: {taste_params.get('concs', [])}")
         print(f"Palatability rankings: {taste_params.get('pal_rankings', [])}")
-        print(f"Taste delivery day: {taste_params.get('taste_delivery_day', 'Not set')}")
+        print(
+            f"Taste delivery day: {taste_params.get('taste_delivery_day', 'Not set')}")
 
     if 'laser_params' in existing_info:
         laser_params = existing_info['laser_params']
@@ -463,7 +464,8 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     if args.taste_delivery_day is not None:
         taste_delivery_day = args.taste_delivery_day
     else:
-        raise ValueError('Taste delivery day not provided, use --taste-delivery-day')
+        raise ValueError(
+            'Taste delivery day not provided, use --taste-delivery-day')
 
     # Process taste dig-ins
     if args.taste_digins:
@@ -708,7 +710,8 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         force_default=args.auto_defaults
     )
 
-    taste_delivery_day = int(taste_delivery_day_str) if taste_delivery_day_str and taste_delivery_day_str.strip() else None
+    taste_delivery_day = int(
+        taste_delivery_day_str) if taste_delivery_day_str and taste_delivery_day_str.strip() else None
 
     if 'taste_params' not in cache:
         cache['taste_params'] = {}

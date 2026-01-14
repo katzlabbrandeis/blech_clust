@@ -59,13 +59,13 @@ class TestBlechExpInfo:
         mock_dig_handler.dig_in_frame.trial_counts = [10, 15, 12, 8]
         mock_dig_handler.dig_in_frame.loc = MagicMock()
         mock_dig_handler.dig_in_frame.dig_in_nums = [1, 2, 3, 4]
-        
+
         # Mock the get_dig_in_files and get_trial_data methods
         mock_dig_handler.get_dig_in_files = MagicMock()
         mock_dig_handler.get_trial_data = MagicMock()
 
         result = process_dig_ins_programmatic(mock_dig_handler, mock_args)
-        
+
         # Check that taste_delivery_day is included in the result
         assert len(result) == 7  # Should have 7 elements now
         taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day = result
@@ -105,10 +105,11 @@ class TestBlechExpInfo:
 
         with patch('builtins.print') as mock_print:
             display_existing_info(existing_info)
-            
+
             # Check that taste delivery day was printed
             print_calls = [str(call) for call in mock_print.call_args_list]
-            taste_delivery_day_found = any('Taste delivery day: 3' in call for call in print_calls)
+            taste_delivery_day_found = any(
+                'Taste delivery day: 3' in call for call in print_calls)
             assert taste_delivery_day_found
 
     def test_display_existing_info_handles_missing_taste_delivery_day(self):
@@ -125,10 +126,11 @@ class TestBlechExpInfo:
 
         with patch('builtins.print') as mock_print:
             display_existing_info(existing_info)
-            
+
             # Check that "Not set" was printed for taste delivery day
             print_calls = [str(call) for call in mock_print.call_args_list]
-            taste_delivery_day_found = any('Taste delivery day: Not set' in call for call in print_calls)
+            taste_delivery_day_found = any(
+                'Taste delivery day: Not set' in call for call in print_calls)
             assert taste_delivery_day_found
 
     @patch('blech_clust.blech_exp_info.setup_experiment_info')
@@ -143,17 +145,18 @@ class TestBlechExpInfo:
     @patch('os.path.exists')
     @patch('os.listdir')
     def test_main_includes_taste_delivery_day_in_final_dict(self, mock_listdir, mock_exists, mock_json_dump,
-                                                           mock_extract_recording, mock_process_notes,
-                                                           mock_process_layout, mock_process_electrodes,
-                                                           mock_process_laser, mock_process_taste,
-                                                           mock_dig_handler, mock_setup):
+                                                            mock_extract_recording, mock_process_notes,
+                                                            mock_process_layout, mock_process_electrodes,
+                                                            mock_process_laser, mock_process_taste,
+                                                            mock_dig_handler, mock_setup):
         """Test that main function includes taste delivery day in final dictionary."""
-        
+
         # Setup mocks
-        mock_setup.return_value = ('/test/path', 'test_dir', '/cache/path', {}, {}, {}, None)
+        mock_setup.return_value = (
+            '/test/path', 'test_dir', '/cache/path', {}, {}, {}, None)
         mock_listdir.return_value = ['auxiliary.dat']
         mock_exists.return_value = True
-        
+
         # Mock dig handler
         mock_handler_instance = MagicMock()
         mock_dig_handler.return_value = mock_handler_instance
@@ -161,26 +164,27 @@ class TestBlechExpInfo:
         mock_handler_instance.dig_in_frame.dig_in_nums = [1, 2, 3, 4]
         mock_handler_instance.dig_in_frame.trial_counts = [10, 15, 12, 8]
         mock_handler_instance.write_out_frame = MagicMock()
-        
+
         # Mock taste processing to return taste_delivery_day
-        mock_process_taste.return_value = ([1, 2, 3, 4], ['NaCl', 'Quinine', 'Sucrose', 'Citric'], 
-                                          [0.1, 0.001, 0.3, 0.01], [1, 2, 4, 3], 
-                                          [1, 2, 3, 4], [10, 15, 12, 8], 2)
-        
+        mock_process_taste.return_value = ([1, 2, 3, 4], ['NaCl', 'Quinine', 'Sucrose', 'Citric'],
+                                           [0.1, 0.001, 0.3, 0.01], [
+                                               1, 2, 4, 3],
+                                           [1, 2, 3, 4], [10, 15, 12, 8], 2)
+
         # Mock other processes
         mock_process_laser.return_value = (None, [], [], '', [])
         mock_process_electrodes.return_value = ([], [], [])
         mock_process_layout.return_value = ({}, None, [], '')
         mock_process_notes.return_value = 'Test notes'
         mock_extract_recording.return_value = None
-        
+
         # Mock args for programmatic mode
         with patch('blech_clust.blech_exp_info.args') as mock_args:
             mock_args.programmatic = True
             mock_args.template = None
-            
+
             result = main()
-            
+
             # Check that taste_delivery_day is in the final dictionary
             assert 'taste_params' in result
             assert 'taste_delivery_day' in result['taste_params']
@@ -209,15 +213,16 @@ class TestBlechExpInfo:
         with patch('blech_clust.blech_exp_info.populate_field_with_defaults') as mock_populate:
             # Mock the populate_field_with_defaults to return taste delivery day
             mock_populate.return_value = '3'
-            
+
             with patch('blech_clust.blech_exp_info.save_to_cache'):
-                result = process_dig_ins_manual(mock_dig_handler, mock_args, existing_info, cache, cache_file_path)
-                
+                result = process_dig_ins_manual(
+                    mock_dig_handler, mock_args, existing_info, cache, cache_file_path)
+
                 # Check that taste_delivery_day is included in the result
                 assert len(result) == 7  # Should have 7 elements now
                 taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day = result
                 assert taste_delivery_day == 3
-                
+
                 # Check that cache was updated with taste delivery day
                 assert 'taste_params' in cache
                 assert 'taste_delivery_day' in cache['taste_params']
