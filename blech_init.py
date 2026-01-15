@@ -450,16 +450,21 @@ try:
             overall_avg = float(np.mean(group_means))
             warnings_path = os.path.join(qa_out_path, 'warnings.txt')
             if overall_avg < float(avg_threshold):
+                warning_message = '\n' + \
+                    '=== Average intra-CAR similarity warning ===\n' + \
+                    f'Average intra-CAR similarity across groups: {overall_avg:.4f}\n' + \
+                    f'Threshold: {avg_threshold:.4f}\n' + \
+                    'Per-group mean similarities:\n'
+                for gname, gmean in zip(elec_frame.CAR_group.unique(), group_means):
+                    warning_message += f'  {gname}: {gmean:.4f}\n'
+                warning_message += '=== End Average intra-CAR similarity warning ===\n'
+                
+                # Print warning to console
+                print(warning_message)
+                
+                # Write warning to file
                 with open(warnings_path, 'a') as wf:
-                    wf.write('\n')
-                    wf.write('=== Average intra-CAR similarity warning ===\n')
-                    wf.write(
-                        f'Average intra-CAR similarity across groups: {overall_avg:.4f}\n')
-                    wf.write(f'Threshold: {avg_threshold:.4f}\n')
-                    wf.write('Per-group mean similarities:\n')
-                    for gname, gmean in zip(elec_frame.CAR_group.unique(), group_means):
-                        wf.write(f'  {gname}: {gmean:.4f}\n')
-                    wf.write('=== End Average intra-CAR similarity warning ===\n')
+                    wf.write(warning_message)
 except Exception:
     # Do not fail the pipeline QA step if this check errors
     pass
