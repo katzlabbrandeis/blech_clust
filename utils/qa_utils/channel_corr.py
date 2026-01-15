@@ -116,7 +116,7 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
     n_chans = corr_mat.shape[0]
     fig_width = max(18, n_chans * 0.3)
     fig_height = max(6, n_chans * 0.1)
-    
+
     # Add third subplot for CAR groups if labels are provided
     n_cols = 3 if chan_labels is not None else 2
     fig, ax = plt.subplots(1, n_cols, figsize=(fig_width, fig_height))
@@ -143,7 +143,7 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
             a.set_xticklabels(chan_labels, rotation=90,
                               fontsize=max(4, 8 - n_chans // 20))
             a.set_yticklabels(chan_labels, fontsize=max(4, 8 - n_chans // 20))
-        
+
         # Create CAR group assignment subplot
         # Extract CAR group from labels (format: "GROUP:channel_num")
         car_groups = []
@@ -152,16 +152,17 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
                 car_groups.append(label.split(':')[0])
             else:
                 car_groups.append('unknown')
-        
+
         # Map CAR groups to numeric values
         unique_groups = list(dict.fromkeys(car_groups))  # Preserve order
         group_map = {g: i for i, g in enumerate(unique_groups)}
         group_nums = np.array([group_map[g] for g in car_groups])
-        
+
         # Create group matrix similar to cluster matrix in plot_clustered_corr_mat
-        group_matrix = np.expand_dims(group_nums + 1, axis=1) == np.expand_dims(group_nums + 1, axis=0)
+        group_matrix = np.expand_dims(
+            group_nums + 1, axis=1) == np.expand_dims(group_nums + 1, axis=0)
         group_matrix = group_matrix * np.expand_dims(group_nums + 1, axis=1)
-        
+
         ax[2].imshow(group_matrix, cmap='tab10')
         ax[2].set_title('CAR Group Assignments')
         ax[2].set_xlabel('Channel')
@@ -171,7 +172,7 @@ def gen_corr_output(corr_mat, plot_dir, threshold=0.9, chan_labels=None):
         ax[2].set_xticklabels(chan_labels, rotation=90,
                               fontsize=max(4, 8 - n_chans // 20))
         ax[2].set_yticklabels(chan_labels, fontsize=max(4, 8 - n_chans // 20))
-        
+
         # Add dividing lines between CAR groups
         line_locs = np.where(np.abs(np.diff(group_nums)))[0]
         for i in line_locs:
