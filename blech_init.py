@@ -458,10 +458,10 @@ try:
                 for gname, gmean in zip(elec_frame.CAR_group.unique(), group_means):
                     warning_message += f'  {gname}: {gmean:.4f}\n'
                 warning_message += '=== End Average intra-CAR similarity warning ===\n'
-                
+
                 # Print warning to console
                 print(warning_message)
-                
+
                 # Write warning to file
                 with open(warnings_path, 'a') as wf:
                     wf.write(warning_message)
