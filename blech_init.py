@@ -387,8 +387,9 @@ print('Calculating correlation matrix for quality check')
 # qa_down_rate = all_params_dict["qa_params"]["downsample_rate"]
 n_corr_samples = all_params_dict["qa_params"]["n_corr_samples"]
 qa_threshold = all_params_dict["qa_params"]["bridged_channel_threshold"]
-down_dat_stack, chan_names = channel_corr.get_all_channels(
+down_dat_stack, chan_names, chan_labels = channel_corr.get_all_channels(
     hdf5_name,
+    electrode_layout_frame=electrode_layout_frame,
     n_corr_samples=n_corr_samples)
 corr_mat = channel_corr.intra_corr(down_dat_stack)
 qa_out_path = os.path.join(dir_name, 'QA_output')
@@ -400,7 +401,8 @@ else:
     os.mkdir(qa_out_path)
 channel_corr.gen_corr_output(corr_mat,
                              qa_out_path,
-                             qa_threshold,)
+                             qa_threshold,
+                             chan_labels=chan_labels)
 # Also write out the correlation matrix to qa_out_path
 np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
 

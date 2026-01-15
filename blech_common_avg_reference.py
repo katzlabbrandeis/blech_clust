@@ -204,9 +204,9 @@ def plot_clustered_corr_mat(
     -----------
     corr_matrix : numpy.ndarray
     predictions : numpy.ndarray
-    electrode_indices : list
-    cluster_indices : list
+    electrode_names : list, channel labels (e.g., "GC:0", "PC:16")
     plot_path : str
+    cmap : str, colormap name
     """
 
     data_df = pd.DataFrame(
@@ -225,22 +225,28 @@ def plot_clustered_corr_mat(
     # sorted_names = [electrode_names[i] for i in sorted_indices]
     sorted_names = data_df.electrode_names.values
 
+    # Adjust figure size and font based on number of channels
+    n_chans = len(electrode_names)
+    fig_width = max(24, n_chans * 0.4)
+    fig_height = max(8, n_chans * 0.15)
+    fontsize = max(4, 8 - n_chans // 20)
+
     # Plot clustered correlation matrix
-    fig, ax = plt.subplots(1, 3, figsize=(24, 8),
+    fig, ax = plt.subplots(1, 3, figsize=(fig_width, fig_height),
                            # gridspec_kw={'width_ratios': [1, 1, 0.1]}
                            )
     ax[0].imshow(corr_matrix, cmap=cmap)
     ax[0].set_title('Original Correlation Matrix')
     ax[0].set_xticks(np.arange(len(electrode_names)))
     ax[0].set_yticks(np.arange(len(electrode_names)))
-    ax[0].set_xticklabels(electrode_names, rotation=90)
-    ax[0].set_yticklabels(electrode_names)
+    ax[0].set_xticklabels(electrode_names, rotation=90, fontsize=fontsize)
+    ax[0].set_yticklabels(electrode_names, fontsize=fontsize)
     ax[1].imshow(sorted_corr_matrix, cmap=cmap)
     ax[1].set_title('Clustered Correlation Matrix')
     ax[1].set_xticks(np.arange(len(sorted_names)))
     ax[1].set_yticks(np.arange(len(sorted_names)))
-    ax[1].set_xticklabels(sorted_names, rotation=90)
-    ax[1].set_yticklabels(sorted_names)
+    ax[1].set_xticklabels(sorted_names, rotation=90, fontsize=fontsize)
+    ax[1].set_yticklabels(sorted_names, fontsize=fontsize)
     # Sharey between ax[1] and ax[2]
     # Make a cluster matrix from sorted predictions
     sorted_predictions = predictions[sorted_indices]+1
@@ -254,8 +260,8 @@ def plot_clustered_corr_mat(
     ax[2].set_title('Cluster Assignments')
     ax[2].set_xticks(np.arange(len(sorted_names)))
     ax[2].set_yticks(np.arange(len(sorted_names)))
-    ax[2].set_xticklabels(sorted_names, rotation=90)
-    ax[2].set_yticklabels(sorted_names)
+    ax[2].set_xticklabels(sorted_names, rotation=90, fontsize=fontsize)
+    ax[2].set_yticklabels(sorted_names, fontsize=fontsize)
     # Plot axlines
     line_locs = np.where(np.abs(np.diff(sorted_predictions)))[0]
     for this_ax in [ax[1], ax[2]]:
@@ -264,7 +270,7 @@ def plot_clustered_corr_mat(
             this_ax.axhline(y=i+0.5, color='black', linewidth=0.5)
 
     plt.tight_layout()
-    plt.savefig(plot_path, bbox_inches='tight')
+    plt.savefig(plot_path, bbox_inches='tight', dpi=150)
     plt.close()
 
 ############################################################
@@ -312,7 +318,7 @@ none_bool = ~electrode_layout_frame.CAR_group.str.contains('none')
 fin_bool = np.logical_and(emg_bool, none_bool)
 electrode_layout_frame = electrode_layout_frame[fin_bool]
 electrode_layout_frame['channel_name'] = electrode_layout_frame.apply(
-    lambda row: f"{row['port']}_{row['electrode_num']:02}", axis=1
+    lambda row: f"{row['CAR_group']}:{row['electrode_num']}", axis=1
 )
 # electrode_layout_frame['port'].astype(str) + '_' + \
 # electrode_layout_frame['electrode_num'].astype(str)
@@ -364,12 +370,22 @@ if auto_car_inference:
     # Create a dictionary to store cluster predictions for each CAR group
     all_predictions = np.zeros(len(electrode_layout_frame), dtype=int)
 
+    # Check if original_CAR_group exists and use it to avoid re-splitting
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        print("Using original CAR groups to avoid re-splitting clusters")
+        car_groups_to_process = electrode_layout_frame.original_CAR_group.unique()
+    else:
+        car_groups_to_process = electrode_layout_frame.CAR_group.unique()
+
     # Process each CAR group separately
-    for group_idx, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+    for group_idx, group_name in enumerate(car_groups_to_process):
         print(f"\nProcessing CAR group: {group_name}")
 
-        # Get indices for this CAR group
-        group_mask = electrode_layout_frame.CAR_group == group_name
+        # Get indices for this CAR group using original groups if available
+        if 'original_CAR_group' in electrode_layout_frame.columns:
+            group_mask = electrode_layout_frame.original_CAR_group == group_name
+        else:
+            group_mask = electrode_layout_frame.CAR_group == group_name
         group_indices = np.where(group_mask)[0]
 
         if len(group_indices) <= 1:
@@ -417,13 +433,20 @@ if auto_car_inference:
     # Store all predictions in the electrode layout frame
     electrode_layout_frame['predicted_clusters'] = all_predictions
 
-    # Save original CAR_groups as backup
-    electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
+    # Save original CAR_groups as backup only if not already present
+    if 'original_CAR_group' not in electrode_layout_frame.columns:
+        electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
     # Append cluster numbers to CAR group names
-    electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
-    )
+    # Use original_CAR_group if available to build new names
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+            lambda row: f"{row['original_CAR_group']}-{row['predicted_clusters']:02}", axis=1
+        )
+    else:
+        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+            lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
+        )
     num_groups = electrode_layout_frame.CAR_group.nunique()
 
     pred_map = dict(zip(
@@ -454,6 +477,10 @@ if auto_car_inference:
     out_electrode_layout_frame = metadata_handler.layout.copy()
     out_electrode_layout_frame.at[fin_bool,
                                   'predicted_clusters'] = all_predictions
+    # Preserve original_CAR_group if it exists
+    if 'original_CAR_group' in electrode_layout_frame.columns:
+        out_electrode_layout_frame.at[fin_bool,
+                                      'original_CAR_group'] = electrode_layout_frame['original_CAR_group'].values
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
