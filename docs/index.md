@@ -56,7 +56,7 @@ For more detailed installation instructions, see the [Getting Started](getting-s
 
 ## Resources
 
-- [blech_clust Secrets Within (PDF)](blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
+- [blech_clust Secrets Within (PDF)](resources/blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
 
 ## Contributing
 
