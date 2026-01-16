@@ -26,6 +26,10 @@ Visit the [Katz lab website](https://sites.google.com/a/brandeis.edu/katzlab/) f
 - [Tutorials](tutorials.md) - Step-by-step guides
 - [GitHub Repository](https://github.com/katzlabbrandeis/blech_clust)
 
+## Resources
+
+- [blech_clust Secrets Within (PDF)](blech_clust_secrets_within.pdf) - Comprehensive guide to blech_clust internals and advanced usage
+
 ## Pipeline Overview
 
 ### Spike Sorting Pipeline
