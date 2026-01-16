@@ -9,15 +9,20 @@ docs/
 ├── index.md                 # Home page
 ├── getting-started/         # Installation and setup guides
 │   ├── installation.md
-│   └── quickstart.md
+│   ├── quickstart.md
+│   └── migration-guide/     # Migration guide for v2.0
+│       ├── index.md         # Migration overview
+│       ├── removed-features.md
+│       ├── file-mapping.md
+│       └── qa-improvements.md
 ├── tutorials.md             # Step-by-step tutorials
 ├── reference/               # API reference documentation
 │   ├── index.md            # API reference home
 │   ├── core-pipeline.md    # Core pipeline modules
 │   ├── utilities.md        # Utility modules
 │   ├── ephys-data.md       # Ephys data analysis
-│   ├── qa-tools.md         # Quality assurance tools
 │   └── emg-analysis.md     # EMG analysis
+├── workflow.md             # Workflow diagrams
 └── .gitignore              # Ignore generated files
 ```
 
@@ -78,6 +83,14 @@ This starts a local server at [http://127.0.0.1:8000](http://127.0.0.1:8000) tha
    nav:
      - Section Name:
          - Page Title: path/to/page.md
+   ```
+   For example, to add a new page to the Getting Started section:
+   ```yaml
+   nav:
+     - Getting Started:
+         - Installation: getting-started/installation.md
+         - Quick Start: getting-started/quickstart.md
+         - Your New Page: getting-started/your-page.md
    ```
 3. **Build and preview** to verify
 
@@ -147,6 +160,7 @@ def hello():
 
 ```markdown
 See the [Getting Started](getting-started/installation.md) guide.
+See the [Migration Guide](getting-started/migration-guide/index.md) for v2.0 changes.
 See the [Core Pipeline](reference/core-pipeline.md) documentation.
 ```
 
