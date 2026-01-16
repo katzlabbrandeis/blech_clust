@@ -26,10 +26,6 @@ Visit the [Katz lab website](https://sites.google.com/a/brandeis.edu/katzlab/) f
 - [Tutorials](tutorials.md) - Step-by-step guides
 - [GitHub Repository](https://github.com/katzlabbrandeis/blech_clust)
 
-## Resources
-
-- [blech_clust Secrets Within (PDF)](blech_clust_secrets_within.pdf) - Comprehensive guide to blech_clust internals and advanced usage
-
 ## Pipeline Overview
 
 ### Spike Sorting Pipeline
@@ -57,6 +53,10 @@ conda activate blech_clust
 ```
 
 For more detailed installation instructions, see the [Getting Started](getting-started/installation.md) guide.
+
+## Resources
+
+- [blech_clust Secrets Within (PDF)](blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
 
 ## Contributing
 
