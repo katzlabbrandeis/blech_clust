@@ -1171,91 +1171,105 @@ class ephys_data():
     def calc_shuffled_palatability(self, n_shuffles=1000, confidence_level=0.95):
         """
         Calculate shuffled palatability correlation to provide context for actual data correlation
-        
+
         This method performs multiple shuffles of the palatability vector to create a null
         distribution of correlations, allowing assessment of whether the observed palatability
         correlations are significantly different from chance.
-        
+
         Args:
             n_shuffles (int): Number of random shuffles to perform (default: 1000)
             confidence_level (float): Confidence level for intervals (default: 0.95)
-            
+
         Requires:
             - calc_palatability() must be called first to set up required data
             - pal_rho_array: Original palatability correlation coefficients
-            
+
         Generates:
             - pal_shuffled_mean: Mean correlation across shuffles (neurons x time_bins)
-            - pal_shuffled_std: Standard deviation across shuffles (neurons x time_bins)  
+            - pal_shuffled_std: Standard deviation across shuffles (neurons x time_bins)
             - pal_shuffled_ci_lower: Lower confidence bound (neurons x time_bins)
             - pal_shuffled_ci_upper: Upper confidence bound (neurons x time_bins)
             - pal_shuffled_all: All shuffled correlations (n_shuffles x neurons x time_bins)
         """
-        
+
         # Check if required data exists
         if 'pal_rho_array' not in dir(self):
-            raise Exception("calc_palatability() must be called before calc_shuffled_palatability()")
-        
+            raise Exception(
+                "calc_palatability() must be called before calc_shuffled_palatability()")
+
         if 'pal_df' not in dir(self) or 'firing_list' not in dir(self):
-            raise Exception("Required palatability data not found. Run calc_palatability() first.")
-            
-        print(f'Calculating shuffled palatability correlation with {n_shuffles} shuffles...')
-        
+            raise Exception(
+                "Required palatability data not found. Run calc_palatability() first.")
+
+        print(
+            f'Calculating shuffled palatability correlation with {n_shuffles} shuffles...')
+
         # Get the original palatability vector and firing data
         trial_counts = [x.shape[0] for x in self.firing_list]
         pal_vec = np.concatenate(
             [np.repeat(x, y) for x, y in zip(self.pal_df['pal_ranks'], trial_counts)])
         cat_firing = np.concatenate(self.firing_list, axis=0).T
-        
+
         # Add the same small noise as in original calculation for consistency
         cat_firing += np.random.normal(0, 1e-6, cat_firing.shape)
-        
+
         # Initialize arrays to store shuffled results
         neurons, time_bins = cat_firing.shape[:2]
         shuffled_correlations = np.zeros((n_shuffles, neurons, time_bins))
-        
+
         # Perform shuffles
         for shuffle_idx in tqdm(range(n_shuffles), desc="Shuffling palatability"):
             # Shuffle the palatability vector
             shuffled_pal_vec = np.random.permutation(pal_vec)
-            
+
             # Calculate correlations for this shuffle
             shuffle_rho_array = np.zeros((neurons, time_bins))
             inds = list(np.ndindex((neurons, time_bins)))
-            
+
             for this_ind in inds:
-                rho, _ = spearmanr(cat_firing[tuple(this_ind)], shuffled_pal_vec)
-                shuffle_rho_array[tuple(this_ind)] = abs(rho)  # Use absolute value like original
-                
+                rho, _ = spearmanr(
+                    cat_firing[tuple(this_ind)], shuffled_pal_vec)
+                shuffle_rho_array[tuple(this_ind)] = abs(
+                    rho)  # Use absolute value like original
+
             shuffled_correlations[shuffle_idx] = shuffle_rho_array
-        
+
         # Keep shuffled_correlations in original format (n_shuffles, neurons, time_bins)
         # This matches self.pal_rho_array shape (neurons, time_bins) for easy comparison
-        
+
         # Calculate statistics across shuffles
-        self.pal_shuffled_mean = np.mean(shuffled_correlations, axis=0).T  # (time_bins, neurons) to match original
-        self.pal_shuffled_std = np.std(shuffled_correlations, axis=0).T  # (time_bins, neurons) to match original
-        
+        # (time_bins, neurons) to match original
+        self.pal_shuffled_mean = np.mean(shuffled_correlations, axis=0).T
+        # (time_bins, neurons) to match original
+        self.pal_shuffled_std = np.std(shuffled_correlations, axis=0).T
+
         # Calculate confidence intervals
         alpha = 1 - confidence_level
         lower_percentile = (alpha / 2) * 100
         upper_percentile = (1 - alpha / 2) * 100
-        
-        self.pal_shuffled_ci_lower = np.percentile(shuffled_correlations, lower_percentile, axis=0).T
-        self.pal_shuffled_ci_upper = np.percentile(shuffled_correlations, upper_percentile, axis=0).T
-        
+
+        self.pal_shuffled_ci_lower = np.percentile(
+            shuffled_correlations, lower_percentile, axis=0).T
+        self.pal_shuffled_ci_upper = np.percentile(
+            shuffled_correlations, upper_percentile, axis=0).T
+
         # Store all shuffled correlations (transpose to match original format)
-        self.pal_shuffled_all = shuffled_correlations.transpose(0, 2, 1)  # (n_shuffles, time_bins, neurons)
-        
+        self.pal_shuffled_all = shuffled_correlations.transpose(
+            0, 2, 1)  # (n_shuffles, time_bins, neurons)
+
         # Calculate significance: proportion of shuffles where correlation >= actual correlation
         # Compare (n_shuffles, neurons, time_bins) with (neurons, time_bins)
         # Add new axis to pal_rho_array.T for proper broadcasting: (1, neurons, time_bins)
-        significance_result = np.mean(shuffled_correlations >= self.pal_rho_array.T[np.newaxis, :, :], axis=0)
-        self.pal_significance = significance_result.T  # Transpose to match original format
-        
+        significance_result = np.mean(
+            shuffled_correlations >= self.pal_rho_array.T[np.newaxis, :, :], axis=0)
+        # Transpose to match original format
+        self.pal_significance = significance_result.T
+
         print(f'Shuffled palatability calculation complete.')
-        print(f'Mean shuffled correlation: {np.mean(self.pal_shuffled_mean):.4f} ± {np.mean(self.pal_shuffled_std):.4f}')
-        print(f'Proportion of neurons with significant palatability coding (p < 0.05): {np.mean(self.pal_significance < 0.05):.3f}')
+        print(
+            f'Mean shuffled correlation: {np.mean(self.pal_shuffled_mean):.4f} ± {np.mean(self.pal_shuffled_std):.4f}')
+        print(
+            f'Proportion of neurons with significant palatability coding (p < 0.05): {np.mean(self.pal_significance < 0.05):.3f}')
 
     def separate_laser_firing(self):
         """Separate firing rate arrays into laser on and off conditions

@@ -413,6 +413,7 @@ class TestEphysDataStaticMethods:
         # This is a basic sanity check for BAKS functionality
         assert np.max(firing_rate) > 0
 
+
 class TestShuffledPalatability:
     """Test class for shuffled palatability correlation functionality"""
 
@@ -420,15 +421,15 @@ class TestShuffledPalatability:
         """Set up test data for shuffled palatability tests"""
         # Create a temporary directory for testing
         self.temp_dir = tempfile.mkdtemp()
-        
+
         # Create a dummy HDF5 file in the temp directory
         hdf5_path = os.path.join(self.temp_dir, 'test.h5')
         with open(hdf5_path, 'w') as f:
             f.write('')
-        
+
         # Create mock ephys_data instance with required attributes
         self.data = ephys_data(data_dir=self.temp_dir)
-        
+
         # Mock essential data structures
         self.data.pal_df = pd.DataFrame({
             'dig_ins': ['taste1', 'taste2', 'taste3'],
@@ -436,19 +437,20 @@ class TestShuffledPalatability:
             'taste_names': ['sucrose', 'quinine', 'water'],
             'pal_ranks': [5, 1, 3]  # palatability rankings
         })
-        
+
         # Create mock firing data: 3 neurons, 10 time bins, with different trial counts
         self.data.firing_list = [
             # taste1: 5 trials
             np.random.rand(5, 3, 10) * 10,  # trials x neurons x time_bins
-            # taste2: 3 trials  
+            # taste2: 3 trials
             np.random.rand(3, 3, 10) * 8,
             # taste3: 4 trials
             np.random.rand(4, 3, 10) * 6
         ]
-        
+
         # Create mock palatability correlation results
-        self.data.pal_rho_array = np.random.rand(3, 10) * 0.8  # neurons x time_bins
+        self.data.pal_rho_array = np.random.rand(
+            3, 10) * 0.8  # neurons x time_bins
         self.data.pal_p_array = np.random.rand(3, 10) * 0.1
 
     def teardown_method(self):
@@ -460,8 +462,9 @@ class TestShuffledPalatability:
     def test_calc_shuffled_palatability_basic(self):
         """Test basic shuffled palatability calculation"""
         # Perform shuffled calculation with small number of shuffles for testing
-        self.data.calc_shuffled_palatability(n_shuffles=10, confidence_level=0.95)
-        
+        self.data.calc_shuffled_palatability(
+            n_shuffles=10, confidence_level=0.95)
+
         # Check that all required attributes were created
         assert hasattr(self.data, 'pal_shuffled_mean')
         assert hasattr(self.data, 'pal_shuffled_std')
@@ -469,24 +472,25 @@ class TestShuffledPalatability:
         assert hasattr(self.data, 'pal_shuffled_ci_upper')
         assert hasattr(self.data, 'pal_shuffled_all')
         assert hasattr(self.data, 'pal_significance')
-        
+
         # Check shapes
         assert self.data.pal_shuffled_mean.shape == self.data.pal_rho_array.shape
         assert self.data.pal_shuffled_std.shape == self.data.pal_rho_array.shape
         assert self.data.pal_shuffled_ci_lower.shape == self.data.pal_rho_array.shape
         assert self.data.pal_shuffled_ci_upper.shape == self.data.pal_rho_array.shape
         assert self.data.pal_significance.shape == self.data.pal_rho_array.shape
-        
+
         # Check shuffled correlations array shape
         expected_shape = (10, 3, 10)  # n_shuffles x neurons x time_bins
         assert self.data.pal_shuffled_all.shape == expected_shape
-        
+
         # Check that shuffled correlations are non-negative (using absolute values)
         assert np.all(self.data.pal_shuffled_mean >= 0)
         assert np.all(self.data.pal_shuffled_std >= 0)
-        
+
         # Check confidence interval logic
-        assert np.all(self.data.pal_shuffled_ci_lower <= self.data.pal_shuffled_ci_upper)
+        assert np.all(self.data.pal_shuffled_ci_lower <=
+                      self.data.pal_shuffled_ci_upper)
 
     def test_calc_shuffled_palatability_without_prerequisites(self):
         """Test that error is raised when prerequisites are not met"""
@@ -496,11 +500,12 @@ class TestShuffledPalatability:
         data_no_pre.pal_df = self.data.pal_df
         data_no_pre.firing_list = self.data.firing_list
         # Intentionally don't set pal_rho_array
-        
+
         # Import the method and bind it to the mock
         from utils.ephys_data.ephys_data import ephys_data
-        data_no_pre.calc_shuffled_palatability = ephys_data.calc_shuffled_palatability.__get__(data_no_pre)
-        
+        data_no_pre.calc_shuffled_palatability = ephys_data.calc_shuffled_palatability.__get__(
+            data_no_pre)
+
         # Should raise exception
         with pytest.raises(Exception, match="calc_palatability\\(\\) must be called before calc_shuffled_palatability\\(\\)"):
             data_no_pre.calc_shuffled_palatability(n_shuffles=5)
@@ -512,11 +517,12 @@ class TestShuffledPalatability:
         data_missing = Mock()
         data_missing.pal_rho_array = self.data.pal_rho_array
         # Intentionally don't set pal_df and firing_list
-        
+
         # Import the method and bind it to the mock
         from utils.ephys_data.ephys_data import ephys_data
-        data_missing.calc_shuffled_palatability = ephys_data.calc_shuffled_palatability.__get__(data_missing)
-        
+        data_missing.calc_shuffled_palatability = ephys_data.calc_shuffled_palatability.__get__(
+            data_missing)
+
         # Should raise exception
         with pytest.raises(Exception, match="Required palatability data not found"):
             data_missing.calc_shuffled_palatability(n_shuffles=5)
@@ -524,58 +530,63 @@ class TestShuffledPalatability:
     def test_calc_shuffled_palatability_different_parameters(self):
         """Test shuffled palatability with different parameters"""
         # Test with different number of shuffles
-        self.data.calc_shuffled_palatability(n_shuffles=20, confidence_level=0.90)
-        
+        self.data.calc_shuffled_palatability(
+            n_shuffles=20, confidence_level=0.90)
+
         assert self.data.pal_shuffled_all.shape[0] == 20  # n_shuffles
         assert self.data.pal_shuffled_mean.shape == self.data.pal_rho_array.shape
-        
+
         # Test with different confidence level
-        self.data.calc_shuffled_palatability(n_shuffles=10, confidence_level=0.99)
-        
+        self.data.calc_shuffled_palatability(
+            n_shuffles=10, confidence_level=0.99)
+
         # With higher confidence level, intervals should be wider
         # (This is a rough check - exact values depend on random shuffling)
-        assert np.all(self.data.pal_shuffled_ci_lower <= self.data.pal_shuffled_ci_upper)
+        assert np.all(self.data.pal_shuffled_ci_lower <=
+                      self.data.pal_shuffled_ci_upper)
 
     def test_shuffled_palatability_significance_calculation(self):
         """Test that significance values are reasonable"""
         self.data.calc_shuffled_palatability(n_shuffles=50)
-        
+
         # Significance values should be between 0 and 1
         assert np.all(self.data.pal_significance >= 0)
         assert np.all(self.data.pal_significance <= 1)
-        
+
         # Check that significance calculation makes sense
         # For any given neuron/time point, significance is the proportion
         # of shuffled correlations >= actual correlation
         for neuron_idx in range(self.data.pal_rho_array.shape[0]):
             for time_idx in range(self.data.pal_rho_array.shape[1]):
                 actual_corr = self.data.pal_rho_array[neuron_idx, time_idx]
-                shuffled_corrs = self.data.pal_shuffled_all[:, neuron_idx, time_idx]
+                shuffled_corrs = self.data.pal_shuffled_all[:,
+                                                            neuron_idx, time_idx]
                 expected_sig = np.mean(shuffled_corrs >= actual_corr)
                 calculated_sig = self.data.pal_significance[neuron_idx, time_idx]
-                
+
                 # Allow for small floating point differences
                 assert abs(expected_sig - calculated_sig) < 1e-10
 
     def test_shuffled_palatability_statistics(self):
         """Test that shuffled statistics are calculated correctly"""
         self.data.calc_shuffled_palatability(n_shuffles=100)
-        
+
         # Compare manually calculated statistics with stored ones
         for neuron_idx in range(self.data.pal_rho_array.shape[0]):
             for time_idx in range(self.data.pal_rho_array.shape[1]):
-                shuffled_corrs = self.data.pal_shuffled_all[:, neuron_idx, time_idx]
-                
+                shuffled_corrs = self.data.pal_shuffled_all[:,
+                                                            neuron_idx, time_idx]
+
                 manual_mean = np.mean(shuffled_corrs)
                 manual_std = np.std(shuffled_corrs)
                 manual_lower = np.percentile(shuffled_corrs, 2.5)  # 95% CI
                 manual_upper = np.percentile(shuffled_corrs, 97.5)
-                
+
                 stored_mean = self.data.pal_shuffled_mean[neuron_idx, time_idx]
                 stored_std = self.data.pal_shuffled_std[neuron_idx, time_idx]
                 stored_lower = self.data.pal_shuffled_ci_lower[neuron_idx, time_idx]
                 stored_upper = self.data.pal_shuffled_ci_upper[neuron_idx, time_idx]
-                
+
                 # Allow for small floating point differences
                 assert abs(manual_mean - stored_mean) < 1e-10
                 assert abs(manual_std - stored_std) < 1e-10
