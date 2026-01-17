@@ -409,7 +409,10 @@ np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one file per channel', 'one file per signal type']:
     print('\nGenerating channel profile plots')
-    plot_channels(dir_name, qa_out_path, file_type)
+    channel_profile_downsample = all_params_dict["qa_params"].get(
+        "channel_profile_downsample", 100)
+    plot_channels(dir_name, qa_out_path, file_type,
+                  downsample=channel_profile_downsample)
 ##############################
 
 ##############################
