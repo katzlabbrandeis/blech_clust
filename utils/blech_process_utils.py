@@ -1081,10 +1081,10 @@ class spike_handler():
         slices, spike_times, polarity, mean_val, threshold, MAD_val = \
             clust.extract_waveforms_abu(
                 self.filt_el,
-                spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                                self.params_dict['spike_snapshot_after']],
+                spike_snapshot=[self.params_dict['spike_snapshot']['spike_snapshot_before'],
+                                self.params_dict['spike_snapshot']['spike_snapshot_after']],
                 sampling_rate=self.params_dict['sampling_rate'],
-                threshold_mult=self.params_dict['waveform_threshold'])
+                threshold_mult=self.params_dict['waveform_deviation_threshold'])
 
         self.slices = slices
         self.spike_times = spike_times
@@ -1101,8 +1101,8 @@ class spike_handler():
             self.slices,
             self.spike_times,
             polarity=self.polarity,
-            spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                            self.params_dict['spike_snapshot_after']],
+            spike_snapshot=[self.params_dict['spike_snapshot']['spike_snapshot_before'],
+                            self.params_dict['spike_snapshot']['spike_snapshot_after']],
             sampling_rate=self.params_dict['sampling_rate'])
 
         # Sort data by time
