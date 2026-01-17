@@ -1,7 +1,9 @@
 """
-This module provides functions for processing and analyzing electrophysiological data, specifically focusing on filtering, waveform extraction, dejittering, scaling, and clustering of neural spike data.
+This module provides functions for processing and analyzing electrophysiological data, specifically focusing on waveform extraction, dejittering, scaling, and clustering of neural spike data.
 
-- `get_filtered_electrode(data, freq, sampling_rate)`: Filters the input electrode data using a bandpass filter with specified frequency range and sampling rate.
+Note: Filtering functionality has been moved to `apply_bandpass_filter` in read_file.py.
+      For filtering electrode data, use: `from blech_clust.utils.read_file import apply_bandpass_filter`
+
 - `extract_waveforms_abu(filt_el, spike_snapshot, sampling_rate, threshold_mult)`: Extracts waveforms from filtered electrode data using a threshold-based method, returning slices, spike times, polarity, mean, and threshold.
 - `extract_waveforms_hannah(filt_el, spike_snapshot, sampling_rate, threshold_mult)`: Similar to `extract_waveforms_abu`, but uses a sliding thresholding approach to extract waveforms.
 - `extract_waveforms(filt_el, spike_snapshot, sampling_rate)`: Extracts waveforms based on threshold crossings, returning slices, spike times, mean, and threshold.
@@ -13,22 +15,12 @@ This module provides functions for processing and analyzing electrophysiological
 - `clusterGMM(data, n_clusters, n_iter, restarts, threshold)`: Clusters data using Gaussian Mixture Models (GMM), returning the best model, predictions, and Bayesian Information Criterion (BIC) score.
 """
 import numpy as np
-from scipy.signal import butter
-from scipy.signal import filtfilt
 from scipy.interpolate import interp1d
 from sklearn.mixture import GaussianMixture
 import pylab as plt
 from sklearn.decomposition import PCA
 from scipy.signal import fftconvolve
 from sklearn.cluster import KMeans
-
-
-def get_filtered_electrode(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
-    el = 0.195*(data)
-    m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0 *
-                  freq[1]/sampling_rate], btype='bandpass')
-    filt_el = filtfilt(m, n, el)
-    return filt_el
 
 
 def extract_waveforms_abu(filt_el, spike_snapshot=[0.5, 1.0],
