@@ -216,3 +216,4 @@ Options:
 ## Additional Resources
 
 - [Module Documentation](https://github.com/katzlabbrandeis/blech_clust/blob/master/utils/ephys_data/README.md): Detailed documentation for the ephys_data module
+- [Auto Sorting Documentation](resources/autosorting.md): Comprehensive resources for understanding the auto sorting solution, including ML techniques and implementation guides
