@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  check-label:
+  check-triggers:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,18 +22,20 @@ jobs:
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
     steps:
-      - name: Check for install label
+      - name: Check for install label or file changes
         id: check
         run: |
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'install') }}" == "true" ]]; then
             echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "reason=install label" >> $GITHUB_OUTPUT
           else
-            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "reason=file changes" >> $GITHUB_OUTPUT
           fi
 
   installation-test:
-    needs: check-label
-    if: needs.check-label.outputs.should-run == 'true'
+    needs: check-triggers
+    if: needs.check-triggers.outputs.should-run == 'true'
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.os }}-${{ matrix.python-version }}
       cancel-in-progress: true
