@@ -159,7 +159,7 @@ def fit_glm_single_neuron(
     
     # Fit GLM
     model = nmo.glm.GLM(
-        regularizer=nmo.regularizer.Ridge(regularizer_strength=0.01)
+        regularizer=nmo.regularizer.Ridge()
     )
     model.fit(X_valid, y_valid)
     
@@ -313,15 +313,15 @@ def main():
                         include_coupling=include_coupling,
                     )
                     
-                    # Save model
-                    with open(model_path, 'wb') as f:
-                        pickle.dump({
-                            'model': model,
-                            'X': X_valid,
-                            'y': y_valid,
-                            'feature_info': feature_info,
-                            'valid_mask': valid_mask,
-                        }, f)
+                    # # Save model
+                    # with open(model_path, 'wb') as f:
+                    #     pickle.dump({
+                    #         'model': model,
+                    #         'X': X_valid,
+                    #         'y': y_valid,
+                    #         'feature_info': feature_info,
+                    #         'valid_mask': valid_mask,
+                    #     }, f)
                 
                 # Predict firing rates
                 pred_rates = predict_firing_rates(
@@ -356,18 +356,18 @@ def main():
     # Save summary
     bps_df.to_csv(os.path.join(output_path, 'bits_per_spike_summary.csv'), index=False)
     
-    # Plot bits per spike distribution
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for region in bps_df['region'].unique():
-        region_bps = bps_df[bps_df['region'] == region]['bits_per_spike']
-        ax.hist(region_bps, alpha=0.5, label=region, bins=20)
-    ax.set_xlabel('Bits per Spike')
-    ax.set_ylabel('Count')
-    ax.set_title('GLM Model Performance: Bits per Spike')
-    ax.legend()
-    fig.savefig(os.path.join(plots_dir, 'bits_per_spike_distribution.png'), dpi=150)
-    plt.close(fig)
-    
+    # # Plot bits per spike distribution
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # for region in bps_df['region'].unique():
+    #     region_bps = bps_df[bps_df['region'] == region]['bits_per_spike']
+    #     ax.hist(region_bps, alpha=0.5, label=region, bins=20)
+    # ax.set_xlabel('Bits per Spike')
+    # ax.set_ylabel('Count')
+    # ax.set_title('GLM Model Performance: Bits per Spike')
+    # ax.legend()
+    # fig.savefig(os.path.join(plots_dir, 'bits_per_spike_distribution.png'), dpi=150)
+    # plt.close(fig)
+    # 
     # Plot mean bits per spike by taste and region
     fig, ax = plt.subplots(figsize=(10, 6))
     bps_summary = bps_df.groupby(['taste', 'region'])['bits_per_spike'].mean().unstack()
