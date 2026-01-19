@@ -35,31 +35,53 @@ import shutil
 # Argument parsing
 ############################################################
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Infer firing rates using GLM (nemos)')
-    parser.add_argument('data_dir', help='Path to data directory')
-    parser.add_argument('--bin_size', type=int, default=25,
-                        help='Bin size in ms for spike binning (default: %(default)s)')
-    parser.add_argument('--history_window', type=int, default=250,
-                        help='History window in ms for autoregressive effects (default: %(default)s)')
-    parser.add_argument('--n_basis_funcs', type=int, default=8,
-                        help='Number of basis functions for history filter (default: %(default)s)')
-    parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500],
-                        help='Time limits for analysis [start, end] in ms (default: %(default)s)')
-    parser.add_argument('--include_coupling', action='store_true',
-                        help='Include coupling between neurons (default: %(default)s)')
-    parser.add_argument('--separate_tastes', action='store_true',
-                        help='Fit separate models for each taste (default: %(default)s)')
-    parser.add_argument('--separate_regions', action='store_true',
-                        help='Fit separate models for each region (default: %(default)s)')
-    parser.add_argument('--retrain', action='store_true',
-                        help='Force retraining of model (default: %(default)s)')
-    parser.add_argument('--blech_clust_env', type=str, default='blech_clust',
-                        help='Name of blech_clust conda environment (default: %(default)s)')
-    parser.add_argument('--nemos_env', type=str, default=None,
-                        help='Path to nemos venv Python interpreter')
-    return parser.parse_args()
+def parse_args(test_mode=False):
+    if test_mode:
+        print('====================')
+        print('Running in test mode')
+        print('====================')
+        # data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+        # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
+        data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547' 
+        args = argparse.Namespace(
+            data_dir=data_dir,
+            bin_size=25,
+            history_window=250,
+            n_basis_funcs=8,
+            time_lims=[1500, 4500],
+            include_coupling=True,
+            separate_tastes=True,
+            separate_regions=True,
+            retrain=False,
+            blech_clust_env='blech_clust',
+            nemos_env='/home/abuzarmahmood/Desktop/blech_clust/nemos_venv/bin/python',
+        )
+        return args, test_mode
+    else:
+        parser = argparse.ArgumentParser(
+            description='Infer firing rates using GLM (nemos)')
+        parser.add_argument('data_dir', help='Path to data directory')
+        parser.add_argument('--bin_size', type=int, default=25,
+                            help='Bin size in ms for spike binning (default: %(default)s)')
+        parser.add_argument('--history_window', type=int, default=250,
+                            help='History window in ms for autoregressive effects (default: %(default)s)')
+        parser.add_argument('--n_basis_funcs', type=int, default=8,
+                            help='Number of basis functions for history filter (default: %(default)s)')
+        parser.add_argument('--time_lims', type=int, nargs=2, default=[1500, 4500],
+                            help='Time limits for analysis [start, end] in ms (default: %(default)s)')
+        parser.add_argument('--include_coupling', action='store_false',
+                            help='Include coupling between neurons (default: %(default)s)')
+        parser.add_argument('--separate_tastes', action='store_true',
+                            help='Fit separate models for each taste (default: %(default)s)')
+        parser.add_argument('--separate_regions', action='store_true',
+                            help='Fit separate models for each region (default: %(default)s)')
+        parser.add_argument('--retrain', action='store_true',
+                            help='Force retraining of model (default: %(default)s)')
+        parser.add_argument('--blech_clust_env', type=str, default='blech_clust',
+                            help='Name of blech_clust conda environment (default: %(default)s)')
+        parser.add_argument('--nemos_env', type=str, default=None,
+                            help='Path to nemos venv Python interpreter')
+        return parser.parse_args(), test_mode
 
 
 ############################################################
@@ -70,9 +92,16 @@ def find_conda_env(env_name):
     """Find conda environment by name and return its Python path."""
     try:
         result = subprocess.run(
-            ['conda', 'run', '-n', env_name, 'which', 'python'],
+            # ['conda', 'run', '-n', env_name, 'which', 'python'],
+            ['conda', 'env', 'list'],
             capture_output=True, text=True, timeout=30
         )
+        # Parse output to find env path
+        for line in result.stdout.splitlines():
+            if line.startswith(env_name + ' '):
+                env_path = line.split()[1]
+                python_path = os.path.join(env_path, 'bin', 'python')
+                return python_path
         if result.returncode == 0:
             return result.stdout.strip()
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -138,9 +167,13 @@ def prompt_for_env(env_type, default_name=None):
 ############################################################
 
 def main():
-    args = parse_args()
+    args, _ = parse_args()
+    # args, test_mode = parse_args(test_mode=True)
     
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if not test_mode:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+    else:
+        script_dir = '/home/abuzarmahmood/Desktop/blech_clust/utils/glm'
     data_dir = os.path.abspath(args.data_dir)
     
     # Setup output directories
@@ -215,7 +248,7 @@ def main():
     if result.returncode != 0:
         print("ERROR: GLM fitting failed")
         print(result.stderr)
-        sys.exit(1)
+        # sys.exit(1)
     print(result.stdout)
     
     # Cleanup temp files
