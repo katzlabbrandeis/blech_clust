@@ -7,6 +7,10 @@ run-name: installation_test
 on:
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]
+    paths:
+      - 'requirements/**'
+      - 'pyproject.toml'
+      - 'Makefile'
   workflow_dispatch:
 
 jobs:
