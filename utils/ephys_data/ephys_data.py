@@ -1838,6 +1838,8 @@ class ephys_data():
 
     def compute_bits_per_spike(self, pred_rate, spike_train):
         """
+        **TODO**: Update to use pre-stimulus baseline rate instead of overall mean rate.
+
         Compute bits per spike metric for model comparison.
         
         Bits per spike measures how much better the model predicts spikes

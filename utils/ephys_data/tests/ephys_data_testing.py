@@ -5,7 +5,7 @@ Code to test run ephys_data module
 # from visualize import firing_overview, imshow
 # from ephys_data import ephys_data
 from blech_clust.utils.ephys_data import ephys_data
-from blech_clust.utils.ephys_data.visualize import imshow, firing_overview
+from blech_clust.utils.ephys_data.visualize import imshow, firing_overview, raster
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -62,20 +62,19 @@ matched_firing_array = np.concatenate(dat.firing_array)
 time_vec = dat.time_vector.copy()
 assert len(time_vec) == matched_firing_array.shape[-1], "Time vector length does not match data length"
 
-wanted_time_lims = [-500, 2000]
-time_inds = np.where(
-    (time_vec >= wanted_time_lims[0]) &
-    (time_vec <= wanted_time_lims[1])
-    )[0]
-
-matched_binned_spikes = matched_binned_spikes[..., time_inds]
-matched_firing_array = matched_firing_array[..., time_inds]
-
+# wanted_time_lims = [-500, 2000]
+# time_inds = np.where(
+#     (time_vec >= wanted_time_lims[0]) &
+#     (time_vec <= wanted_time_lims[1])
+#     )[0]
+# matched_binned_spikes = matched_binned_spikes[..., time_inds]
+# matched_firing_array = matched_firing_array[..., time_inds]
+#
 # Calculate bits per spike for rolling window rates
 bps_list = []
 for nrn_ind in range(matched_firing_array.shape[0]):
     bps = dat.compute_bits_per_spike(
-            matched_firing_array[nrn_ind],
+            matched_firing_array[nrn_ind]/10,
             matched_binned_spikes[nrn_ind],
             )
     bps_list.append(bps)
@@ -89,6 +88,19 @@ for this_ax, this_bps in zip(ax.flatten(), np.array(bps_list)[sorted_inds]):
     this_ax.set_title(f'{this_bps:.3f}')
 # plt.tight_layout()
 plt.show()
+
+# Plot firing and spikes
+nrn_ind = sorted_inds[0]
+fig, ax = plt.subplots(2,1, sharex=True)
+im = ax[0].imshow(matched_binned_spikes[nrn_ind], aspect='auto', interpolation='none')
+plt.colorbar(im, ax=ax[0])
+ax[0].set_title('Binned Spikes')
+im = ax[1].imshow(matched_firing_array[nrn_ind], aspect='auto', interpolation='none')
+plt.colorbar(im, ax=ax[1])
+ax[1].set_title('Firing Rates')
+fig.suptitle(f'Neuron index: {nrn_ind}, BPS: {bps_list[nrn_ind]:.3f}')
+plt.show()
+
 
 # dat.get_lfps(re_extract= True)
 dat.get_lfps()
