@@ -567,6 +567,41 @@ if auto_car_inference:
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
+# Check average intra-CAR similarity and write a warning if below threshold
+# This runs after clustering so warnings apply to the actual CAR groups being processed
+try:
+    avg_threshold = metadata_handler.params_dict.get('qa_params', {}).get(
+        'avg_intra_car_similarity_threshold', None) if hasattr(metadata_handler, 'params_dict') else None
+    if avg_threshold is not None:
+        car_groups = electrode_layout_frame.CAR_group.unique()
+        group_means = {}
+        for group_name in car_groups:
+            group_inds = np.where(electrode_layout_frame.CAR_group == group_name)[0]
+            if len(group_inds) > 1:
+                submat = corr_mat[np.ix_(group_inds, group_inds)]
+                triu_vals = submat[np.triu_indices(len(group_inds), k=1)]
+                triu_vals = triu_vals[~np.isnan(triu_vals)]
+                if len(triu_vals) > 0:
+                    group_means[group_name] = np.mean(triu_vals)
+
+        if group_means:
+            overall_avg = np.mean(list(group_means.values()))
+            if overall_avg < float(avg_threshold):
+                warnings_path = os.path.join(plots_dir, 'warnings.txt')
+                warning_lines = [
+                    '\n=== Average intra-CAR similarity warning ===',
+                    f'Average intra-CAR similarity across groups: {overall_avg:.4f}',
+                    f'Threshold: {avg_threshold:.4f}',
+                    'Per-group mean similarities:',
+                ] + [f'  {name}: {mean:.4f}' for name, mean in group_means.items()] + [
+                    '=== End Average intra-CAR similarity warning ===\n'
+                ]
+                warning_message = '\n'.join(warning_lines)
+                print(warning_message)
+                with open(warnings_path, 'a') as wf:
+                    wf.write(warning_message)
+except Exception:
+    pass  # Don't fail the pipeline if this check errors
 
 # First get the common average references by adjusting mean and standard deviation
 # of all channels in a CAR group before taking the average
