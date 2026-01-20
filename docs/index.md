@@ -57,6 +57,7 @@ For more detailed installation instructions, see the [Getting Started](getting-s
 ## Resources
 
 - [blech_clust Secrets Within (PDF)](resources/blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
+- [Auto Sorting Resources](resources/autosorting.md) - Comprehensive documentation for the implemented auto sorting solution, including ML techniques and implementation details
 
 ## Contributing
 

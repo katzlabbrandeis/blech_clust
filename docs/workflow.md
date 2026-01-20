@@ -83,3 +83,4 @@ The operations workflow visual (available in the [README](https://github.com/kat
 - [Core Pipeline Documentation](reference/core-pipeline.md)
 - [Tutorials](tutorials.md)
 - [Getting Started](getting-started/installation.md)
+- [Auto Sorting Resources](resources/autosorting.md) - Comprehensive documentation for the auto sorting implementation
