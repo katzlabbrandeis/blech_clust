@@ -17,7 +17,6 @@ This comprehensive blog post covers:
 - **End-to-end automation**: Complete pipeline from raw data to analysis-ready units
 - **Machine learning integration**: How ML algorithms enhance spike sorting accuracy
 - **Quality control**: Automated assessment of sorting quality
-- **Performance optimization**: Techniques for efficient processing of large datasets
 - **Practical implementation**: Real-world examples and use cases
 
 ### Weeding Out Noise with ML
@@ -49,19 +48,14 @@ These slides provide a technical deep-dive into the auto sorting implementation:
 ## Key Features of the Auto Sorting Solution
 
 ### 1. Intelligent Spike Detection
-- Adaptive thresholding based on signal characteristics
 - Machine learning models trained on diverse neural datasets
-- Automatic handling of varying signal amplitudes and noise levels
 
 ### 2. Automated Feature Extraction
 - Principal Component Analysis (PCA) for dimensionality reduction
-- Wavelet-based feature extraction
 - Time-domain and frequency-domain feature engineering
 
 ### 3. Advanced Clustering Algorithms
 - Gaussian Mixture Models (GMM) for spike clustering
-- Density-based clustering for outlier detection
-- Hierarchical clustering for multi-unit resolution
 
 ### 4. Quality Assessment
 - Automated quality metrics calculation
@@ -70,8 +64,6 @@ These slides provide a technical deep-dive into the auto sorting implementation:
 
 ### 5. Noise Reduction
 - ML-based noise identification and removal
-- Adaptive filtering techniques
-- Real-time noise profile updates
 
 ## Implementation Details
 
@@ -98,19 +90,12 @@ Key parameters for auto sorting are configured in:
 ### Benchmarks
 - Processing speed: ~10x faster than manual sorting
 - Accuracy: >95% agreement with expert manual sorting
-- Scalability: Tested on datasets with 100+ channels
 
 ### Validation Methods
 - Cross-validation with manually sorted datasets
-- Comparison with ground truth from simultaneous recordings
 - Statistical analysis of sorting quality metrics
 
 ## Troubleshooting
-
-### Common Issues
-1. **Memory limitations**: Reduce batch size or use subset processing
-2. **Parameter tuning**: Adjust ML model parameters for specific data characteristics
-3. **Quality thresholds**: Modify quality assessment criteria as needed
 
 ### Support
 - Refer to the main [tutorials](../tutorials.md) for general pipeline usage
