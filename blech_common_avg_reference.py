@@ -443,39 +443,15 @@ corr_mat = corr_mat[index_bool, :][:, index_bool]
 if auto_car_inference:
     print("\nPerforming automatic CAR group inference...")
 
-    # Create a directory for cluster plots if it doesn't exist
-
-    # Get correlation matrix using the utility function
-    corr_mat = get_channel_corr_mat(dir_name)
-    # Convert nan to 0
-    corr_mat[np.isnan(corr_mat)] = 0
-    # Make symmetric
-    # Average to ensure perfect symmetry
-    corr_mat = (corr_mat + corr_mat.T) / 2
-
-    # Index corr_mat by the electrode layout frame
-    index_bool = emg_bool[none_bool].values
-    corr_mat = corr_mat[index_bool, :][:, index_bool]
-
     # Create a dictionary to store cluster predictions for each CAR group
     all_predictions = np.zeros(len(electrode_layout_frame), dtype=int)
 
-    # Check if original_CAR_group exists and use it to avoid re-splitting
-    if 'original_CAR_group' in electrode_layout_frame.columns:
-        print("Using original CAR groups to avoid re-splitting clusters")
-        car_groups_to_process = electrode_layout_frame.original_CAR_group.unique()
-    else:
-        car_groups_to_process = electrode_layout_frame.CAR_group.unique()
-
     # Process each CAR group separately
-    for group_idx, group_name in enumerate(car_groups_to_process):
+    car_groups = electrode_layout_frame.CAR_group.unique()
+    for group_idx, group_name in enumerate(car_groups):
         print(f"\nProcessing CAR group: {group_name}")
 
-        # Get indices for this CAR group using original groups if available
-        if 'original_CAR_group' in electrode_layout_frame.columns:
-            group_mask = electrode_layout_frame.original_CAR_group == group_name
-        else:
-            group_mask = electrode_layout_frame.CAR_group == group_name
+        group_mask = electrode_layout_frame.CAR_group == group_name
         group_indices = np.where(group_mask)[0]
 
         if len(group_indices) <= 1:
@@ -486,8 +462,10 @@ if auto_car_inference:
         # Extract correlation submatrix for this group
         group_corr_mat = corr_mat[group_indices, :][:, group_indices]
 
+        # plt.matshow(group_corr_mat, cmap='jet');plt.show()
+
         # Perform PCA on this group's correlation matrix
-        n_components = min(5, len(group_corr_mat) - 1)
+        n_components = min(3, len(group_corr_mat) - 1)
         if n_components <= 0:
             print(
                 f"  Skipping group {group_name} - insufficient channels for PCA")
@@ -496,10 +474,19 @@ if auto_car_inference:
         pca = PCA(n_components=n_components)
         group_features = pca.fit_transform(group_corr_mat)
 
+        # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        # ax[0].imshow(group_corr_mat, cmap='jet')
+        # ax[0].set_title(f'Correlation Matrix - Group {group_name}')
+        # ax[1].imshow(group_features, cmap='viridis', aspect='auto')
+        # ax[1].set_title(f'PCA Features - Group {group_name}')
+        # plt.tight_layout()
+        # plt.show()
+
         # Cluster electrodes within this group
         group_predictions, model, (cluster_range, scores) = cluster_electrodes(
             group_features,
-            max_clusters=min(max_clusters, len(group_corr_mat) - 1)
+            max_clusters=min(max_clusters, len(group_corr_mat) - 1),
+            cluster_algo=cluster_algo
         )
 
         print(
@@ -509,16 +496,17 @@ if auto_car_inference:
         for i, idx in enumerate(group_indices):
             all_predictions[idx] = group_predictions[i]
 
-        # Plot K-Means BIC scores for this group
-        plt.figure(figsize=(10, 6))
-        plt.plot(cluster_range, scores, 'o-', color='blue')
-        plt.title(f'K-Means Clustering BIC Scores - Group {group_name}')
-        plt.xlabel('Number of Clusters (k)')
-        plt.ylabel('BIC Score (lower is better)')
-        plt.grid(True)
-        plt.savefig(os.path.join(
-            plots_dir, f'kmeans_bic_scores_{group_name}.png'))
-        plt.close()
+        if cluster_algo == 'kmeans':
+            # Plot K-Means BIC scores for this group
+            plt.figure(figsize=(10, 6))
+            plt.plot(cluster_range, scores, 'o-', color='blue')
+            plt.title(f'K-Means Clustering BIC Scores - Group {group_name}')
+            plt.xlabel('Number of Clusters (k)')
+            plt.ylabel('BIC Score (lower is better)')
+            plt.grid(True)
+            plt.savefig(os.path.join(
+                plots_dir, f'kmeans_bic_scores_{group_name}.png'))
+            plt.close()
 
     # Store all predictions in the electrode layout frame
     electrode_layout_frame['predicted_clusters'] = all_predictions
@@ -580,9 +568,42 @@ if auto_car_inference:
 # This is important because all channels are not recorded at the same scale due to
 # differences in impedance and other factors
 
+# Perform PCA on the correlation matrix so that it can be plotted later
+pca = PCA(n_components=2)
+pca_features = pca.fit_transform(corr_mat)
+var_explained = sum(pca.explained_variance_ratio_)
+
+# Get group assignments for plotting
+group_assignments = electrode_layout_frame.CAR_group.map(
+        {name: num for num, name in enumerate(
+    electrode_layout_frame.CAR_group.unique()
+    )}).values
+
+# Plot the PCA features
+fig, ax = plt.subplots(figsize=(5,5))
+for group_num in range(num_groups):
+    group_inds = np.where(group_assignments == group_num)[0]
+    ax.scatter(pca_features[group_inds, 0],
+                pca_features[group_inds, 1],
+                label=f'Group {group_num}', alpha=0.7)
+ax.set_title('PCA of Electrode Correlation Matrix')
+ax.set_xlabel('Principal Component 1')
+ax.set_ylabel('Principal Component 2')
+# put legend outside
+ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.grid(True)
+# Annotate points with electrode names
+for i, electrode_name in enumerate(electrode_layout_frame.channel_name.values):
+    plt.annotate(electrode_name, (pca_features[i, 0], pca_features[i, 1]),
+                 textcoords="offset points", xytext=(0, 5), ha='center', fontsize=10)
+fig.suptitle(f'PCA of Electrode Correlation Matrix (Variance Explained: {var_explained:.2%})')
+plt.tight_layout()
+fig.savefig(os.path.join(
+    plots_dir, 'electrode_corr_pca.png'), dpi=150, bbox_inches='tight')
+plt.close(fig)
+# plt.show()
+
 # Also plot normalized channels by cluster
-
-
 fig, ax = gen_square_subplots(len(electrode_layout_frame),
                               sharex=True, sharey=True, figsize=(15, 15))
 n_plot_points = 10_000
