@@ -46,45 +46,30 @@ We welcome improvements to our documentation! See [docs/README.md](docs/README.m
 - Building documentation locally
 - Editing existing pages
 - Adding new pages
-- Using Quarto Markdown features
+- Using MkDocs and Material theme features
 - Deployment process
 
 **Quick start for documentation:**
 
 ```bash
-# Install Quarto (if not already installed)
-# See https://quarto.org/docs/get-started/
+# Install MkDocs dependencies (if not already installed)
+pip install -r requirements/requirements-docs.txt
 
-# Navigate to docs directory
-cd docs
-
+# From the repository root
 # Preview documentation with live reload
-quarto preview
+mkdocs serve
 
-# Make your edits to .qmd files
+# Make your edits to .md files
 
 # Build the site
-quarto render
+mkdocs build
 ```
 
 **For auto-generated API docs:**
 
-```bash
-# Generate API docs from docstrings (optional)
-cd docs
-quartodoc build
-
-# Preview with generated docs
-quarto preview
-
-# Commit generated docs (use -f to override gitignore)
-git add -f docs/reference/api/*.qmd
-git commit -m "Update auto-generated API docs"
-```
+The API documentation is automatically generated using mkdocstrings from your Python docstrings when you run `mkdocs serve` or `mkdocs build`. No separate generation step is required.
 
 Documentation is automatically deployed to GitHub Pages when changes are merged to `master`.
-
-**Note:** Auto-generation is disabled in CI but works locally. If you update docstrings and want the API docs published, you must generate and commit them locally.
 
 ## Code of Conduct
 
