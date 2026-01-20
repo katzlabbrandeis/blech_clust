@@ -48,12 +48,14 @@ import glob
 import json
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from sklearn.mixture import BayesianGaussianMixture as BGMM
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.qa_utils import channel_corr
 from blech_clust.utils.ephys_data.visualize import gen_square_subplots
 import pandas as pd
+import argparse
 
 try:
     from scipy.stats import median_abs_deviation as MAD
@@ -132,7 +134,7 @@ def calculate_bic(kmeans, X):
     return bic
 
 
-def cluster_electrodes(features, max_clusters=10):
+def cluster_electrodes_kmeans(features, max_clusters=10):
     """
     Cluster electrodes using K-Means and BIC
 
@@ -191,6 +193,54 @@ def cluster_electrodes(features, max_clusters=10):
     print(
         f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
     return best_predictions, best_kmeans, (cluster_range, bic_scores)
+
+def cluster_electrodes_bgmm(features, max_clusters=10):
+    """
+    Cluster electrodes using Bayesian Gaussian Mixture Model (BGMM)
+
+    Parameters:
+    -----------
+    features : numpy.ndarray
+        Array of features for each electrode (from PCA on correlation matrix)
+    max_clusters : int
+        Maximum number of clusters to consider
+
+    Returns:
+    --------
+    predictions : numpy.ndarray
+        Array of cluster assignments for each electrode
+    best_bgmm : BGMM
+        Fitted BGMM model with optimal number of clusters
+    scores : tuple
+        Tuple containing (cluster_range, bic_scores)
+    """
+    print("Clustering electrodes with BGMM using BIC...")
+
+    # Handle the case where we have very few samples
+    max_possible_clusters = min(max_clusters, len(features) - 1)
+
+    # Try different numbers of clusters
+    bgmm = BGMM(
+        n_components=max_possible_clusters,
+        covariance_type='full',
+        random_state=42,
+        max_iter=500,
+    )
+    bgmm.fit(features)
+    predictions = bgmm.predict(features)
+    probs = bgmm.predict_proba(features)
+
+    return predictions, bgmm, ([], [])  # BGMM does not require score tracking 
+
+# Wrapper function to choose clustering algorithm
+def cluster_electrodes(features, max_clusters=10, cluster_algo='kmeans'):
+    assert cluster_algo in ['kmeans', 'bgmm'], "cluster_algo must be 'kmeans' or 'bgmm'"
+    if cluster_algo == 'kmeans':
+        return cluster_electrodes_kmeans(features, max_clusters)
+    elif cluster_algo == 'bgmm':
+        return cluster_electrodes_bgmm(features, max_clusters)
+    else:
+        raise ValueError(f"Unknown clustering algorithm: {cluster_algo}")
 
 
 def plot_clustered_corr_mat(
@@ -280,8 +330,17 @@ def plot_clustered_corr_mat(
 testing_bool = False
 
 if not testing_bool:
+    parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory name with data files')
+    # Allow kmeans or bgmm clustering
+    parser.add_argument('--cluster_algo', type=str, choices=['kmeans', 'bgmm'],
+                        help='Clustering algorithm to use for auto CAR, BGMM tends to allow more clusters',
+                        default='kmeans')
+    args = parser.parse_args()
+
     # Get name of directory with the data files
-    metadata_handler = imp_metadata(sys.argv)
+    metadata_handler = imp_metadata([[], args.dir_name])
     # Define script path first
     script_path = os.path.realpath(__file__)
     # Get directory name from metadata handler
@@ -290,11 +349,15 @@ if not testing_bool:
     this_pipeline_check = pipeline_graph_check(dir_name)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
+
+    cluster_algo = args.cluster_algo
 else:
     # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
-    data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
+    # data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
+    data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
     # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
+    cluster_algo = 'kmeans'
     print(' ==== Running in test mode ====')
 
 # dir_name already defined above for non-testing case
