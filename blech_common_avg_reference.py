@@ -576,7 +576,8 @@ try:
         car_groups = electrode_layout_frame.CAR_group.unique()
         group_means = {}
         for group_name in car_groups:
-            group_inds = np.where(electrode_layout_frame.CAR_group == group_name)[0]
+            group_inds = np.where(
+                electrode_layout_frame.CAR_group == group_name)[0]
             if len(group_inds) > 1:
                 submat = corr_mat[np.ix_(group_inds, group_inds)]
                 triu_vals = submat[np.triu_indices(len(group_inds), k=1)]
