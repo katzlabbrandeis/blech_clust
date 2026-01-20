@@ -1807,3 +1807,71 @@ class ephys_data():
         print(
             f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
+
+    def poisson_log_likelihood(self, rates, spikes):
+        """
+        Compute Poisson log-likelihood of observed spikes given predicted rates.
+
+        Args:
+            rates (np.array): Predicted firing rates from the model (shape: trials x timepoints)
+            spikes (np.array): Actual spike train data (shape: trials x timepoints)
+
+        Returns:
+            float: Poisson log-likelihood value
+
+        Reference: https://pillowlab.princeton.edu/pubs/Pillow_etal_Nature08.pdf
+        Notes: 
+            1- This implementation omits the factorial term as it does not depend on the model.
+            2- An epsilon is added to rates to avoid log(0).
+            3- More positive log-likelihood indicates better model fit.
+        """
+        assert rates.shape == spikes.shape, "rates and spikes must have the same shape"
+
+        rates = rates.flatten()
+        spikes = spikes.flatten()
+
+        # Compute log-likelihood
+        eps = 1e-10
+
+        ll = np.sum((spikes * np.log(rates + eps)) - rates)
+        return ll
+
+    def compute_bits_per_spike(self, pred_rate, spike_train):
+        """
+        Compute bits per spike metric for model comparison.
+        
+        Bits per spike measures how much better the model predicts spikes
+        compared to a baseline (homogeneous Poisson) model.
+        Reference: https://neuronaldynamics.epfl.ch/online/Ch10.S3.html (10.3.2 Spike Train Likelihood)
+
+        Args:
+            pred_rate (np.array): Predicted firing rates from the model (shape: trials x timepoints)
+            spike_train (np.array): Actual spike train data (shape: trials x timepoints)
+        """
+        assert pred_rate.shape == spike_train.shape, "pred_rate and spike_train must have the same shape" 
+
+        pred_rate = pred_rate.flatten()
+        y = spike_train.flatten()
+        
+        # Compute log-likelihood under model
+        eps = 1e-10
+        # ll_model = np.sum(y * np.log(pred_rate + eps) - pred_rate)
+        ll_model = self.poisson_log_likelihood(pred_rate, y)
+        
+        # Compute log-likelihood under baseline (homogeneous Poisson)
+        baseline_rate = np.mean(y, axis=0, keepdims=True)
+        # Repeat baseline_rate to match shape of y
+        baseline_rate = np.repeat(baseline_rate, y.shape[0], axis=0)
+        # ll_baseline = np.sum(y * np.log(baseline_rate + eps) - baseline_rate)
+        ll_baseline = self.poisson_log_likelihood(baseline_rate, y)
+        
+        # Bits per spike = (LL_model - LL_baseline) / (n_spikes * log(2))
+        n_spikes = np.sum(y)
+        if n_spikes > 0:
+            # Note: +veve bits_per_spike indicates model is better than baseline
+            bits_per_spike = (ll_model - ll_baseline) / (n_spikes * np.log(2))
+        else:
+            bits_per_spike = 0.0
+        
+        return bits_per_spike
+
