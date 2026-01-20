@@ -194,6 +194,7 @@ def cluster_electrodes_kmeans(features, max_clusters=10):
         f"Selected optimal number of clusters: {len(np.unique(best_predictions))}")
     return best_predictions, best_kmeans, (cluster_range, bic_scores)
 
+
 def cluster_electrodes_bgmm(features, max_clusters=10):
     """
     Cluster electrodes using Bayesian Gaussian Mixture Model (BGMM)
@@ -230,11 +231,14 @@ def cluster_electrodes_bgmm(features, max_clusters=10):
     predictions = bgmm.predict(features)
     probs = bgmm.predict_proba(features)
 
-    return predictions, bgmm, ([], [])  # BGMM does not require score tracking 
+    return predictions, bgmm, ([], [])  # BGMM does not require score tracking
 
 # Wrapper function to choose clustering algorithm
+
+
 def cluster_electrodes(features, max_clusters=10, cluster_algo='kmeans'):
-    assert cluster_algo in ['kmeans', 'bgmm'], "cluster_algo must be 'kmeans' or 'bgmm'"
+    assert cluster_algo in [
+        'kmeans', 'bgmm'], "cluster_algo must be 'kmeans' or 'bgmm'"
     if cluster_algo == 'kmeans':
         return cluster_electrodes_kmeans(features, max_clusters)
     elif cluster_algo == 'bgmm':
@@ -330,7 +334,8 @@ def plot_clustered_corr_mat(
 testing_bool = False
 
 if not testing_bool:
-    parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
+    parser = argparse.ArgumentParser(
+        description='Load data and create hdf5 file')
     parser.add_argument('dir_name', type=str,
                         help='Directory name with data files')
     # Allow kmeans or bgmm clustering
@@ -575,17 +580,17 @@ var_explained = sum(pca.explained_variance_ratio_)
 
 # Get group assignments for plotting
 group_assignments = electrode_layout_frame.CAR_group.map(
-        {name: num for num, name in enumerate(
-    electrode_layout_frame.CAR_group.unique()
+    {name: num for num, name in enumerate(
+        electrode_layout_frame.CAR_group.unique()
     )}).values
 
 # Plot the PCA features
-fig, ax = plt.subplots(figsize=(5,5))
+fig, ax = plt.subplots(figsize=(5, 5))
 for group_num in range(num_groups):
     group_inds = np.where(group_assignments == group_num)[0]
     ax.scatter(pca_features[group_inds, 0],
-                pca_features[group_inds, 1],
-                label=f'Group {group_num}', alpha=0.7)
+               pca_features[group_inds, 1],
+               label=f'Group {group_num}', alpha=0.7)
 ax.set_title('PCA of Electrode Correlation Matrix')
 ax.set_xlabel('Principal Component 1')
 ax.set_ylabel('Principal Component 2')
@@ -596,7 +601,8 @@ plt.grid(True)
 for i, electrode_name in enumerate(electrode_layout_frame.channel_name.values):
     plt.annotate(electrode_name, (pca_features[i, 0], pca_features[i, 1]),
                  textcoords="offset points", xytext=(0, 5), ha='center', fontsize=10)
-fig.suptitle(f'PCA of Electrode Correlation Matrix (Variance Explained: {var_explained:.2%})')
+fig.suptitle(
+    f'PCA of Electrode Correlation Matrix (Variance Explained: {var_explained:.2%})')
 plt.tight_layout()
 fig.savefig(os.path.join(
     plots_dir, 'electrode_corr_pca.png'), dpi=150, bbox_inches='tight')
