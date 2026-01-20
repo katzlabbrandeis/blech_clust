@@ -421,6 +421,24 @@ else:
 plots_dir = os.path.join(dir_name, 'QA_output')
 os.makedirs(plots_dir, exist_ok=True)
 
+# Process correlation matrix
+# Create a directory for cluster plots if it doesn't exist
+# Get correlation matrix using the utility function
+corr_mat = get_channel_corr_mat(dir_name)
+# Convert nan to 0
+corr_mat[np.isnan(corr_mat)] = 1
+# Make symmetric
+# Average to ensure perfect symmetry
+corr_mat = (corr_mat + corr_mat.T) / 2
+# Make diagonal 1
+np.fill_diagonal(corr_mat, 1)
+
+# plt.matshow(corr_mat, cmap='jet');plt.title('Electrode Correlation Matrix');plt.show()
+
+# Index corr_mat by the electrode layout frame
+index_bool = emg_bool[none_bool].values
+corr_mat = corr_mat[index_bool, :][:, index_bool]
+
 # If auto_car_inference is enabled, perform clustering on each CAR group
 if auto_car_inference:
     print("\nPerforming automatic CAR group inference...")
