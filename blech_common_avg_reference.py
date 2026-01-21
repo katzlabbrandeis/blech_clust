@@ -87,6 +87,97 @@ def get_channel_corr_mat(data_dir):
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
+def calculate_group_averages(raw_electrodes, electrode_layout_frame, num_groups, rec_length):
+    """
+    Calculate common average reference for each CAR group by normalizing channels
+    and computing their average.
+    
+    Parameters:
+    -----------
+    raw_electrodes : list
+        List of raw electrode data arrays
+    electrode_layout_frame : pandas.DataFrame
+        DataFrame containing electrode layout information with CAR_group column
+    num_groups : int
+        Number of CAR groups
+    rec_length : int
+        Length of the recording
+        
+    Returns:
+    --------
+    numpy.ndarray
+        Common average reference array of shape (num_groups, rec_length)
+    """
+    common_average_reference = np.zeros((num_groups, rec_length), dtype=np.float32)
+    
+    print('Calculating mean values')
+    for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+        print(f"\nProcessing group {group_name}")
+
+        this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
+        print(f" {len(this_car_frame)} channels :: \n{this_car_frame.channel_name.values}")
+
+        # Get electrode indices for this group
+        electrode_indices = this_car_frame.electrode_ind.values
+
+        # Load and normalize all electrode data for this group
+        CAR_sum = np.zeros(raw_electrodes[0][:].shape[0])
+        for electrode_name in tqdm(electrode_indices):
+            channel_data = get_electrode_by_name(raw_electrodes, electrode_name)[:]
+            # Normalize each channel by subtracting mean and dividing by std
+            channel_mean = np.median(channel_data[::100])
+            channel_std = MAD(channel_data[::100])
+            normalized_channel = (channel_data - channel_mean) / channel_std
+            CAR_sum += normalized_channel
+
+        # Calculate the average of normalized channels
+        if len(electrode_indices) > 0:
+            common_average_reference[group_num, :] = CAR_sum / len(electrode_indices)
+    
+    return common_average_reference
+
+
+def perform_background_subtraction(raw_electrodes, electrode_layout_frame, 
+                                common_average_reference):
+    """
+    Subtract the common average reference from each electrode and update the data.
+    
+    Parameters:
+    -----------
+    raw_electrodes : list
+        List of raw electrode data arrays
+    electrode_layout_frame : pandas.DataFrame
+        DataFrame containing electrode layout information with CAR_group column
+    common_average_reference : numpy.ndarray
+        Common average reference array of shape (num_groups, rec_length)
+    """
+    print('Performing background subtraction')
+    for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
+        print(f"Processing group {group_name}")
+        this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
+        electrode_indices = this_car_frame.electrode_ind.values
+        if len(electrode_indices) > 1:
+            for electrode_num in tqdm(electrode_indices):
+                # Get the electrode data
+                wanted_electrode = get_electrode_by_name(raw_electrodes, electrode_num)
+                electrode_data = wanted_electrode[:]
+
+                # Normalize the electrode data
+                electrode_mean = np.median(electrode_data[::100])
+                electrode_std = MAD(electrode_data[::100])
+                normalized_data = (electrode_data - electrode_mean) / electrode_std
+
+                # Subtract the common average reference for that group
+                referenced_data = normalized_data - common_average_reference[group_num]
+
+                # Convert back to original scale
+                final_data = (referenced_data * electrode_std) + electrode_mean
+
+                # Overwrite the electrode data with the referenced data
+                wanted_electrode[:] = final_data
+                del referenced_data, final_data, normalized_data, electrode_data
+
+
 def calculate_bic(kmeans, X):
     """
     Calculate the Bayesian Information Criterion (BIC) for a K-Means model.
@@ -654,42 +745,28 @@ plot_inds = np.arange(0, rec_length, rec_length // n_plot_points)
 plot_counter = 0
 cmap = plt.get_cmap('tab10')
 
-common_average_reference = np.zeros(
-    (num_groups, rec_length), dtype=np.float32)
+# Calculate group averages using the new function
+common_average_reference = calculate_group_averages(
+    raw_electrodes, electrode_layout_frame, num_groups, rec_length)
 
-print('Calculating mean values')
+# Now need to add plotting code back for normalized channels
+print('Plotting normalized channels')
 for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
-    print(f"\nProcessing group {group_name}")
-
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
-    print(f" {len(this_car_frame)} channels :: \n{this_car_frame.channel_name.values}")
-
-    # Get electrode indices for this group
     electrode_indices = this_car_frame.electrode_ind.values
-
-    # Load and normalize all electrode data for this group
-    CAR_sum = np.zeros(raw_electrodes[0][:].shape[0])
+    
     for electrode_name in tqdm(electrode_indices):
         channel_data = get_electrode_by_name(raw_electrodes, electrode_name)[:]
-        # Normalize each channel by subtracting mean and dividing by std
-        # channel_mean = np.mean(channel_data)
-        # channel_std = np.std(channel_data)
         channel_mean = np.median(channel_data[::100])
         channel_std = MAD(channel_data[::100])
         normalized_channel = (channel_data - channel_mean) / channel_std
-        CAR_sum += normalized_channel
-
+        
         # Plot normalized channels
         ax.flatten()[plot_counter].plot(
             normalized_channel[plot_inds], color=cmap(group_num))
         ax.flatten()[plot_counter].set_title(
             f"{group_name} :: {electrode_name}")
         plot_counter += 1
-
-    # Calculate the average of normalized channels
-    if len(electrode_indices) > 0:
-        common_average_reference[group_num,
-                                 :] = CAR_sum / len(electrode_indices)
 
 fig.suptitle('Normalized Channels by Cluster')
 fig.savefig(os.path.join(plots_dir, 'normalized_channels.png'))
@@ -698,38 +775,11 @@ plt.close(fig)
 print("Common average reference for {:d} groups calculated".format(num_groups))
 print()
 
-# Now run through the raw electrode data and
-# subtract the common average reference from each of them
-print('Performing background subtraction')
-for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()):
-    print(f"Processing group {group_name}")
-    this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
-    electrode_indices = this_car_frame.electrode_ind.values
-    if len(electrode_indices) > 1:
-        for electrode_num in tqdm(electrode_indices):
-            # Get the electrode data
-            wanted_electrode = get_electrode_by_name(
-                raw_electrodes, electrode_num)
-            electrode_data = wanted_electrode[:]
+# Perform background subtraction using the new function
+perform_background_subtraction(raw_electrodes, electrode_layout_frame, 
+                              common_average_reference)
 
-            # Normalize the electrode data
-            # electrode_mean = np.mean(electrode_data)
-            # electrode_std = np.std(electrode_data)
-            electrode_mean = np.median(electrode_data[::100])
-            electrode_std = MAD(electrode_data[::100])
-            normalized_data = (electrode_data - electrode_mean) / electrode_std
-
-            # Subtract the common average reference for that group
-            referenced_data = normalized_data - \
-                common_average_reference[group_num]
-
-            # Convert back to original scale
-            final_data = (referenced_data * electrode_std) + electrode_mean
-
-            # Overwrite the electrode data with the referenced data
-            wanted_electrode[:] = final_data
-            hf5.flush()
-            del referenced_data, final_data, normalized_data, electrode_data
+hf5.flush()
 
 
 hf5.close()
