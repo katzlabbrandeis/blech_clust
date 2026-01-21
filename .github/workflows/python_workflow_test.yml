@@ -63,7 +63,7 @@ jobs:
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
       - name: Install blech_clust package
         working-directory: /home/exouser/Desktop/blech_clust
-        run: make base
+        run: make base test
 
   Spike-EMG:
     runs-on: self-hosted
