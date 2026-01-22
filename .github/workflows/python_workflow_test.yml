@@ -63,7 +63,7 @@ jobs:
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
       - name: Install blech_clust package
         working-directory: /home/exouser/Desktop/blech_clust
-        run: make base
+        run: make base test
 
   Spike-EMG:
     runs-on: self-hosted
@@ -76,7 +76,7 @@ jobs:
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+        run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
                 echo "ERROR detected by bash";
@@ -94,7 +94,7 @@ jobs:
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+        run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
                 echo "ERROR detected by bash";
