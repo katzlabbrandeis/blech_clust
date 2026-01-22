@@ -479,13 +479,16 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 info_dict = metadata_handler.info_dict
 electrode_layout_frame = metadata_handler.layout.copy()
 
+# Convert CAR_group column to string type to handle float values (e.g., NaN)
+electrode_layout_frame['CAR_group'] = electrode_layout_frame['CAR_group'].astype(str)
+
 # If'original_CAR_group' in layout, use it to overwrite CAR_group for processing
 if 'original_CAR_group' in electrode_layout_frame.columns:
     print('='*60)
     print("original_CAR_group found in layout")
     print("Over-writing CAR_group with original_CAR_group for processing")
     print('='*60)
-    electrode_layout_frame['CAR_group'] = electrode_layout_frame['original_CAR_group']
+    electrode_layout_frame['CAR_group'] = electrode_layout_frame['original_CAR_group'].astype(str)
 
 # Remove emg and none channels from the electrode layout frame
 emg_bool = ~electrode_layout_frame.CAR_group.str.contains('emg')
