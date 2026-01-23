@@ -6,7 +6,9 @@
             "blech_make_arrays.py": "blech_init.py",
             "blech_process.py": {
                 "optional": true,
-                "scripts": ["blech_common_avg_reference.py"]
+                "scripts": [
+                    "blech_common_avg_reference.py"
+                ]
             },
             "blech_post_process.py": "blech_process.py",
             "blech_units_plot.py": "blech_post_process.py",

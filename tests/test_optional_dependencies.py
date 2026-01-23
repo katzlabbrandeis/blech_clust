@@ -2,6 +2,7 @@
 Tests for optional dependency functionality in the pipeline graph check system.
 """
 
+from utils.blech_utils import pipeline_graph_check
 import pytest
 import os
 import tempfile
@@ -12,8 +13,6 @@ import sys
 # Add the parent directory to sys.path to import utilities
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.blech_utils import pipeline_graph_check
-
 
 class TestOptionalDependencies:
     """Test cases for optional dependency functionality."""
@@ -22,7 +21,7 @@ class TestOptionalDependencies:
         """Set up test fixtures."""
         self.test_data_dir = tempfile.mkdtemp()
         self.test_blech_dir = tempfile.mkdtemp()
-        
+
         # Create a sample dependency graph with optional dependencies
         self.sample_graph = {
             "graph": {
@@ -38,10 +37,10 @@ class TestOptionalDependencies:
                 }
             }
         }
-        
+
         # Create sample script files
-        for script in ["blech_init.py", "blech_exp_info.py", "blech_common_avg_reference.py", 
-                      "blech_make_arrays.py", "blech_process.py", "blech_post_process.py"]:
+        for script in ["blech_init.py", "blech_exp_info.py", "blech_common_avg_reference.py",
+                       "blech_make_arrays.py", "blech_process.py", "blech_post_process.py"]:
             with open(os.path.join(self.test_blech_dir, script), 'w') as f:
                 f.write("# Sample script file\n")
 
@@ -57,16 +56,17 @@ class TestOptionalDependencies:
         # Mock the path handler to return our test directory
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         # Create the pipeline check
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Verify the graph was loaded
         assert '' in checker.graph
         assert 'blech_process.py' in checker.graph['']
@@ -77,28 +77,33 @@ class TestOptionalDependencies:
         # Mock the path handler
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Test optional dependency detection
-        parent_script = os.path.join(self.test_blech_dir, 'blech_common_avg_reference.py')
+        parent_script = os.path.join(
+            self.test_blech_dir, 'blech_common_avg_reference.py')
         child_script = os.path.join(self.test_blech_dir, 'blech_process.py')
-        
+
         # This should be optional
-        assert checker._is_optional_dependency(parent_script, child_script) == True
-        
+        assert checker._is_optional_dependency(
+            parent_script, child_script) == True
+
         # Test non-optional dependency
         parent_script2 = os.path.join(self.test_blech_dir, 'blech_process.py')
-        child_script2 = os.path.join(self.test_blech_dir, 'blech_post_process.py')
-        
+        child_script2 = os.path.join(
+            self.test_blech_dir, 'blech_post_process.py')
+
         # This should not be optional
-        assert checker._is_optional_dependency(parent_script2, child_script2) == False
+        assert checker._is_optional_dependency(
+            parent_script2, child_script2) == False
 
     @patch('utils.blech_utils.path_handler')
     def test_check_previous_with_optional_dependency_missing(self, mock_path_handler):
@@ -106,13 +111,14 @@ class TestOptionalDependencies:
         # Mock the path handler
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         # Create execution log with no optional dependency completed
         execution_log = {
             "completed": {
@@ -120,16 +126,16 @@ class TestOptionalDependencies:
                 os.path.join(self.test_blech_dir, 'blech_make_arrays.py'): "2024-01-01 10:05:00"
             }
         }
-        
+
         log_path = os.path.join(self.test_data_dir, 'execution_log.json')
         with open(log_path, 'w') as f:
             json.dump(execution_log, f)
-        
+
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Test blech_process.py - should succeed even without optional dependency
         script_path = os.path.join(self.test_blech_dir, 'blech_process.py')
-        
+
         # This should not raise an exception
         result = checker.check_previous(script_path)
         assert result == True
@@ -140,13 +146,14 @@ class TestOptionalDependencies:
         # Mock the path handler
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         # Create execution log with optional dependency completed
         execution_log = {
             "completed": {
@@ -155,16 +162,16 @@ class TestOptionalDependencies:
                 os.path.join(self.test_blech_dir, 'blech_make_arrays.py'): "2024-01-01 10:05:00"
             }
         }
-        
+
         log_path = os.path.join(self.test_data_dir, 'execution_log.json')
         with open(log_path, 'w') as f:
             json.dump(execution_log, f)
-        
+
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Test blech_process.py - should succeed with optional dependency completed
         script_path = os.path.join(self.test_blech_dir, 'blech_process.py')
-        
+
         # This should not raise an exception
         result = checker.check_previous(script_path)
         assert result == True
@@ -175,29 +182,31 @@ class TestOptionalDependencies:
         # Mock the path handler
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         # Create execution log missing required dependency
         execution_log = {
             "completed": {
                 os.path.join(self.test_blech_dir, 'blech_init.py'): "2024-01-01 10:00:00"
             }
         }
-        
+
         log_path = os.path.join(self.test_data_dir, 'execution_log.json')
         with open(log_path, 'w') as f:
             json.dump(execution_log, f)
-        
+
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Test blech_post_process.py - should fail without required dependency
-        script_path = os.path.join(self.test_blech_dir, 'blech_post_process.py')
-        
+        script_path = os.path.join(
+            self.test_blech_dir, 'blech_post_process.py')
+
         # This should raise a ValueError because blech_process.py is required but not completed
         with pytest.raises(ValueError, match="Required parent script"):
             checker.check_previous(script_path)
@@ -208,22 +217,25 @@ class TestOptionalDependencies:
         # Mock the path handler
         mock_handler_instance = mock_path_handler.return_value
         mock_handler_instance.blech_clust_dir = self.test_blech_dir
-        
+
         # Create the dependency graph file
-        graph_path = os.path.join(self.test_blech_dir, 'params', 'dependency_graph.json')
+        graph_path = os.path.join(
+            self.test_blech_dir, 'params', 'dependency_graph.json')
         os.makedirs(os.path.dirname(graph_path), exist_ok=True)
         with open(graph_path, 'w') as f:
             json.dump(self.sample_graph, f)
-        
+
         checker = pipeline_graph_check(self.test_data_dir)
-        
+
         # Verify flat_graph structure
         expected_parent = os.path.join(self.test_blech_dir, 'blech_process.py')
-        expected_child = os.path.join(self.test_blech_dir, 'blech_common_avg_reference.py')
-        
+        expected_child = os.path.join(
+            self.test_blech_dir, 'blech_common_avg_reference.py')
+
         assert expected_parent in checker.flat_graph
         assert expected_child in checker.flat_graph[expected_parent]
         assert isinstance(checker.flat_graph[expected_parent], list)
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
