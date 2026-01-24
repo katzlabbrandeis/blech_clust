@@ -13,7 +13,7 @@ import shutil
 from tqdm import tqdm, trange
 
 # Import 3rd part code
-from utils import blech_waveforms_datashader
+from blech_clust.utils import blech_waveforms_datashader
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 
 
