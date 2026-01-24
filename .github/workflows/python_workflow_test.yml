@@ -3,6 +3,7 @@
 #
 # This workflow runs Python tests on a self-hosted runner
 # Jobs are independent to allow partial success/failure reporting
+# Includes linting and compilation tests before pipeline tests
 
 name: Python test
 run-name: python_test
@@ -18,8 +19,68 @@ on:
       - 'emg/**/*.sh'
   workflow_dispatch:
 jobs:
+  Lint-and-Compile:
+    runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-lint
+      cancel-in-progress: true
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
+      - name: Set up repo
+        uses: actions/checkout@v4
+
+      - name: Display Python version
+        run: |
+          python --version
+          which python
+
+      - name: Install test dependencies
+        run: |
+          make base test
+
+      - name: Python syntax check (compilation test)
+        run: |
+          echo "Checking Python syntax and compilation..."
+          find . -name "*.py" -not -path "./tests/*" -not -path "./.git/*" | while read file; do
+            echo "Checking syntax: $file"
+            conda run -n blech_clust python -m py_compile "$file"
+          done
+
+      - name: Import test (basic compilation check)
+        run: |
+          echo "Testing basic imports..."
+          conda run -n blech_clust python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          try:
+              import blech_clust
+              print('✓ blech_clust package imports successfully')
+          except ImportError as e:
+              print(f'✗ Failed to import blech_clust: {e}')
+              sys.exit(1)
+          except Exception as e:
+              print(f'✗ Error importing blech_clust: {e}')
+              sys.exit(1)
+          "
+
+      - name: Cleanup after linting tests
+        if: always()
+        run: |
+          echo "Cleaning up linting test artifacts"
+          rm -rf .pytest_cache
+          rm -rf __pycache__
+          find . -name "*.pyc" -delete
+
   Preamble:
     runs-on: self-hosted
+    needs: Lint-and-Compile
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -67,7 +128,7 @@ jobs:
 
   Spike-EMG:
     runs-on: self-hosted
-    needs: Preamble
+    needs: [Lint-and-Compile, Preamble]
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -85,7 +146,7 @@ jobs:
               fi
   EMG-Only:
     runs-on: self-hosted
-    needs: Spike-EMG
+    needs: [Lint-and-Compile, Spike-EMG]
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
