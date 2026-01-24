@@ -1,0 +1,9 @@
+{
+    "bin_size": 25,
+    "history_window": 250,
+    "n_basis_funcs": 8,
+    "time_lims": [1500, 4500],
+    "include_coupling": false,
+    "separate_tastes": true,
+    "separate_regions": true
+}
