@@ -199,24 +199,92 @@ if __name__ == '__main__':
     # 10. Start and end times of laser delivery (in ms)
     # 11. Laser duration and lag (in ms)
 
-    taste_info_list = []
+    # Collate all taste pulses to handle overlapping dig-ins
+    all_pulse_events = []
+    taste_pulse_map = {}  # Map each dig_in to its pulse times
+    
     for ind, num in enumerate(taste_digin_nums):
         this_dig = this_dig_handler.dig_in_frame.loc[
             this_dig_handler.dig_in_frame['dig_in_nums'] == num]
         pulse_times = this_dig['pulse_times'].values[0]
         pulse_times = literal_eval(pulse_times)
         dig_in_name = this_dig['dig_in_names'].values[0]
-        this_frame = pd.DataFrame(
-            dict(
-                dig_in_num=num,
-                dig_in_name=dig_in_name,
-                taste=this_dig['taste'].values[0],
-                start=[x[0] for x in pulse_times],
-                end=[x[1] for x in pulse_times],
+        taste_name = this_dig['taste'].values[0]
+        
+        taste_pulse_map[num] = {
+            'pulse_times': pulse_times,
+            'dig_in_name': dig_in_name,
+            'taste': taste_name
+        }
+        
+        # Add events for pulse starts and ends
+        for start, end in pulse_times:
+            all_pulse_events.append((start, num, 'start'))
+            all_pulse_events.append((end, num, 'end'))
+    
+    # Sort all events by time
+    all_pulse_events.sort(key=lambda x: x[0])
+    
+    # Extract contiguous regions where at least one dig-in is active
+    active_digins = set()
+    trial_regions = []
+    current_trial_start = None
+    current_trial_digins = {}
+    
+    for time, digin_num, event_type in all_pulse_events:
+        if event_type == 'start':
+            if not active_digins:
+                # Start of a new trial region
+                current_trial_start = time
+                current_trial_digins = {}
+            active_digins.add(digin_num)
+            # Record this dig-in's start time for this trial
+            if digin_num not in current_trial_digins:
+                current_trial_digins[digin_num] = {'starts': [], 'ends': []}
+            current_trial_digins[digin_num]['starts'].append(time)
+        else:  # event_type == 'end'
+            if digin_num in current_trial_digins:
+                current_trial_digins[digin_num]['ends'].append(time)
+            active_digins.discard(digin_num)
+            if not active_digins:
+                # End of trial region
+                trial_regions.append({
+                    'trial_start': current_trial_start,
+                    'trial_end': time,
+                    'digins': current_trial_digins.copy()
+                })
+                current_trial_digins = {}
+    
+    # Build trial_info_frame from trial regions
+    # Create one row per dig-in per trial, but track overlapping trials
+    taste_info_list = []
+    trial_idx = 0
+    for region in trial_regions:
+        # Get all dig-ins involved in this trial
+        digin_nums = list(region['digins'].keys())
+        
+        # Create a row for each dig-in in this trial
+        for digin_num in digin_nums:
+            pulse_starts = region['digins'][digin_num]['starts']
+            pulse_ends = region['digins'][digin_num]['ends']
+            
+            this_frame = pd.DataFrame(
+                dict(
+                    dig_in_num=[digin_num],
+                    dig_in_name=[taste_pulse_map[digin_num]['dig_in_name']],
+                    taste=[taste_pulse_map[digin_num]['taste']],
+                    start=[region['trial_start']],
+                    end=[region['trial_end']],
+                    pulse_starts=[pulse_starts],
+                    pulse_ends=[pulse_ends],
+                    trial_group=[trial_idx],  # Track which trials overlap
+                    overlapping_digins=[digin_nums],  # All dig-ins in this trial
+                )
             )
-        )
-        taste_info_list.append(this_frame)
-    taste_info_frame = pd.concat(taste_info_list)
+            taste_info_list.append(this_frame)
+        trial_idx += 1
+    
+    taste_info_frame = pd.concat(taste_info_list, ignore_index=True)
     taste_info_frame.sort_values(by=['start'], inplace=True)
     taste_info_frame.reset_index(drop=True, inplace=True)
     taste_info_frame['abs_trial_num'] = taste_info_frame.index
