@@ -511,6 +511,11 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
     print(f" {len(this_car_frame)} channels :: \n{this_car_frame.channel_name.values}")
 
+    # Skip processing if the group has only one electrode
+    if len(this_car_frame) <= 1:
+        print(f"Skipping group {group_name} as it has only one electrode.")
+        continue
+
     # Get electrode indices for this group
     electrode_indices = this_car_frame.electrode_ind.values
 
@@ -552,31 +557,36 @@ for group_num, group_name in enumerate(electrode_layout_frame.CAR_group.unique()
     print(f"Processing group {group_name}")
     this_car_frame = electrode_layout_frame[electrode_layout_frame.CAR_group == group_name]
     electrode_indices = this_car_frame.electrode_ind.values
-    if len(electrode_indices) > 1:
-        for electrode_num in tqdm(electrode_indices):
-            # Get the electrode data
-            wanted_electrode = get_electrode_by_name(
-                raw_electrodes, electrode_num)
-            electrode_data = wanted_electrode[:]
 
-            # Normalize the electrode data
-            # electrode_mean = np.mean(electrode_data)
-            # electrode_std = np.std(electrode_data)
-            electrode_mean = np.median(electrode_data[::100])
-            electrode_std = MAD(electrode_data[::100])
-            normalized_data = (electrode_data - electrode_mean) / electrode_std
+    # Skip processing if the group has only one electrode
+    if len(electrode_indices) <= 1:
+        print(f"Skipping group {group_name} as it has only one electrode.")
+        continue
 
-            # Subtract the common average reference for that group
-            referenced_data = normalized_data - \
-                common_average_reference[group_num]
+    for electrode_num in tqdm(electrode_indices):
+        # Get the electrode data
+        wanted_electrode = get_electrode_by_name(
+            raw_electrodes, electrode_num)
+        electrode_data = wanted_electrode[:]
 
-            # Convert back to original scale
-            final_data = (referenced_data * electrode_std) + electrode_mean
+        # Normalize the electrode data
+        # electrode_mean = np.mean(electrode_data)
+        # electrode_std = np.std(electrode_data)
+        electrode_mean = np.median(electrode_data[::100])
+        electrode_std = MAD(electrode_data[::100])
+        normalized_data = (electrode_data - electrode_mean) / electrode_std
 
-            # Overwrite the electrode data with the referenced data
-            wanted_electrode[:] = final_data
-            hf5.flush()
-            del referenced_data, final_data, normalized_data, electrode_data
+        # Subtract the common average reference for that group
+        referenced_data = normalized_data - \
+            common_average_reference[group_num]
+
+        # Convert back to original scale
+        final_data = (referenced_data * electrode_std) + electrode_mean
+
+        # Overwrite the electrode data with the referenced data
+        wanted_electrode[:] = final_data
+        hf5.flush()
+        del referenced_data, final_data, normalized_data, electrode_data
 
 
 hf5.close()
