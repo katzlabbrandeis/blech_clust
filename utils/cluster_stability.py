@@ -46,8 +46,11 @@ def load_cluster_predictions(electrode_num, num_clusters):
     """
     Load cluster predictions from disk
     """
-    return np.load(f'./clustering_results/electrode{electrode_num:02}/'
-                   f'clusters{num_clusters}/predictions.npy')
+    file_path = f'./clustering_results/electrode{electrode_num:02}/clusters{num_clusters}/predictions.npy'
+    if not os.path.exists(file_path):
+        print(f"Error: File {file_path} does not exist.")
+        return None
+    return np.load(file_path)
 
 
 def return_clustering_solutions(electrode_num):
