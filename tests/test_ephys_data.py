@@ -457,6 +457,8 @@ class TestEphysDataStaticMethods:
                         assert 'all_firing_array' in call
                         assert 'normalized_firing' in call
                         assert 'all_normalized_firing' in call
+                        # Check that shape information is included
+                        assert 'shape' in call
                 
                 assert stacking_message_found, "Stacking message not found"
                 assert attributes_message_found, "Attributes message not found"
@@ -492,6 +494,8 @@ class TestEphysDataStaticMethods:
                         assert 'all_firing_array' not in call
                         assert 'normalized_firing' not in call
                         assert 'all_normalized_firing' not in call
+                        # Check that shape information is included
+                        assert 'shape' in call
                 
                 assert non_stacking_message_found, "Non-stacking message not found"
                 assert attributes_message_found, "Attributes message not found"
