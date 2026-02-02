@@ -1034,17 +1034,20 @@ class ephys_data():
                 swapaxes(0, 1)
 
             print('Generated attributes:')
-            print(f'  firing_list: {len(self.firing_list)} arrays of shape {self.firing_list[0].shape}')
+            print(
+                f'  firing_list: {len(self.firing_list)} arrays of shape {self.firing_list[0].shape}')
             print(f'  time_vector: shape {self.time_vector.shape}')
             print(f'  firing_array: shape {self.firing_array.shape}')
             print(f'  all_firing_array: shape {self.all_firing_array.shape}')
             print(f'  normalized_firing: shape {self.normalized_firing.shape}')
-            print(f'  all_normalized_firing: shape {self.all_normalized_firing.shape}')
+            print(
+                f'  all_normalized_firing: shape {self.all_normalized_firing.shape}')
 
         else:
             print('Uneven numbers of trials...not stacking into firing rates array')
             print('Generated attributes:')
-            print(f'  firing_list: {len(self.firing_list)} arrays with shapes {[x.shape for x in self.firing_list]}')
+            print(
+                f'  firing_list: {len(self.firing_list)} arrays with shapes {[x.shape for x in self.firing_list]}')
             print(f'  time_vector: shape {self.time_vector.shape}')
 
     def calc_palatability(self):
