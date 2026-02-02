@@ -1003,6 +1003,7 @@ class ephys_data():
                    for x in self.firing_list]) == len(self.firing_list):
             print('All tastes have equal dimensions,'
                   'concatenating and normalizing')
+            print('Generated attributes: firing_list, time_vector, firing_array, all_firing_array, normalized_firing, all_normalized_firing')
 
             # Reshape for backward compatiblity
             self.firing_array = np.asarray(self.firing_list).swapaxes(1, 2)
@@ -1035,6 +1036,7 @@ class ephys_data():
 
         else:
             print('Uneven numbers of trials...not stacking into firing rates array')
+            print('Generated attributes: firing_list, time_vector')
 
     def calc_palatability(self):
         """
