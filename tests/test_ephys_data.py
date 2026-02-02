@@ -450,15 +450,24 @@ class TestEphysDataStaticMethods:
                         stacking_message_found = True
                     if 'Generated attributes:' in call:
                         attributes_message_found = True
-                        # Check that all expected attributes are mentioned
-                        assert 'firing_list' in call
-                        assert 'time_vector' in call
-                        assert 'firing_array' in call
-                        assert 'all_firing_array' in call
-                        assert 'normalized_firing' in call
-                        assert 'all_normalized_firing' in call
-                        # Check that shape information is included
-                        assert 'shape' in call
+                
+                # Check that all expected attributes are mentioned across all print calls
+                all_prints = ' '.join(print_calls)
+                assert 'firing_list' in all_prints
+                assert 'time_vector' in all_prints
+                assert 'firing_array' in all_prints
+                assert 'all_firing_array' in all_prints
+                assert 'normalized_firing' in all_prints
+                assert 'all_normalized_firing' in all_prints
+                # Check that shape information is included
+                assert 'shape' in all_prints
+                # Check that attributes are on separate lines (indented)
+                assert '  firing_list:' in all_prints
+                assert '  time_vector:' in all_prints
+                assert '  firing_array:' in all_prints
+                assert '  all_firing_array:' in all_prints
+                assert '  normalized_firing:' in all_prints
+                assert '  all_normalized_firing:' in all_prints
                 
                 assert stacking_message_found, "Stacking message not found"
                 assert attributes_message_found, "Attributes message not found"
@@ -486,16 +495,21 @@ class TestEphysDataStaticMethods:
                         non_stacking_message_found = True
                     if 'Generated attributes:' in call:
                         attributes_message_found = True
-                        # Check that only the expected attributes are mentioned
-                        assert 'firing_list' in call
-                        assert 'time_vector' in call
-                        # Should NOT mention the stacking-specific attributes
-                        assert 'firing_array' not in call
-                        assert 'all_firing_array' not in call
-                        assert 'normalized_firing' not in call
-                        assert 'all_normalized_firing' not in call
-                        # Check that shape information is included
-                        assert 'shape' in call
+                
+                # Check that only the expected attributes are mentioned across all print calls
+                all_prints = ' '.join(print_calls)
+                assert 'firing_list' in all_prints
+                assert 'time_vector' in all_prints
+                # Should NOT mention the stacking-specific attributes
+                assert 'firing_array' not in all_prints
+                assert 'all_firing_array' not in all_prints
+                assert 'normalized_firing' not in all_prints
+                assert 'all_normalized_firing' not in all_prints
+                # Check that shape information is included
+                assert 'shape' in all_prints
+                # Check that attributes are on separate lines (indented)
+                assert '  firing_list:' in all_prints
+                assert '  time_vector:' in all_prints
                 
                 assert non_stacking_message_found, "Non-stacking message not found"
                 assert attributes_message_found, "Attributes message not found"
