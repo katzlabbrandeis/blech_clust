@@ -87,7 +87,7 @@ def get_channel_corr_mat(data_dir):
     return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
 
 
-def calculate_group_averages(raw_electrodes, electrode_layout_frame, num_groups, rec_length):
+def calculate_group_averages(raw_electrodes, electrode_layout_frame, rec_length):
     """
     Calculate common average reference for each CAR group by normalizing channels
     and computing their average.
@@ -98,8 +98,6 @@ def calculate_group_averages(raw_electrodes, electrode_layout_frame, num_groups,
         List of raw electrode data arrays
     electrode_layout_frame : pandas.DataFrame
         DataFrame containing electrode layout information with CAR_group column
-    num_groups : int
-        Number of CAR groups
     rec_length : int
         Length of the recording
 
@@ -108,6 +106,9 @@ def calculate_group_averages(raw_electrodes, electrode_layout_frame, num_groups,
     numpy.ndarray
         Common average reference array of shape (num_groups, rec_length)
     """
+    
+    num_groups = electrode_layout_frame.CAR_group.nunique()
+
     common_average_reference = np.zeros(
         (num_groups, rec_length), dtype=np.float32)
 
@@ -455,9 +456,11 @@ if not testing_bool:
 
     cluster_algo = args.cluster_algo
 else:
+    from pprint import pprint as pp
     # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
     # data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
-    data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
+    # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
+    data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
     # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     cluster_algo = 'kmeans'
@@ -619,6 +622,8 @@ if auto_car_inference:
             plt.close()
 
     # Store all predictions in the electrode layout frame
+    assert len(all_predictions) == len(electrode_layout_frame), \
+        "Length of predictions does not match number of electrodes"
     electrode_layout_frame['predicted_clusters'] = all_predictions
 
     # Save original CAR_groups as backup only if not already present
@@ -626,15 +631,11 @@ if auto_car_inference:
         electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
     # Append cluster numbers to CAR group names
-    # Use original_CAR_group if available to build new names
-    if 'original_CAR_group' in electrode_layout_frame.columns:
-        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-            lambda row: f"{row['original_CAR_group']}-{row['predicted_clusters']:02}", axis=1
-        )
-    else:
-        electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
-            lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
-        )
+    # This will be the same as using original_CAR_group + cluster number as 
+    # CAR group names were over-written above
+    electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
+        lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
+    )
     num_groups = electrode_layout_frame.CAR_group.nunique()
 
     pred_map = dict(zip(
@@ -675,8 +676,7 @@ if auto_car_inference:
 # Check average intra-CAR similarity and write a warning if below threshold
 # This runs after clustering so warnings apply to the actual CAR groups being processed
 try:
-    avg_threshold = metadata_handler.params_dict.get('qa_params', {}).get(
-        'avg_intra_car_similarity_threshold', None) if hasattr(metadata_handler, 'params_dict') else None
+    avg_threshold = metadata_handler.params_dict['qa_params']['avg_intra_car_similarity_threshold']
     if avg_threshold is not None:
         car_groups = electrode_layout_frame.CAR_group.unique()
         group_means = {}
@@ -692,7 +692,7 @@ try:
 
         if group_means:
             overall_avg = np.mean(list(group_means.values()))
-            if overall_avg < float(avg_threshold):
+            if any(np.array(list(group_means.values())) < avg_threshold):
                 warnings_path = os.path.join(plots_dir, 'warnings.txt')
                 warning_lines = [
                     '\n=== Average intra-CAR similarity warning ===',
@@ -761,7 +761,7 @@ cmap = plt.get_cmap('tab10')
 
 # Calculate group averages using the new function
 common_average_reference = calculate_group_averages(
-    raw_electrodes, electrode_layout_frame, num_groups, rec_length)
+    raw_electrodes, electrode_layout_frame, rec_length)
 
 # Now need to add plotting code back for normalized channels
 print('Plotting normalized channels')
