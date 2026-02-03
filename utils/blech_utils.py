@@ -260,6 +260,9 @@ class pipeline_graph_check():
             if 'completed' not in log_dict.keys():
                 log_dict['completed'] = {}
             log_dict['completed'][script_path] = current_datetime
+            # Remove from attempted if present
+            if 'attempted' in log_dict and script_path in log_dict['attempted']:
+                del log_dict['attempted'][script_path]
             print('============================================================')
             print(
                 f'Completed {os.path.basename(script_path)}, ended at {current_datetime}')
