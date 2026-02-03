@@ -931,8 +931,15 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     layout_frame_filled = pd.read_csv(layout_file_path)
 
     if not args.programmatic:
-        layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
-        )
+        if 'original_CAR_group' not in layout_frame_filled.columns:
+            layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
+            )
+        else:
+            print('='*40)
+            print('Original CAR groups detected, using those values')
+            print('='*40)
+            layout_frame_filled['CAR_group'] = layout_frame_filled['original_CAR_group'].str.lower(
+            )
         layout_frame_filled['CAR_group'] = [x.strip()
                                             for x in layout_frame_filled['CAR_group']]
     else:
