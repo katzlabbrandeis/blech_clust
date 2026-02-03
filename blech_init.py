@@ -197,6 +197,11 @@ if not testing_bool:
     blech_clust_dir = os.path.dirname(bc.__file__)
     # Get directory name from metadata handler
     dir_name = metadata_handler.dir_name
+
+    # Now create pipeline check with the correct dir_name
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
     # If info_dict present but execution log is not
     # just create the execution log with blech_exp_info marked
     if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
@@ -205,10 +210,6 @@ if not testing_bool:
         this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
         print('Execution log created for blech_exp_info')
-    # Now create pipeline check with the correct dir_name
-    this_pipeline_check = pipeline_graph_check(dir_name)
-    this_pipeline_check.check_previous(script_path)
-    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 else:
     from pprint import pprint as pp
