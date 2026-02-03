@@ -175,19 +175,20 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
               f"::: {' '.join([str(x) for x in bash_electrode_list])}",
               file=f)
 
+
 testing_bool = False
 
 if not testing_bool:
 
     import argparse  # noqa
-    parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
+    parser = argparse.ArgumentParser(
+        description='Load data and create hdf5 file')
     parser.add_argument('dir_name', type=str,
                         help='Directory name with data files')
     parser.add_argument('--force_run', action='store_true',
                         help='Force run the script without asking user')
     args = parser.parse_args()
     force_run = args.force_run
-
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], args.dir_name])
@@ -199,7 +200,8 @@ if not testing_bool:
     # If info_dict present but execution log is not
     # just create the execution log with blech_exp_info marked
     if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
-        blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
+        blech_exp_info_path = os.path.join(
+            blech_clust_dir, 'blech_exp_info.py')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
         print('Execution log created for blech_exp_info')
