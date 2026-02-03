@@ -39,16 +39,8 @@ Dependencies:
     - Custom utility modules from blech_clust package
 """
 
-import argparse  # noqa
-parser = argparse.ArgumentParser(description='Load data and create hdf5 file')
-parser.add_argument('dir_name', type=str,
-                    help='Directory name with data files')
-parser.add_argument('--force_run', action='store_true',
-                    help='Force run the script without asking user')
-args = parser.parse_args()
-force_run = args.force_run
-
 # Necessary blech_clust modules
+import blech_clust as bc  # noqa
 from blech_clust.utils.importrhdutilities import read_header  # noqa
 from blech_clust.utils.blech_process_utils import path_handler  # noqa
 from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
@@ -67,6 +59,7 @@ import numpy as np  # noqa
 import sys  # noqa
 import tables  # noqa
 import os  # noqa
+import xarray as xr  # noqa
 
 
 class HDF5Handler:
@@ -183,10 +176,56 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
               file=f)
 
 
-# Get blech_clust path
-script_path = os.path.realpath(__file__)
-blech_clust_dir = os.path.dirname(script_path)
+testing_bool = False
 
+if not testing_bool:
+
+    import argparse  # noqa
+    parser = argparse.ArgumentParser(
+        description='Load data and create hdf5 file')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory name with data files')
+    parser.add_argument('--force_run', action='store_true',
+                        help='Force run the script without asking user')
+    args = parser.parse_args()
+    force_run = args.force_run
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.dir_name])
+    # Define script path first
+    script_path = os.path.realpath(__file__)
+    blech_clust_dir = os.path.dirname(bc.__file__)
+    # Get directory name from metadata handler
+    dir_name = metadata_handler.dir_name
+
+    # Now create pipeline check with the correct dir_name
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+    # If info_dict present but execution log is not
+    # just create the execution log with blech_exp_info marked
+    if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
+        blech_exp_info_path = os.path.join(
+            blech_clust_dir, 'blech_exp_info.py')
+        this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
+        this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
+        print('Execution log created for blech_exp_info')
+
+else:
+    from pprint import pprint as pp
+    blech_clust_dir = os.path.dirname(bc.__file__)
+    # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
+    # data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
+    # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
+    # data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+
+    dir_name = metadata_handler.dir_name
+    force_run = False
+
+############################################################
 # Check that template file is present
 params_template_path = os.path.join(
     blech_clust_dir,
@@ -195,23 +234,6 @@ if not os.path.exists(params_template_path):
     print('=== Sorting Params Template file not found. ===')
     print('==> Please copy [[ blech_clust/params/_templates/sorting_params_template.json ]] to [[ blech_clust/params/sorting_params_template.json ]] and update as needed.')
     exit()
-############################################################
-
-
-metadata_handler = imp_metadata([[], args.dir_name])
-dir_name = metadata_handler.dir_name
-
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(dir_name)
-# If info_dict present but execution log is not
-# just create the execution log with blech_exp_info marked
-if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
-    blech_exp_info_path = os.path.join(blech_clust_dir, 'blech_exp_info.py')
-    this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')
-    this_pipeline_check.write_to_log(blech_exp_info_path, 'completed')
-    print('Execution log created for blech_exp_info')
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 print(f'Processing : {dir_name}')
 os.chdir(dir_name)
@@ -392,6 +414,7 @@ down_dat_stack, chan_names, chan_labels = channel_corr.get_all_channels(
     electrode_layout_frame=electrode_layout_frame,
     n_corr_samples=n_corr_samples)
 corr_mat = channel_corr.intra_corr(down_dat_stack)
+
 qa_out_path = os.path.join(dir_name, 'QA_output')
 if not os.path.exists(qa_out_path):
     os.mkdir(qa_out_path)
@@ -404,7 +427,17 @@ channel_corr.gen_corr_output(corr_mat,
                              qa_threshold,
                              chan_labels=chan_labels)
 # Also write out the correlation matrix to qa_out_path
-np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
+# np.save(os.path.join(qa_out_path, 'channel_corr_mat.npy'), corr_mat)
+# Convert corr_mat to xarray DataArray to add metadata
+corr_mat_xr = xr.DataArray(
+    corr_mat,
+    coords={
+        'channel_1': chan_names,
+        'channel_2': chan_names
+    },
+    dims=['channel_1', 'channel_2']
+)
+corr_mat_xr.to_netcdf(os.path.join(qa_out_path, 'channel_corr_mat.nc'))
 
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one file per channel', 'one file per signal type']:

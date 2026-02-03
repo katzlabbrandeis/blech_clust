@@ -54,6 +54,11 @@ conda activate blech_clust
 
 For more detailed installation instructions, see the [Getting Started](getting-started/installation.md) guide.
 
+## Resources
+
+- [blech_clust Secrets Within (PDF)](resources/blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
+- [Auto Sorting Resources](resources/autosorting.md) - Comprehensive documentation for the implemented auto sorting solution, including ML techniques and implementation details
+
 ## Contributing
 
 We welcome contributions! Please read our [CONTRIBUTING.md](https://github.com/katzlabbrandeis/blech_clust/blob/master/CONTRIBUTING.md) file for guidelines.

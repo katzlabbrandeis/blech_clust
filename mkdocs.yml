@@ -83,6 +83,8 @@ nav:
       - Utilities: reference/utilities.md
       - Ephys Data: reference/ephys-data.md
       - EMG Analysis: reference/emg-analysis.md
+  - Resources:
+      - Auto Sorting: resources/autosorting.md
 
 extra:
   social:
