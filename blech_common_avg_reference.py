@@ -562,7 +562,6 @@ np.fill_diagonal(corr_mat, 1)
 
 # plt.matshow(corr_mat, cmap='jet');plt.title('Electrode Correlation Matrix');plt.show()
 
-
 # If auto_car_inference is enabled, perform clustering on each CAR group
 if auto_car_inference:
     print("\nPerforming automatic CAR group inference...")
@@ -683,10 +682,14 @@ if auto_car_inference:
                                       'original_CAR_group'] = electrode_layout_frame['original_CAR_group'].values
     # Make sure CAR_group and original_CAR_group are strings
     out_electrode_layout_frame['CAR_group'] = out_electrode_layout_frame['CAR_group'].astype(
-        str)
+        'string')
     if 'original_CAR_group' in out_electrode_layout_frame.columns:
         out_electrode_layout_frame['original_CAR_group'] = out_electrode_layout_frame['original_CAR_group'].astype(
-            str)
+            'string')
+
+    # Fill NaN with 'none' for non-processed channels
+    out_electrode_layout_frame['original_CAR_group'].fillna('none', inplace=True)
+
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
