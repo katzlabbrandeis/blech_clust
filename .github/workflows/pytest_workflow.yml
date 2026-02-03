@@ -37,11 +37,11 @@ jobs:
 
       - name: Run pytest
         run: |
-          conda run -n blech_clust python -m pytest tests/ -v
+          conda run --no-capture-output -n blech_clust python -m pytest tests/ -v
 
       - name: Run pytest with coverage
         run: |
-          conda run -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
+          conda run --no-capture-output -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
 
       - name: Cleanup after tests
         if: always()
