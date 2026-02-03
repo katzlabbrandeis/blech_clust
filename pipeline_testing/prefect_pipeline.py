@@ -7,6 +7,10 @@ NOTE: Superflows will stop execution of that flow on the first subflow/task that
 """
 
 ############################################################
+from blech_clust.pipeline_testing.test_config_loader import (
+    get_data_dirs_dict,
+    get_test_data_dir,
+)
 from blech_clust.pipeline_testing.s3_utils import (
     S3_BUCKET,
     dummy_upload_test_results,
@@ -159,10 +163,6 @@ with open(emg_params_path) as f:
 emg_env_path = env_params['emg_env']
 
 # Load test data configuration from test_config.json
-from blech_clust.pipeline_testing.test_config_loader import (
-    get_data_dirs_dict,
-    get_test_data_dir,
-)
 data_dirs_dict = get_data_dirs_dict()
 data_dir_base = get_test_data_dir()
 
