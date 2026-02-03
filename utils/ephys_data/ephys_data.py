@@ -810,7 +810,13 @@ class ephys_data():
         Side Effects:
             Sets attributes:
                 - lfp_array: LFP data, shape (n_tastes, n_channels, n_trials, n_timepoints)
+                              if trials are even across tastes, otherwise None
+                - lfp_list: List of LFP arrays per taste (always set)
                 - all_lfp_array: Reshaped LFP data with tastes concatenated
+                                 (only if trials are even)
+                - all_lfp_list: List of LFP arrays concatenated across tastes
+                                (only if trials are uneven)
+                - uneven_lfp_trials: Boolean indicating if trials are uneven
 
         Note:
             Not compatible with traditional data files
@@ -832,43 +838,76 @@ class ephys_data():
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
                          if 'dig_in' in node.__str__()]
-            # Account for parsed LFPs being different
-            self.lfp_array = np.asarray([node[:] for node in lfp_nodes])
+            # Always store as list first
+            self.lfp_list = [node[:] for node in lfp_nodes]
+
+        # Check if trials are even across tastes
+        trial_counts = [x.shape[1] for x in self.lfp_list]
+        if len(set(trial_counts)) == 1:
+            # Even trials - stack into array
+            self.uneven_lfp_trials = False
+            self.lfp_array = np.asarray(self.lfp_list)
             self.all_lfp_array = \
                 self.lfp_array.\
                 swapaxes(1, 2).\
                 reshape(-1, self.lfp_array.shape[1],
                         self.lfp_array.shape[-1]).\
                 swapaxes(0, 1)
+        else:
+            # Uneven trials - leave as list
+            self.uneven_lfp_trials = True
+            self.lfp_array = None
+            # Concatenate across tastes for all_lfp equivalent
+            self.all_lfp_list = [
+                x.swapaxes(0, 1) for x in self.lfp_list
+            ]  # Each element: (n_trials, n_channels, n_timepoints)
 
     def separate_laser_lfp(self):
         """Separate LFP arrays into laser on and off conditions
 
         Side Effects:
             Sets attributes:
-                - on_lfp: LFP arrays for laser on trials
-                - off_lfp: LFP arrays for laser off trials
-                - all_on_lfp: Reshaped on_lfp with tastes concatenated
-                - all_off_lfp: Reshaped off_lfp with tastes concatenated
+                - on_lfp: LFP arrays for laser on trials (list if uneven trials)
+                - off_lfp: LFP arrays for laser off trials (list if uneven trials)
+                - all_on_lfp: Reshaped on_lfp with tastes concatenated (only if even trials)
+                - all_off_lfp: Reshaped off_lfp with tastes concatenated (only if even trials)
+                - on_lfp_list: List of on_lfp per taste (only if uneven trials)
+                - off_lfp_list: List of off_lfp per taste (only if uneven trials)
 
         Raises:
             Exception: If no laser trials exist in the experiment
         """
         if 'laser_exists' not in dir(self):
             self.check_laser()
-        if 'lfp_array' not in dir(self):
+        if 'lfp_list' not in dir(self):
             self.get_lfps()
         if self.laser_exists:
-            self.on_lfp = np.array([taste.swapaxes(0, 1)[laser > 0]
-                                    for taste, laser in
-                                    zip(self.lfp_array, self.laser_durations)])
-            self.off_lfp = np.array([taste.swapaxes(0, 1)[laser == 0]
-                                     for taste, laser in
-                                     zip(self.lfp_array, self.laser_durations)])
-            self.all_on_lfp =\
-                np.reshape(self.on_lfp, (-1, *self.on_lfp.shape[-2:]))
-            self.all_off_lfp =\
-                np.reshape(self.off_lfp, (-1, *self.off_lfp.shape[-2:]))
+            # Use lfp_list which is always available
+            on_lfp_list = [taste.swapaxes(0, 1)[laser > 0]
+                           for taste, laser in
+                           zip(self.lfp_list, self.laser_durations)]
+            off_lfp_list = [taste.swapaxes(0, 1)[laser == 0]
+                            for taste, laser in
+                            zip(self.lfp_list, self.laser_durations)]
+
+            # Check if results have even trials
+            on_trial_counts = [x.shape[0] for x in on_lfp_list]
+            off_trial_counts = [x.shape[0] for x in off_lfp_list]
+
+            if len(set(on_trial_counts)) == 1 and len(set(off_trial_counts)) == 1:
+                # Even trials - stack into arrays
+                self.on_lfp = np.array(on_lfp_list)
+                self.off_lfp = np.array(off_lfp_list)
+                self.all_on_lfp = \
+                    np.reshape(self.on_lfp, (-1, *self.on_lfp.shape[-2:]))
+                self.all_off_lfp = \
+                    np.reshape(self.off_lfp, (-1, *self.off_lfp.shape[-2:]))
+            else:
+                # Uneven trials - keep as lists
+                self.on_lfp_list = on_lfp_list
+                self.off_lfp_list = off_lfp_list
+                self.on_lfp = None
+                self.off_lfp = None
         else:
             raise Exception('No laser trials in this experiment')
 
@@ -1455,27 +1494,34 @@ class ephys_data():
             print('Calculating STFT')
 
             # Get LFPs to calculate STFT
-            if "lfp_array" not in dir(self):
+            if "lfp_list" not in dir(self):
                 self.get_lfps()
 
             # Generate list of individual trials to be fed into STFT function
-            stft_iters = list(
-                product(
-                    *list(map(np.arange, self.lfp_array.shape[:3]))
-                )
-            )
+            # Handle both even and uneven trial cases
+            stft_iters = []
+            for taste_idx, taste_lfp in enumerate(self.lfp_list):
+                n_channels, n_trials, _ = taste_lfp.shape
+                for chan_idx in range(n_channels):
+                    for trial_idx in range(n_trials):
+                        stft_iters.append((taste_idx, chan_idx, trial_idx))
+
+            # Helper function to get LFP data for a given iteration
+            def get_lfp_for_iter(iter_tuple):
+                taste_idx, chan_idx, trial_idx = iter_tuple
+                return self.lfp_list[taste_idx][chan_idx, trial_idx]
 
             # Calculate STFT over lfp array
             try:
-                stft_list = Parallel(n_jobs=mp.cpu_count()-2)(delayed(self.calc_stft)(self.lfp_array[this_iter],
+                stft_list = Parallel(n_jobs=mp.cpu_count()-2)(delayed(self.calc_stft)(get_lfp_for_iter(this_iter),
                                                                                       **self.stft_params)
                                                               for this_iter in tqdm(stft_iters))
             except:
                 warnings.warn("Couldn't process STFT in parallel."
                               "Running serial loop")
-            # stft_list = [self.calc_stft(self.lfp_array[this_iter],
-            #                            **self.stft_params)\
-            #        for this_iter in tqdm(stft_iters)]
+                stft_list = [self.calc_stft(get_lfp_for_iter(this_iter),
+                                           **self.stft_params)
+                       for this_iter in tqdm(stft_iters)]
 
             self.freq_vec = stft_list[0][0]
             self.time_vec = stft_list[0][1]
@@ -1484,44 +1530,110 @@ class ephys_data():
             amplitude_list = self.parallelize(np.abs, fin_stft_list)
             phase_list = self.parallelize(np.angle, fin_stft_list)
 
-            # (taste, channel, trial, frequencies, time)
-            self.stft_array = self.convert_to_array(fin_stft_list, stft_iters)
-            del fin_stft_list
-            self.amplitude_array = self.convert_to_array(
-                amplitude_list, stft_iters)**2
-            del amplitude_list
-            self.phase_array = self.convert_to_array(phase_list, stft_iters)
-            del phase_list
+            # Check if trials are even to determine output format
+            if hasattr(self, 'uneven_lfp_trials') and self.uneven_lfp_trials:
+                # Uneven trials - store as nested lists
+                # Organize by taste, then channel, then trial
+                self.stft_list = self._organize_stft_results(fin_stft_list, stft_iters)
+                self.amplitude_list = self._organize_stft_results(
+                    [x**2 for x in amplitude_list], stft_iters)
+                self.phase_list = self._organize_stft_results(phase_list, stft_iters)
+                del fin_stft_list, amplitude_list, phase_list
+            else:
+                # Even trials - (taste, channel, trial, frequencies, time)
+                self.stft_array = self.convert_to_array(fin_stft_list, stft_iters)
+                del fin_stft_list
+                self.amplitude_array = self.convert_to_array(
+                    amplitude_list, stft_iters)**2
+                del amplitude_list
+                self.phase_array = self.convert_to_array(phase_list, stft_iters)
+                del phase_list
 
             # After recalculating, only keep what was asked for
             object_names = ['freq_vec', 'time_vec']
             object_list = [self.freq_vec, self.time_vec]
 
-            if 'raw' in dat_type:
-                object_names.append('stft_array')
-                object_list.append(self.stft_array)
+            # Handle cleanup differently for even vs uneven trials
+            if hasattr(self, 'uneven_lfp_trials') and self.uneven_lfp_trials:
+                # Uneven trials - use list attributes
+                if 'raw' in dat_type:
+                    pass  # Keep stft_list
+                else:
+                    if hasattr(self, 'stft_list'):
+                        del self.stft_list
+
+                if 'amplitude' in dat_type:
+                    pass  # Keep amplitude_list
+                else:
+                    if hasattr(self, 'amplitude_list'):
+                        del self.amplitude_list
+
+                if 'phase' in dat_type:
+                    pass  # Keep phase_list
+                else:
+                    if hasattr(self, 'phase_list'):
+                        del self.phase_list
+
+                # Cannot write uneven data to HDF5 as single array
+                if write_out:
+                    warnings.warn("Cannot write STFT to HDF5 with uneven trials. "
+                                  "Data kept in memory as lists.")
             else:
-                del self.stft_array
+                # Even trials - use array attributes
+                if 'raw' in dat_type:
+                    object_names.append('stft_array')
+                    object_list.append(self.stft_array)
+                else:
+                    del self.stft_array
 
-            if 'amplitude' in dat_type:
-                object_names.append('amplitude_array')
-                object_list.append(self.amplitude_array)
-            else:
-                del self.amplitude_array
+                if 'amplitude' in dat_type:
+                    object_names.append('amplitude_array')
+                    object_list.append(self.amplitude_array)
+                else:
+                    del self.amplitude_array
 
-            if 'phase' in dat_type:
-                object_names.append('phase_array')
-                object_list.append(self.phase_array)
-            else:
-                del self.phase_array
+                if 'phase' in dat_type:
+                    object_names.append('phase_array')
+                    object_list.append(self.phase_array)
+                else:
+                    del self.phase_array
 
-            if write_out:
-                dir_path = '/stft'
+                if write_out:
+                    dir_path = '/stft'
 
-                with tables.open_file(self.hdf5_path, 'r+') as hf5:
-                    for name, obj in zip(object_names, object_list):
-                        self.remove_node(os.path.join(dir_path, name), hf5)
-                        hf5.create_array(dir_path, name, obj)
+                    with tables.open_file(self.hdf5_path, 'r+') as hf5:
+                        for name, obj in zip(object_names, object_list):
+                            self.remove_node(os.path.join(dir_path, name), hf5)
+                            hf5.create_array(dir_path, name, obj)
+
+    def _organize_stft_results(self, result_list, stft_iters):
+        """Organize flat STFT results into nested list structure by taste/channel/trial
+
+        Args:
+            result_list: Flat list of STFT results
+            stft_iters: List of (taste_idx, chan_idx, trial_idx) tuples
+
+        Returns:
+            Nested list: [taste][channel][trial] -> STFT result
+        """
+        # Determine structure from lfp_list
+        n_tastes = len(self.lfp_list)
+        organized = []
+        for taste_idx in range(n_tastes):
+            n_channels = self.lfp_list[taste_idx].shape[0]
+            n_trials = self.lfp_list[taste_idx].shape[1]
+            taste_data = []
+            for chan_idx in range(n_channels):
+                chan_data = []
+                for trial_idx in range(n_trials):
+                    # Find matching result
+                    for i, iter_tuple in enumerate(stft_iters):
+                        if iter_tuple == (taste_idx, chan_idx, trial_idx):
+                            chan_data.append(result_list[i])
+                            break
+                taste_data.append(chan_data)
+            organized.append(taste_data)
+        return organized
 
     def return_region_lfps(self):
         """Return list containing LFPs for each region and region names
@@ -1531,17 +1643,27 @@ class ephys_data():
         Returns:
             tuple: (region_lfp, region_names)
                 - region_lfp: List of arrays, each with shape (n_tastes, n_channels_in_region, n_trials, n_timepoints)
+                              if trials are even, otherwise list of lists per taste
                 - region_names: List of region name strings
         """
         if not self.check_file_type():
             return
 
-        if 'lfp_array' not in dir(self):
+        if 'lfp_list' not in dir(self):
             self.get_lfps()
         if 'lfp_region_electrodes' not in dir(self):
             self.get_lfp_electrodes()
-        region_lfp = [self.lfp_array[:, x, :, :]
-                      for x in self.lfp_region_electrodes]
+
+        if hasattr(self, 'uneven_lfp_trials') and self.uneven_lfp_trials:
+            # Uneven trials - return as list of lists
+            region_lfp = []
+            for region_electrodes in self.lfp_region_electrodes:
+                region_data = [taste_lfp[region_electrodes, :, :]
+                               for taste_lfp in self.lfp_list]
+                region_lfp.append(region_data)
+        else:
+            region_lfp = [self.lfp_array[:, x, :, :]
+                          for x in self.lfp_region_electrodes]
         return region_lfp, self.region_names
 
     def return_representative_lfp_channels(self):
