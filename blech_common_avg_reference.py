@@ -728,7 +728,7 @@ try:
                     wf.write(warning_message)
 except Exception as e:
     raise RuntimeError(
-            f"Error checking average intra-CAR similarity: {e}")
+        f"Error checking average intra-CAR similarity: {e}")
 
 # First get the common average references by adjusting mean and standard deviation
 # of all channels in a CAR group before taking the average
