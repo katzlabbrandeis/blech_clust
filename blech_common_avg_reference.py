@@ -391,17 +391,21 @@ def plot_clustered_corr_mat(
     fig_height = max(8, n_chans * 0.15)
     fontsize = max(4, 8 - n_chans // 20)
 
-    # Plot clustered correlation matrix
+    # Plot clustered correlation matrix with shared colorbar
     fig, ax = plt.subplots(1, 3, figsize=(fig_width, fig_height),
-                           # gridspec_kw={'width_ratios': [1, 1, 0.1]}
+                           gridspec_kw={'width_ratios': [
+                               1, 1, 1], 'wspace': 0.3}
                            )
-    ax[0].imshow(corr_matrix, cmap=cmap)
+
+    # Create images for correlation matrices
+    im0 = ax[0].imshow(corr_matrix, cmap=cmap, vmin=0, vmax=1)
     ax[0].set_title('Original Correlation Matrix')
     ax[0].set_xticks(np.arange(len(electrode_names)))
     ax[0].set_yticks(np.arange(len(electrode_names)))
     ax[0].set_xticklabels(electrode_names, rotation=90, fontsize=fontsize)
     ax[0].set_yticklabels(electrode_names, fontsize=fontsize)
-    ax[1].imshow(sorted_corr_matrix, cmap=cmap)
+
+    im1 = ax[1].imshow(sorted_corr_matrix, cmap=cmap, vmin=0, vmax=1)
     ax[1].set_title('Clustered Correlation Matrix')
     ax[1].set_xticks(np.arange(len(sorted_names)))
     ax[1].set_yticks(np.arange(len(sorted_names)))
@@ -429,7 +433,13 @@ def plot_clustered_corr_mat(
             this_ax.axvline(x=i+0.5, color='black', linewidth=0.5)
             this_ax.axhline(y=i+0.5, color='black', linewidth=0.5)
 
-    plt.tight_layout()
+    # Add shared colorbar for the correlation matrices below all subplots
+    fig.subplots_adjust(bottom=0.15)  # Make room for colorbar
+    # [left, bottom, width, height]
+    cbar_ax = fig.add_axes([0.15, 0.05, 0.7, 0.03])
+    fig.colorbar(im0, cax=cbar_ax, orientation='horizontal',
+                 label='Correlation Coefficient')
+
     plt.savefig(plot_path, bbox_inches='tight', dpi=150)
     plt.close()
 
