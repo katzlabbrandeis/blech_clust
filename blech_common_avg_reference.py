@@ -688,7 +688,8 @@ if auto_car_inference:
             'string')
 
     # Fill NaN with 'none' for non-processed channels
-    out_electrode_layout_frame['original_CAR_group'].fillna('none', inplace=True)
+    out_electrode_layout_frame['original_CAR_group'].fillna(
+        'none', inplace=True)
 
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
