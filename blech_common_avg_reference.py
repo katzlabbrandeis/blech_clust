@@ -106,7 +106,7 @@ def calculate_group_averages(raw_electrodes, electrode_layout_frame, rec_length)
     numpy.ndarray
         Common average reference array of shape (num_groups, rec_length)
     """
-    
+
     num_groups = electrode_layout_frame.CAR_group.nunique()
 
     common_average_reference = np.zeros(
@@ -631,7 +631,7 @@ if auto_car_inference:
         electrode_layout_frame['original_CAR_group'] = electrode_layout_frame['CAR_group']
 
     # Append cluster numbers to CAR group names
-    # This will be the same as using original_CAR_group + cluster number as 
+    # This will be the same as using original_CAR_group + cluster number as
     # CAR group names were over-written above
     electrode_layout_frame['CAR_group'] = electrode_layout_frame.apply(
         lambda row: f"{row['CAR_group']}-{row['predicted_clusters']:02}", axis=1
