@@ -56,6 +56,7 @@ from blech_clust.utils.qa_utils import channel_corr
 from blech_clust.utils.ephys_data.visualize import gen_square_subplots
 import pandas as pd
 import argparse
+import xarray as xr
 
 try:
     from scipy.stats import median_abs_deviation as MAD
@@ -84,7 +85,12 @@ def get_electrode_by_name(raw_electrodes, name):
 
 def get_channel_corr_mat(data_dir):
     qa_out_path = os.path.join(data_dir, 'QA_output')
-    return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
+    # Load netcdf file
+    # return np.load(os.path.join(qa_out_path, 'channel_corr_mat.npy'))
+    corr_mat_path = glob.glob(os.path.join(
+        qa_out_path, 'channel_corr_mat.nc'))[0]
+    corr_ds = xr.open_dataarray(corr_mat_path)
+    return corr_ds
 
 
 def calculate_group_averages(raw_electrodes, electrode_layout_frame, rec_length):
@@ -460,7 +466,8 @@ else:
     # data_dir = '/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547'
     # data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
     # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
-    data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
+    # data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
     # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     cluster_algo = 'kmeans'
@@ -535,7 +542,16 @@ os.makedirs(plots_dir, exist_ok=True)
 # Process correlation matrix
 # Create a directory for cluster plots if it doesn't exist
 # Get correlation matrix using the utility function
-corr_mat = get_channel_corr_mat(dir_name)
+corr_xarray = get_channel_corr_mat(dir_name)
+# Index corr_mat using electrode_ind from the filtered electrode_layout_frame
+# The correlation matrix is ordered by electrode index (from channel_corr.get_all_channels)
+# Use electrode_ind to directly select the channels we want to process
+valid_electrode_inds = electrode_layout_frame.electrode_ind.values
+# corr_mat = corr_mat[valid_electrode_inds, :][:, valid_electrode_inds]
+corr_xarray = corr_xarray.sel(
+    channel_1=valid_electrode_inds, channel_2=valid_electrode_inds)
+
+corr_mat = corr_xarray.values
 # Convert nan to 0
 corr_mat[np.isnan(corr_mat)] = 1
 # Make symmetric
@@ -546,11 +562,6 @@ np.fill_diagonal(corr_mat, 1)
 
 # plt.matshow(corr_mat, cmap='jet');plt.title('Electrode Correlation Matrix');plt.show()
 
-# Index corr_mat using electrode_ind from the filtered electrode_layout_frame
-# The correlation matrix is ordered by electrode index (from channel_corr.get_all_channels)
-# Use electrode_ind to directly select the channels we want to process
-valid_electrode_inds = electrode_layout_frame.electrode_ind.values
-corr_mat = corr_mat[valid_electrode_inds, :][:, valid_electrode_inds]
 
 # If auto_car_inference is enabled, perform clustering on each CAR group
 if auto_car_inference:
@@ -670,6 +681,12 @@ if auto_car_inference:
     if 'original_CAR_group' in electrode_layout_frame.columns:
         out_electrode_layout_frame.at[fin_bool,
                                       'original_CAR_group'] = electrode_layout_frame['original_CAR_group'].values
+    # Make sure CAR_group and original_CAR_group are strings
+    out_electrode_layout_frame['CAR_group'] = out_electrode_layout_frame['CAR_group'].astype(
+        str)
+    if 'original_CAR_group' in out_electrode_layout_frame.columns:
+        out_electrode_layout_frame['original_CAR_group'] = out_electrode_layout_frame['original_CAR_group'].astype(
+            str)
     out_electrode_layout_frame.to_csv(layout_frame_path)
     print(f"Updated electrode layout frame written to {layout_frame_path}")
 
@@ -706,8 +723,9 @@ try:
                 print(warning_message)
                 with open(warnings_path, 'a') as wf:
                     wf.write(warning_message)
-except Exception:
-    pass  # Don't fail the pipeline if this check errors
+except Exception as e:
+    raise RuntimeError(
+            f"Error checking average intra-CAR similarity: {e}")
 
 # First get the common average references by adjusting mean and standard deviation
 # of all channels in a CAR group before taking the average
