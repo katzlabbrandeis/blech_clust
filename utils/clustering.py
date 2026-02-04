@@ -86,7 +86,9 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     """Extract waveforms using rolling (per-window) thresholds.
 
     Uses MAD-based threshold computed independently for each time window,
-    allowing spike detection to adapt to local noise levels.
+    allowing spike detection to adapt to local noise levels. Reuses
+    compute_rolling_threshold from blech_process_utils for threshold
+    computation.
 
     Parameters
     ----------
@@ -118,6 +120,8 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     mad_val : float
         Global MAD value.
     """
+    from utils.blech_process_utils import compute_rolling_threshold
+
     win_samp = int(window_len * sampling_rate)
     step_samp = int(step_len * sampling_rate)
     n_samples = len(filt_el)
@@ -126,18 +130,21 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     m = np.mean(filt_el)
     mad_val = np.median(np.abs(filt_el - m))
 
+    # Compute rolling thresholds
+    _, window_thresholds = compute_rolling_threshold(
+        filt_el, sampling_rate, window_len, step_len, threshold_mult
+    )
+    threshold_median = np.median(window_thresholds) if len(window_thresholds) > 0 else 0.0
+
     # Collect threshold crossings from each window
     negative = []
     positive = []
-    window_thresholds = []
 
     starts = np.arange(0, n_samples - win_samp + 1, step_samp, dtype=int)
-    for s in starts:
+    for i, s in enumerate(starts):
         window = filt_el[s:s + win_samp]
         m_win = np.mean(window)
-        mad_win = np.median(np.abs(window - m_win))
-        th_win = threshold_mult * mad_win / 0.6745
-        window_thresholds.append(th_win)
+        th_win = window_thresholds[i]
 
         neg_idx = np.where(window <= m_win - th_win)[0] + s
         pos_idx = np.where(window >= m_win + th_win)[0] + s
@@ -152,7 +159,6 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
             m_win = np.mean(window)
             mad_win = np.median(np.abs(window - m_win))
             th_win = threshold_mult * mad_win / 0.6745
-            window_thresholds.append(th_win)
 
             neg_idx = np.where(window <= m_win - th_win)[0] + last_end
             pos_idx = np.where(window >= m_win + th_win)[0] + last_end
@@ -163,14 +169,9 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     negative = np.unique(np.array(negative, dtype=int))
     positive = np.unique(np.array(positive, dtype=int))
 
-    # Median threshold for reporting
-    threshold_median = np.median(
-        window_thresholds) if window_thresholds else 0.0
-
     # Mark breaks in detected threshold crossings
     if len(negative) > 0:
-        neg_changes = np.concatenate(
-            ([0], np.where(np.diff(negative) > 1)[0] + 1))
+        neg_changes = np.concatenate(([0], np.where(np.diff(negative) > 1)[0] + 1))
         neg_inds = [(negative[neg_changes[x]], negative[neg_changes[x + 1] - 1])
                     for x in range(len(neg_changes) - 1)]
         # Handle last segment
@@ -180,8 +181,7 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
         neg_inds = []
 
     if len(positive) > 0:
-        pos_changes = np.concatenate(
-            ([0], np.where(np.diff(positive) > 1)[0] + 1))
+        pos_changes = np.concatenate(([0], np.where(np.diff(positive) > 1)[0] + 1))
         pos_inds = [(positive[pos_changes[x]], positive[pos_changes[x + 1] - 1])
                     for x in range(len(pos_changes) - 1)]
         if pos_changes[-1] < len(positive):
@@ -196,8 +196,7 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
               for start, end in pos_inds]
 
     polarity = np.concatenate(([-1] * len(minima), [1] * len(maxima)))
-    spike_times = np.concatenate((minima, maxima)) if (
-        minima or maxima) else np.array([], dtype=int)
+    spike_times = np.concatenate((minima, maxima)) if (minima or maxima) else np.array([], dtype=int)
 
     if len(spike_times) == 0:
         return np.array([]), np.array([], dtype=int), np.array([]), m, threshold_median, mad_val
