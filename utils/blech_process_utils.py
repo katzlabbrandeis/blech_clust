@@ -1298,6 +1298,150 @@ def plot_rolling_threshold(
     ax.legend()
     return fig, ax
 
+def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
+    """Generate a grid plot of rolling thresholds for all electrodes.
+
+    Parameters
+    ----------
+    rolling_thresh_dir : str
+        Directory containing electrode*_rolling_threshold.npz files.
+    output_path : str
+        Path to save the output figure.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The generated figure.
+    """
+    import glob
+
+    # Load all threshold files
+    files = sorted(glob.glob(f'{rolling_thresh_dir}/electrode*_rolling_threshold.npz'))
+    if not files:
+        print(f"No rolling threshold files found in {rolling_thresh_dir}")
+        return None
+
+    # Load data
+    data = []
+    for f in files:
+        npz = np.load(f)
+        data.append({
+            'times': npz['times'],
+            'thresholds': npz['thresholds'],
+            'electrode_num': int(npz['electrode_num']),
+        })
+
+    n_electrodes = len(data)
+    if n_electrodes == 0:
+        return None
+
+    # Determine grid size
+    n_cols = min(4, n_electrodes)
+    n_rows = int(np.ceil(n_electrodes / n_cols))
+
+    fig, axes = plt.subplots(
+        n_rows, n_cols,
+        figsize=(4 * n_cols, 3 * n_rows),
+        sharex=True, sharey=True,
+        squeeze=False,
+    )
+    axes = axes.flatten()
+
+    for i, d in enumerate(data):
+        ax = axes[i]
+        ax.plot(d['times'], d['thresholds'], linewidth=0.8)
+        ax.set_title(f"Electrode {d['electrode_num']:02d}", fontsize=10)
+        if i % n_cols == 0:
+            ax.set_ylabel("Threshold (µV)")
+        if i >= n_electrodes - n_cols:
+            ax.set_xlabel("Time (s)")
+
+    # Hide unused axes
+    for i in range(n_electrodes, len(axes)):
+        axes[i].set_visible(False)
+
+    fig.suptitle("Rolling Spike Detection Thresholds", fontsize=14)
+    fig.tight_layout()
+    fig.savefig(output_path, bbox_inches='tight', dpi=150)
+    plt.close(fig)
+
+    return fig
+
+
+def gen_rolling_threshold_plot(
+    filt_el,
+    sampling_rate,
+    window_len=5.0,
+    step_len=5.0,
+    threshold_mult=5.0,
+    ax=None,
+):
+    """Generate a rolling‐threshold plot.
+
+    The function slides a *window_len* second window across *filt_el* in
+    *step_len* second increments.  For each window we compute an
+    outlier-robust estimate of the noise (Median Absolute Deviation,
+    MAD) and convert it to an equivalent standard deviation following
+    Quiroga et al. 2004 (divide by ``0.6745``).  The spike threshold for
+    that window is then ``threshold_mult * MAD / 0.6745``.  The function
+    returns a matplotlib figure showing the threshold magnitude as a
+    function of recording time.
+
+    Parameters
+    ----------
+    filt_el
+        Band-pass filtered electrode data (microvolts).
+    sampling_rate
+        Sampling rate in Hz.
+    window_len, step_len
+        Window and step length in **seconds**.
+    threshold_mult
+        Multiplier applied to the noise estimate (defaults to ``5`` – the
+        value used elsewhere in blech_clust).
+    ax
+        Optional matplotlib axis on which to draw the figure.
+
+    Returns
+    -------
+    fig, ax
+        Matplotlib Figure and Axes with the plot.
+    """
+    import math
+
+    if window_len <= 0 or step_len <= 0:
+        raise ValueError("window_len and step_len must be positive.")
+
+    win_samp = int(window_len * sampling_rate)
+    step_samp = int(step_len * sampling_rate)
+
+    # Ensure at least one window fits the data
+    if win_samp > len(filt_el):
+        raise ValueError("window_len is longer than the recording.")
+
+    # Compute thresholds
+    starts = np.arange(0, len(filt_el) - win_samp + 1, step_samp, dtype=int)
+    thresholds = np.empty_like(starts, dtype=float)
+    for i, s in enumerate(starts):
+        window = filt_el[s: s + win_samp]
+        mad_val = np.median(np.abs(window - np.median(window)))
+        thresholds[i] = threshold_mult * mad_val / 0.6745
+
+    times_sec = starts / sampling_rate + window_len / 2  # midpoint of window
+
+    # Plot
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 4), dpi=200)
+    else:
+        fig = ax.get_figure()
+
+    ax.plot(times_sec, thresholds, label="Rolling threshold (\u00B5V)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Threshold (\u00B5V)")
+    ax.set_title("Rolling spike detection threshold")
+    ax.legend()
+
+    return fig, ax
+
 def gen_datashader_plot(
         slices_dejittered,
         cluster_points,
