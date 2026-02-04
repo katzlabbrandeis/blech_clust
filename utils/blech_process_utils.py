@@ -1076,15 +1076,33 @@ class spike_handler():
 
     def extract_waveforms(self):
         """
-        Extract waveforms from filtered electrode
+        Extract waveforms from filtered electrode.
+
+        Uses rolling threshold if 'use_rolling_threshold' is True in params,
+        otherwise falls back to global threshold (extract_waveforms_abu).
         """
-        slices, spike_times, polarity, mean_val, threshold, MAD_val = \
-            clust.extract_waveforms_abu(
-                self.filt_el,
-                spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                                self.params_dict['spike_snapshot_after']],
-                sampling_rate=self.params_dict['sampling_rate'],
-                threshold_mult=self.params_dict['waveform_threshold'])
+        use_rolling = self.params_dict.get('use_rolling_threshold', False)
+
+        if use_rolling:
+            window_len = self.params_dict.get('rolling_threshold_window', 5.0)
+            step_len = self.params_dict.get('rolling_threshold_step', 5.0)
+            slices, spike_times, polarity, mean_val, threshold, MAD_val = \
+                clust.extract_waveforms_rolling(
+                    self.filt_el,
+                    spike_snapshot=[self.params_dict['spike_snapshot_before'],
+                                    self.params_dict['spike_snapshot_after']],
+                    sampling_rate=self.params_dict['sampling_rate'],
+                    threshold_mult=self.params_dict['waveform_threshold'],
+                    window_len=window_len,
+                    step_len=step_len)
+        else:
+            slices, spike_times, polarity, mean_val, threshold, MAD_val = \
+                clust.extract_waveforms_abu(
+                    self.filt_el,
+                    spike_snapshot=[self.params_dict['spike_snapshot_before'],
+                                    self.params_dict['spike_snapshot_after']],
+                    sampling_rate=self.params_dict['sampling_rate'],
+                    threshold_mult=self.params_dict['waveform_threshold'])
 
         self.slices = slices
         self.spike_times = spike_times
