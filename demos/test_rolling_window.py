@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
+from pprint import pprint as pp
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -268,6 +269,8 @@ def run_simulation(output_dir=None):
     params_global = create_params_dict(
         sampling_rate, threshold_mult, use_rolling=False
     )
+    print(" == Global Params Dict ==")
+    pp(params_global)
     handler_global = spike_handler(data, params_global, '.', 0)
     (
         slices_global,
@@ -284,6 +287,8 @@ def run_simulation(output_dir=None):
     params_rolling = create_params_dict(
         sampling_rate, threshold_mult, use_rolling=True
     )
+    print(" == Rolling Params Dict ==")
+    pp(params_rolling)
     handler_rolling = spike_handler(data, params_rolling, '.', 0)
     (
         slices_rolling,
