@@ -195,11 +195,13 @@ plt.close(fig)
 
 # ------------------------------------------------------------
 # Rolling threshold plot
+window_len = params_dict.get('rolling_threshold_window', 5.0)
+step_len = params_dict.get('rolling_threshold_step', 5.0)
 rt_times, rt_thresholds = bpu.compute_rolling_threshold(
     filtered_data,
     params_dict['sampling_rate'],
-    window_len=5.0,
-    step_len=5.0,
+    window_len=window_len,
+    step_len=step_len,
     threshold_mult=params_dict['waveform_threshold'],
 )
 rolling_fig, _ = bpu.plot_rolling_threshold(rt_times, rt_thresholds)
@@ -208,6 +210,16 @@ rolling_fig.savefig(
     bbox_inches='tight', dpi=300,
 )
 plt.close(rolling_fig)
+
+# Save rolling thresholds for QA grid plot
+rolling_thresh_dir = './QA_output/rolling_thresholds'
+os.makedirs(rolling_thresh_dir, exist_ok=True)
+np.savez(
+    f'{rolling_thresh_dir}/electrode{electrode_num:02}_rolling_threshold.npz',
+    times=rt_times,
+    thresholds=rt_thresholds,
+    electrode_num=electrode_num,
+)
 # ------------------------------------------------------------
 
 ############################################################

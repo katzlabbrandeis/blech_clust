@@ -96,3 +96,25 @@ if incomplete:
 else:
     print("All electrodes completed successfully")
 EOF
+
+# Generate rolling threshold grid plot
+echo "Generating rolling threshold grid plot..."
+cd "$DIR"
+python3 - <<EOF
+import sys
+sys.path.insert(0, '$(dirname "$0")')
+from utils.blech_process_utils import plot_rolling_threshold_grid
+import os
+
+rolling_thresh_dir = './QA_output/rolling_thresholds'
+output_path = './QA_output/rolling_threshold_grid.png'
+
+if os.path.isdir(rolling_thresh_dir):
+    fig = plot_rolling_threshold_grid(rolling_thresh_dir, output_path)
+    if fig:
+        print(f"Rolling threshold grid plot saved to {output_path}")
+    else:
+        print("No rolling threshold data found")
+else:
+    print(f"Rolling threshold directory not found: {rolling_thresh_dir}")
+EOF

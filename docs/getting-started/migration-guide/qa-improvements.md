@@ -2,6 +2,29 @@
 
 The current fork includes quality assurance tools that were not present in the original blech_clust. These tools help identify issues with recordings and sorted units.
 
+## Rolling Threshold for Spike Detection
+
+The spike detection now uses a rolling (adaptive) threshold by default. Instead of computing a single global threshold for the entire recording, the threshold is computed independently for each time window.
+
+**Benefits:**
+
+- Adapts to local noise variations across the recording
+- More robust spike detection during noisy segments
+- Uses MAD (Median Absolute Deviation) for outlier-robust noise estimation
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `use_rolling_threshold` | `true` | Enable/disable rolling threshold |
+| `rolling_threshold_window` | `5.0` | Window size in seconds |
+| `rolling_threshold_step` | `5.0` | Step size in seconds |
+| `waveform_threshold` | `5` | Threshold multiplier (standard deviations) |
+
+**Visualization:**
+
+A rolling threshold plot (`rolling_threshold.png`) is generated for each electrode showing threshold magnitude over time. This helps identify periods of elevated noise.
+
 ## Overview
 
 | Tool | Purpose |
