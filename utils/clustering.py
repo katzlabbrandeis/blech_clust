@@ -35,7 +35,7 @@ def extract_waveforms_abu(filt_el, spike_snapshot=[0.5, 1.0],
                           sampling_rate=30000.0,
                           threshold_mult=5.0):
 
-    m = np.mean(filt_el)
+    m = np.median(filt_el)
     # Refer to https://en.wikipedia.org/wiki/Median_absolute_deviation
     # for info on the normalization constant
     mad_val = np.median(np.abs(filt_el - m))  # Outlier robust RMS
@@ -127,7 +127,7 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     n_samples = len(filt_el)
 
     # Global stats for reporting
-    m = np.mean(filt_el)
+    m = np.median(filt_el)
     mad_val = np.median(np.abs(filt_el - m))
 
     # Compute rolling thresholds
@@ -145,11 +145,10 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     for i, s in enumerate(starts):
         window = filt_el[s:s + win_samp]
         th_win = window_thresholds[i]
+        m_win = np.median(window)
 
-        # neg_idx = np.where(window <= m_win - th_win)[0] + s
-        # pos_idx = np.where(window >= m_win + th_win)[0] + s
-        neg_idx = np.where(window <= - th_win)[0] + s
-        pos_idx = np.where(window >= th_win)[0] + s
+        neg_idx = np.where(window <= m_win - th_win)[0] + s
+        pos_idx = np.where(window >= m_win + th_win)[0] + s
         negative.extend(neg_idx.tolist())
         positive.extend(pos_idx.tolist())
 
