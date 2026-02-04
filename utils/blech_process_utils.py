@@ -1298,6 +1298,7 @@ def plot_rolling_threshold(
     ax.legend()
     return fig, ax
 
+
 def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     """Generate a grid plot of rolling thresholds for all electrodes.
 
@@ -1316,7 +1317,8 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     import glob
 
     # Load all threshold files
-    files = sorted(glob.glob(f'{rolling_thresh_dir}/electrode*_rolling_threshold.npz'))
+    files = sorted(
+        glob.glob(f'{rolling_thresh_dir}/electrode*_rolling_threshold.npz'))
     if not files:
         print(f"No rolling threshold files found in {rolling_thresh_dir}")
         return None
@@ -1366,6 +1368,7 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     plt.close(fig)
 
     return fig
+
 
 def gen_datashader_plot(
         slices_dejittered,
