@@ -443,10 +443,11 @@ def plot_clustered_corr_mat(
     plt.savefig(plot_path, bbox_inches='tight', dpi=150)
     plt.close()
 
+
 def calculate_post_car_correlations(hf5_path, electrode_layout_frame, n_corr_samples=10000):
     """
     Calculate correlation matrix after CAR has been applied.
-    
+
     Parameters:
     -----------
     hf5_path : str
@@ -455,7 +456,7 @@ def calculate_post_car_correlations(hf5_path, electrode_layout_frame, n_corr_sam
         DataFrame containing electrode layout information
     n_corr_samples : int
         Number of samples to use for correlation calculation
-        
+
     Returns:
     --------
     corr_mat : numpy.ndarray
@@ -472,16 +473,16 @@ def calculate_post_car_correlations(hf5_path, electrode_layout_frame, n_corr_sam
     return corr_mat, chan_names
 
 
-def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat, 
+def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
                                     electrode_layout_frame, plot_dir,
                                     valid_electrode_inds):
     """
     Generate comparison plots showing correlation changes before and after CAR.
-    
+
     Creates:
     1. Side-by-side heatmaps of correlation matrices (before/after)
     2. Paired points plot (swarm) showing correlation values before and after
-    
+
     Parameters:
     -----------
     pre_corr_mat : numpy.ndarray
@@ -498,24 +499,24 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
     # Extract upper triangle values (excluding diagonal)
     n_chans = pre_corr_mat.shape[0]
     triu_inds = np.triu_indices(n_chans, k=1)
-    
+
     pre_vals = pre_corr_mat[triu_inds]
     post_vals = post_corr_mat[triu_inds]
-    
+
     # Remove NaN values
     valid_mask = ~(np.isnan(pre_vals) | np.isnan(post_vals))
     pre_vals = pre_vals[valid_mask]
     post_vals = post_vals[valid_mask]
-    
+
     # 1. Heatmaps comparison
     fig_width = max(16, n_chans * 0.3)
     fig_height = max(6, n_chans * 0.12)
     fig, axes = plt.subplots(1, 3, figsize=(fig_width, fig_height))
-    
+
     # Get channel labels
     chan_labels = electrode_layout_frame.channel_name.values
     fontsize = max(4, 8 - n_chans // 20)
-    
+
     # Before CAR
     im0 = axes[0].imshow(pre_corr_mat, cmap='jet', vmin=0, vmax=1)
     axes[0].set_title('Before CAR', fontsize=12)
@@ -527,7 +528,7 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
         axes[0].set_xticklabels(chan_labels, rotation=90, fontsize=fontsize)
         axes[0].set_yticklabels(chan_labels, fontsize=fontsize)
     fig.colorbar(im0, ax=axes[0], shrink=0.8)
-    
+
     # After CAR
     im1 = axes[1].imshow(post_corr_mat, cmap='jet', vmin=0, vmax=1)
     axes[1].set_title('After CAR', fontsize=12)
@@ -539,11 +540,12 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
         axes[1].set_xticklabels(chan_labels, rotation=90, fontsize=fontsize)
         axes[1].set_yticklabels(chan_labels, fontsize=fontsize)
     fig.colorbar(im1, ax=axes[1], shrink=0.8)
-    
+
     # Difference (Before - After)
     diff_mat = pre_corr_mat - post_corr_mat
     max_diff = np.nanmax(np.abs(diff_mat))
-    im2 = axes[2].imshow(diff_mat, cmap='RdBu_r', vmin=-max_diff, vmax=max_diff)
+    im2 = axes[2].imshow(diff_mat, cmap='RdBu_r',
+                         vmin=-max_diff, vmax=max_diff)
     axes[2].set_title('Difference (Before - After)', fontsize=12)
     axes[2].set_xlabel('Channel')
     axes[2].set_ylabel('Channel')
@@ -553,25 +555,26 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
         axes[2].set_xticklabels(chan_labels, rotation=90, fontsize=fontsize)
         axes[2].set_yticklabels(chan_labels, fontsize=fontsize)
     fig.colorbar(im2, ax=axes[2], shrink=0.8)
-    
+
     fig.suptitle('Channel Correlation: Before vs After CAR', fontsize=14)
     plt.tight_layout()
-    fig.savefig(os.path.join(plot_dir, 'car_correlation_heatmaps.png'), 
+    fig.savefig(os.path.join(plot_dir, 'car_correlation_heatmaps.png'),
                 dpi=150, bbox_inches='tight')
     plt.close(fig)
-    
+
     # 2. Paired points plot (swarm)
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    
+
     # Create DataFrame for plotting
     plot_df = pd.DataFrame({
         'Before CAR': pre_vals,
         'After CAR': post_vals
     })
-    
+
     # Melt for swarm plot
-    plot_df_melted = plot_df.melt(var_name='Condition', value_name='Correlation')
-    
+    plot_df_melted = plot_df.melt(
+        var_name='Condition', value_name='Correlation')
+
     # Swarm plot with paired lines
     # Subsample if too many points for visibility
     n_pairs = len(pre_vals)
@@ -583,35 +586,38 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
     else:
         pre_sample = pre_vals
         post_sample = post_vals
-    
+
     # Paired points with connecting lines
     for i in range(len(pre_sample)):
-        axes[0].plot([0, 1], [pre_sample[i], post_sample[i]], 
+        axes[0].plot([0, 1], [pre_sample[i], post_sample[i]],
                      color='gray', alpha=0.1, linewidth=0.5)
-    
+
     # Add jittered scatter
     jitter = 0.05
     axes[0].scatter(np.zeros(len(pre_sample)) + np.random.uniform(-jitter, jitter, len(pre_sample)),
                     pre_sample, alpha=0.3, s=10, color='blue', label='Before CAR')
     axes[0].scatter(np.ones(len(post_sample)) + np.random.uniform(-jitter, jitter, len(post_sample)),
                     post_sample, alpha=0.3, s=10, color='red', label='After CAR')
-    
+
     axes[0].set_xticks([0, 1])
     axes[0].set_xticklabels(['Before CAR', 'After CAR'])
     axes[0].set_ylabel('Correlation')
     axes[0].set_title('Paired Channel Correlations')
     axes[0].set_ylim(-0.1, 1.1)
-    
+
     # Add summary statistics
     mean_pre = np.mean(pre_vals)
     mean_post = np.mean(post_vals)
-    axes[0].axhline(mean_pre, color='blue', linestyle='--', alpha=0.7, label=f'Mean Before: {mean_pre:.3f}')
-    axes[0].axhline(mean_post, color='red', linestyle='--', alpha=0.7, label=f'Mean After: {mean_post:.3f}')
+    axes[0].axhline(mean_pre, color='blue', linestyle='--',
+                    alpha=0.7, label=f'Mean Before: {mean_pre:.3f}')
+    axes[0].axhline(mean_post, color='red', linestyle='--',
+                    alpha=0.7, label=f'Mean After: {mean_post:.3f}')
     axes[0].legend(loc='upper right', fontsize=8)
-    
+
     # Histogram of differences
     diff_vals = pre_vals - post_vals
-    axes[1].hist(diff_vals, bins=50, edgecolor='black', alpha=0.7, color='purple')
+    axes[1].hist(diff_vals, bins=50, edgecolor='black',
+                 alpha=0.7, color='purple')
     axes[1].axvline(0, color='black', linestyle='--', linewidth=2)
     axes[1].axvline(np.mean(diff_vals), color='red', linestyle='-', linewidth=2,
                     label=f'Mean: {np.mean(diff_vals):.3f}')
@@ -619,7 +625,7 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
     axes[1].set_ylabel('Count')
     axes[1].set_title('Distribution of Correlation Changes')
     axes[1].legend()
-    
+
     # Add text with statistics
     pct_decreased = np.sum(diff_vals > 0) / len(diff_vals) * 100
     stats_text = f'Pairs with decreased correlation: {pct_decreased:.1f}%\n'
@@ -628,13 +634,13 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
     axes[1].text(0.95, 0.95, stats_text, transform=axes[1].transAxes,
                  verticalalignment='top', horizontalalignment='right',
                  fontsize=10, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    
+
     fig.suptitle('CAR Effect on Channel Correlations', fontsize=14)
     plt.tight_layout()
     fig.savefig(os.path.join(plot_dir, 'car_correlation_paired_plot.png'),
                 dpi=150, bbox_inches='tight')
     plt.close(fig)
-    
+
     # Print summary
     print("\n=== CAR Correlation Analysis ===")
     print(f"Mean correlation before CAR: {mean_pre:.4f}")
@@ -642,7 +648,7 @@ def plot_car_correlation_comparison(pre_corr_mat, post_corr_mat,
     print(f"Mean change: {np.mean(diff_vals):.4f}")
     print(f"Pairs with decreased correlation: {pct_decreased:.1f}%")
     print("================================\n")
-    
+
     return diff_vals
 
 
@@ -1039,17 +1045,18 @@ print("\nCalculating post-CAR correlations for comparison...")
 try:
     # Get n_corr_samples from params if available
     if hasattr(metadata_handler, 'params_dict') and metadata_handler.params_dict:
-        n_corr_samples = metadata_handler.params_dict.get('qa_params', {}).get('n_corr_samples', 10000)
+        n_corr_samples = metadata_handler.params_dict.get(
+            'qa_params', {}).get('n_corr_samples', 10000)
     else:
         n_corr_samples = 10000
-    
+
     # Calculate post-CAR correlation matrix
     post_corr_mat, post_chan_names = calculate_post_car_correlations(
         metadata_handler.hdf5_name,
         electrode_layout_frame,
         n_corr_samples=n_corr_samples
     )
-    
+
     # Filter to valid electrodes (same as pre-CAR matrix)
     post_corr_xarray = xr.DataArray(
         post_corr_mat,
@@ -1062,12 +1069,13 @@ try:
     post_corr_xarray = post_corr_xarray.sel(
         channel_1=valid_electrode_inds, channel_2=valid_electrode_inds)
     post_corr_mat_filtered = post_corr_xarray.values
-    
+
     # Make symmetric and handle NaN
     post_corr_mat_filtered[np.isnan(post_corr_mat_filtered)] = 0
-    post_corr_mat_filtered = (post_corr_mat_filtered + post_corr_mat_filtered.T) / 2
+    post_corr_mat_filtered = (
+        post_corr_mat_filtered + post_corr_mat_filtered.T) / 2
     np.fill_diagonal(post_corr_mat_filtered, 1)
-    
+
     # Save post-CAR correlation matrix
     post_corr_xarray_out = xr.DataArray(
         post_corr_mat_filtered,
@@ -1077,8 +1085,9 @@ try:
         },
         dims=['channel_1', 'channel_2']
     )
-    post_corr_xarray_out.to_netcdf(os.path.join(plots_dir, 'channel_corr_mat_post_car.nc'))
-    
+    post_corr_xarray_out.to_netcdf(os.path.join(
+        plots_dir, 'channel_corr_mat_post_car.nc'))
+
     # Generate comparison plots
     plot_car_correlation_comparison(
         pre_corr_mat=corr_mat,
@@ -1088,7 +1097,7 @@ try:
         valid_electrode_inds=valid_electrode_inds
     )
     print("CAR correlation comparison plots saved to QA_output/")
-    
+
 except Exception as e:
     print(f"Warning: Could not generate CAR correlation comparison: {e}")
     import traceback
