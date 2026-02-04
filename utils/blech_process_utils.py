@@ -1298,7 +1298,6 @@ def plot_rolling_threshold(
     ax.legend()
     return fig, ax
 
-
 def gen_datashader_plot(
         slices_dejittered,
         cluster_points,
