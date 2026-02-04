@@ -1084,6 +1084,9 @@ class spike_handler():
         use_rolling = self.params_dict.get('use_rolling_threshold', False)
 
         if use_rolling:
+            print('='*40)
+            print('Using rolling threshold for waveform extraction')
+            print('='*40)
             window_len = self.params_dict.get('rolling_threshold_window', 5.0)
             step_len = self.params_dict.get('rolling_threshold_step', 5.0)
             slices, spike_times, polarity, mean_val, threshold, MAD_val = \
@@ -1096,6 +1099,9 @@ class spike_handler():
                     window_len=window_len,
                     step_len=step_len)
         else:
+            print('='*40)
+            print('Using global threshold for waveform extraction')
+            print('='*40)
             slices, spike_times, polarity, mean_val, threshold, MAD_val = \
                 clust.extract_waveforms_abu(
                     self.filt_el,

@@ -144,11 +144,12 @@ def extract_waveforms_rolling(filt_el, spike_snapshot=[0.5, 1.0],
     starts = np.arange(0, n_samples - win_samp + 1, step_samp, dtype=int)
     for i, s in enumerate(starts):
         window = filt_el[s:s + win_samp]
-        m_win = np.mean(window)
         th_win = window_thresholds[i]
 
-        neg_idx = np.where(window <= m_win - th_win)[0] + s
-        pos_idx = np.where(window >= m_win + th_win)[0] + s
+        # neg_idx = np.where(window <= m_win - th_win)[0] + s
+        # pos_idx = np.where(window >= m_win + th_win)[0] + s
+        neg_idx = np.where(window <= - th_win)[0] + s
+        pos_idx = np.where(window >= th_win)[0] + s
         negative.extend(neg_idx.tolist())
         positive.extend(pos_idx.tolist())
 
