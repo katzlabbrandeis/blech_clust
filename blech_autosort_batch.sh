@@ -77,6 +77,8 @@ echo "=========================================="
 LINE_NUM=0
 SUCCESS_COUNT=0
 FAIL_COUNT=0
+SUCCESS_DIRS=()
+FAIL_DIRS=()
 
 while IFS= read -r DIR || [ -n "$DIR" ]; do
     LINE_NUM=$((LINE_NUM + 1))
@@ -102,6 +104,7 @@ while IFS= read -r DIR || [ -n "$DIR" ]; do
     if [ ! -d "$DIR" ]; then
         echo "Warning: Directory '$DIR' does not exist, skipping..."
         FAIL_COUNT=$((FAIL_COUNT + 1))
+        FAIL_DIRS+=("$DIR")
         continue
     fi
 
@@ -116,9 +119,11 @@ while IFS= read -r DIR || [ -n "$DIR" ]; do
     if [ $? -eq 0 ]; then
         echo "✓ Successfully processed: $DIR"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        SUCCESS_DIRS+=("$DIR")
     else
         echo "✗ Failed to process: $DIR"
         FAIL_COUNT=$((FAIL_COUNT + 1))
+        FAIL_DIRS+=("$DIR")
     fi
 
 done < "$FILE_PATH"
@@ -129,6 +134,27 @@ echo "Batch processing complete"
 echo "Total directories processed: $((SUCCESS_COUNT + FAIL_COUNT))"
 echo "Successful: $SUCCESS_COUNT"
 echo "Failed: $FAIL_COUNT"
+echo "=========================================="
+
+# List successful directories
+if [ $SUCCESS_COUNT -gt 0 ]; then
+    echo ""
+    echo "✓ Successfully processed directories:"
+    for dir in "${SUCCESS_DIRS[@]}"; do
+        echo "  $dir"
+    done
+fi
+
+# List failed directories
+if [ $FAIL_COUNT -gt 0 ]; then
+    echo ""
+    echo "✗ Failed to process directories:"
+    for dir in "${FAIL_DIRS[@]}"; do
+        echo "  $dir"
+    done
+fi
+
+echo ""
 echo "=========================================="
 
 # Exit with error if any directory failed
