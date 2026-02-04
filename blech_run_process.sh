@@ -81,12 +81,27 @@ import sys
 import pathlib
 
 log_path = pathlib.Path("$DIR") / 'blech_process.log'
+print(f"Looking for log file at: {log_path}")
+
 if not log_path.exists():
     print("Error: blech_process.log not found")
+    print("Available files in directory:")
+    try:
+        for f in pathlib.Path("$DIR").iterdir():
+            if f.name.endswith('.log'):
+                print(f"  {f.name}")
+    except Exception as e:
+        print(f"  Could not list files: {e}")
     sys.exit(1)
 
-with open(log_path) as f:
-    process_log = json.load(f)
+print("Log file found, reading contents...")
+try:
+    with open(log_path) as f:
+        process_log = json.load(f)
+    print(f"Successfully loaded log with {len(process_log)} entries")
+except Exception as e:
+    print(f"Error reading log file: {e}")
+    sys.exit(1)
 
 incomplete = [e for e, data in process_log.items() if data['status'] == 'attempted']
 
@@ -96,6 +111,8 @@ if incomplete:
 else:
     print("All electrodes completed successfully")
 EOF
+
+echo "Completion check passed, continuing..."
 
 # Generate rolling threshold grid plot
 echo "Generating rolling threshold grid plot..."
