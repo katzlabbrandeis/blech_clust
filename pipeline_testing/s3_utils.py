@@ -140,6 +140,8 @@ def upload_test_results(data_dir, test_type, file_type, data_type=None):
 
 def dummy_upload_test_results():
     """Upload results without running tests"""
+    from blech_clust.pipeline_testing.test_config_loader import get_data_dirs_dict
+    data_dirs_dict = get_data_dirs_dict()
     file_type = 'ofpc'
     data_dir = data_dirs_dict[file_type]
     test_type = 'dummy'

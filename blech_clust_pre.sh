@@ -1,4 +1,4 @@
-# Detect --force flag for forcing blech_clust.py and blech_run_process.sh to run
+# Detect --force flag for forcing blech_init.py and blech_run_process.sh to run
 #
 
 if [ "$2" == "--force" ]; then
