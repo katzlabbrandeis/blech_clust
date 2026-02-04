@@ -385,7 +385,10 @@ def run_simulation(output_dir=None):
     print("Generating plots...")
     print("=" * 60)
 
-    fig, axes = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(14, 12))
+    # Share x-axis only for the first 3 subplots (time-based)
+    for i in range(1, 3):
+        axes[i].sharex(axes[0])
 
     time_axis = np.arange(len(data)) / sampling_rate
 
