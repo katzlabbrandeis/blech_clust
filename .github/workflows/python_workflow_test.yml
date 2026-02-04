@@ -2,7 +2,8 @@
 # See: https://docs.github.com/en/actions
 #
 # This workflow runs Python tests on a self-hosted runner
-# Jobs are independent to allow partial success/failure reporting
+# Jobs run sequentially within each workflow run (via needs:)
+# Workflow-level concurrency ensures only one workflow runs at a time across all PRs
 
 name: Python test
 run-name: python_test
@@ -17,12 +18,14 @@ on:
       - 'emg/**/*.py'
       - 'emg/**/*.sh'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   Preamble:
     runs-on: self-hosted
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Clean working directory
         run: |
@@ -68,9 +71,6 @@ jobs:
   Spike-EMG:
     runs-on: self-hosted
     needs: Preamble
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
     steps:
       - name: Prefect SPIKE then EMG test
@@ -86,9 +86,6 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: Spike-EMG
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     # Test EMG analysis pipeline in isolation
     steps:
       - name: Prefect EMG only test
