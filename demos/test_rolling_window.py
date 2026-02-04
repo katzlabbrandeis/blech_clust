@@ -14,6 +14,7 @@ Uses the same spike_handler class as blech_process.py to ensure
 the actual pipeline functions are tested.
 """
 
+from utils.blech_process_utils import spike_handler, compute_rolling_threshold
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
@@ -22,8 +23,6 @@ from pprint import pprint as pp
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from utils.blech_process_utils import spike_handler, compute_rolling_threshold
 
 
 def generate_spike_waveform(n_samples=45, sampling_rate=30000):
@@ -111,7 +110,8 @@ def generate_synthetic_data(
     true_spike_times = np.array(valid_spikes)
 
     # Generate spike waveform template
-    waveform = generate_spike_waveform(n_samples=45, sampling_rate=sampling_rate)
+    waveform = generate_spike_waveform(
+        n_samples=45, sampling_rate=sampling_rate)
     waveform = waveform / np.abs(waveform.min()) * spike_amplitude
 
     # Add spikes to data
@@ -411,8 +411,10 @@ def run_simulation(output_dir=None):
 
     # Plot 2: Rolling thresholds
     ax = axes[1]
-    ax.plot(rt_times, rt_thresholds, 'b-', linewidth=2, label='Rolling threshold')
-    ax.axhline(thresh_global, color='r', linestyle='--', label='Global threshold')
+    ax.plot(rt_times, rt_thresholds, 'b-',
+            linewidth=2, label='Rolling threshold')
+    ax.axhline(thresh_global, color='r',
+               linestyle='--', label='Global threshold')
     ax.axvspan(20, 40, alpha=0.2, color='orange')
     ax.set_ylabel('Threshold (µV)')
     ax.set_title('Rolling vs Global Threshold')
@@ -464,8 +466,10 @@ def run_simulation(output_dir=None):
         results_rolling['F1'],
     ]
 
-    bars1 = ax.bar(x - width / 2, global_vals, width, label='Global', color='red', alpha=0.7)
-    bars2 = ax.bar(x + width / 2, rolling_vals, width, label='Rolling', color='blue', alpha=0.7)
+    bars1 = ax.bar(x - width / 2, global_vals, width,
+                   label='Global', color='red', alpha=0.7)
+    bars2 = ax.bar(x + width / 2, rolling_vals, width,
+                   label='Rolling', color='blue', alpha=0.7)
     ax.set_ylabel('Score')
     ax.set_title('Overall Detection Performance')
     ax.set_xticks(x)
@@ -505,7 +509,8 @@ def run_simulation(output_dir=None):
     if output_dir is None:
         output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    output_path = os.path.join(output_dir, 'rolling_window_simulation_results.png')
+    output_path = os.path.join(
+        output_dir, 'rolling_window_simulation_results.png')
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"\nPlot saved to: {output_path}")
 
@@ -532,8 +537,10 @@ def run_simulation(output_dir=None):
     print("\n" + "=" * 60)
     print("VERIFICATION: spike_handler class")
     print("=" * 60)
-    print(f"✓ spike_handler with use_rolling_threshold=False: {len(times_global)} spikes")
-    print(f"✓ spike_handler with use_rolling_threshold=True: {len(times_rolling)} spikes")
+    print(
+        f"✓ spike_handler with use_rolling_threshold=False: {len(times_global)} spikes")
+    print(
+        f"✓ spike_handler with use_rolling_threshold=True: {len(times_rolling)} spikes")
     print(f"✓ Dejittering applied (slices shape: {slices_rolling.shape})")
 
     return {
