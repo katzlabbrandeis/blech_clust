@@ -59,7 +59,7 @@ else
     # Treat arguments as directories
     INPUT_MODE="directories"
     DIRECTORIES=()
-    
+
     # Parse all arguments until we find --force or reach the end
     for arg in "$@"; do
         if [ "$arg" == "--force" ]; then
@@ -67,7 +67,7 @@ else
         fi
         DIRECTORIES+=("$arg")
     done
-    
+
     # Check if at least one directory was provided
     if [ ${#DIRECTORIES[@]} -eq 0 ]; then
         echo "Error: No directories provided"
