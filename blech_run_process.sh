@@ -111,12 +111,13 @@ EOF
 
 echo "Completion check passed, continuing..."
 
-# Generate rolling threshold grid plot
-echo "Generating rolling threshold grid plot..."
+# Generate rolling threshold grid plot (only if rolling threshold is enabled)
+echo "Checking if rolling threshold grid plot should be generated..."
 cd "$DIR"
 python3 - <<EOF
 
 import os
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -190,23 +191,33 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
 
     return fig
 
-rolling_thresh_dir = './QA_output/rolling_thresholds'
-output_path = './QA_output/rolling_threshold_grid.png'
+# Check if rolling threshold is enabled in params
+params_path = './params/sorting_params.json'
+use_rolling = False
+if os.path.exists(params_path):
+    with open(params_path, 'r') as f:
+        params = json.load(f)
+    use_rolling = params.get('use_rolling_threshold', False)
 
-try:
+if not use_rolling:
+    print("Rolling threshold is disabled, skipping grid plot generation")
+else:
+    rolling_thresh_dir = './QA_output/rolling_thresholds'
+    output_path = './QA_output/rolling_threshold_grid.png'
 
-    if os.path.isdir(rolling_thresh_dir):
-        fig = plot_rolling_threshold_grid(rolling_thresh_dir, output_path)
-        if fig:
-            print(f"Rolling threshold grid plot saved to {output_path}")
+    try:
+        if os.path.isdir(rolling_thresh_dir):
+            fig = plot_rolling_threshold_grid(rolling_thresh_dir, output_path)
+            if fig:
+                print(f"Rolling threshold grid plot saved to {output_path}")
+            else:
+                print("No rolling threshold data found")
         else:
-            print("No rolling threshold data found")
-    else:
-        print(f"Rolling threshold directory not found: {rolling_thresh_dir}")
+            print(f"Rolling threshold directory not found: {rolling_thresh_dir}")
 
-except ImportError as e:
-    print(f"Error importing plot_rolling_threshold_grid: {e}")
-    print("Function may not exist in utils.blech_process_utils")
-except Exception as e:
-    print(f"Error generating rolling threshold grid plot: {e}")
+    except ImportError as e:
+        print(f"Error importing plot_rolling_threshold_grid: {e}")
+        print("Function may not exist in utils.blech_process_utils")
+    except Exception as e:
+        print(f"Error generating rolling threshold grid plot: {e}")
 EOF
