@@ -93,7 +93,7 @@ Configuration via `params/_templates/blechrnn_params.json`.
 | Script | Description |
 |--------|-------------|
 | `blech_autosort.sh` | Main autosorting script |
-| `blech_autosort_batch.sh` | Batch processing |
+| `blech_autosort_batch.sh` | Batch processing (supports file input or directory arguments) |
 | `blech_clust_pre.sh` | Pre-clustering setup |
 | `blech_clust_post.sh` | Post-clustering steps |
 | `blech_run_process.sh` | Parallel spike extraction |
