@@ -180,18 +180,40 @@ class pipeline_graph_check():
 
         for dir_name, this_dir in zip(directory_names, directories):
             for this_parent, this_children in this_dir.items():
-                this_parent_full = self.make_full_path(this_parent, dir_name)
+                # Handle the case where parent might be a dict with optional flag
+                if type(this_parent) == dict:
+                    parent_script = this_parent.get(
+                        'script', this_parent.get('script_name', 'unknown'))
+                    is_optional = this_parent.get('optional', False)
+                else:
+                    parent_script = this_parent
+                    is_optional = False
+
+                this_parent_full = self.make_full_path(parent_script, dir_name)
                 all_files.append(this_parent_full)
-                if type(this_children) == list:
+
+                # Handle children - could be string, list, or dict with optional flag
+                if type(this_children) == dict and 'optional' in this_children:
+                    # This is an optional dependency structure
+                    child_scripts = this_children.get('scripts', [])
+                    if not isinstance(child_scripts, list):
+                        child_scripts = [child_scripts]
+                    children_full = [self.make_full_path(
+                        x, dir_name) for x in child_scripts]
+                    for this_child in children_full:
+                        all_files.append(this_child)
+                    flat_graph[this_parent_full] = children_full
+                elif type(this_children) == list:
                     this_children_full = [self.make_full_path(
                         x, dir_name) for x in this_children]
                     for this_child in this_children_full:
                         all_files.append(this_child)
+                    flat_graph[this_parent_full] = this_children_full
                 else:
                     this_children_full = self.make_full_path(
                         this_children, dir_name)
                     all_files.append(this_children_full)
-                flat_graph[this_parent_full] = this_children_full
+                    flat_graph[this_parent_full] = this_children_full
 
         self.flat_graph = flat_graph
 
@@ -204,7 +226,51 @@ class pipeline_graph_check():
                 all_files, all_files_present) if not y]
             raise FileNotFoundError(f'Missing files ::: {missing_files}')
 
-    @log_wait
+    def _is_optional_dependency(self, parent_script, child_script):
+        """
+        Check if a dependency is optional based on the dependency graph configuration
+
+        Returns True if the dependency is marked as optional, False otherwise
+        """
+        # Look for optional dependencies in the original graph structure
+        for dir_name, this_dir in self.graph.items():
+            for this_parent, this_children in this_dir.items():
+                # Handle case where this_parent is the key for child_script
+                if type(this_parent) == dict:
+                    parent_script_name = this_parent.get(
+                        'script', this_parent.get('script_name', 'unknown'))
+                else:
+                    parent_script_name = this_parent
+
+                this_parent_full = self.make_full_path(
+                    parent_script_name, dir_name)
+
+                # Check if the current key (this_parent) is the child script
+                # and parent_script is one of its dependencies
+                if this_parent_full == child_script:
+                    if type(this_children) == dict and 'optional' in this_children:
+                        # This is an optional dependency structure for the child script
+                        child_scripts = this_children.get('scripts', [])
+                        if not isinstance(child_scripts, list):
+                            child_scripts = [child_scripts]
+                        children_full = [self.make_full_path(
+                            x, dir_name) for x in child_scripts]
+
+                        # Check if the parent_script is in the optional dependencies list
+                        if parent_script in children_full:
+                            return this_children.get('optional', False)
+                    elif type(this_children) == list:
+                        children_full = [self.make_full_path(
+                            x, dir_name) for x in this_children]
+                        if parent_script in children_full:
+                            return False
+                    else:
+                        this_child_full = self.make_full_path(
+                            this_children, dir_name)
+                        if parent_script == this_child_full:
+                            return False
+        return False
+
     def check_previous(self, script_path):
         """
         Check that previous run script is present and executed successfully
@@ -221,11 +287,42 @@ class pipeline_graph_check():
             if os.path.exists(self.log_path):
                 with open(self.log_path, 'r') as log_file_connect:
                     log_dict = json.load(log_file_connect)
-                if any([x in log_dict['completed'].keys() for x in parent_script]):
-                    return True
+
+                # Check for optional dependencies
+                optional_deps = []
+                required_deps = []
+
+                for parent in parent_script:
+                    if self._is_optional_dependency(parent, script_path):
+                        optional_deps.append(parent)
+                    else:
+                        required_deps.append(parent)
+
+                # Check required dependencies
+                if required_deps:
+                    if any([x in log_dict.get('completed', {}).keys() for x in required_deps]):
+                        # Log optional dependencies that were skipped
+                        for optional_dep in optional_deps:
+                            if optional_dep not in log_dict.get('completed', {}):
+                                print(
+                                    f'Note: Optional dependency [{optional_dep}] was skipped')
+                        return True
+                    else:
+                        raise ValueError(
+                            f'Required parent script [{required_deps}] not found in log')
                 else:
-                    raise ValueError(
-                        f'Parent script [{parent_script}] not found in log')
+                    # All dependencies are optional, continue
+                    for optional_dep in optional_deps:
+                        if optional_dep in log_dict.get('completed', {}):
+                            print(
+                                f'Optional dependency [{optional_dep}] was completed')
+                        else:
+                            print(
+                                f'Optional dependency [{optional_dep}] was skipped')
+                    return True
+            else:
+                # No log file exists - this might be the first script
+                return True
         else:
             raise ValueError(
                 f'Script path [{script_path}] not found in flat graph')
