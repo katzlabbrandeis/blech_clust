@@ -2,7 +2,7 @@
 
 ## Platform Support
 
-> **⚠️ Important**: blech_clust is primarily tested and supported on Linux systems. The make-based installation process works only on Linux. 
+> **⚠️ Important**: blech_clust is primarily tested and supported on Linux systems. The make-based installation process works only on Linux.
 
 **For Windows Users**: We recommend installing a tested version of Ubuntu via Windows Subsystem for Linux (WSL). This provides a Linux environment within Windows where blech_clust can be installed and run properly.
 
