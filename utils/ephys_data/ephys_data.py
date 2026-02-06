@@ -192,6 +192,8 @@ plt.show()
   - `get_sequestered_spikes`: Sequesters spikes into categories based on tastes and laser conditions.
   - `get_sequestered_firing`: Sequesters firing rates into categories based on tastes and laser conditions.
   - `get_sequestered_data`: Sequesters both spikes and firing rates into categories based on tastes and laser conditions.
+  - `get_stable_units`: Loads drift check results and marks units as stable or unstable.
+  - `profile_units`: Generates a DataFrame with unit characteristics (responsiveness, discriminability, palatability, dynamicity, stability).
 """
 import os
 import warnings
@@ -200,7 +202,7 @@ import tables
 import copy
 import multiprocessing as mp
 from scipy.special import gamma
-from scipy.stats import zscore, spearmanr
+from scipy.stats import zscore, spearmanr, ttest_rel
 import scipy
 import scipy.signal
 import glob
@@ -214,6 +216,7 @@ from . import lfp_processing
 from pprint import pprint as pp
 import numpy as np
 import pandas as pd
+import pingouin as pg
 
 #  ______       _                      _____        _
 # |  ____|     | |                    |  __ \      | |
@@ -1791,7 +1794,6 @@ class ephys_data():
         Example:
         --------
         >>> data = ephys_data(data_dir='/path/to/data')
-        >>> data.get_stable_units('/path/to/drift_results.csv')
         >>> # Access stable units
         >>> stable_unit_indices = np.where(data.stable_units)[0]
         """
@@ -1821,3 +1823,353 @@ class ephys_data():
         print(
             f"Found {len(self.stable_units)} stable units and {len(self.unstable_units)} unstable units")
         print(f"Using p-value threshold of {p_val_threshold}")
+
+    def calculate_responsiveness(self, stim_time, params_dict):
+        """
+        Calculate unit responsiveness based on pre and post-stimulus firing rates.
+
+        Args:
+            stim_time: Time of stimulus presentation.
+            seq_spikes_frame: DataFrame containing spike data.
+            params_dict: Dictionary of parameters for responsiveness calculation.
+
+        Returns:
+            dict: A dictionary of responsiveness p-values for each unit.
+        """
+
+        if 'sequestered_firing_frame' not in dir(self) or \
+                'sequestered_spikes_frame' not in dir(self):
+            self.get_sequestered_data()
+
+        print("="*40)
+        print("Calculating unit responsiveness")
+        print("="*40)
+
+        # Get data in responsive window
+        responsive_window = params_dict.get(
+            'responsiveness_pre_post_durations', [1000, 2000])
+        responsive_inds = ((stim_time-responsive_window[0], stim_time),
+                           (stim_time, stim_time+responsive_window[1]))
+        min_ind, max_ind = min(responsive_inds[0]), max(responsive_inds[1])
+
+        seq_spikes_frame = self.sequestered_spikes_frame.copy()
+        seq_spikes_frame = seq_spikes_frame.loc[
+            (seq_spikes_frame.time_num >= min_ind) &
+            (seq_spikes_frame.time_num < max_ind)
+        ]
+        seq_spikes_frame['spikes'] = 1
+
+        # Mark pre/post stimulus
+        seq_spikes_frame['post_stim'] = seq_spikes_frame['time_num'] >= stim_time
+
+        # Get mean spikes per condition
+        seq_spike_counts = seq_spikes_frame.groupby(
+            ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'post_stim']
+        ).count().reset_index()
+        seq_spike_counts.drop(
+            columns=['time_num'], inplace=True, errors='ignore')
+
+        # Adjust for differing window sizes
+        pre_window, post_window = responsive_window
+        seq_spike_counts['window_len'] = seq_spike_counts['post_stim'].apply(
+            lambda x: post_window if x else pre_window)
+        seq_spike_counts['rate'] = seq_spike_counts['spikes'] / \
+            seq_spike_counts['window_len']
+
+        # Correct for missing zero-spike entries
+        index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
+        firing_frame_group_inds = list(
+            self.sequestered_firing_frame.groupby(index_cols).groups.keys())
+
+        firing_frame_group_inds = pd.DataFrame(
+            firing_frame_group_inds, columns=index_cols)
+
+        # Stack 2 for post/pre
+        firing_frame_group_inds = pd.concat(
+            [firing_frame_group_inds.assign(post_stim=False),
+             firing_frame_group_inds.assign(post_stim=True)],
+            ignore_index=True,
+        )
+
+        # Make sure post-stim in both is boolean
+        firing_frame_group_inds['post_stim'] = firing_frame_group_inds['post_stim'].astype(
+            bool)
+        seq_spike_counts['post_stim'] = seq_spike_counts['post_stim'].astype(
+            bool)
+
+        seq_spike_counts = pd.merge(
+            firing_frame_group_inds,
+            seq_spike_counts,
+            on=index_cols + ['post_stim'],
+            how='left',
+        )
+        seq_spike_counts.fillna(0, inplace=True)
+
+        # Calculate responsiveness p-values
+        resp_pvals = {}
+        group_cols = ['neuron_num', 'taste_num', 'laser_tuple']
+        for (nrn, taste, laser), group in tqdm(seq_spike_counts.groupby(group_cols)):
+            pval = ttest_rel(
+                group.loc[group.post_stim, 'rate'].values,
+                group.loc[~group.post_stim, 'rate'].values,
+            )[1]
+            resp_pvals[(nrn, laser)] = min(
+                resp_pvals.get((nrn, laser), 1.0), pval)
+
+        return resp_pvals
+
+    def calculate_discriminability_dynamicity(self, stim_time, params_dict):
+        """
+        Calculate unit discriminability based on ANOVA analysis.
+
+        Args:
+            seq_spikes_anova: DataFrame containing spike data for ANOVA.
+            params_dict: Dictionary of parameters for discriminability calculation.
+
+        Returns:
+            dict: A dictionary of discriminability p-values for each unit.
+        """
+
+        print("="*40)
+        print("Calculating unit discriminability and dynamicity")
+        print("="*40)
+
+        if 'sequestered_spikes_frame' not in dir(self):
+            self.get_sequestered_data()
+
+        discrim_params = params_dict.get(
+            'discrim_analysis_params', {'bin_width': 500, 'bin_num': 4})
+        anova_bin_width = discrim_params['bin_width']
+        anova_bin_num = discrim_params['bin_num']
+        bin_lims = np.vectorize(int)(np.linspace(
+            stim_time,
+            stim_time + (anova_bin_num*anova_bin_width),
+            anova_bin_num+1))
+
+        seq_spikes_anova = self.sequestered_spikes_frame.copy()
+        min_lim, max_lim = min(bin_lims), max(bin_lims)
+        seq_spikes_anova = seq_spikes_anova.loc[
+            (seq_spikes_anova.time_num >= min_lim) &
+            (seq_spikes_anova.time_num < max_lim)
+        ]
+        seq_spikes_anova['bin_num'] = pd.cut(
+            seq_spikes_anova.time_num,
+            bin_lims,
+            labels=np.arange(anova_bin_num),
+            include_lowest=True,
+        )
+        seq_spikes_anova['spikes'] = 1
+        # Since all bins are the same size, no need to normalize spike counts
+        seq_spike_anova_counts = seq_spikes_anova.groupby(
+            ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple', 'bin_num']
+        ).count().reset_index()
+        seq_spike_anova_counts.drop(
+            columns=['time_num'], inplace=True, errors='ignore')
+        seq_spike_anova_counts.fillna(0, inplace=True)
+
+        # Correct for missing zero-spike entries
+        index_cols = ['trial_num', 'neuron_num', 'taste_num', 'laser_tuple']
+        firing_frame_group_inds = list(
+            self.sequestered_firing_frame.groupby(index_cols).groups.keys())
+
+        firing_frame_group_inds = pd.DataFrame(
+            firing_frame_group_inds, columns=index_cols)
+
+        # Stack for all bins
+        firing_frame_group_inds = pd.concat(
+            [firing_frame_group_inds.assign(bin_num=bin_num)
+             for bin_num in range(anova_bin_num)],
+            ignore_index=True,
+        )
+
+        seq_spike_anova_counts = pd.merge(
+            firing_frame_group_inds,
+            seq_spike_anova_counts,
+            on=index_cols + ['bin_num'],
+            how='left',
+        )
+        seq_spike_anova_counts.fillna(0, inplace=True)
+
+        # Calculate discriminability p-values
+        discrim_pvals = {}
+        dynamicity_pvals = {}
+        group_cols = ['neuron_num', 'laser_tuple']
+        for (nrn, laser), group in tqdm(seq_spike_anova_counts.groupby(group_cols)):
+            anova_out = pg.anova(
+                data=group,
+                dv='spikes',
+                between=['taste_num', 'bin_num'],
+            )
+            anova_out = anova_out.loc[anova_out.Source != 'Residual']
+            taste_pval = anova_out.loc[
+                anova_out.Source == 'taste_num', 'p-unc'].values
+            bin_pval = anova_out.loc[
+                anova_out.Source == 'bin_num', 'p-unc'].values
+            taste_pval = taste_pval[0] if len(taste_pval) > 0 else 1.0
+            bin_pval = bin_pval[0] if len(bin_pval) > 0 else 1.0
+            discrim_pvals[(nrn, laser)] = taste_pval
+            dynamicity_pvals[(nrn, laser)] = bin_pval
+
+        return discrim_pvals, dynamicity_pvals
+
+    def calculate_palatability(self, pal_ranks, firing_t_vec, stim_time):
+        """
+        Calculate unit palatability based on correlation with palatability rankings.
+
+        Args:
+            seq_firing_frame: DataFrame containing firing data.
+            pal_ranks: List of palatability rankings for each taste.
+
+        Returns:
+            dict: A dictionary of palatability p-values for each unit.
+        """
+
+        if 'sequestered_firing_frame' not in dir(self):
+            self.get_sequestered_data()
+
+        print("="*40)
+        print("Calculating unit palatability")
+        print("="*40)
+
+        seq_firing_frame = self.sequestered_firing_frame.copy()
+
+        pal_pvals = {}
+        seq_firing_frame['time_val'] = [firing_t_vec[x]
+                                        for x in seq_firing_frame.time_num]
+        seq_firing_frame['pal_rank'] = [pal_ranks[i]
+                                        for i in seq_firing_frame.taste_num]
+        group_cols = ['neuron_num', 'time_val', 'laser_tuple']
+        for (nrn, time_val, laser), group in tqdm(seq_firing_frame.groupby(group_cols)):
+            rho, pval = spearmanr(group.firing, group.pal_rank)
+            pal_pvals[(nrn, laser, time_val)] = pval
+
+        # Aggregate across time
+        pal_pval_df = pd.DataFrame([
+            {'neuron_num': key[0],
+             'laser_tuple': key[1],
+             'time_val': key[2],
+             'p_val': val}
+            for key, val in pal_pvals.items()
+        ])
+
+        if 'sorting_params_dict' not in dir(self):
+            self.get_sorting_params_dict()
+
+        pal_window = self.sorting_params_dict.get('palatability_window')
+        pal_window = np.array(pal_window) + stim_time
+
+        wanted_pal_pval_df = pal_pval_df.loc[
+            (pal_pval_df.time_val >= pal_window[0]) &
+            (pal_pval_df.time_val < pal_window[1])
+        ]
+
+        # Get median p-val across time window
+        wanted_pal_pval_df = wanted_pal_pval_df.groupby(
+            ['neuron_num', 'laser_tuple']
+        ).median().reset_index()
+        wanted_pal_pval_df.drop(columns=['time_val'], inplace=True)
+
+        # Convert to dictionary
+        wanted_pal_pval_df.set_index(
+            ['neuron_num', 'laser_tuple'], inplace=True)
+        pal_pvals = wanted_pal_pval_df['p_val'].to_dict()
+
+        return pal_pvals, pal_pval_df
+
+    def profile_units(self, save_to_file=True, alpha=0.05, recalculate=False):
+        """
+        Generate a DataFrame containing unit characteristics including:
+        - Unit responsiveness (pre vs post-stimulus firing rate comparison)
+        - Unit taste discrimination (ANOVA for taste differences)
+        - Unit palatability (correlation with palatability rankings)
+        - Unit drift/stability (from drift check results)
+        """
+
+        print("="*40)
+        print("Unit Profiling")
+        print("="*40)
+        csv_path = os.path.join(self.data_dir, 'unit_profile.csv')
+        if os.path.exists(csv_path) and not recalculate:
+            print(f"Loading existing unit profile from {csv_path}")
+            print("***To recalculate, set recalculate=True***")
+            profile_df = pd.read_csv(csv_path)
+            print('Storing unit profile in self.unit_profile')
+            self.unit_profile = profile_df
+            return
+
+        # Ensure we have the necessary data loaded
+        if not hasattr(self, 'sequestered_spikes_frame') or \
+           not hasattr(self, 'sequestered_firing_frame'):
+            self.get_sequestered_data()
+
+        # Load info and params
+        self.get_info_dict()
+        self.get_sorting_params_dict()
+
+        params_dict = self.sorting_params_dict
+        info_dict = self.info_dict
+
+        stim_time = params_dict['spike_array_durations'][0]
+
+        # Get firing time vector
+        firing_t_vec = np.arange(self.sequestered_firing_frame.time_num.max()+1) * \
+            self.firing_rate_params['step_size']
+        firing_t_vec += self.firing_rate_params['window_size']
+        firing_t_vec -= stim_time
+
+        # Calculate responsiveness
+        resp_pvals = self.calculate_responsiveness(
+            stim_time, params_dict)
+
+        # Calculate discriminability
+        discrim_pvals, dynamic_pvals = self.calculate_discriminability_dynamicity(
+            stim_time, params_dict)
+
+        # Calculate palatability
+        pal_ranks = info_dict['taste_params'].get('pal_rankings', None)
+        pal_pvals = self.calculate_palatability(
+            pal_ranks, firing_t_vec, stim_time)[0]
+
+        # Check stability
+        if 'drift_results' not in dir(self):
+            self.get_stable_units(p_val_threshold=alpha)
+
+        # ==================== BUILD RESULTS DATAFRAME ====================
+        results = []
+        for nrn in self.sequestered_firing_frame.neuron_num.unique():
+            for laser in self.sequestered_firing_frame.laser_tuple.unique():
+                key = (nrn, laser)
+                resp_p = resp_pvals.get(key, 1.0)
+                discrim_p = discrim_pvals.get(key, 1.0)
+                pal_p = pal_pvals.get(key, np.nan)
+                stable = nrn in self.stable_units
+                stable_pval = self.drift_results.loc[
+                    self.drift_results['unit'] == nrn, 'p_val'].values[0]
+                dynamic_p = dynamic_pvals.get(key, 1.0)
+                dynamic = dynamic_p < alpha
+
+                results.append({
+                    'neuron_num': nrn,
+                    'laser_tuple': laser,
+                    'responsive': resp_p < alpha,
+                    'responsive_pval': resp_p,
+                    'discriminative': discrim_p < alpha,
+                    'discriminative_pval': discrim_p,
+                    'palatable': pal_p < alpha if not np.isnan(pal_p) else False,
+                    'palatable_pval': pal_p,
+                    'dynamic': dynamic,
+                    'dynamic_pval': dynamic_p,
+                    'stable': stable,
+                    'stable_pval': stable_pval,
+                })
+
+        profile_df = pd.DataFrame(results)
+
+        # Store as attribute
+        print('Storing unit profile in self.unit_profile')
+        self.unit_profile = profile_df
+
+        # Save to file if requested
+        if save_to_file:
+            profile_df.to_csv(csv_path, index=False)
+            print(f"Unit profile saved to {csv_path}")
