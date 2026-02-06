@@ -71,13 +71,13 @@ import json
 import pylab as plt
 from scipy.stats import zscore
 import subprocess
-from utils import blech_waveforms_datashader
+from blech_clust.utils import blech_waveforms_datashader
 from scipy.spatial.distance import mahalanobis
 from sklearn.mixture import BayesianGaussianMixture as BGM
 from sklearn.mixture import GaussianMixture as gmm
 from joblib import load
 import blech_clust.utils.clustering as clust
-from blech_units_plot import plot_unit_summary, gen_isi_hist
+from blech_clust.blech_units_plot import plot_unit_summary, gen_isi_hist
 # import subprocess
 # import sys
 

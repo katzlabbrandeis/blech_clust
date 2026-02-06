@@ -1,0 +1,602 @@
+[
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 4,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.830006782044642
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 4,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.8300067818899046
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 4,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.9821775207584164
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 4,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.9989448242938161
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 4,
+        "orthogonality_weight": 100.0,
+        "final_loss": 1.000776988567195
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 8,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.7595932866193054
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 8,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.7595932867168232
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 8,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.959447661882488
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 8,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.9966661209194329
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 8,
+        "orthogonality_weight": 100.0,
+        "final_loss": 1.0009092826037862
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 12,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.7055631117557886
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 12,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.7055631113124303
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 12,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.9375917094807511
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 12,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.9943156426316222
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 12,
+        "orthogonality_weight": 100.0,
+        "final_loss": 1.0009479834124322
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 16,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.6600135654711545
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 16,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.6600135742451096
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 16,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.9162920010225302
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 16,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.9919311765735292
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 16,
+        "orthogonality_weight": 100.0,
+        "final_loss": 1.0009376825112233
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 20,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.619883612484114
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 20,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.6198836093952185
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 20,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.8953942371187893
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 20,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.9895295308162864
+    },
+    {
+        "n_basis_funcs": 5,
+        "n_templates": 20,
+        "orthogonality_weight": 100.0,
+        "final_loss": 1.0008962193771342
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 4,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.28212289473853125
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 4,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.28212314972036356
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 4,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.5433731504298481
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 4,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6302823608682493
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 4,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6426715800806995
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 8,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.015231518315797832
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 8,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.015231499086646672
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 8,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.3310146581937581
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 8,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.71726790417967
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 8,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.8034098797735897
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 12,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.24339958591344213
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 12,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.24339962709431395
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 12,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.10561019307878317
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 12,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6764282181147194
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 12,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.82534295971734
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 16,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.43575418753864836
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 16,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.4357541665024076
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 16,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.09289700045035931
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 16,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.5998393761725944
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 16,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.7937198928344293
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 20,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.6052219986177088
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 20,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.6052219829244647
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 20,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.2572903310063037
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 20,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.5282467417131007
+    },
+    {
+        "n_basis_funcs": 10,
+        "n_templates": 20,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.7649803016135222
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 4,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.2764231009830055
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 4,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.2764234760803933
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 4,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.5372996053291427
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 4,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6244653837580734
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 4,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6369261909081718
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 8,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.023292218076273574
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 8,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.02329223766381494
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 8,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.329064969174905
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 8,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6159299453018371
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 8,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6819083468580084
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 12,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.2532719552643288
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 12,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.2532718880140643
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 12,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.12074287891520608
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 12,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6604558550143821
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 12,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.8287298725824997
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 16,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.44715381235861984
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 16,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.4471537928601852
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 16,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.06412935611700155
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 16,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.609850005263378
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 16,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.8521987868733474
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 20,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.6179671630564139
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 20,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.6179671466484251
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 20,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.23466773063520563
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 20,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.534872066251286
+    },
+    {
+        "n_basis_funcs": 15,
+        "n_templates": 20,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.8286852470944301
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 4,
+        "orthogonality_weight": 0.01,
+        "final_loss": 0.2654059719964109
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 4,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": 0.2654061945125248
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 4,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.5290022199316626
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 4,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.6185526858938601
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 4,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6314972590835312
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 8,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.0388728114505017
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 8,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.03887280914936797
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 8,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.3201472375642298
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 8,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.5685037101055548
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 8,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6253064025919673
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 12,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.27235418492475416
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 12,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.27235416434892734
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 12,
+        "orthogonality_weight": 1.0,
+        "final_loss": 0.12337297661898106
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 12,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.5253144163869683
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 12,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.6423654529963323
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 16,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.46918804407105474
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 16,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.46918802705636287
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 16,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.06346446884515844
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 16,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.5272877453750465
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 16,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.7513748275703025
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 20,
+        "orthogonality_weight": 0.01,
+        "final_loss": -0.6426021665449402
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 20,
+        "orthogonality_weight": 0.09999999999999999,
+        "final_loss": -0.6426021901382228
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 20,
+        "orthogonality_weight": 1.0,
+        "final_loss": -0.2346569757148791
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 20,
+        "orthogonality_weight": 10.0,
+        "final_loss": 0.475822320897594
+    },
+    {
+        "n_basis_funcs": 20,
+        "n_templates": 20,
+        "orthogonality_weight": 100.0,
+        "final_loss": 0.8684474512918391
+    }
+]
