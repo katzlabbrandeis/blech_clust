@@ -1082,6 +1082,10 @@ class spike_handler():
         otherwise falls back to global threshold (extract_waveforms_abu).
         """
         use_rolling = self.params_dict.get('use_rolling_threshold', False)
+        spike_snapshot = [self.params_dict['spike_snapshot_before'],
+                          self.params_dict['spike_snapshot_after']]
+        sampling_rate = self.params_dict['sampling_rate']
+        threshold_mult = self.params_dict['waveform_threshold']
 
         if use_rolling:
             print('='*40)
@@ -1092,10 +1096,9 @@ class spike_handler():
             slices, spike_times, polarity, mean_val, threshold, MAD_val = \
                 clust.extract_waveforms_rolling(
                     self.filt_el,
-                    spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                                    self.params_dict['spike_snapshot_after']],
-                    sampling_rate=self.params_dict['sampling_rate'],
-                    threshold_mult=self.params_dict['waveform_threshold'],
+                    spike_snapshot=spike_snapshot,
+                    sampling_rate=sampling_rate,
+                    threshold_mult=threshold_mult,
                     window_len=window_len,
                     step_len=step_len)
         else:
@@ -1105,10 +1108,10 @@ class spike_handler():
             slices, spike_times, polarity, mean_val, threshold, MAD_val = \
                 clust.extract_waveforms_abu(
                     self.filt_el,
-                    spike_snapshot=[self.params_dict['spike_snapshot_before'],
-                                    self.params_dict['spike_snapshot_after']],
-                    sampling_rate=self.params_dict['sampling_rate'],
-                    threshold_mult=self.params_dict['waveform_threshold'])
+                    spike_snapshot=spike_snapshot,
+                    sampling_rate=sampling_rate,
+                    threshold_mult=threshold_mult,
+                    )
 
         self.slices = slices
         self.spike_times = spike_times
