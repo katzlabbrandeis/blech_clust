@@ -194,7 +194,7 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
 # Check if rolling threshold is enabled in params
 # params_path = './params/sorting_params.json'
 from glob import glob
-params_path = glob('*.params')[0] 
+params_path = glob('*.params')[0]
 use_rolling = False
 if os.path.exists(params_path):
     with open(params_path, 'r') as f:
