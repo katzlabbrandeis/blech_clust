@@ -488,6 +488,33 @@ plt.close()
 
 ##############################
 
+##############################
+# Generate long-format CSV of dig-in timings for early debugging
+# This provides trial-level timing info without requiring blech_make_arrays
+dig_in_timing_rows = []
+for _, row in this_dig_handler.dig_in_frame.iterrows():
+    dig_num = row['dig_in_nums']
+    dig_name = dig_in_map.get(dig_num, row.get('dig_in_names', ''))
+    pulse_times = row['pulse_times']
+    if isinstance(pulse_times, str):
+        pulse_times = literal_eval(pulse_times)
+    for start, end in pulse_times:
+        start_ms = (start / sampling_rate) * 1000 if start is not None else None
+        end_ms = (end / sampling_rate) * 1000 if end is not None else None
+        dig_in_timing_rows.append({
+            'dig_in_num': dig_num,
+            'dig_in_name': dig_name,
+            'start': start,
+            'end': end,
+            'start_ms': start_ms,
+            'end_ms': end_ms,
+        })
+
+dig_in_timing_frame = pd.DataFrame(dig_in_timing_rows)
+dig_in_timing_csv_path = os.path.join(dir_name, 'dig_in_timings.csv')
+dig_in_timing_frame.to_csv(dig_in_timing_csv_path, index=False)
+print(f'Dig-in timings written to {dig_in_timing_csv_path}')
+##############################
 
 # Generate the processing scripts
 generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
