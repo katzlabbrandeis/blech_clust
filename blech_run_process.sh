@@ -192,12 +192,16 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     return fig
 
 # Check if rolling threshold is enabled in params
-params_path = './params/sorting_params.json'
+# params_path = './params/sorting_params.json'
+from glob import glob
+params_path = glob('*.params')[0] 
 use_rolling = False
 if os.path.exists(params_path):
     with open(params_path, 'r') as f:
         params = json.load(f)
     use_rolling = params.get('use_rolling_threshold', False)
+else:
+    print(f"Parameters file not found: {params_path}")
 
 if not use_rolling:
     print("Rolling threshold is disabled, skipping grid plot generation")
