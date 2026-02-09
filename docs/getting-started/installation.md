@@ -1,9 +1,16 @@
 # Installation
 
+## Platform Support
+
+> **⚠️ Important**: blech_clust is primarily tested and supported on Linux systems. The make-based installation process works only on Linux.
+
+**For Windows Users**: We recommend installing a tested version of Ubuntu via Windows Subsystem for Linux (WSL). This provides a Linux environment within Windows where blech_clust can be installed and run properly.
+
 ## Prerequisites
 
 Before installing blech_clust, ensure you have:
 
+- **Linux Operating System**: Ubuntu 20.04, 22.04, or 24.04 (tested versions)
 - **Conda/Miniconda**: Required for environment management
 - **Git**: For cloning repositories
 - **System packages**: GNU parallel (optional, for parallel processing)
@@ -91,6 +98,18 @@ The following parameter files control pipeline behavior:
   ```bash
   conda activate blech_clust
   ```
+
+## Tested Platforms
+
+blech_clust is continuously tested on the following platform combinations:
+
+| Linux Distribution | Python Versions | Status |
+|-------------------|-----------------|---------|
+| Ubuntu 20.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+| Ubuntu 22.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+| Ubuntu 24.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+
+> **Note**: While other Linux distributions and Python versions may work, only the combinations above are actively tested in our continuous integration pipeline. For best results, we recommend using one of the tested configurations.
 
 ## Test Dataset
 
