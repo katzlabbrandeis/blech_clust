@@ -1111,7 +1111,7 @@ class spike_handler():
                     spike_snapshot=spike_snapshot,
                     sampling_rate=sampling_rate,
                     threshold_mult=threshold_mult,
-                    )
+                )
 
         self.slices = slices
         self.spike_times = spike_times
