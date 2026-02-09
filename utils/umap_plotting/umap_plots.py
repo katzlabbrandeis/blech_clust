@@ -279,7 +279,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         this_row = path_frame.iloc[int(sys.argv[1])]
 
-        snippet_pre = params_dict['spike_snapshot_before']
+        snippet_pre = params_dict['spike_snapshot']['spike_snapshot_before']
         sampling_rate_ms = params_dict['sampling_rate']/1000
         snippet_pre_inds = int(snippet_pre*sampling_rate_ms)
 
