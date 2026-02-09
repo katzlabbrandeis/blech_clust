@@ -69,6 +69,9 @@ The following parameter files control pipeline behavior:
 - **sorting_params.json** - Spike sorting parameters:
     - `bandpass_lower_cutoff` / `bandpass_upper_cutoff`: Filter frequencies (default: 300-3000 Hz)
     - `waveform_threshold`: Spike detection threshold in standard deviations (default: 5)
+    - `use_rolling_threshold`: Use per-window adaptive thresholds instead of global threshold (default: true)
+    - `rolling_threshold_window`: Window size in seconds for rolling threshold computation (default: 5.0)
+    - `rolling_threshold_step`: Step size in seconds between windows (default: 5.0)
     - `spike_snapshot_before` / `spike_snapshot_after`: Waveform extraction window in ms
     - `clustering_params`: GMM clustering settings
     - `qa_params`: Quality assurance thresholds
