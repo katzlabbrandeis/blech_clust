@@ -158,6 +158,8 @@ else:
 
 # Plot heatmaps of all tastes, both raw data and zscored
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
+if len(plot_spike_trains) == 1:
+    ax = np.expand_dims(ax, axis=0)
 for i in range(len(plot_spike_trains)):
     ax[i, 0].imshow(plot_spike_trains[i], aspect='auto', interpolation='none')
     ax[i, 1].imshow(zscore_binned_spike_trains[i],
@@ -173,6 +175,8 @@ plt.close()
 
 # Plot timeseries of above data as well
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
+if len(plot_spike_trains) == 1:
+    ax = np.expand_dims(ax, axis=0)
 for i in range(len(plot_spike_trains)):
     ax[i, 0].plot(np.array(plot_spike_trains[i]).T, alpha=0.7)
     ax[i, 1].plot(zscore_binned_spike_trains[i].T, alpha=0.7)
