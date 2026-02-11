@@ -78,13 +78,7 @@ When rolling threshold is enabled, the threshold is computed as `waveform_thresh
 
 Set `use_rolling_threshold: false` in sorting_params.json to use a single global threshold computed over the entire recording.
 
-Example single-channel rolling threshold plot:
-
-![Single-Channel Rolling Window Plot](https://github.com/user-attachments/assets/a4776b12-5b39-4b25-baf1-2a3913ddcd8e)
-
-Example channel-wise threshold grid plot:
-
-![Channel-Wise Threshold Grid Plot](https://github.com/user-attachments/assets/1cf1582e-8bf7-4c63-839f-d0528f917be9)
+Example rolling threshold plots in the [migration guide](../getting-started/migration-guide/qa-improvements.md)
 
 **Usage:**
 
