@@ -372,15 +372,16 @@ def extract_lfps(dir_name,
         ]
         all_channel_trials.append(this_channel_trials)
 
-    # Resort data to have 4 arrays (one for every dig_in)
+    # Resort data to have 4 lists (one for every dig_in)
     # with dims (channels , trials, time)
-    for dig_in in dig_in_list:
-        this_taste_LFP = np.asarray([
-            channel[dig_in] for channel in all_channel_trials])
+    # Do no want array here because different dig_ins may have different numbers of trials
+    for dig_in_ind, dig_in_name in enumerate(dig_in_list):
+        this_taste_LFP = [
+            channel[dig_in_ind] for channel in all_channel_trials]
 
         # Put the LFP data for this taste in hdf5 file under /Parsed_LFP
         hf5.create_array('/Parsed_LFP', 'dig_in_%i_LFPs'
-                         % (dig_in), this_taste_LFP)
+                         % (dig_in_name), this_taste_LFP)
         hf5.flush()
 
     # Delete data
@@ -421,10 +422,10 @@ def extract_lfps(dir_name,
     # Channel check plots are now made automatically (Abu 2/3/19)
     ########################################
     # if subplot_check is "Yes":
-    for taste in range(len(LFP_data)):
+    for taste_ind, dig_in_num in enumerate(dig_in_list): 
 
         # Set data
-        channel_data = np.mean(LFP_data[taste], axis=1).T
+        channel_data = np.mean(LFP_data[taste_ind], axis=1).T
         t = np.array(list(range(0, np.size(channel_data, axis=0))))
 
         mean_val = np.mean(channel_data.flatten())
@@ -446,18 +447,17 @@ def extract_lfps(dir_name,
             ax.vlines(x=trial_durations[0], ymin=np.min(channel_data[:, chan]),
                       ymax=np.max(channel_data[:, chan]), linewidth=4, color='r')
 
+        date_str = re.findall(r'_(\d{6})', hdf5_name)[0]
+        sup_title_str = f'Dig in {dig_in_num} - {taste_ind} - Channel Check: {hdf5_name[0:4]}\nRaw LFP Traces; Date: {date_str}'
+        save_path = os.path.join(channel_check_dir,
+                                 hdf5_name[0:4] +
+                                 f'_dig_in_{dig_in_num}_' +
+                                 date_str +
+                                 '_channelcheck.png')
+
         fig.subplots_adjust(hspace=0, wspace=-0.15)
-        fig.suptitle('Dig in {} - '.format(taste) +
-                     '%s - Channel Check: %s' % (taste,
-                                                 hdf5_name[0:4])+'\n' + 'Raw LFP Traces; Date: %s'
-                     % (re.findall(r'_(\d{6})',
-                                   hdf5_name)[0]), size=16, fontweight='bold')
-        fig.savefig(
-            os.path.join(channel_check_dir,
-                         hdf5_name[0:4] +
-                         '_dig_in{}'.format(taste) +
-                         '_ %s_%s' % (re.findall(r'_(\d{6})', hdf5_name)[0],
-                                      taste) + '_channelcheck.png'))
+        fig.suptitle(sup_title_str, size=16, fontweight='bold')
+        fig.savefig(save_path)
 
     # ==============================
     # Close Out
