@@ -93,6 +93,7 @@ Configuration via `params/_templates/blechrnn_params.json`.
 | Rolling threshold | Adaptive per-window threshold that adjusts to local noise levels |
 | MAD-based detection | Uses Median Absolute Deviation for outlier-robust noise estimation |
 | Configurable windows | Adjustable window size and step for threshold computation |
+| Positive spike extraction | Extracts and processes positive polarity neuronal spikes in addition to traditional negative spikes (not present in original blech_clust) |
 
 The rolling threshold computes spike detection thresholds independently for each time window, allowing detection to adapt to noise variations across the recording. This is controlled by `use_rolling_threshold`, `rolling_threshold_window`, and `rolling_threshold_step` parameters.
 
