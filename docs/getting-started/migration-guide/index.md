@@ -60,6 +60,12 @@ The original blech_clust used text entry boxes with no record of parameters. The
 | Dead channel visualization | Plots to identify dead/different channels within CAR groups |
 | Channel clustering | Automatic clustering of channels within CAR groups |
 
+### Auto-clustering
+
+| Feature | Description |
+|---------|-------------|
+| Auto-clustering | Fully automated clustering of spikes integrated into the main pipeline. See [Auto Sorting Resources](../../resources/autosorting.md) for details. |
+
 ### Unit Quality and Classification
 
 | Feature | Description |
