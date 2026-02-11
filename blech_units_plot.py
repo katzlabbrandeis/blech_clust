@@ -168,6 +168,12 @@ def plot_unit_summary(
             f'RSU: {unit_descriptor["regular_spiking"]}, ' + \
             f'FS: {unit_descriptor["fast_spiking"]}, ' + \
             f'SNR: {unit_descriptor["snr"]:.2f}'
+        try:
+            avg_clf_prob = unit_descriptor['avg_classifier_prob']
+            if not np.isnan(avg_clf_prob):
+                title_text += f', Clf Prob: {avg_clf_prob:.2f}'
+        except (KeyError, IndexError, ValueError):
+            pass
     else:
         title_text = None
 

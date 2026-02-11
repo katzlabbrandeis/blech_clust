@@ -254,6 +254,22 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
         print('Fix the issue and try again. Skipping this electrode.')
         continue
 
+    # Load classifier probabilities if available
+    clf_prob_path = os.path.join(
+        dir_name,
+        f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
+    )
+    clf_pred_path = os.path.join(
+        dir_name,
+        f'spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
+    )
+    if os.path.exists(clf_prob_path) and os.path.exists(clf_pred_path):
+        manual_clf_prob = np.load(clf_prob_path)
+        manual_clf_pred = np.load(clf_pred_path)
+        manual_clf_prob = manual_clf_prob[manual_clf_pred]
+    else:
+        manual_clf_prob = None
+
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
     # if ast.literal_eval(args.show_plot):
@@ -346,6 +362,9 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
         # Do the same thing for the spike times
         unit_times = this_cluster_times[fin_inds]
+
+        # Track full indices for classifier probability lookup
+        full_spike_inds = this_cluster_inds[fin_inds]
         ############################################################
 
         # Plot selected clusters again after merging splits
@@ -381,6 +400,7 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
         unit_waveforms = spike_waveforms[fin_inds, :]
         unit_times = spike_times[fin_inds]
+        full_spike_inds = fin_inds
 
     elif this_split_merge_signal.merge:
         ##############################
@@ -397,6 +417,7 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
 
         unit_waveforms = spike_waveforms[fin_inds, :]
         unit_times = spike_times[fin_inds]
+        full_spike_inds = fin_inds
 
         # Generate plot for merged unit
         violations1, violations2, _, _ = post_utils.generate_datashader_plot(
@@ -438,6 +459,12 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
     # Finally, save the unit to the HDF5 file
     ############################################################
 
+    # Compute average classifier probability if classifier data is available
+    if manual_clf_prob is not None:
+        avg_clf_prob = float(np.mean(manual_clf_prob[full_spike_inds]))
+    else:
+        avg_clf_prob = np.nan
+
     continue_bool, unit_name = this_descriptor_handler.save_unit(
         unit_waveforms,
         unit_times,
@@ -445,6 +472,7 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
         this_sort_file_handler,
         split_or_merge,
         layout_frame=metadata_handler.layout,
+        avg_classifier_prob=avg_clf_prob,
     )
 
     if continue_bool and (this_sort_file_handler.sort_table is not None):
@@ -547,9 +575,10 @@ if auto_post_process and auto_cluster and (args.sort_file is None) and not sorte
             print(f'Electrode {electrode_num_list[i]} failed to process')
             continue
         else:
-            subcluster_waveforms, subcluster_times, fin_bool, electrode_num = this_result
+            subcluster_waveforms, subcluster_times, subcluster_prob, fin_bool, electrode_num = this_result
             for this_sub in range(len(subcluster_waveforms)):
                 if fin_bool[this_sub]:
+                    avg_prob = float(np.mean(subcluster_prob[this_sub]))
                     continue_bool, unit_name = this_descriptor_handler.save_unit(
                         subcluster_waveforms[this_sub],
                         subcluster_times[this_sub],
@@ -558,6 +587,7 @@ if auto_post_process and auto_cluster and (args.sort_file is None) and not sorte
                         split_or_merge=None,
                         override_ask=True,
                         layout_frame=metadata_handler.layout,
+                        avg_classifier_prob=avg_prob,
                     )
                 else:
                     continue_bool = True
