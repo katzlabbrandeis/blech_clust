@@ -355,9 +355,9 @@ def extract_lfps(dir_name,
                          for this_dig_in_markers in change_points_fin]
 
     # Cut off dig-inds by lowest number of trials
-    trial_counts = [x.shape[0] for x in change_points_fin]
+    # trial_counts = [x.shape[0] for x in change_points_fin]
     # min_trial_counts = np.min(trial_counts)
-    max_trial_counts = np.max(trial_counts)
+    # max_trial_counts = np.max(trial_counts)
     # all_trial_markers = [np.array(x)[:min_trial_counts, :]
     #                      for x in all_trial_markers]
 

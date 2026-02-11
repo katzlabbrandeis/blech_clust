@@ -193,6 +193,7 @@ plt.show()
   - `get_sequestered_firing`: Sequesters firing rates into categories based on tastes and laser conditions.
   - `get_sequestered_data`: Sequesters both spikes and firing rates into categories based on tastes and laser conditions.
 """
+
 import os
 import warnings
 import numpy as np
@@ -812,6 +813,7 @@ class ephys_data():
                 - lfp_array: LFP data, shape (n_tastes, n_channels, n_trials, n_timepoints)
                               if trials are even across tastes, otherwise None
                 - lfp_list: List of LFP arrays per taste (always set)
+                    - structure: [tastes][channels][trials][timepoints]
                 - all_lfp_array: Reshaped LFP data with tastes concatenated
                                  (only if trials are even)
                 - all_lfp_list: List of LFP arrays concatenated across tastes
@@ -842,7 +844,8 @@ class ephys_data():
             self.lfp_list = [node[:] for node in lfp_nodes]
 
         # Check if trials are even across tastes
-        trial_counts = [x.shape[1] for x in self.lfp_list]
+        # trial_counts = [x.shape[1] for x in self.lfp_list]
+        trial_counts = [len(x[0]) for x in self.lfp_list]
         if len(set(trial_counts)) == 1:
             # Even trials - stack into array
             self.uneven_lfp_trials = False
@@ -854,13 +857,15 @@ class ephys_data():
                         self.lfp_array.shape[-1]).\
                 swapaxes(0, 1)
         else:
+            print(' ==> Warning: Uneven number of trials across tastes. LFP data will be stored as a list of arrays per taste.')
+            print('attr lfp_list structure: [tastes][channels][trials][timepoints]')
             # Uneven trials - leave as list
             self.uneven_lfp_trials = True
             self.lfp_array = None
             # Concatenate across tastes for all_lfp equivalent
-            self.all_lfp_list = [
-                x.swapaxes(0, 1) for x in self.lfp_list
-            ]  # Each element: (n_trials, n_channels, n_timepoints)
+            # self.all_lfp_list = [
+            #     x.swapaxes(0, 1) for x in self.lfp_list
+            # ]  # Each element: (n_trials, n_channels, n_timepoints)
 
     def separate_laser_lfp(self):
         """Separate LFP arrays into laser on and off conditions
