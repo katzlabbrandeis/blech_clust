@@ -78,6 +78,8 @@ When rolling threshold is enabled, the threshold is computed as `waveform_thresh
 
 Set `use_rolling_threshold: false` in sorting_params.json to use a single global threshold computed over the entire recording.
 
+Example rolling threshold plots in the [migration guide](../getting-started/migration-guide/qa-improvements.md)
+
 **Usage:**
 
 ```bash
