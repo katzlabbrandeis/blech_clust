@@ -395,7 +395,9 @@ all_params_dict = params_template.copy()
 all_params_dict['sampling_rate'] = sampling_rate
 
 params_out_path = hdf5_name.split('.')[0] + '.params'
-if not os.path.exists(params_out_path):
+# If hdf5 has been repacked, params name will not match hdf5 name (as _repacked suffix is added to HDF5)
+params_exist = len(glob.glob('*.params'))
+if not os.path.exists(params_out_path) and not params_exist:
     print('No params file found...Creating new params file')
     with open(params_out_path, 'w') as params_file:
         json.dump(all_params_dict, params_file, indent=4)
