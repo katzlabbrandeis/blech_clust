@@ -5,8 +5,8 @@ This module provides functionality for handling digital inputs and reading data 
   - `__init__`: Initializes the handler with a data directory and file type.
   - `get_dig_in_files`: Retrieves digital input files and their metadata based on the specified file type.
   - `get_trial_data`: Extracts trial data (start and end times) from digital input files.
-  - `write_out_frame`: Saves the digital input data frame to a CSV file.
-  - `load_dig_in_frame`: Loads the digital input data frame from a CSV file.
+  - `write_out_frame`: Saves the digital input data frame to a long-format CSV file (one row per trial).
+  - `load_dig_in_frame`: Loads the long-format digital input data frame from a CSV file.
 
 - `read_traditional_intan`: Reads traditional Intan format data and saves it to an HDF5 file, organizing amplifier and EMG data.
 
@@ -223,16 +223,38 @@ class DigInHandler:
         dig_in_frame.reset_index(inplace=True, drop=True)
         self.dig_in_frame = dig_in_frame
 
+    def _expand_to_long_format(self):
+        """Expand wide dig_in_frame to long format (one row per trial).
+
+        Preserves all per-channel metadata columns (e.g. taste, concentration,
+        palatability, laser_bool, laser_params) added by blech_exp_info.
+        Replaces the pulse_times list column with scalar start/end columns.
+        """
+        from ast import literal_eval as _literal_eval
+
+        rows = []
+        meta_cols = [c for c in self.dig_in_frame.columns
+                     if c not in ('pulse_times', 'trial_counts')]
+        for _, row in self.dig_in_frame.iterrows():
+            pulse_times = row['pulse_times']
+            if isinstance(pulse_times, str):
+                pulse_times = _literal_eval(pulse_times)
+            meta = {c: row[c] for c in meta_cols}
+            for start, end in pulse_times:
+                rows.append({**meta, 'start': start, 'end': end})
+        return pd.DataFrame(rows)
+
     def write_out_frame(self):
-        # Write out the dig-in frame
-        self.dig_in_frame.to_csv(os.path.join(
-            self.data_dir, 'dig_in_frame.csv'))
-        print('Dig-in frame written out to dig_in_frame.csv')
+        """Write dig_in_frame to CSV in long format (one row per trial)."""
+        long_frame = self._expand_to_long_format()
+        long_frame.to_csv(
+            os.path.join(self.data_dir, 'dig_in_frame.csv'), index=False)
+        print('Dig-in frame written out to dig_in_frame.csv (long format)')
 
     def load_dig_in_frame(self):
-        # Load the dig-in frame
-        self.dig_in_frame = pd.read_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'),
-                                        index_col=0)
+        """Load long-format dig_in_frame from CSV."""
+        self.dig_in_frame = pd.read_csv(
+            os.path.join(self.data_dir, 'dig_in_frame.csv'))
         print('Dig-in frame loaded from dig_in_frame.csv')
 
 

@@ -48,7 +48,6 @@ from blech_clust.utils.qa_utils import channel_corr  # noqa
 from blech_clust.utils import read_file  # noqa
 from blech_clust.utils.blech_channel_profile import plot_channels  # noqa
 # Necessary python modules
-from ast import literal_eval  # noqa
 import pylab as plt  # noqa
 import shutil  # noqa
 import pandas as pd  # noqa
@@ -299,7 +298,7 @@ this_dig_handler = read_file.DigInHandler(dir_name, file_type)
 this_dig_handler.load_dig_in_frame()
 
 print('DigIn data loaded')
-print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
+print(this_dig_handler.dig_in_frame)
 
 if file_type != 'traditional':
     electrodes_list = file_lists[file_type]['electrodes']
@@ -450,12 +449,9 @@ if file_type in ['one file per channel', 'one file per signal type']:
 ##############################
 # Also output a plot with digin and laser info
 
-# Downsample to 10 seconds
-dig_in_pulses = this_dig_handler.dig_in_frame.pulse_times.values
-dig_in_pulses = [literal_eval(x) for x in dig_in_pulses]
-# Take starts of pulses
-dig_in_pulses = [[x[0] for x in this_dig] for this_dig in dig_in_pulses]
-dig_in_markers = [np.array(x) / sampling_rate for x in dig_in_pulses]
+# Build dig-in markers from long-format frame
+dig_in_frame = this_dig_handler.dig_in_frame
+dig_in_nums_unique = sorted(dig_in_frame['dig_in_nums'].unique())
 
 # Check if laser is present
 laser_dig_in = info_dict['laser_params']['dig_in_nums']
@@ -470,14 +466,17 @@ for num in laser_dig_in:
 dig_in_map = {num: dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
 dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
 
-for i, vals in enumerate(dig_in_markers):
-    plt.scatter(vals,
-                np.ones_like(vals)*i,
+for i, num in enumerate(dig_in_nums_unique):
+    starts = dig_in_frame.loc[dig_in_frame['dig_in_nums'] == num, 'start'].values
+    markers = np.array(starts, dtype=float) / sampling_rate
+    plt.scatter(markers,
+                np.ones_like(markers)*i,
                 s=50, marker='|', c='k')
 # If there is a laser_dig_in, mark laser trials with axvline
 if len(laser_dig_in) > 0:
-    # laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
-    laser_markers = dig_in_markers[laser_dig_in[0]]
+    laser_starts = dig_in_frame.loc[
+        dig_in_frame['dig_in_nums'] == laser_dig_in[0], 'start'].values
+    laser_markers = np.array(laser_starts, dtype=float) / sampling_rate
     for marker in laser_markers:
         plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
                     zorder=-1)
@@ -489,7 +488,6 @@ plt.savefig(os.path.join(qa_out_path, 'digital_inputs.png'))
 plt.close()
 
 ##############################
-
 
 # Generate the processing scripts
 generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
