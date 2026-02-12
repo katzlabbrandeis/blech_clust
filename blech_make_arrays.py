@@ -221,6 +221,14 @@ if __name__ == '__main__':
     taste_info_frame.reset_index(drop=True, inplace=True)
     taste_info_frame['abs_trial_num'] = taste_info_frame.index
 
+    # Calculate taste duration
+    taste_info_frame['taste_duration'] = (
+        taste_info_frame['end'] - taste_info_frame['start']
+    )
+    taste_info_frame['taste_duration_ms'] = (
+        taste_info_frame['taste_duration'] / sampling_rate
+    ) * 1000
+
     # Add taste_rel_trial_num
     taste_grouped = taste_info_frame.groupby('dig_in_num')
     fin_group = []
@@ -368,6 +376,27 @@ if __name__ == '__main__':
     ax.legend()
     # plt.show()
     fig.savefig(os.path.join(metadata_handler.dir_name, 'QA_output', 'laser_timing_correction.png'),
+                bbox_inches='tight')
+    plt.close()
+
+    ##############################
+    # Create barplot of taste_duration_ms across dig-ins
+    fig, ax = plt.subplots(figsize=(8, 6))
+    taste_duration_data = trial_info_frame.groupby(
+        'dig_in_name_taste')['taste_duration_ms'].apply(list)
+    positions = np.arange(len(taste_duration_data))
+
+    for i, (dig_in_name, durations) in enumerate(taste_duration_data.items()):
+        ax.bar(i, np.mean(durations), yerr=np.std(durations),
+               capsize=5, alpha=0.7, label=dig_in_name)
+
+    ax.set_xlabel('Dig-in')
+    ax.set_ylabel('Taste Duration (ms)')
+    ax.set_title('Taste Duration Across Dig-ins')
+    ax.set_xticks(positions)
+    ax.set_xticklabels(taste_duration_data.index, rotation=45, ha='right')
+    fig.tight_layout()
+    fig.savefig(os.path.join(metadata_handler.dir_name, 'QA_output', 'taste_duration_barplot.png'),
                 bbox_inches='tight')
     plt.close()
 
