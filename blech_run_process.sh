@@ -149,11 +149,14 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     data = []
     for f in files:
         npz = np.load(f)
-        data.append({
+        d = {
             'times': npz['times'],
             'thresholds': npz['thresholds'],
             'electrode_num': int(npz['electrode_num']),
-        })
+        }
+        if 'global_threshold' in npz:
+            d['global_threshold'] = float(npz['global_threshold'])
+        data.append(d)
 
     n_electrodes = len(data)
     if n_electrodes == 0:
@@ -174,6 +177,11 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     for i, d in enumerate(data):
         ax = axes[i]
         ax.plot(d['times'], d['thresholds'], linewidth=0.8)
+        if 'global_threshold' in d:
+            ax.axhline(
+                d['global_threshold'],
+                color='red', linestyle='--', linewidth=0.8,
+            )
         ax.set_title(f"Electrode {d['electrode_num']:02d}", fontsize=10)
         if i % n_cols == 0:
             ax.set_ylabel("Threshold (µV)")
@@ -184,6 +192,14 @@ def plot_rolling_threshold_grid(rolling_thresh_dir, output_path):
     for i in range(n_electrodes, len(axes)):
         axes[i].set_visible(False)
 
+    # Add shared legend using first subplot's artists
+    from matplotlib.lines import Line2D
+    legend_handles = [
+        Line2D([0], [0], color='C0', linewidth=0.8, label='Rolling threshold'),
+        Line2D([0], [0], color='red', linestyle='--', linewidth=0.8,
+               label='Global threshold'),
+    ]
+    fig.legend(handles=legend_handles, loc='upper right', fontsize=10)
     fig.suptitle("Rolling Spike Detection Thresholds", fontsize=14)
     fig.tight_layout()
     fig.savefig(output_path, bbox_inches='tight', dpi=150)

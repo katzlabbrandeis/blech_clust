@@ -205,7 +205,14 @@ if params_dict.get('use_rolling_threshold', False):
         step_len=step_len,
         threshold_mult=params_dict['waveform_threshold'],
     )
-    rolling_fig, _ = bpu.plot_rolling_threshold(rt_times, rt_thresholds)
+
+    # Compute global threshold (MAD over entire recording) for comparison
+    global_median = np.median(filtered_data)
+    global_mad = np.median(np.abs(filtered_data - global_median))
+    global_threshold = params_dict['waveform_threshold'] * global_mad / 0.6745
+
+    rolling_fig, _ = bpu.plot_rolling_threshold(
+        rt_times, rt_thresholds, global_threshold=global_threshold)
     rolling_fig.savefig(
         f'./Plots/{electrode_num:02}/rolling_threshold.png',
         bbox_inches='tight', dpi=300,
@@ -220,6 +227,7 @@ if params_dict.get('use_rolling_threshold', False):
         times=rt_times,
         thresholds=rt_thresholds,
         electrode_num=electrode_num,
+        global_threshold=global_threshold,
     )
 # ------------------------------------------------------------
 
