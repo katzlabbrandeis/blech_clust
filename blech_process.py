@@ -254,9 +254,12 @@ if classifier_params['use_neuRecommend']:
 if classifier_params['use_classifier'] and \
         classifier_params['use_neuRecommend']:
     print(' == Using neuRecommend classifier ==')
+    # Interpolate waveforms to 30kHz for classifier compatibility
+    interpolated_slices = spike_set.interpolate_waveforms(
+        target_sampling_rate=30000.0)
     # Full classification pipeline also has feature transformation pipeline
     classifier_handler.classify_waveforms(
-        spike_set.slices_dejittered,
+        interpolated_slices,
         spike_set.times_dejittered,
     )
     classifier_handler.gen_plots()
