@@ -1506,7 +1506,8 @@ class ephys_data():
             # Handle both even and uneven trial cases
             stft_iters = []
             for taste_idx, taste_lfp in enumerate(self.lfp_list):
-                n_channels, n_trials, _ = taste_lfp.shape
+                # n_channels, n_trials, _ = taste_lfp.shape
+                n_channels, n_trials = len(taste_lfp), len(taste_lfp[0])
                 for chan_idx in range(n_channels):
                     for trial_idx in range(n_trials):
                         stft_iters.append((taste_idx, chan_idx, trial_idx))
