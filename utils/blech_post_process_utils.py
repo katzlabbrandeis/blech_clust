@@ -751,6 +751,7 @@ class unit_descriptor_handler():
             split_or_merge,
             override_ask=False,
             layout_frame=None,
+            avg_classifier_prob=np.nan,
     ):
         """
         Save unit to hdf5 file
@@ -822,6 +823,7 @@ class unit_descriptor_handler():
         unit_description['regular_spiking'] = unit_properties['regular_spiking']
         unit_description['fast_spiking'] = unit_properties['fast_spiking']
         unit_description['snr'] = snr
+        unit_description['avg_classifier_prob'] = avg_classifier_prob
         unit_description.append()
 
         # Flush table and hf5
@@ -1069,6 +1071,7 @@ class sorted_unit_metadata(tables.IsDescription):
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
     snr = tables.Float32Col()
+    avg_classifier_prob = tables.Float32Col()
 
 # Define a unit_descriptor class to be used to add things (anything!)
 # about the sorted units to a pytables table
@@ -1083,6 +1086,7 @@ class unit_descriptor(tables.IsDescription):
     waveform_count = tables.Int32Col()
     hash = tables.StringCol(10)
     snr = tables.Float32Col()
+    avg_classifier_prob = tables.Float32Col()
 
 
 class split_merge_signal:
@@ -1633,4 +1637,4 @@ def auto_process_electrode(
         n_max_plot=5000,
     )
 
-    return subcluster_waveforms, subcluster_times, fin_bool, electrode_num
+    return subcluster_waveforms, subcluster_times, subcluster_prob, fin_bool, electrode_num
