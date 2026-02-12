@@ -678,11 +678,23 @@ class classifier_handler():
                     'blech_clust/README.md#setup for instructions")
 
     @staticmethod
-    def return_waveform_classifier_params_path(blech_clust_dir):
+    def return_waveform_classifier_params_path(blech_clust_dir, data_dir=None):
         """
         Inner function for get_waveform_classifier_params
         so that it can also be called externally
+
+        First checks data_dir for waveform_classifier_params.json,
+        then falls back to blech_clust_dir/params
         """
+        # First check data_dir if provided
+        if data_dir is not None:
+            data_dir_params_path = os.path.join(
+                data_dir,
+                'waveform_classifier_params.json')
+            if os.path.exists(data_dir_params_path):
+                return data_dir_params_path
+
+        # Fall back to blech_clust_dir/params
         params_file_path = os.path.join(
             blech_clust_dir,
             'params',
@@ -690,6 +702,8 @@ class classifier_handler():
         # If params file doesn't exist, stop execution
         if not os.path.exists(params_file_path):
             print('=== Waveform Classifier Params file not found. ===')
+            if data_dir is not None:
+                print(f'==> Checked in data directory: {data_dir}')
             print(
                 '==> Please copy [[ blech_clust/params/_templates/waveform_classifier_params.json ]] to [[ blech_clust/params/waveform_classifier_params.json ]] and update as needed.')
             exit()
@@ -699,7 +713,7 @@ class classifier_handler():
         this_path_handler = path_handler()
         self.blech_clust_dir = this_path_handler.blech_clust_dir
         params_file_path = self.return_waveform_classifier_params_path(
-            self.blech_clust_dir)
+            self.blech_clust_dir, self.data_dir)
         with open(params_file_path, 'r') as this_file:
             self.classifier_params = json.load(this_file)
 

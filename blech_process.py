@@ -232,7 +232,7 @@ del electrode
 # Load classifier if specificed
 classifier_params_path = \
     bpu.classifier_handler.return_waveform_classifier_params_path(
-        blech_clust_dir)
+        blech_clust_dir, data_dir_name)
 classifier_params = json.load(open(classifier_params_path, 'r'))
 
 
