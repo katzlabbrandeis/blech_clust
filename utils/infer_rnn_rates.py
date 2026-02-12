@@ -142,9 +142,9 @@ if os.path.exists(blechRNN_path):
 else:
     raise FileNotFoundError('blechRNN not found on Desktop')
 
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
-from utils.ephys_data import visualize as vz  # noqa
-from utils.ephys_data import ephys_data  # noqa
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.ephys_data import visualize as vz  # noqa
+from blech_clust.utils.ephys_data import ephys_data  # noqa
 from src.train import train_model, MSELoss  # noqa
 from src.model import autoencoderRNN  # noqa
 

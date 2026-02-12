@@ -1,6 +1,9 @@
 {
     "max_parallel_cpu": 16,
     "waveform_threshold": 5,
+    "use_rolling_threshold": true,
+    "rolling_threshold_window": 5.0,
+    "rolling_threshold_step": 5.0,
     "voltage_cutoff": 10000,
     "max_breach_rate": 1,
     "max_secs_above_cutoff": 60,
@@ -35,6 +38,7 @@
     "qa_params": {
         "n_corr_samples": 10000,
         "bridged_channel_threshold": 0.9,
+        "avg_intra_car_similarity_threshold": 0.95,
         "similarity_cutoff": 50,
         "similarity_waveform_count_cutoff": 10,
         "drift_params": {

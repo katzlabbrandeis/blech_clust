@@ -11,6 +11,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
+import shutil
 from tqdm import tqdm
 import pingouin as pg
 import matplotlib.pyplot as plt
@@ -25,9 +26,9 @@ import os
 import json
 import glob
 import itertools
-from utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
-from utils.ephys_data import ephys_data
-from utils.ephys_data import visualize as vz
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+from blech_clust.utils.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import visualize as vz
 import pandas as pd
 from ast import literal_eval
 pd.options.mode.chained_assignment = None
@@ -53,12 +54,14 @@ else:
 
 
 plot_dir = os.path.join(dir_name, 'unit_characteristic_plots')
-if not os.path.exists(plot_dir):
-    os.makedirs(plot_dir)
+if os.path.exists(plot_dir):
+    shutil.rmtree(plot_dir)
+os.makedirs(plot_dir)
 
 agg_plot_dir = os.path.join(plot_dir, 'aggregated')
-if not os.path.exists(agg_plot_dir):
-    os.makedirs(agg_plot_dir)
+if os.path.exists(agg_plot_dir):
+    shutil.rmtree(agg_plot_dir)
+os.makedirs(agg_plot_dir)
 
 os.chdir(dir_name)
 
@@ -576,8 +579,7 @@ def palatability_corr(x):
     return pd.Series({'rho': rho, 'pval': p})
 
 
-pal_frame = seq_firing_frame.groupby(
-    group_cols).progress_apply(palatability_corr)
+pal_frame = seq_firing_frame.groupby(group_cols).apply(palatability_corr)
 pal_frame.reset_index(inplace=True)
 pal_frame['abs_rho'] = pal_frame.rho.abs()
 pal_frame['pal_sig'] = (pal_frame['pval'] < alpha)*1

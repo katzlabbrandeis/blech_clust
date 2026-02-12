@@ -16,6 +16,13 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
       - name: Set up repo
         uses: actions/checkout@v4
 
@@ -24,14 +31,22 @@ jobs:
           python --version
           which python
 
-      - name: Install pytest if needed
+      - name: Install blech_clust with test dependencies
         run: |
-          conda run -n blech_clust pip install pytest pytest-cov
+          make base test
 
       - name: Run pytest
         run: |
-          conda run -n blech_clust python -m pytest tests/ -v
+          conda run --no-capture-output -n blech_clust python -m pytest tests/ -v
 
       - name: Run pytest with coverage
         run: |
-          conda run -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
+          conda run --no-capture-output -n blech_clust python -m pytest tests/ --cov=. --cov-report=xml
+
+      - name: Cleanup after tests
+        if: always()
+        run: |
+          echo "Cleaning up test artifacts"
+          rm -rf .pytest_cache
+          rm -rf .coverage
+          rm -f coverage.xml

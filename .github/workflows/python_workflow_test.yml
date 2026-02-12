@@ -2,122 +2,81 @@
 # See: https://docs.github.com/en/actions
 #
 # This workflow runs Python tests on a self-hosted runner
-# Jobs are independent to allow partial success/failure reporting
+# Jobs run sequentially within each workflow run (via needs:)
+# Workflow-level concurrency ensures only one workflow runs at a time across all PRs
 
 name: Python test
 run-name: python_test
 on:
   pull_request:
+    paths:
+      - '**.py'
+      - '**.sh'
+      - '.github/workflows/**'
+      - 'utils/**/*.py'
+      - 'utils/**/*.sh'
+      - 'emg/**/*.py'
+      - 'emg/**/*.sh'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   Preamble:
     runs-on: self-hosted
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     steps:
+      - name: Clean working directory
+        run: |
+          echo "Cleaning working directory to ensure fresh code"
+          rm -rf /home/exouser/Desktop/blech_clust
+          mkdir -p /home/exouser/Desktop/blech_clust
+
+      - name: Clean workspace
+        run: |
+          echo "Cleaning workspace to ensure fresh checkout"
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
+
       - run: pwd
       - run: which python
       - run: conda info --envs
+
       - name: Set up repo
         uses: actions/checkout@v4
+
       - run: git status
       - run: echo "${{ github.ref }} | ${{ github.repository }} | ${{ github.event.pull_request.title }}"
+
       - name: check labels
         run: echo "${{ github.event.pull_request.labels.*.name }}"
+
       - name: Copy files to working-directory
         run: cp -r ./* /home/exouser/Desktop/blech_clust
+
       - name: Check files in working-directory
         run: ls -R /home/exouser/Desktop/blech_clust
+
       - name: Setup params
         run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
+
       - name: Check params
         run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
-  Install:
-    runs-on: self-hosted
-    needs: Preamble
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
-    # Only run installation when PR has 'install' label
-    steps:
-      - name: Clean install
+      - name: Install blech_clust package
         working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          echo "Running installation for tag ${{ github.ref }}"
-          make clean
-      - name: Install dependencies
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make base
-      - name: Install EMG
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make emg
-      - name: Install neuRecommend
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make neurec
-      - name: Install BlechRNN
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make blechrnn
-      - name: Install Prefect
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make prefect
-      - name: Patch dependencies
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: |
-          make patch
-  Spike-EMG-Install:
-    runs-on: self-hosted
-    needs: Install
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'install') }}
-    steps:
-      - name: Prefect SPIKE then EMG test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run:  conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
-                echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
-                exit 1;
-              fi
-  EMG-Only-Install:
-    runs-on: self-hosted
-    needs: Spike-EMG-Install
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    # Test EMG analysis pipeline in isolation
-    steps:
-      - name: Prefect EMG only test
-        shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
-                echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
-                exit 1;
-              fi
+        run: make base test
+
   Spike-EMG:
     runs-on: self-hosted
     needs: Preamble
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     # Test full pipeline with both spike sorting and EMG analysis
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
+        run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
                 echo "ERROR detected by bash";
@@ -127,19 +86,22 @@ jobs:
   EMG-Only:
     runs-on: self-hosted
     needs: Spike-EMG
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     # Test EMG analysis pipeline in isolation
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'install') }}
     steps:
       - name: Prefect EMG only test
         shell: bash
         working-directory: /home/exouser/Desktop/blech_clust
-        run: conda run -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
+        run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
               tee ~/Desktop/blech_clust/github.log;
               if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
                 echo "ERROR detected by bash";
                 ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
                 exit 1;
               fi
+
+      - name: Cleanup after tests
+        if: always()
+        run: |
+          echo "Cleaning up working directory and test artifacts"
+          rm -rf /home/exouser/Desktop/blech_clust
+          echo "Note: Test data in ~/.blech_clust_test_data is preserved for reuse"
