@@ -26,11 +26,11 @@ This module is designed for handling and processing electrophysiological data, s
   - `gen_plots`: Generates plots for predicted spikes and noise.
 
 - **electrode_handler**: Handles electrode data processing.
-  - `filter_electrode`: Filters raw electrode data.
   - `cut_to_int_seconds`: Cuts data to integer seconds.
   - `calc_recording_cutoff`: Calculates recording cutoff based on parameters.
   - `make_cutoff_plot`: Generates a plot showing recording cutoff.
   - `cutoff_electrode`: Cuts off electrode data at the calculated cutoff.
+  - Note: Filtering is now performed during data loading (see read_file.py)
 
 - **spike_handler**: Processes spikes from electrode data.
   - `extract_waveforms`: Extracts waveforms from filtered electrode data.
@@ -905,6 +905,9 @@ class classifier_handler():
 class electrode_handler():
     """
     Class to handle electrode data
+
+    Note: Electrode data is now pre-filtered (300-3000Hz bandpass)
+    during loading in read_file.py
     """
 
     def __init__(self, hdf5_path, electrode_num, params_dict):
@@ -915,7 +918,8 @@ class electrode_handler():
         hf5 = tables.open_file(hdf5_path, 'r')
         el_path = f'/raw/electrode{electrode_num:02}'
         if el_path in hf5:
-            self.raw_el = hf5.get_node(el_path)[:]
+            # Data is already filtered during loading
+            self.filt_el = hf5.get_node(el_path)[:]
         else:
             raise Exception(f'{el_path} not in HDF5')
         hf5.close()
@@ -923,15 +927,13 @@ class electrode_handler():
     def preprocess_electrode(self):
         """
         Complete preprocessing pipeline for electrode data:
-        1. Filter the electrode data
-        2. Cut to integer seconds
-        3. Calculate recording cutoff
-        4. Make cutoff plot
-        5. Apply cutoff to electrode data
-        """
-        # Filter electrode
-        self.filter_electrode()
+        1. Cut to integer seconds
+        2. Calculate recording cutoff
+        3. Make cutoff plot
+        4. Apply cutoff to electrode data
 
+        Note: Filtering is now performed during data loading (see read_file.py)
+        """
         # Cut to integer seconds
         self.cut_to_int_seconds()
 
@@ -945,16 +947,6 @@ class electrode_handler():
         self.cutoff_electrode()
 
         return self.filt_el
-
-    def filter_electrode(self):
-        # Raw units get multiplied by 0.195 to get MICROVOLTS
-        self.filt_el = clust.get_filtered_electrode(
-            self.raw_el,
-            freq=[self.params_dict['bandpass_lower_cutoff'],
-                  self.params_dict['bandpass_upper_cutoff']],
-            sampling_rate=self.params_dict['sampling_rate'],)
-        # Delete raw electrode recording from memory
-        del self.raw_el
 
     def adjust_to_sampling_rate(data, sampling_rate):
         return
