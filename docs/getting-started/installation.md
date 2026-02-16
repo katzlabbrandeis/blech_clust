@@ -1,9 +1,16 @@
 # Installation
 
+## Platform Support
+
+> **⚠️ Important**: blech_clust is primarily tested and supported on Linux systems. The make-based installation process works only on Linux.
+
+**For Windows Users**: We recommend installing a tested version of Ubuntu via Windows Subsystem for Linux (WSL). This provides a Linux environment within Windows where blech_clust can be installed and run properly.
+
 ## Prerequisites
 
 Before installing blech_clust, ensure you have:
 
+- **Linux Operating System**: Ubuntu 20.04, 22.04, or 24.04 (tested versions)
 - **Conda/Miniconda**: Required for environment management
 - **Git**: For cloning repositories
 - **System packages**: GNU parallel (optional, for parallel processing)
@@ -62,6 +69,9 @@ The following parameter files control pipeline behavior:
 - **sorting_params.json** - Spike sorting parameters:
     - `bandpass_lower_cutoff` / `bandpass_upper_cutoff`: Filter frequencies (default: 300-3000 Hz)
     - `waveform_threshold`: Spike detection threshold in standard deviations (default: 5)
+    - `use_rolling_threshold`: Use per-window adaptive thresholds instead of global threshold (default: true)
+    - `rolling_threshold_window`: Window size in seconds for rolling threshold computation (default: 5.0)
+    - `rolling_threshold_step`: Step size in seconds between windows (default: 5.0)
     - `spike_snapshot_before` / `spike_snapshot_after`: Waveform extraction window in ms
     - `clustering_params`: GMM clustering settings
     - `qa_params`: Quality assurance thresholds
@@ -91,6 +101,18 @@ The following parameter files control pipeline behavior:
   ```bash
   conda activate blech_clust
   ```
+
+## Tested Platforms
+
+blech_clust is continuously tested on the following platform combinations:
+
+| Linux Distribution | Python Versions | Status |
+|-------------------|-----------------|---------|
+| Ubuntu 20.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+| Ubuntu 22.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+| Ubuntu 24.04      | 3.8, 3.9, 3.10, 3.11 | ✅ Tested |
+
+> **Note**: While other Linux distributions and Python versions may work, only the combinations above are actively tested in our continuous integration pipeline. For best results, we recommend using one of the tested configurations.
 
 ## Test Dataset
 

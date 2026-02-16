@@ -65,6 +65,21 @@ Core spike extraction and clustering module.
 - Clustering algorithms
 - UMAP dimensionality reduction
 
+**Spike Detection:**
+
+By default, spike detection uses a rolling (adaptive) threshold that computes the noise level independently for each time window. This allows detection to adapt to local noise variations across the recording.
+
+- `use_rolling_threshold`: Enable/disable rolling threshold (default: true)
+- `rolling_threshold_window`: Window size in seconds (default: 5.0)
+- `rolling_threshold_step`: Step size in seconds (default: 5.0)
+- `waveform_threshold`: Threshold multiplier in standard deviations (default: 5)
+
+When rolling threshold is enabled, the threshold is computed as `waveform_threshold * MAD / 0.6745` for each window, where MAD is the Median Absolute Deviation. This is more robust to outliers than standard deviation.
+
+Set `use_rolling_threshold: false` in sorting_params.json to use a single global threshold computed over the entire recording.
+
+Example rolling threshold plots in the [migration guide](../getting-started/migration-guide/qa-improvements.md)
+
 **Usage:**
 
 ```bash
