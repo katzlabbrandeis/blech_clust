@@ -130,10 +130,12 @@ cmap = plt.cm.get_cmap('tab10')
 colors = [cmap(i) for i in range(len(spike_array))]
 print('=== Creating overlay PSTH plots ===')
 for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
+    # Calculate max y-value for this neuron across all laser conditions
+    this_neuron_data = mean_seq_firing.loc[mean_seq_firing.neuron_num == nrn_ind]
+    max_y_value = this_neuron_data['firing'].max() * 1.1  # Add 10% margin
+
     n_rows = np.max([n_laser_conditions, 2])
-    fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions),
-                           # sharex=True, sharey='col')
-                           )
+    fig, ax = plt.subplots(n_rows, 3, figsize=(20, 5*n_laser_conditions))
     # Remove axis for lower row if only one laser condition
     if n_laser_conditions == 1:
         for this_ax in ax[-1]:
@@ -161,6 +163,8 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             hue='taste',
             ax=ax[i, 0],
         )
+        # Manually set y-axis limit for consistent scale
+        ax[i, 0].set_ylim(0, max_y_value)
         # Plot laser condition
         if laser_cond != (0, 0):
             ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
@@ -218,6 +222,10 @@ if n_laser_conditions > 1:
         # 		this_dat.sequestered_firing_frame.neuron_num == nrn_ind
         # 		]
         this_firing.reset_index(inplace=True)
+
+        # Calculate max y-value for this neuron
+        max_y_value = this_firing['firing'].max() * 1.1  # Add 10% margin
+
         g = sns.relplot(
             data=this_firing,
             x='time_val',
@@ -234,6 +242,8 @@ if n_laser_conditions > 1:
         for i, this_ax in enumerate(g.axes.flatten()):
             this_ax.set_xlabel('Time (ms)')
             this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
+            # Set consistent y-axis limits for all subplots
+            this_ax.set_ylim(0, max_y_value)
             if i == 0:
                 this_ax.set_ylabel('Firing rate (Hz)')
                 this_ax.legend(title='Laser condition (lag, duration)')
