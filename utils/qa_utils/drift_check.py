@@ -12,6 +12,7 @@ This module analyzes drift in firing rates across a session using statistical me
 """
 
 # Import stuff!
+import argparse
 import numpy as np
 import tables
 import sys
@@ -76,7 +77,6 @@ def array_to_df(array, dim_names):
 # Initialize
 ############################################################
 # Parse command line arguments
-import argparse
 parser = argparse.ArgumentParser(
     description='Check for drift in firing rates')
 parser.add_argument('dir_name', type=str, nargs='?',

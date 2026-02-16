@@ -198,7 +198,8 @@ def parse_group_by(spikes_xr, group_by_list):
 if not test_mode:
     metadata_handler = imp_metadata([[], args.data_dir])
     # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(args.data_dir, args.overwrite_dependencies)
+    this_pipeline_check = pipeline_graph_check(
+        args.data_dir, args.overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

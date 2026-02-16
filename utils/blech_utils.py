@@ -229,12 +229,15 @@ class pipeline_graph_check():
                 else:
                     # Parent script not found in log
                     if self.overwrite_dependencies:
-                        print(f'WARNING: Parent script [{parent_script}] not found in log')
-                        print('Overwriting dependencies as --overwrite-dependencies flag was provided')
+                        print(
+                            f'WARNING: Parent script [{parent_script}] not found in log')
+                        print(
+                            'Overwriting dependencies as --overwrite-dependencies flag was provided')
                         return True
                     else:
                         # Ask user interactively whether to continue
-                        print(f'WARNING: Parent script [{parent_script}] not found in log')
+                        print(
+                            f'WARNING: Parent script [{parent_script}] not found in log')
                         response = input('Continue anyway? ([y]/n) :: ')
                         if response.lower() in ['', 'y', 'yes']:
                             print('Continuing with overwrite...')
@@ -246,12 +249,15 @@ class pipeline_graph_check():
             else:
                 # Log file doesn't exist
                 if self.overwrite_dependencies:
-                    print(f'WARNING: Execution log not found at {self.log_path}')
-                    print('Overwriting dependencies as --overwrite-dependencies flag was provided')
+                    print(
+                        f'WARNING: Execution log not found at {self.log_path}')
+                    print(
+                        'Overwriting dependencies as --overwrite-dependencies flag was provided')
                     return True
                 else:
                     # Ask user interactively whether to continue
-                    print(f'WARNING: Execution log not found at {self.log_path}')
+                    print(
+                        f'WARNING: Execution log not found at {self.log_path}')
                     response = input('Continue anyway? ([y]/n) :: ')
                     if response.lower() in ['', 'y', 'yes']:
                         print('Continuing with overwrite...')

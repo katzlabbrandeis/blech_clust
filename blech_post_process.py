@@ -139,7 +139,8 @@ dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
 script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name, args.overwrite_dependencies)
+this_pipeline_check = pipeline_graph_check(
+    dir_name, args.overwrite_dependencies)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 

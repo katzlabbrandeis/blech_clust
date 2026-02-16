@@ -724,7 +724,8 @@ def setup_experiment_info():
 
     if not test_bool:
         script_path = os.path.abspath(__file__)
-        this_pipeline_check = pipeline_graph_check(dir_path, args.overwrite_dependencies)
+        this_pipeline_check = pipeline_graph_check(
+            dir_path, args.overwrite_dependencies)
         this_pipeline_check.write_to_log(script_path, 'attempted')
 
     # Set up cache

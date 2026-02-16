@@ -11,6 +11,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
+import argparse
 import shutil
 from tqdm import tqdm
 import pingouin as pg
@@ -39,7 +40,6 @@ tqdm.pandas()
 test_bool = False
 
 # Parse command line arguments
-import argparse
 parser = argparse.ArgumentParser(
     description='Analyze unit characteristics')
 parser.add_argument('dir_name', type=str, nargs='?',
@@ -63,7 +63,8 @@ else:
     overwrite_dependencies = args.overwrite_dependencies
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name, overwrite_dependencies)
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

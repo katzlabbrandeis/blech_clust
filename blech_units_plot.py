@@ -46,7 +46,8 @@ def setup_environment(args):
 
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name, parsed_args.overwrite_dependencies)
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, parsed_args.overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

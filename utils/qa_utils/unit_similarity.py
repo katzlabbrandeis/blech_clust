@@ -219,7 +219,8 @@ if __name__ == '__main__':
     overwrite_dependencies = args.overwrite_dependencies
 
     # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(dir_name, overwrite_dependencies)
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
