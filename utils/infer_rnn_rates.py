@@ -63,6 +63,8 @@ else:
                         help='Time to forecast into the future (default: %(default)s)')
     parser.add_argument('--separate_tastes', action='store_true',
                         help='Fit RNNs for each taste separately (default: %(default)s)')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
 
     args = parser.parse_args()
 
@@ -196,7 +198,7 @@ def parse_group_by(spikes_xr, group_by_list):
 if not test_mode:
     metadata_handler = imp_metadata([[], args.data_dir])
     # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check = pipeline_graph_check(args.data_dir, args.overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

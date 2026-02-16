@@ -27,13 +27,26 @@ def setup_environment(args):
     Returns:
         tuple: metadata_handler, dir_name, params_dict, layout_frame, pipeline_check
     """
+    # Parse command line arguments
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Plot unit waveforms and ISI histograms')
+    parser.add_argument('dir_name', type=str, nargs='?',
+                        help='Directory name with data files')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
+    parsed_args = parser.parse_args(args[1:])
+
     # Get name of directory with the data files
-    metadata_handler = imp_metadata(args)
+    if parsed_args.dir_name:
+        metadata_handler = imp_metadata([[], parsed_args.dir_name])
+    else:
+        metadata_handler = imp_metadata(args)
     dir_name = metadata_handler.dir_name
 
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check = pipeline_graph_check(dir_name, parsed_args.overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

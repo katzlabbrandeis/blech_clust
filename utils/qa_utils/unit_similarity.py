@@ -200,12 +200,26 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
 
 
 if __name__ == '__main__':
+    # Parse command line arguments
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Check unit similarity')
+    parser.add_argument('dir_name', type=str, nargs='?',
+                        help='Directory name with data files')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
+    args = parser.parse_args()
+
     # Get name of directory with the data files
-    metadata_handler = imp_metadata(sys.argv)
+    if args.dir_name:
+        metadata_handler = imp_metadata([[], args.dir_name])
+    else:
+        metadata_handler = imp_metadata(sys.argv)
     dir_name = metadata_handler.dir_name
+    overwrite_dependencies = args.overwrite_dependencies
 
     # Perform pipeline graph check
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check = pipeline_graph_check(dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

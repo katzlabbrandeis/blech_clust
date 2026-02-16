@@ -120,6 +120,8 @@ def parse_arguments():
 
         # Additional information
         parser.add_argument('--notes', help='Experiment notes')
+        parser.add_argument('--overwrite_dependencies', action='store_true',
+                            help='Overwrite dependency check and continue even if previous script was not run')
 
         return parser.parse_args()
 
@@ -722,7 +724,7 @@ def setup_experiment_info():
 
     if not test_bool:
         script_path = os.path.abspath(__file__)
-        this_pipeline_check = pipeline_graph_check(dir_path)
+        this_pipeline_check = pipeline_graph_check(dir_path, args.overwrite_dependencies)
         this_pipeline_check.write_to_log(script_path, 'attempted')
 
     # Set up cache

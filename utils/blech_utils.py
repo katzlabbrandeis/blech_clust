@@ -116,8 +116,9 @@ class pipeline_graph_check():
     4) If prior exeuction is not present or failed, generate warning, give user option to override, else exit
     """
 
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, overwrite_dependencies=False):
         self.data_dir = data_dir
+        self.overwrite_dependencies = overwrite_dependencies
         self.tee = Tee(data_dir)
         self.load_graph()
         self.get_git_info()
@@ -208,6 +209,8 @@ class pipeline_graph_check():
     def check_previous(self, script_path):
         """
         Check that previous run script is present and executed successfully
+        If overwrite_dependencies is True, skip the check
+        If check fails and overwrite_dependencies is False, ask user interactively
         """
         # Check that script_path is present in flat_graph
         if script_path in self.flat_graph.keys():
@@ -224,8 +227,39 @@ class pipeline_graph_check():
                 if any([x in log_dict['completed'].keys() for x in parent_script]):
                     return True
                 else:
-                    raise ValueError(
-                        f'Parent script [{parent_script}] not found in log')
+                    # Parent script not found in log
+                    if self.overwrite_dependencies:
+                        print(f'WARNING: Parent script [{parent_script}] not found in log')
+                        print('Overwriting dependencies as --overwrite-dependencies flag was provided')
+                        return True
+                    else:
+                        # Ask user interactively whether to continue
+                        print(f'WARNING: Parent script [{parent_script}] not found in log')
+                        response = input('Continue anyway? ([y]/n) :: ')
+                        if response.lower() in ['', 'y', 'yes']:
+                            print('Continuing with overwrite...')
+                            return True
+                        else:
+                            print('Exiting...')
+                            raise ValueError(
+                                f'Parent script [{parent_script}] not found in log. User chose to exit.')
+            else:
+                # Log file doesn't exist
+                if self.overwrite_dependencies:
+                    print(f'WARNING: Execution log not found at {self.log_path}')
+                    print('Overwriting dependencies as --overwrite-dependencies flag was provided')
+                    return True
+                else:
+                    # Ask user interactively whether to continue
+                    print(f'WARNING: Execution log not found at {self.log_path}')
+                    response = input('Continue anyway? ([y]/n) :: ')
+                    if response.lower() in ['', 'y', 'yes']:
+                        print('Continuing with overwrite...')
+                        return True
+                    else:
+                        print('Exiting...')
+                        raise ValueError(
+                            f'Execution log not found at {self.log_path}. User chose to exit.')
         else:
             raise ValueError(
                 f'Script path [{script_path}] not found in flat graph')

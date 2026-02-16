@@ -125,15 +125,31 @@ if __name__ == '__main__':
 
     test_bool = False
 
+    # Parse command line arguments
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Create spike trains and EMG trials from HDF5 file')
+    parser.add_argument('dir_name', type=str, nargs='?',
+                        help='Directory name with data files')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
+    args = parser.parse_args()
+
     if test_bool:
         data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
         metadata_handler = imp_metadata([[], data_dir])
+        overwrite_dependencies = False
     else:
-        metadata_handler = imp_metadata(sys.argv)
+        # Pass dir_name if provided, otherwise use sys.argv
+        if args.dir_name:
+            metadata_handler = imp_metadata([[], args.dir_name])
+        else:
+            metadata_handler = imp_metadata(sys.argv[1:])
+        overwrite_dependencies = args.overwrite_dependencies
 
         # Perform pipeline graph check
         script_path = os.path.realpath(__file__)
-        this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name)
+        this_pipeline_check = pipeline_graph_check(metadata_handler.dir_name, overwrite_dependencies)
         this_pipeline_check.check_previous(script_path)
         this_pipeline_check.write_to_log(script_path, 'attempted')
 
