@@ -1554,7 +1554,6 @@ def auto_process_electrode(
     if clf_prob is None:
         print(f'Classifier probabilities not found for electrode {electrode_num}.')
         return None
-    clf_pred = np.ones(len(clf_prob), dtype=bool)  # Already filtered in helper
 
     # Get merge parameters
     mahal_thresh = auto_params['mahalanobis_merge_thresh']
