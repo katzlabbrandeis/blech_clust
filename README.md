@@ -18,6 +18,8 @@ Python and R based code for clustering and sorting electrophysiology data record
 
 ## Quick Start
 
+> **⚠️ Platform Support**: blech_clust is primarily tested and supported on Linux. The make-based installation process works only on Linux systems. Windows users should install a tested version of Ubuntu via WSL (Windows Subsystem for Linux).
+
 ```bash
 # Clone the repository
 git clone https://github.com/katzlabbrandeis/blech_clust.git
@@ -32,9 +34,26 @@ conda activate blech_clust
 # Run the pipeline
 python blech_exp_info.py /path/to/data
 bash blech_autosort.sh /path/to/data
+
+# Batch processing multiple directories
+bash blech_autosort_batch.sh /path/to/dir1 /path/to/dir2 /path/to/dir3
+# Or using a file with directory paths
+bash blech_autosort_batch.sh directories.txt
 ```
 
 For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/).
+
+## Tested Platforms
+
+blech_clust is regularly tested on the following platforms:
+
+| Linux Distribution | Python Versions |
+|-------------------|-----------------|
+| Ubuntu 20.04      | 3.8, 3.9, 3.10, 3.11 |
+| Ubuntu 22.04      | 3.8, 3.9, 3.10, 3.11 |
+| Ubuntu 24.04      | 3.8, 3.9, 3.10, 3.11 |
+
+> **Note**: While other Linux distributions may work, only the above combinations are actively tested in our CI pipeline.
 
 ## Documentation
 
