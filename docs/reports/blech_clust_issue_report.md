@@ -75,23 +75,23 @@ The following issues have very similar titles (potential duplicates or related w
 
 ### Exact Duplicates (100% similarity)
 
-| Issue #1 | Issue #2 | Title |
+| Issue [#1](https://github.com/katzlabbrandeis/blech_clust/pull/1) | Issue [#2](https://github.com/katzlabbrandeis/blech_clust/issues/2) | Title |
 |----------|----------|-------|
-| #709 | #708 | Implement GLM-based firing rate estimation |
-| #512 | #495 | Organize ephys_data.py methods into submodules |
+| [#709](https://github.com/katzlabbrandeis/blech_clust/pull/709) | [#708](https://github.com/katzlabbrandeis/blech_clust/issues/708) | Implement GLM-based firing rate estimation |
+| [#512](https://github.com/katzlabbrandeis/blech_clust/pull/512) | [#495](https://github.com/katzlabbrandeis/blech_clust/pull/495) | Organize ephys_data.py methods into submodules |
 
 ### High Similarity (>90%)
 
-| Issue #1 | Issue #2 | Similarity | Title |
+| Issue [#1](https://github.com/katzlabbrandeis/blech_clust/pull/1) | Issue [#2](https://github.com/katzlabbrandeis/blech_clust/issues/2) | Similarity | Title |
 |----------|----------|------------|-------|
-| #332 | #328 | 98% | Firing rate estimation using orthonormal basis |
-| #559 | #318 | 96% | PSTH similarity metric for QA |
-| #632 | #629 | 95% | Memory issues in blech_channel_profile |
-| #553 | #551 | 95% | Frequency filtering when loading data |
-| #501 | #497 | 93% | Error during blech_run_process.py |
-| #630 | #627 | 93% | Remove hardcoded downsampling |
-| #614 | #557 | 92% | Error running blech_process.py |
-| #116 | #88/91 | 90-93% | Parallel step directory input |
+| [#332](https://github.com/katzlabbrandeis/blech_clust/pull/332) | [#328](https://github.com/katzlabbrandeis/blech_clust/issues/328) | 98% | Firing rate estimation using orthonormal basis |
+| [#559](https://github.com/katzlabbrandeis/blech_clust/pull/559) | [#318](https://github.com/katzlabbrandeis/blech_clust/issues/318) | 96% | PSTH similarity metric for QA |
+| [#632](https://github.com/katzlabbrandeis/blech_clust/pull/632) | [#629](https://github.com/katzlabbrandeis/blech_clust/issues/629) | 95% | Memory issues in blech_channel_profile |
+| [#553](https://github.com/katzlabbrandeis/blech_clust/pull/553) | [#551](https://github.com/katzlabbrandeis/blech_clust/issues/551) | 95% | Frequency filtering when loading data |
+| [#501](https://github.com/katzlabbrandeis/blech_clust/pull/501) | [#497](https://github.com/katzlabbrandeis/blech_clust/issues/497) | 93% | Error during blech_run_process.py |
+| [#630](https://github.com/katzlabbrandeis/blech_clust/pull/630) | [#627](https://github.com/katzlabbrandeis/blech_clust/issues/627) | 93% | Remove hardcoded downsampling |
+| [#614](https://github.com/katzlabbrandeis/blech_clust/issues/614) | [#557](https://github.com/katzlabbrandeis/blech_clust/issues/557) | 92% | Error running blech_process.py |
+| [#116](https://github.com/katzlabbrandeis/blech_clust/issues/116) | [#88](https://github.com/katzlabbrandeis/blech_clust/issues/88)/91 | 90-93% | Parallel step directory input |
 
 ---
 
@@ -103,10 +103,10 @@ These issues are referenced by multiple other issues, suggesting high importance
 
 | Issue # | Times Referenced | Title |
 |---------|------------------|-------|
-| #568 | 9 | Interactive viewer for raw data |
-| #678 | 4 | Test sequencing in GitHub workflow |
-| #282 | 4 | Framework to create test dataset |
-| #562 | 4 | blech_exp_info.py path requirements |
+| [#568](https://github.com/katzlabbrandeis/blech_clust/issues/568) | 9 | Interactive viewer for raw data |
+| [#678](https://github.com/katzlabbrandeis/blech_clust/issues/678) | 4 | Test sequencing in GitHub workflow |
+| [#282](https://github.com/katzlabbrandeis/blech_clust/pull/282) | 4 | Framework to create test dataset |
+| [#562](https://github.com/katzlabbrandeis/blech_clust/issues/562) | 4 | blech_exp_info.py path requirements |
 
 ### Issues With Most References To Others
 
@@ -114,9 +114,9 @@ These issues reference many other issues (indicating work spanning multiple area
 
 | Issue # | References | Title |
 |---------|------------|-------|
-| #770 | 26 | Issue running blech_init.py |
-| #575 | 9 | Interactive raw data viewer |
-| #294 | 6 | Small datasets for testing |
+| [#770](https://github.com/katzlabbrandeis/blech_clust/issues/770) | 26 | Issue running blech_init.py |
+| [#575](https://github.com/katzlabbrandeis/blech_clust/pull/575) | 9 | Interactive raw data viewer |
+| [#294](https://github.com/katzlabbrandeis/blech_clust/pull/294) | 6 | Small datasets for testing |
 
 ---
 
@@ -139,18 +139,18 @@ These issues reference many other issues (indicating work spanning multiple area
 
 ### High Priority Open Issues (by labels and content)
 
-1. **#771**: Investigate discrepancy in firing rate plots
-2. **#770**: Issue running blech_init.py
-3. **#768**: Refactor classifier probability loading logic
-4. **#767**: Find way to emphasize amplitude when clustering
-5. **#766**: Add dependency override flag for pipeline
+1. **[#771](https://github.com/katzlabbrandeis/blech_clust/issues/771)**: Investigate discrepancy in firing rate plots
+2. **[#770](https://github.com/katzlabbrandeis/blech_clust/issues/770)**: Issue running blech_init.py
+3. **[#768](https://github.com/katzlabbrandeis/blech_clust/pull/768)**: Refactor classifier probability loading logic
+4. **[#767](https://github.com/katzlabbrandeis/blech_clust/issues/767)**: Find way to emphasize amplitude when clustering
+5. **[#766](https://github.com/katzlabbrandeis/blech_clust/issues/766)**: Add dependency override flag for pipeline
 
 ### Issues That Might Be Duplicates (Action Recommended)
 
-1. **#709 & #708**: Both about GLM-based firing rate estimation - should be merged
-2. **#512 & #494/#495**: Multiple issues about organizing ephys_data.py - should be consolidated
-3. **#632 & #629**: Both about memory issues in channel profile - should be merged
-4. **#614 & #557**: Both about errors running blech_process.py - should be consolidated
+1. **[#709](https://github.com/katzlabbrandeis/blech_clust/pull/709) & [#708](https://github.com/katzlabbrandeis/blech_clust/issues/708)**: Both about GLM-based firing rate estimation - should be merged
+2. **[#512](https://github.com/katzlabbrandeis/blech_clust/pull/512) & [#494](https://github.com/katzlabbrandeis/blech_clust/issues/494)/[#495](https://github.com/katzlabbrandeis/blech_clust/pull/495)**: Multiple issues about organizing ephys_data.py - should be consolidated
+3. **[#632](https://github.com/katzlabbrandeis/blech_clust/pull/632) & [#629](https://github.com/katzlabbrandeis/blech_clust/issues/629)**: Both about memory issues in channel profile - should be merged
+4. **[#614](https://github.com/katzlabbrandeis/blech_clust/issues/614) & [#557](https://github.com/katzlabbrandeis/blech_clust/issues/557)**: Both about errors running blech_process.py - should be consolidated
 
 ---
 
