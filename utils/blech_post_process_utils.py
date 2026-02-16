@@ -205,6 +205,37 @@ def load_data_from_disk(data_dir, electrode_num, num_clusters):
         return True, loaded_dat
 
 
+def load_classifier_probabilities(data_dir, electrode_num):
+    """
+    Load classifier probabilities and predictions for a given electrode.
+    
+    Args:
+        data_dir: Directory containing the data files
+        electrode_num: Electrode number to load data for
+        
+    Returns:
+        clf_prob: Array of classifier probabilities filtered by clf_pred,
+                  or None if files don't exist
+    """
+    clf_prob_path = os.path.join(
+        data_dir,
+        f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
+    )
+    clf_pred_path = os.path.join(
+        data_dir,
+        f'spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
+    )
+    
+    if os.path.exists(clf_prob_path) and os.path.exists(clf_pred_path):
+        clf_prob = np.load(clf_prob_path)
+        clf_pred = np.load(clf_pred_path)
+        # Filter to only include probabilities for predicted spikes
+        clf_prob = clf_prob[clf_pred]
+        return clf_prob
+    else:
+        return None
+
+
 def gen_select_cluster_plot(electrode_num, num_clusters, clusters):
     """
     Generate plots for the clusters initially supplied by the user
@@ -1518,16 +1549,11 @@ def auto_process_electrode(
         print('Fix the issue and try again. Skipping this electrode.')
         return None
 
-    clf_data_paths = [
-        f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
-        f'spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
-    ]
-    clf_data_paths = [os.path.join(data_dir, x) for x in clf_data_paths]
-    clf_prob, clf_pred = [np.load(this_path) for this_path in clf_data_paths]
-
-    # If auto-clustering was done, data has already been trimmed
-    clf_prob = clf_prob[clf_pred]
-    clf_pred = clf_pred[clf_pred]
+    # Load classifier probabilities
+    clf_prob = load_classifier_probabilities(data_dir, electrode_num)
+    if clf_prob is None:
+        print(f'Classifier probabilities not found for electrode {electrode_num}.')
+        return None
 
     # Get merge parameters
     mahal_thresh = auto_params['mahalanobis_merge_thresh']

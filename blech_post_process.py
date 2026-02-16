@@ -255,20 +255,8 @@ while (not auto_post_process or args.manual) or (args.sort_file is not None):
         continue
 
     # Load classifier probabilities if available
-    clf_prob_path = os.path.join(
-        dir_name,
-        f'spike_waveforms/electrode{electrode_num:02}/clf_prob.npy',
-    )
-    clf_pred_path = os.path.join(
-        dir_name,
-        f'spike_waveforms/electrode{electrode_num:02}/clf_pred.npy',
-    )
-    if os.path.exists(clf_prob_path) and os.path.exists(clf_pred_path):
-        manual_clf_prob = np.load(clf_prob_path)
-        manual_clf_pred = np.load(clf_pred_path)
-        manual_clf_prob = manual_clf_prob[manual_clf_pred]
-    else:
-        manual_clf_prob = None
+    manual_clf_prob = post_utils.load_classifier_probabilities(
+        dir_name, electrode_num)
 
     # Re-show images of neurons so dumb people like Abu can make sure they
     # picked the right ones
