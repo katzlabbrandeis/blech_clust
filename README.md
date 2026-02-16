@@ -34,6 +34,11 @@ conda activate blech_clust
 # Run the pipeline
 python blech_exp_info.py /path/to/data
 bash blech_autosort.sh /path/to/data
+
+# Batch processing multiple directories
+bash blech_autosort_batch.sh /path/to/dir1 /path/to/dir2 /path/to/dir3
+# Or using a file with directory paths
+bash blech_autosort_batch.sh directories.txt
 ```
 
 For detailed instructions, see the [Getting Started Guide](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/).
