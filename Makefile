@@ -100,7 +100,7 @@ params:
 		fi \
 	else \
 		echo "No parameter files found. Copying parameter templates to params directory..."; \
-		cp -v blech_clust/params/templates/*.json blech_clust/params/; \
+		cp -v params/templates/* params/; \
 	fi
 
 dev:
