@@ -134,7 +134,7 @@ def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame,
     
     Raises
     ------
-    Warning
+    ValueError
         If any laser pulses don't match within tolerance
     """
     laser_starts = laser_info_frame['start'].values
@@ -187,9 +187,9 @@ def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame,
             match_trials_ind.append(match_ind[0])
         
         if mismatches:
-            warning_msg = f"\n{'='*60}\nWARNING: {len(mismatches)} laser pulse(s) did not match within tolerance of {match_tol/sampling_rate:.3f} sec\n{'='*60}"
-            print(warning_msg)
-            raise Warning(warning_msg)
+            error_msg = f"\n{'='*60}\nERROR: {len(mismatches)} laser pulse(s) did not match within tolerance of {match_tol/sampling_rate:.3f} sec\n{'='*60}"
+            print(error_msg)
+            raise ValueError(error_msg)
             
     else:
         print('Aligning laser to taste using closest trial match')
