@@ -189,6 +189,7 @@ def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame,
         if mismatches:
             error_msg = f"\n{'='*60}\nERROR: {len(mismatches)} laser pulse(s) did not match within tolerance of {match_tol/sampling_rate:.3f} sec\n{'='*60}"
             print(error_msg)
+            print('=== You might want to make a new laser_params onset_duration entry for this session, or check the timing of your laser pulses. ===')
             raise ValueError(error_msg)
             
     else:
