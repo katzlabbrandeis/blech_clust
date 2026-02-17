@@ -5,6 +5,12 @@ from digital input data.
 Functions:
 - create_trial_info_frame: Creates a comprehensive trial information dataframe
   from taste and laser digital inputs
+- _create_taste_info_frame: Extract taste trial information from digital inputs
+- _create_laser_info_frame: Extract laser trial information from digital inputs
+- _match_laser_to_taste_trials: Match laser pulses to corresponding taste trials
+- _merge_trial_info: Merge taste and laser information into single dataframe
+- _correct_laser_timing: Apply timing corrections based on experimental parameters
+- _plot_laser_correction: Visualize laser timing corrections
 """
 import numpy as np
 import pandas as pd
@@ -13,16 +19,9 @@ import os
 from ast import literal_eval
 
 
-def create_trial_info_frame(
-        dig_handler,
-        taste_digin_nums,
-        laser_digin_nums,
-        info_dict,
-        sampling_rate,
-        output_dir=None
-):
+def _create_taste_info_frame(dig_handler, taste_digin_nums):
     """
-    Create a trial information frame from digital input data.
+    Create taste information frame from digital input data.
 
     Parameters
     ----------
@@ -30,22 +29,12 @@ def create_trial_info_frame(
         Handler object containing digital input data
     taste_digin_nums : list
         List of digital input numbers for taste stimuli
-    laser_digin_nums : list
-        List of digital input numbers for laser stimuli
-    info_dict : dict
-        Dictionary containing experimental information
-    sampling_rate : float
-        Sampling rate in Hz
-    output_dir : str, optional
-        Directory to save correction plots
 
     Returns
     -------
     pd.DataFrame
-        Trial information frame with taste and laser timing data
+        Taste information frame with trial timing and metadata
     """
-
-    # Create taste info frame
     taste_info_list = []
     for ind, num in enumerate(taste_digin_nums):
         this_dig = dig_handler.dig_in_frame.loc[
@@ -63,6 +52,7 @@ def create_trial_info_frame(
             )
         )
         taste_info_list.append(this_frame)
+    
     taste_info_frame = pd.concat(taste_info_list)
     taste_info_frame.sort_values(by=['start'], inplace=True)
     taste_info_frame.reset_index(drop=True, inplace=True)
@@ -77,7 +67,28 @@ def create_trial_info_frame(
     taste_info_frame = pd.concat(fin_group)
     taste_info_frame.sort_values(by=['start'], inplace=True)
 
-    # Create laser info frame
+    return taste_info_frame
+
+
+def _create_laser_info_frame(dig_handler, laser_digin_nums):
+    """
+    Create laser information frame from digital input data.
+
+    Parameters
+    ----------
+    dig_handler : DigInHandler
+        Handler object containing digital input data
+    laser_digin_nums : list
+        List of digital input numbers for laser stimuli
+
+    Returns
+    -------
+    pd.DataFrame or None
+        Laser information frame with pulse timing, or None if no laser inputs
+    """
+    if len(laser_digin_nums) == 0:
+        return None
+
     laser_info_list = []
     for ind, num in enumerate(laser_digin_nums):
         this_dig = dig_handler.dig_in_frame.loc[
@@ -96,36 +107,81 @@ def create_trial_info_frame(
         )
         laser_info_list.append(this_frame)
 
-    if len(laser_info_list) > 0:
-        laser_info_frame = pd.concat(laser_info_list)
-        laser_starts = laser_info_frame['start'].values
-        match_trials_ind = []
+    laser_info_frame = pd.concat(laser_info_list)
+    return laser_info_frame
 
-        if len(info_dict['laser_params']['onset_duration']) == 1:
-            # Match laser starts to taste starts within tolerance
-            match_tol = (2*sampling_rate)/10  # 200 ms
-            print(
-                f'Aligning laser to taste using exact match with tolerance of {match_tol/sampling_rate} sec')
-            for this_start in laser_starts:
-                match_ind = np.where(
-                    np.abs(taste_info_frame['start'] - this_start) < match_tol
-                )[0]
-                if not len(match_ind) == 1:
-                    error_str = f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
-                    raise ValueError(error_str)
-                match_trials_ind.append(match_ind[0])
-        else:
-            print('Aligning laser to taste using closest trial match')
-            for this_start in laser_starts:
-                match_ind = np.argmin(
-                    np.abs(taste_info_frame['start'] - this_start)
-                )
-                match_trials_ind.append(match_ind)
 
-        match_trials = taste_info_frame.iloc[match_trials_ind]['abs_trial_num'].values
-        laser_info_frame['abs_trial_num'] = match_trials
+def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame, 
+                                   info_dict, sampling_rate):
+    """
+    Match laser pulses to corresponding taste trials.
+
+    Parameters
+    ----------
+    laser_info_frame : pd.DataFrame
+        Laser information frame
+    taste_info_frame : pd.DataFrame
+        Taste information frame
+    info_dict : dict
+        Dictionary containing experimental information
+    sampling_rate : float
+        Sampling rate in Hz
+
+    Returns
+    -------
+    pd.DataFrame
+        Laser info frame with added abs_trial_num column
+    """
+    laser_starts = laser_info_frame['start'].values
+    match_trials_ind = []
+
+    if len(info_dict['laser_params']['onset_duration']) == 1:
+        # Match laser starts to taste starts within tolerance
+        match_tol = (2*sampling_rate)/10  # 200 ms
+        print(
+            f'Aligning laser to taste using exact match with tolerance of {match_tol/sampling_rate} sec')
+        for this_start in laser_starts:
+            match_ind = np.where(
+                np.abs(taste_info_frame['start'] - this_start) < match_tol
+            )[0]
+            if not len(match_ind) == 1:
+                error_str = f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
+                raise ValueError(error_str)
+            match_trials_ind.append(match_ind[0])
     else:
-        # Dummy (place-holder) data
+        print('Aligning laser to taste using closest trial match')
+        for this_start in laser_starts:
+            match_ind = np.argmin(
+                np.abs(taste_info_frame['start'] - this_start)
+            )
+            match_trials_ind.append(match_ind)
+
+    match_trials = taste_info_frame.iloc[match_trials_ind]['abs_trial_num'].values
+    laser_info_frame = laser_info_frame.copy()
+    laser_info_frame['abs_trial_num'] = match_trials
+    return laser_info_frame
+
+
+def _merge_trial_info(taste_info_frame, laser_info_frame, sampling_rate):
+    """
+    Merge taste and laser information into a single trial info frame.
+
+    Parameters
+    ----------
+    taste_info_frame : pd.DataFrame
+        Taste information frame
+    laser_info_frame : pd.DataFrame or None
+        Laser information frame, or None if no laser data
+    sampling_rate : float
+        Sampling rate in Hz
+
+    Returns
+    -------
+    pd.DataFrame
+        Merged trial information frame with timing calculations
+    """
+    if laser_info_frame is None:
+        # Create dummy laser data
         laser_info_frame = pd.DataFrame(
             dict(
                 dig_in_num=np.nan,
@@ -153,7 +209,7 @@ def create_trial_info_frame(
         trial_info_frame['start_laser'] - trial_info_frame['start_taste']
     )
 
-    # Convert to sec
+    # Convert to ms
     sec_cols = ['start_taste', 'end_taste', 'start_laser', 'end_laser',
                 'laser_duration', 'laser_lag']
     for col in sec_cols:
@@ -161,7 +217,25 @@ def create_trial_info_frame(
         trial_info_frame[new_col_name] = (
             trial_info_frame[col] / sampling_rate)*1000
 
-    # Correct laser timing using info_dict
+    return trial_info_frame
+
+
+def _correct_laser_timing(trial_info_frame, info_dict):
+    """
+    Correct laser timing using experimental parameters.
+
+    Parameters
+    ----------
+    trial_info_frame : pd.DataFrame
+        Trial information frame with laser timing
+    info_dict : dict
+        Dictionary containing laser parameters
+
+    Returns
+    -------
+    tuple
+        (corrected_trial_info_frame, orig_duration, orig_lag)
+    """
     laser_onset_duration_params = np.array(
         info_dict['laser_params']['onset_duration'])
 
@@ -173,7 +247,7 @@ def create_trial_info_frame(
     trial_info_frame['laser_lag_ms'] = \
         trial_info_frame['laser_lag_ms'].astype(int)
 
-    # Save originals to make figure
+    # Save originals for plotting
     orig_duration = trial_info_frame['laser_duration_ms'].copy()
     orig_lag = trial_info_frame['laser_lag_ms'].copy()
 
@@ -195,17 +269,97 @@ def create_trial_info_frame(
             laser_onset_duration_params[x][1] for x in match_ind
         ]
 
+    return trial_info_frame, orig_duration, orig_lag
+
+
+def _plot_laser_correction(trial_info_frame, orig_lag, orig_duration, output_dir):
+    """
+    Create visualization of laser timing corrections.
+
+    Parameters
+    ----------
+    trial_info_frame : pd.DataFrame
+        Trial information frame with corrected timing
+    orig_lag : pd.Series
+        Original laser lag values
+    orig_duration : pd.Series
+        Original laser duration values
+    output_dir : str
+        Directory to save the plot
+    """
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ax.scatter(orig_lag, orig_duration, label='Original', alpha=0.5)
+    ax.scatter(trial_info_frame['laser_lag_ms'],
+               trial_info_frame['laser_duration_ms'], label='Corrected')
+    ax.set_xlabel('Laser Lag (ms)')
+    ax.set_ylabel('Laser Duration (ms)')
+    ax.legend()
+    fig.savefig(os.path.join(output_dir, 'laser_timing_correction.png'),
+                bbox_inches='tight')
+    plt.close()
+
+
+def create_trial_info_frame(
+        dig_handler,
+        taste_digin_nums,
+        laser_digin_nums,
+        info_dict,
+        sampling_rate,
+        output_dir=None
+):
+    """
+    Create a trial information frame from digital input data.
+
+    This function orchestrates the creation of a comprehensive trial information
+    dataframe by extracting taste and laser timing data, matching them together,
+    and applying timing corrections.
+
+    Parameters
+    ----------
+    dig_handler : DigInHandler
+        Handler object containing digital input data
+    taste_digin_nums : list
+        List of digital input numbers for taste stimuli
+    laser_digin_nums : list
+        List of digital input numbers for laser stimuli
+    info_dict : dict
+        Dictionary containing experimental information
+    sampling_rate : float
+        Sampling rate in Hz
+    output_dir : str, optional
+        Directory to save correction plots
+
+    Returns
+    -------
+    pd.DataFrame
+        Trial information frame with taste and laser timing data
+    """
+    # Extract taste trial information
+    taste_info_frame = _create_taste_info_frame(dig_handler, taste_digin_nums)
+
+    # Extract laser trial information
+    laser_info_frame = _create_laser_info_frame(dig_handler, laser_digin_nums)
+
+    # Match laser pulses to taste trials
+    if laser_info_frame is not None:
+        laser_info_frame = _match_laser_to_taste_trials(
+            laser_info_frame, taste_info_frame, info_dict, sampling_rate
+        )
+
+    # Merge taste and laser information
+    trial_info_frame = _merge_trial_info(
+        taste_info_frame, laser_info_frame, sampling_rate
+    )
+
+    # Correct laser timing based on experimental parameters
+    trial_info_frame, orig_duration, orig_lag = _correct_laser_timing(
+        trial_info_frame, info_dict
+    )
+
     # Create correction plot if output directory provided
     if output_dir is not None:
-        fig, ax = plt.subplots(figsize=(4, 4))
-        ax.scatter(orig_lag, orig_duration, label='Original', alpha=0.5)
-        ax.scatter(trial_info_frame['laser_lag_ms'],
-                   trial_info_frame['laser_duration_ms'], label='Corrected')
-        ax.set_xlabel('Laser Lag (ms)')
-        ax.set_ylabel('Laser Duration (ms)')
-        ax.legend()
-        fig.savefig(os.path.join(output_dir, 'laser_timing_correction.png'),
-                    bbox_inches='tight')
-        plt.close()
+        _plot_laser_correction(
+            trial_info_frame, orig_lag, orig_duration, output_dir
+        )
 
     return trial_info_frame
