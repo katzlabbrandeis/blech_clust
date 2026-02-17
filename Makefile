@@ -83,17 +83,24 @@ blechrnn:
 	@echo "BlechRNN installation complete!"
 
 # Copy parameter templates
-# If more than 1 json file exists in params, don't copy templates and print warning
-# This is to prevent overwriting existing parameter files
+# If json files exist in params, list them and ask user if they want to overwrite
 # If no json files exist, copy templates
 params:
 	@echo "Checking parameter files..."
-	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
-		echo "Warning: Multiple params files detected in params dir. Not copying templates."; \
-	elif [ $$(ls params/*.json 2>/dev/null | wc -l) -eq 1 ]; then \
-		echo "Copying parameter templates to params directory..."; \
+	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 0 ]; then \
+		echo "Existing parameter files found in params directory:"; \
+		ls -la params/*.json; \
+		echo ""; \
+		read -p "Do you want to continue copying templates and potentially overwrite these files? (y/N): " confirm; \
+		if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+			echo "Copying parameter templates to params directory..."; \
+			cp -v params/_templates/* params/; \
+		else \
+			echo "Skipping parameter template copying."; \
+		fi \
 	else \
-		echo "No parameter files found. Templates should be copied if available."; \
+		echo "No parameter files found. Copying parameter templates to params directory..."; \
+		cp -v params/templates/* params/; \
 	fi
 
 dev:
