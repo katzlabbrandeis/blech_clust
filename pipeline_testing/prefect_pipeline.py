@@ -555,6 +555,7 @@ def test_ephys_data(data_dir):
         'get_sequestered_firing': 'trial_sequestering',
         'get_sequestered_data': 'trial_sequestering',
         'calc_palatability': 'palatability',
+        'profile_units': 'unit_profiling',
     }
 
     dat.check_laser()
