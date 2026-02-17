@@ -94,7 +94,7 @@ params:
 		read -p "Do you want to continue copying templates and potentially overwrite these files? (y/N): " confirm; \
 		if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 			echo "Copying parameter templates to params directory..."; \
-			cp -v blech_clust/params/templates/*.json blech_clust/params/; \
+			cp -v params/templates/*.json params/; \
 		else \
 			echo "Skipping parameter template copying."; \
 		fi \
