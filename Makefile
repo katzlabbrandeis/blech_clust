@@ -94,7 +94,7 @@ params:
 		read -p "Do you want to continue copying templates and potentially overwrite these files? (y/N): " confirm; \
 		if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 			echo "Copying parameter templates to params directory..."; \
-			cp -v params/templates/*.json params/; \
+			cp -v params/_templates/* params/; \
 		else \
 			echo "Skipping parameter template copying."; \
 		fi \
