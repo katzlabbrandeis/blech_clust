@@ -28,7 +28,6 @@ from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
-from blech_clust.utils.blech_trial_info import create_trial_info_frame
 
 def create_spike_trains_for_digin(
         this_starts,
@@ -141,53 +140,43 @@ if __name__ == '__main__':
     sampling_rate = params_dict['sampling_rate']
     sampling_rate_ms = sampling_rate/1000
 
-    this_dig_handler = DigInHandler(
-        metadata_handler.dir_name,
-        info_dict['file_type']
-    )
-    this_dig_handler.load_dig_in_frame()
-    print('DigIn data loaded')
-    print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
-
-    # Pull out taste dig-ins
-    taste_digin_nums = info_dict['taste_params']['dig_in_nums']
-    # taste_digin_channels = [dig_in_basename[x] for x in taste_digin_inds]
-    # taste_str = "\n".join(taste_digin_channels)
+    ##############################
+    # Load trial info frame
+    print('Loading trial info frame...')
+    
+    # Try to load from HDF5 first
+    try:
+        trial_info_frame = pd.read_hdf(metadata_handler.hdf5_name, 'trial_info_frame')
+        print('Trial info frame loaded from HDF5')
+    except (KeyError, FileNotFoundError):
+        # Fall back to CSV if HDF5 doesn't have it
+        csv_path = os.path.join(metadata_handler.dir_name, 'trial_info_frame.csv')
+        if os.path.exists(csv_path):
+            trial_info_frame = pd.read_csv(csv_path)
+            print('Trial info frame loaded from CSV')
+        else:
+            raise FileNotFoundError(
+                "trial_info_frame not found in HDF5 or CSV. "
+                "Please run blech_exp_info.py first to generate it."
+            )
+    
+    print(trial_info_frame.head())
+    
+    # Pull out taste dig-ins from trial_info_frame
+    taste_digin_nums = trial_info_frame['dig_in_num_taste'].unique().tolist()
     taste_str = "\n".join([str(x) for x in taste_digin_nums])
-
-    # Extract laser dig-in from params file
-    laser_digin_nums = [info_dict['laser_params']['dig_in_nums']][0]
-
-    # Pull laser digin from hdf5 file
-    if len(laser_digin_nums) == 0:
-        laser_digin_channels = []
-        laser_str = 'None'
-    else:
-        # laser_digin_channels = [dig_in_basename[x] for x in laser_digin_inds]
+    
+    # Extract laser dig-in info from trial_info_frame
+    has_laser = trial_info_frame['laser'].any()
+    if has_laser:
+        laser_digin_nums = trial_info_frame[trial_info_frame['laser']]['dig_in_num_laser'].unique().tolist()
         laser_str = "\n".join([str(x) for x in laser_digin_nums])
-
+    else:
+        laser_digin_nums = []
+        laser_str = 'None'
+    
     print(f'Taste dig_ins ::: \n{taste_str}\n')
     print(f'Laser dig_in ::: \n{laser_str}\n')
-
-    ##############################
-    # Create trial info frame
-    qa_output_dir = os.path.join(metadata_handler.dir_name, 'QA_output')
-    trial_info_frame = create_trial_info_frame(
-        this_dig_handler,
-        taste_digin_nums,
-        laser_digin_nums,
-        info_dict,
-        sampling_rate,
-        output_dir=qa_output_dir
-    )
-
-    ##############################
-    # Save trial info frame to hdf5 file and csv
-
-    trial_info_frame.to_hdf(metadata_handler.hdf5_name,
-                            'trial_info_frame', mode='a')
-    csv_path = os.path.join(metadata_handler.dir_name, 'trial_info_frame.csv')
-    trial_info_frame.to_csv(csv_path, index=False)
 
     # Get list of units under the sorted_units group.
     # Find the latest/largest spike time amongst the units,

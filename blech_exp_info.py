@@ -1452,6 +1452,45 @@ def main():
     with open(json_file_name, 'w') as file:
         json.dump(fin_dict, file, indent=4)
 
+    ##################################################
+    # Generate trial_info_frame
+    ##################################################
+    print("\n=== Generating Trial Info Frame ===")
+    
+    # Get recording parameters for sampling rate
+    if recording_params is not None:
+        sampling_rate = recording_params['sampling_rate']
+    else:
+        # Try to get from params file if available
+        params_file = os.path.join(dir_path, f"{dir_name}.params")
+        if os.path.exists(params_file):
+            with open(params_file, 'r') as f:
+                params_dict = json.load(f)
+                sampling_rate = params_dict.get('sampling_rate', 30000)
+        else:
+            # Default to 30kHz if not available
+            sampling_rate = 30000
+            print(f"Warning: Could not find sampling rate, using default: {sampling_rate} Hz")
+    
+    qa_output_dir = os.path.join(dir_path, 'QA_output')
+    os.makedirs(qa_output_dir, exist_ok=True)
+    
+    trial_info_frame = create_trial_info_frame(
+        this_dig_handler,
+        taste_digin_nums,
+        laser_digin_nums,
+        fin_dict,
+        sampling_rate,
+        output_dir=qa_output_dir
+    )
+    
+    # Save trial info frame to HDF5 file and CSV
+    hdf5_name = os.path.join(dir_path, f"{dir_name}.h5")
+    trial_info_frame.to_hdf(hdf5_name, 'trial_info_frame', mode='a')
+    csv_path = os.path.join(dir_path, 'trial_info_frame.csv')
+    trial_info_frame.to_csv(csv_path, index=False)
+    print(f"Trial info frame saved to: {csv_path}")
+
     # Write success to log
     if pipeline_check:
         pipeline_check.write_to_log(os.path.abspath(__file__), 'completed')
