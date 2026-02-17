@@ -52,7 +52,7 @@ def _create_taste_info_frame(dig_handler, taste_digin_nums):
             )
         )
         taste_info_list.append(this_frame)
-    
+
     taste_info_frame = pd.concat(taste_info_list)
     taste_info_frame.sort_values(by=['start'], inplace=True)
     taste_info_frame.reset_index(drop=True, inplace=True)
@@ -111,8 +111,8 @@ def _create_laser_info_frame(dig_handler, laser_digin_nums):
     return laser_info_frame
 
 
-def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame, 
-                                   info_dict, sampling_rate):
+def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame,
+                                 info_dict, sampling_rate):
     """
     Match laser pulses to corresponding taste trials.
 
