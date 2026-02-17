@@ -1,12 +1,12 @@
 """
-This module processes neural and EMG data from an HDF5 file, extracting and organizing 
-spike trains and EMG trials based on digital input events. It also handles metadata and 
+This module processes neural and EMG data from an HDF5 file, extracting and organizing
+spike trains and EMG trials based on digital input events. It also handles metadata and
 logs the processing steps.
 
 Functions:
-- `create_spike_trains_for_digin`: Generates spike trains for specified digital input 
+- `create_spike_trains_for_digin`: Generates spike trains for specified digital input
   events and stores them in the HDF5 file.
-- `create_emg_trials_for_digin`: Extracts EMG trial data for specified digital input 
+- `create_emg_trials_for_digin`: Extracts EMG trial data for specified digital input
   events and stores it in the HDF5 file.
 
 The main script:
@@ -28,6 +28,7 @@ from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
+
 
 def create_spike_trains_for_digin(
         this_starts,
@@ -143,14 +144,16 @@ if __name__ == '__main__':
     ##############################
     # Load trial info frame
     print('Loading trial info frame...')
-    
+
     # Try to load from HDF5 first
     try:
-        trial_info_frame = pd.read_hdf(metadata_handler.hdf5_name, 'trial_info_frame')
+        trial_info_frame = pd.read_hdf(
+            metadata_handler.hdf5_name, 'trial_info_frame')
         print('Trial info frame loaded from HDF5')
     except (KeyError, FileNotFoundError):
         # Fall back to CSV if HDF5 doesn't have it
-        csv_path = os.path.join(metadata_handler.dir_name, 'trial_info_frame.csv')
+        csv_path = os.path.join(
+            metadata_handler.dir_name, 'trial_info_frame.csv')
         if os.path.exists(csv_path):
             trial_info_frame = pd.read_csv(csv_path)
             print('Trial info frame loaded from CSV')
@@ -159,22 +162,23 @@ if __name__ == '__main__':
                 "trial_info_frame not found in HDF5 or CSV. "
                 "Please run blech_exp_info.py first to generate it."
             )
-    
+
     print(trial_info_frame.head())
-    
+
     # Pull out taste dig-ins from trial_info_frame
     taste_digin_nums = trial_info_frame['dig_in_num_taste'].unique().tolist()
     taste_str = "\n".join([str(x) for x in taste_digin_nums])
-    
+
     # Extract laser dig-in info from trial_info_frame
     has_laser = trial_info_frame['laser'].any()
     if has_laser:
-        laser_digin_nums = trial_info_frame[trial_info_frame['laser']]['dig_in_num_laser'].unique().tolist()
+        laser_digin_nums = trial_info_frame[trial_info_frame['laser']
+                                            ]['dig_in_num_laser'].unique().tolist()
         laser_str = "\n".join([str(x) for x in laser_digin_nums])
     else:
         laser_digin_nums = []
         laser_str = 'None'
-    
+
     print(f'Taste dig_ins ::: \n{taste_str}\n')
     print(f'Laser dig_in ::: \n{laser_str}\n')
 
