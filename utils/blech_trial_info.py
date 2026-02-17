@@ -131,23 +131,66 @@ def _match_laser_to_taste_trials(laser_info_frame, taste_info_frame,
     -------
     pd.DataFrame
         Laser info frame with added abs_trial_num column
+    
+    Raises
+    ------
+    Warning
+        If any laser pulses don't match within tolerance
     """
     laser_starts = laser_info_frame['start'].values
+    laser_ends = laser_info_frame['end'].values
+    taste_starts = taste_info_frame['start'].values
     match_trials_ind = []
+    mismatches = []
 
     if len(info_dict['laser_params']['onset_duration']) == 1:
         # Match laser starts to taste starts within tolerance
         match_tol = (2*sampling_rate)/10  # 200 ms
         print(
             f'Aligning laser to taste using exact match with tolerance of {match_tol/sampling_rate} sec')
-        for this_start in laser_starts:
+        
+        for idx, this_start in enumerate(laser_starts):
             match_ind = np.where(
                 np.abs(taste_info_frame['start'] - this_start) < match_tol
             )[0]
+            
             if not len(match_ind) == 1:
-                error_str = f'Exact match not found between taste and laser signals given tolerance of {(match_tol)/sampling_rate} sec'
-                raise ValueError(error_str)
+                # Find previous and next taste trials
+                taste_diffs = taste_starts - this_start
+                prev_taste_idx = np.where(taste_diffs < 0)[0]
+                next_taste_idx = np.where(taste_diffs > 0)[0]
+                
+                prev_taste_time = taste_starts[prev_taste_idx[-1]] / sampling_rate if len(prev_taste_idx) > 0 else None
+                next_taste_time = taste_starts[next_taste_idx[0]] / sampling_rate if len(next_taste_idx) > 0 else None
+                
+                laser_time = this_start / sampling_rate
+                laser_duration = (laser_ends[idx] - this_start) / sampling_rate
+                
+                print(f"\nWARNING: Laser pulse {idx} does not match within tolerance:")
+                print(f"  Laser pulse time: {laser_time:.3f} sec")
+                print(f"  Laser pulse duration: {laser_duration:.3f} sec")
+                print(f"  Previous taste trial time: {prev_taste_time:.3f} sec" if prev_taste_time is not None else "  Previous taste trial time: None (no previous trial)")
+                print(f"  Next taste trial time: {next_taste_time:.3f} sec" if next_taste_time is not None else "  Next taste trial time: None (no next trial)")
+                print(f"  Tolerance: {match_tol/sampling_rate:.3f} sec")
+                
+                mismatches.append({
+                    'laser_idx': idx,
+                    'laser_time': laser_time,
+                    'laser_duration': laser_duration,
+                    'prev_taste_time': prev_taste_time,
+                    'next_taste_time': next_taste_time
+                })
+                
+                # Use closest match for now
+                match_ind = np.array([np.argmin(np.abs(taste_starts - this_start))])
+            
             match_trials_ind.append(match_ind[0])
+        
+        if mismatches:
+            warning_msg = f"\n{'='*60}\nWARNING: {len(mismatches)} laser pulse(s) did not match within tolerance of {match_tol/sampling_rate:.3f} sec\n{'='*60}"
+            print(warning_msg)
+            raise Warning(warning_msg)
+            
     else:
         print('Aligning laser to taste using closest trial match')
         for this_start in laser_starts:
