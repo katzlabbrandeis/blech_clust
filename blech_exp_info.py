@@ -43,6 +43,7 @@ from blech_clust.utils.blech_utils import (
 )
 from blech_clust.utils.importrhdutilities import load_file, read_header
 from blech_clust.utils.read_file import DigInHandler
+from blech_clust.utils.blech_trial_info import create_trial_info_frame
 
 # Constants
 test_bool = False  # noqa
