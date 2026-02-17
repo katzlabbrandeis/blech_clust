@@ -1457,7 +1457,7 @@ def main():
     # Generate trial_info_frame
     ##################################################
     print("\n=== Generating Trial Info Frame ===")
-    
+
     # Get recording parameters for sampling rate
     if recording_params is not None:
         sampling_rate = recording_params['sampling_rate']
@@ -1471,11 +1471,12 @@ def main():
         else:
             # Default to 30kHz if not available
             sampling_rate = 30000
-            print(f"Warning: Could not find sampling rate, using default: {sampling_rate} Hz")
-    
+            print(
+                f"Warning: Could not find sampling rate, using default: {sampling_rate} Hz")
+
     qa_output_dir = os.path.join(dir_path, 'QA_output')
     os.makedirs(qa_output_dir, exist_ok=True)
-    
+
     trial_info_frame = create_trial_info_frame(
         this_dig_handler,
         taste_digin_nums,
@@ -1484,7 +1485,7 @@ def main():
         sampling_rate,
         output_dir=qa_output_dir
     )
-    
+
     # Save trial info frame to HDF5 file and CSV
     hdf5_name = os.path.join(dir_path, f"{dir_name}.h5")
     trial_info_frame.to_hdf(hdf5_name, 'trial_info_frame', mode='a')

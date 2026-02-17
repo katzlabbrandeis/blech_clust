@@ -23,7 +23,7 @@ def create_trial_info_frame(
 ):
     """
     Create a trial information frame from digital input data.
-    
+
     Parameters
     ----------
     dig_handler : DigInHandler
@@ -38,13 +38,13 @@ def create_trial_info_frame(
         Sampling rate in Hz
     output_dir : str, optional
         Directory to save correction plots
-        
+
     Returns
     -------
     pd.DataFrame
         Trial information frame with taste and laser timing data
     """
-    
+
     # Create taste info frame
     taste_info_list = []
     for ind, num in enumerate(taste_digin_nums):
