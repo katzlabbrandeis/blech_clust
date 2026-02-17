@@ -28,19 +28,7 @@ from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
-from blech_trial_info import create_trial_info_frame
-
-# def get_dig_in_data(hf5):
-#     dig_in_nodes = hf5.list_nodes('/digital_in')
-#     dig_in_data = []
-#     dig_in_pathname = []
-#     for node in dig_in_nodes:
-#         dig_in_pathname.append(node._v_pathname)
-#         dig_in_data.append(node[:])
-#     dig_in_basename = [os.path.basename(x) for x in dig_in_pathname]
-#     dig_in_data = np.array(dig_in_data)
-#     return dig_in_pathname, dig_in_basename, dig_in_data
-
+from blech_clust.utils.blech_trial_info import create_trial_info_frame
 
 def create_spike_trains_for_digin(
         this_starts,
@@ -146,14 +134,6 @@ if __name__ == '__main__':
 
     # Open the hdf5 file
     hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
-
-    # Grab the names of the arrays containing digital inputs,
-    # and pull the data into a numpy array
-    # dig_in_pathname, dig_in_basename, dig_in_data = get_dig_in_data(hf5)
-    # dig_in_diff = np.diff(dig_in_data,axis=-1)
-    # # Calculate start and end points of pulses
-    # start_points = [np.where(x==1)[0] for x in dig_in_diff]
-    # end_points = [np.where(x==-1)[0] for x in dig_in_diff]
 
     # Extract taste dig-ins from experimental info file
     info_dict = metadata_handler.info_dict
