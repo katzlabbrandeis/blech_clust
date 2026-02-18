@@ -1629,13 +1629,14 @@ class ephys_data():
         metadata_dir = get_metadata_dir(self.data_dir)
         new_path = os.path.join(metadata_dir, 'trial_info_frame.csv')
         old_path = os.path.join(self.data_dir, 'trial_info_frame.csv')
-        
+
         if os.path.exists(new_path):
             self.trial_info_frame = pd.read_csv(new_path)
         elif os.path.exists(old_path):
             self.trial_info_frame = pd.read_csv(old_path)
         else:
-            raise FileNotFoundError("trial_info_frame.csv not found in metadata/ or data directory")
+            raise FileNotFoundError(
+                "trial_info_frame.csv not found in metadata/ or data directory")
 
     def sequester_trial_inds(self):
         """Organize trial indices by taste and laser condition

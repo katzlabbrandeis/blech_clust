@@ -153,7 +153,8 @@ def extract_unit_characteristics(dir_name):
 
     # Fallback: read from aggregated_characteristics.csv
     metadata_dir = get_metadata_dir(dir_name)
-    characteristics_path = os.path.join(metadata_dir, 'aggregated_characteristics.csv')
+    characteristics_path = os.path.join(
+        metadata_dir, 'aggregated_characteristics.csv')
     # Check old location for backward compatibility
     old_path = os.path.join(dir_name, 'aggregated_characteristics.csv')
     if not os.path.exists(characteristics_path) and os.path.exists(old_path):

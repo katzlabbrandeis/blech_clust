@@ -297,7 +297,8 @@ if os.path.exists(trial_info_path_new):
 elif os.path.exists(trial_info_path_old):
     trial_info_frame = pd.read_csv(trial_info_path_old)
 else:
-    raise FileNotFoundError("trial_info_frame.csv not found in metadata/ or data directory")
+    raise FileNotFoundError(
+        "trial_info_frame.csv not found in metadata/ or data directory")
 
 merge_frame = pd.merge(emg_env_df, trial_info_frame,
                        left_on=['dig_in', 'trial_inds'],

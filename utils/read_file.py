@@ -236,7 +236,7 @@ class DigInHandler:
         metadata_dir = os.path.join(self.data_dir, 'metadata')
         old_path = os.path.join(self.data_dir, 'dig_in_frame.csv')
         new_path = os.path.join(metadata_dir, 'dig_in_frame.csv')
-        
+
         if os.path.exists(new_path):
             self.dig_in_frame = pd.read_csv(new_path, index_col=0)
             print('Dig-in frame loaded from metadata/dig_in_frame.csv')

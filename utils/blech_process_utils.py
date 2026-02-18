@@ -762,7 +762,8 @@ class classifier_handler():
         """
         waveform_thresh = self.classifier_params['min_suggestion_count']
         metadata_dir = get_metadata_dir(self.data_dir)
-        out_file_path = os.path.join(metadata_dir, 'waveform_classifier_recommendations.csv')
+        out_file_path = os.path.join(
+            metadata_dir, 'waveform_classifier_recommendations.csv')
         count = len(self.pos_spike_dict['waveforms'])
         if count > waveform_thresh:
             percentile_5 = np.percentile(self.pos_spike_dict['prob'], 5)

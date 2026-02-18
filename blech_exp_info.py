@@ -935,7 +935,8 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     # Read and process the layout file
     # Check both metadata directory and old location for backward compatibility
     if not os.path.exists(layout_file_path):
-        old_layout_path = os.path.join(dir_path, dir_name + "_electrode_layout.csv")
+        old_layout_path = os.path.join(
+            dir_path, dir_name + "_electrode_layout.csv")
         if os.path.exists(old_layout_path):
             layout_file_path = old_layout_path
     layout_frame_filled = pd.read_csv(layout_file_path)

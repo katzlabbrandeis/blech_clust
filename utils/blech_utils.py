@@ -76,12 +76,12 @@ def find_file_in_dir(data_dir, filename_pattern):
         matches = glob.glob(os.path.join(metadata_dir, filename_pattern))
         if matches:
             return matches[0]
-    
+
     # Fall back to data_dir root
     matches = glob.glob(os.path.join(data_dir, filename_pattern))
     if matches:
         return matches[0]
-    
+
     return None
 
 
@@ -256,7 +256,8 @@ class pipeline_graph_check():
             if type(parent_script) != list:
                 parent_script = [parent_script]
             # Check that parent script is present in log
-            self.log_path = os.path.join(ensure_dir(self.data_dir, 'logs'), 'execution_log.json')
+            self.log_path = os.path.join(ensure_dir(
+                self.data_dir, 'logs'), 'execution_log.json')
             # Check old location for backward compatibility
             old_log_path = os.path.join(self.data_dir, 'execution_log.json')
             if not os.path.exists(self.log_path) and os.path.exists(old_log_path):
@@ -283,7 +284,8 @@ class pipeline_graph_check():
         """
         if not hasattr(self, 'git_str'):
             raise ValueError('Run get_git_info() first')
-        self.log_path = os.path.join(ensure_dir(self.data_dir, 'logs'), 'execution_log.json')
+        self.log_path = os.path.join(ensure_dir(
+            self.data_dir, 'logs'), 'execution_log.json')
         # Check old location for backward compatibility
         old_log_path = os.path.join(self.data_dir, 'execution_log.json')
         if not os.path.exists(self.log_path) and os.path.exists(old_log_path):
