@@ -48,11 +48,50 @@ from typing import Dict, List
 import shutil
 
 
+def ensure_dir(data_dir, subdir):
+    """Ensure a subdirectory exists in data_dir and return its path."""
+    dir_path = os.path.join(data_dir, subdir)
+    os.makedirs(dir_path, exist_ok=True)
+    return dir_path
+
+
+def get_metadata_dir(data_dir):
+    """Return the metadata directory path, creating it if necessary."""
+    return ensure_dir(data_dir, 'metadata')
+
+
+def get_logs_dir(data_dir):
+    """Return the logs directory path, creating it if necessary."""
+    return ensure_dir(data_dir, 'logs')
+
+
+def find_file_in_dir(data_dir, filename_pattern):
+    """
+    Find a file matching the pattern in data_dir or its subdirectories.
+    Searches in metadata/ first, then falls back to data_dir root for backward compatibility.
+    """
+    # First check in metadata directory
+    metadata_dir = os.path.join(data_dir, 'metadata')
+    if os.path.exists(metadata_dir):
+        matches = glob.glob(os.path.join(metadata_dir, filename_pattern))
+        if matches:
+            return matches[0]
+    
+    # Fall back to data_dir root
+    matches = glob.glob(os.path.join(data_dir, filename_pattern))
+    if matches:
+        return matches[0]
+    
+    return None
+
+
 class Tee:
     """Tee output to both stdout/stderr and a log file"""
 
     def __init__(self, data_dir, name='output.log'):
-        self.log_path = os.path.join(data_dir, name)
+        # Create logs directory if it doesn't exist
+        logs_dir = ensure_dir(data_dir, 'logs')
+        self.log_path = os.path.join(logs_dir, name)
         self.file = open(self.log_path, 'a')
         self.stdout = sys.stdout
         self.stderr = sys.stderr
@@ -217,7 +256,11 @@ class pipeline_graph_check():
             if type(parent_script) != list:
                 parent_script = [parent_script]
             # Check that parent script is present in log
-            self.log_path = os.path.join(self.data_dir, 'execution_log.json')
+            self.log_path = os.path.join(ensure_dir(self.data_dir, 'logs'), 'execution_log.json')
+            # Check old location for backward compatibility
+            old_log_path = os.path.join(self.data_dir, 'execution_log.json')
+            if not os.path.exists(self.log_path) and os.path.exists(old_log_path):
+                self.log_path = old_log_path
             if os.path.exists(self.log_path):
                 with open(self.log_path, 'r') as log_file_connect:
                     log_dict = json.load(log_file_connect)
@@ -240,7 +283,11 @@ class pipeline_graph_check():
         """
         if not hasattr(self, 'git_str'):
             raise ValueError('Run get_git_info() first')
-        self.log_path = os.path.join(self.data_dir, 'execution_log.json')
+        self.log_path = os.path.join(ensure_dir(self.data_dir, 'logs'), 'execution_log.json')
+        # Check old location for backward compatibility
+        old_log_path = os.path.join(self.data_dir, 'execution_log.json')
+        if not os.path.exists(self.log_path) and os.path.exists(old_log_path):
+            self.log_path = old_log_path
         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if os.path.exists(self.log_path):
             with open(self.log_path, 'r') as log_file_connect:
@@ -592,18 +639,30 @@ class imp_metadata():
             print('No HDF5 file found')
 
     def get_params_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name, '**.params'))
+        # Check metadata directory first, then fall back to data_dir root
+        metadata_dir = os.path.join(self.dir_name, 'metadata')
+        file_list = glob.glob(os.path.join(metadata_dir, '**.params'))
         if len(file_list) > 0:
             self.params_file_path = file_list[0]
         else:
-            print('No PARAMS file found')
+            file_list = glob.glob(os.path.join(self.dir_name, '**.params'))
+            if len(file_list) > 0:
+                self.params_file_path = file_list[0]
+            else:
+                print('No PARAMS file found')
 
     def get_layout_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name, '**layout.csv'))
+        # Check metadata directory first, then fall back to data_dir root
+        metadata_dir = os.path.join(self.dir_name, 'metadata')
+        file_list = glob.glob(os.path.join(metadata_dir, '**layout.csv'))
         if len(file_list) > 0:
             self.layout_file_path = file_list[0]
         else:
-            print('No LAYOUT file found')
+            file_list = glob.glob(os.path.join(self.dir_name, '**layout.csv'))
+            if len(file_list) > 0:
+                self.layout_file_path = file_list[0]
+            else:
+                print('No LAYOUT file found')
 
     def load_params(self,):
         self.get_params_path()
@@ -612,11 +671,17 @@ class imp_metadata():
                 self.params_dict = json.load(params_file_connect)
 
     def get_info_path(self,):
-        file_list = glob.glob(os.path.join(self.dir_name, '**.info'))
+        # Check metadata directory first, then fall back to data_dir root
+        metadata_dir = os.path.join(self.dir_name, 'metadata')
+        file_list = glob.glob(os.path.join(metadata_dir, '**.info'))
         if len(file_list) > 0:
             self.info_file_path = file_list[0]
         else:
-            print('No INFO file found')
+            file_list = glob.glob(os.path.join(self.dir_name, '**.info'))
+            if len(file_list) > 0:
+                self.info_file_path = file_list[0]
+            else:
+                print('No INFO file found')
 
     def load_info(self,):
         self.get_info_path()

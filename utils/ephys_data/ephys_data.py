@@ -217,6 +217,7 @@ from pprint import pprint as pp
 import numpy as np
 import pandas as pd
 import pingouin as pg
+from blech_clust.utils.blech_utils import get_metadata_dir
 
 #  ______       _                      _____        _
 # |  ____|     | |                    |  __ \      | |
@@ -1624,8 +1625,17 @@ class ephys_data():
                 - start_taste_ms: Trial start time in ms
                 - end_taste_ms: Trial end time in ms
         """
-        self.trial_info_frame = pd.read_csv(
-            os.path.join(self.data_dir, 'trial_info_frame.csv'))
+        # Check new location (metadata dir) first, then fall back to old location
+        metadata_dir = get_metadata_dir(self.data_dir)
+        new_path = os.path.join(metadata_dir, 'trial_info_frame.csv')
+        old_path = os.path.join(self.data_dir, 'trial_info_frame.csv')
+        
+        if os.path.exists(new_path):
+            self.trial_info_frame = pd.read_csv(new_path)
+        elif os.path.exists(old_path):
+            self.trial_info_frame = pd.read_csv(old_path)
+        else:
+            raise FileNotFoundError("trial_info_frame.csv not found in metadata/ or data directory")
 
     def sequester_trial_inds(self):
         """Organize trial indices by taste and laser condition
@@ -2088,7 +2098,12 @@ class ephys_data():
         print("="*40)
         print("Unit Profiling")
         print("="*40)
-        csv_path = os.path.join(self.data_dir, 'unit_profile.csv')
+        metadata_dir = get_metadata_dir(self.data_dir)
+        csv_path = os.path.join(metadata_dir, 'unit_profile.csv')
+        # Check old location for backward compatibility
+        old_path = os.path.join(self.data_dir, 'unit_profile.csv')
+        if not os.path.exists(csv_path) and os.path.exists(old_path):
+            csv_path = old_path
         if os.path.exists(csv_path) and not recalculate:
             print(f"Loading existing unit profile from {csv_path}")
             print("***To recalculate, set recalculate=True***")

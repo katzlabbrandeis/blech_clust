@@ -24,6 +24,7 @@ import os
 import sys
 from tqdm import tqdm, trange
 import argparse
+from blech_clust.utils.blech_utils import get_metadata_dir
 parser = argparse.ArgumentParser()
 parser.add_argument('dir_name', type=str, help='Directory containing data')
 parser.add_argument('--force', action='store_true', help='Force re-fitting')
@@ -152,7 +153,12 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 # Load Data
 ############################################################
 # Load trial times from trial_info_frame.csv
-trial_info_path = os.path.join(dir_name, 'trial_info_frame.csv')
+metadata_dir = get_metadata_dir(dir_name)
+trial_info_path = os.path.join(metadata_dir, 'trial_info_frame.csv')
+# Check old location for backward compatibility
+old_path = os.path.join(dir_name, 'trial_info_frame.csv')
+if not os.path.exists(trial_info_path) and os.path.exists(old_path):
+    trial_info_path = old_path
 trial_info_frame = pd.read_csv(trial_info_path)
 
 # Open the hdf5 file

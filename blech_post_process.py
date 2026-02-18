@@ -87,7 +87,7 @@ os.environ['MKL_NUM_THREADS'] = '1'  # noqa
 os.environ['OPENBLAS_NUM_THREADS'] = '1'  # noqa
 
 import blech_clust.utils.blech_post_process_utils as post_utils  # noqa
-from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check, get_metadata_dir  # noqa
 from utils import blech_waveforms_datashader  # noqa
 from multiprocessing import Pool, cpu_count  # noqa
 from functools import partial  # noqa
@@ -588,8 +588,9 @@ print()
 print('==== Unit Table ====\n')
 print(current_unit_table)
 # Also write to disk
+metadata_dir = get_metadata_dir(metadata_handler.dir_name)
 current_unit_table.to_csv(
-    os.path.join(metadata_handler.dir_name, 'unit_descriptor.csv'),
+    os.path.join(metadata_dir, 'unit_descriptor.csv'),
     index=False,
 )
 

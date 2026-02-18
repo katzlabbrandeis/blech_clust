@@ -868,8 +868,11 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     Returns:
         Tuple containing layout_dict, fin_emg_port, orig_emg_electrodes, emg_muscle_str
     """
+    # Use metadata directory for layout file
+    metadata_dir = os.path.join(dir_path, 'metadata')
+    os.makedirs(metadata_dir, exist_ok=True)
     layout_file_path = os.path.join(
-        dir_path, dir_name + "_electrode_layout.csv")
+        metadata_dir, dir_name + "_electrode_layout.csv")
 
     def yn_check(x):
         return x in ['y', 'yes', 'n', 'no', '']
@@ -930,6 +933,11 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
                 exit()
 
     # Read and process the layout file
+    # Check both metadata directory and old location for backward compatibility
+    if not os.path.exists(layout_file_path):
+        old_layout_path = os.path.join(dir_path, dir_name + "_electrode_layout.csv")
+        if os.path.exists(old_layout_path):
+            layout_file_path = old_layout_path
     layout_frame_filled = pd.read_csv(layout_file_path)
 
     if not args.programmatic:

@@ -98,7 +98,9 @@ electrode_num = int(args.electrode_num)
 print(f'Processing electrode {electrode_num}')
 
 # Initialize or load processing log
-log_path = pathlib.Path(metadata_handler.dir_name) / 'blech_process.log'
+log_dir = os.path.join(metadata_handler.dir_name, 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_path = pathlib.Path(log_dir) / 'blech_process.log'
 if log_path.exists():
     with open(log_path) as f:
         process_log = json.load(f)

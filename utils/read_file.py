@@ -27,6 +27,7 @@ import pandas as pd
 # https://github.com/Intan-Technologies/load-rhd-notebook-python
 
 from blech_clust.utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.blech_utils import get_metadata_dir
 
 
 class DigInHandler:
@@ -224,16 +225,24 @@ class DigInHandler:
         self.dig_in_frame = dig_in_frame
 
     def write_out_frame(self):
-        # Write out the dig-in frame
+        # Write out the dig-in frame to metadata directory
+        metadata_dir = get_metadata_dir(self.data_dir)
         self.dig_in_frame.to_csv(os.path.join(
-            self.data_dir, 'dig_in_frame.csv'))
-        print('Dig-in frame written out to dig_in_frame.csv')
+            metadata_dir, 'dig_in_frame.csv'))
+        print('Dig-in frame written out to metadata/dig_in_frame.csv')
 
     def load_dig_in_frame(self):
-        # Load the dig-in frame
-        self.dig_in_frame = pd.read_csv(os.path.join(self.data_dir, 'dig_in_frame.csv'),
-                                        index_col=0)
-        print('Dig-in frame loaded from dig_in_frame.csv')
+        # Load the dig-in frame, checking both metadata dir and old location
+        metadata_dir = os.path.join(self.data_dir, 'metadata')
+        old_path = os.path.join(self.data_dir, 'dig_in_frame.csv')
+        new_path = os.path.join(metadata_dir, 'dig_in_frame.csv')
+        
+        if os.path.exists(new_path):
+            self.dig_in_frame = pd.read_csv(new_path, index_col=0)
+            print('Dig-in frame loaded from metadata/dig_in_frame.csv')
+        elif os.path.exists(old_path):
+            self.dig_in_frame = pd.read_csv(old_path, index_col=0)
+            print('Dig-in frame loaded from dig_in_frame.csv')
 
 
 def read_traditional_intan(
