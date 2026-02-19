@@ -57,7 +57,7 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -285,8 +285,10 @@ def populate_field_with_defaults(
         )
 
     if continue_bool:
-        if user_input.strip():
-            # Convert input if conversion function provided
+        if user_input.strip().lower() == "none":
+            return []
+        # Convert input if conversion function provided
+        elif user_input.strip():
             if convert_func:
                 return convert_func(user_input)
             return user_input
@@ -755,7 +757,7 @@ def process_laser_params_programmatic(this_dig_handler, args):
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
     """
     # Process laser dig-ins
-    if args.laser_digin:
+    if args.laser_digin and args.laser_digin.lower() != "none":
         laser_digin_ind = parse_csv(args.laser_digin, int)
     else:
         laser_digin_ind = []
@@ -931,8 +933,15 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     layout_frame_filled = pd.read_csv(layout_file_path)
 
     if not args.programmatic:
-        layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
-        )
+        if 'original_CAR_group' not in layout_frame_filled.columns:
+            layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
+            )
+        else:
+            print('='*40)
+            print('Original CAR groups detected, using those values')
+            print('='*40)
+            layout_frame_filled['CAR_group'] = layout_frame_filled['original_CAR_group'].str.lower(
+            )
         layout_frame_filled['CAR_group'] = [x.strip()
                                             for x in layout_frame_filled['CAR_group']]
     else:
@@ -1078,15 +1087,18 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Custom conversion function for laser dig-ins
     def convert_laser_digin(input_str):
-        if len(input_str) == 0:
+        if input_str.lower() == "none":
             return []
-        return [int(input_str)]
+        elif len(input_str) == 0:
+            return []
+        else:
+            return [int(input_str)]
 
     # Use helper function with special handling for blank input
     laser_select_str = populate_field_with_defaults(
         field_name='dig_in_nums',
         nested_field='laser_params',
-        entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
+        entry_checker_msg='Laser dig_in INDEX, "none" for no laser digins',
         check_func=count_check,
         existing_info=existing_info,
         cache=cache,
@@ -1098,7 +1110,9 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Handle the special case for laser dig-ins
     if isinstance(laser_select_str, str):
-        if len(laser_select_str) == 0:
+        if laser_select_str.lower() == "none":
+            laser_digin_ind = []
+        elif len(laser_select_str) == 0:
             laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
         else:
             laser_digin_ind = [int(laser_select_str)]

@@ -7,6 +7,10 @@ NOTE: Superflows will stop execution of that flow on the first subflow/task that
 """
 
 ############################################################
+from blech_clust.pipeline_testing.test_config_loader import (
+    get_data_dirs_dict,
+    get_test_data_dir,
+)
 from blech_clust.pipeline_testing.s3_utils import (
     S3_BUCKET,
     dummy_upload_test_results,
@@ -158,16 +162,9 @@ with open(emg_params_path) as f:
     env_params = json.load(f)
 emg_env_path = env_params['emg_env']
 
-# data_subdir = 'pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
-# data_subdir = 'pipeline_testing/test_data_handling/eb24_behandephys_11_12_24_241112_114659_copy'
-data_subdirs_dict = {
-    'ofpc': 'KM45_5tastes_210620_113227_new',
-    'trad': 'eb24_behandephys_11_12_24_241112_114659_copy'
-}
-# Use home directory for test data to allow clean repo cloning
-data_dir_base = os.path.expanduser('~/.blech_clust_test_data')
-data_dirs_dict = {key: os.path.join(data_dir_base, subdir)
-                  for key, subdir in data_subdirs_dict.items()}
+# Load test data configuration from test_config.json
+data_dirs_dict = get_data_dirs_dict()
+data_dir_base = get_test_data_dir()
 
 ############################################################
 # Data Prep Scripts
@@ -558,6 +555,7 @@ def test_ephys_data(data_dir):
         'get_sequestered_firing': 'trial_sequestering',
         'get_sequestered_data': 'trial_sequestering',
         'calc_palatability': 'palatability',
+        'profile_units': 'unit_profiling',
     }
 
     dat.check_laser()

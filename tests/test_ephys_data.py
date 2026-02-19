@@ -412,3 +412,108 @@ class TestEphysDataStaticMethods:
         # The firing rate should be higher around spike times
         # This is a basic sanity check for BAKS functionality
         assert np.max(firing_rate) > 0
+
+    def test_get_firing_rates_print_statements(self):
+        """Test that get_firing_rates prints correct attribute names"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a dummy HDF5 file
+            hdf5_path = os.path.join(temp_dir, 'test_data.h5')
+            with open(hdf5_path, 'w') as f:
+                f.write('')
+
+            data = ephys_data(data_dir=temp_dir)
+
+            # Set up mock data for testing
+            data.firing_rate_params = data.default_firing_params
+            data.sorting_params_dict = {'spike_array_durations': [0, 2]}
+
+            # Test case 1: Even dimensions (stacking case)
+            # Create mock spike data with equal dimensions
+            data.spikes = [
+                # taste 1: 5 trials, 10 neurons
+                np.random.randint(0, 2, (5, 10, 1000)),
+                # taste 2: 5 trials, 10 neurons
+                np.random.randint(0, 2, (5, 10, 1000)),
+            ]
+
+            # Capture print output
+            with patch('builtins.print') as mock_print:
+                data.get_firing_rates()
+
+                # Check that the correct print statements were called
+                print_calls = [str(call) for call in mock_print.call_args_list]
+
+                # Should contain the stacking message
+                stacking_message_found = False
+                attributes_message_found = False
+
+                for call in print_calls:
+                    if 'concatenating and normalizing' in call:
+                        stacking_message_found = True
+                    if 'Generated attributes:' in call:
+                        attributes_message_found = True
+
+                # Check that all expected attributes are mentioned across all print calls
+                all_prints = ' '.join(print_calls)
+                assert 'firing_list' in all_prints
+                assert 'time_vector' in all_prints
+                assert 'firing_array' in all_prints
+                assert 'all_firing_array' in all_prints
+                assert 'normalized_firing' in all_prints
+                assert 'all_normalized_firing' in all_prints
+                # Check that shape information is included
+                assert 'shape' in all_prints
+                # Check that attributes are on separate lines (indented)
+                assert '  firing_list:' in all_prints
+                assert '  time_vector:' in all_prints
+                assert '  firing_array:' in all_prints
+                assert '  all_firing_array:' in all_prints
+                assert '  normalized_firing:' in all_prints
+                assert '  all_normalized_firing:' in all_prints
+
+                assert stacking_message_found, "Stacking message not found"
+                assert attributes_message_found, "Attributes message not found"
+
+            # Test case 2: Uneven dimensions (non-stacking case)
+            # Create mock spike data with unequal dimensions
+            data.spikes = [
+                # taste 1: 5 trials, 10 neurons
+                np.random.randint(0, 2, (5, 10, 1000)),
+                # taste 2: 3 trials, 10 neurons (different!)
+                np.random.randint(0, 2, (3, 10, 1000)),
+            ]
+
+            # Capture print output
+            with patch('builtins.print') as mock_print:
+                data.get_firing_rates()
+
+                # Check that the correct print statements were called
+                print_calls = [str(call) for call in mock_print.call_args_list]
+
+                # Should contain the non-stacking message and attributes message
+                non_stacking_message_found = False
+                attributes_message_found = False
+
+                for call in print_calls:
+                    if 'not stacking into firing rates array' in call:
+                        non_stacking_message_found = True
+                    if 'Generated attributes:' in call:
+                        attributes_message_found = True
+
+                # Check that only the expected attributes are mentioned across all print calls
+                all_prints = ' '.join(print_calls)
+                assert 'firing_list' in all_prints
+                assert 'time_vector' in all_prints
+                # Should NOT mention the stacking-specific attributes
+                assert 'firing_array' not in all_prints
+                assert 'all_firing_array' not in all_prints
+                assert 'normalized_firing' not in all_prints
+                assert 'all_normalized_firing' not in all_prints
+                # Check that shape information is included
+                assert 'shape' in all_prints
+                # Check that attributes are on separate lines (indented)
+                assert '  firing_list:' in all_prints
+                assert '  time_vector:' in all_prints
+
+                assert non_stacking_message_found, "Non-stacking message not found"
+                assert attributes_message_found, "Attributes message not found"
