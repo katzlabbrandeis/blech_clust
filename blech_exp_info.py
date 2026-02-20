@@ -1489,6 +1489,8 @@ def main():
     ##################################################
     # Generate trial_info_frame
     ##################################################
+    # Trial_info_frame needs info dict for correction of laser_times
+    # Hence it has to be made after info_dict is made
     print("\n=== Generating Trial Info Frame ===")
 
     # Get recording parameters for sampling rate
@@ -1510,13 +1512,8 @@ def main():
     qa_output_dir = os.path.join(dir_path, 'QA_output')
     os.makedirs(qa_output_dir, exist_ok=True)
 
-    # Extract taste dig-in names from the dig-in frame
-    taste_digin_names = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list()
-
     trial_info_frame = create_trial_info_frame(
         this_dig_handler,
-        taste_digin_names,
-        laser_digin_names,
         fin_dict,
         sampling_rate,
         output_dir=qa_output_dir
@@ -1535,7 +1532,6 @@ def main():
 
     print(f"Successfully created experiment info file: {json_file_name}")
     return fin_dict
-
 
 if __name__ == "__main__":
     main()

@@ -19,7 +19,7 @@ import os
 from ast import literal_eval
 
 
-def _create_taste_info_frame(dig_handler, taste_digin_names):
+def _create_taste_info_frame(dig_handler):
     """
     Create taste information frame from digital input data.
 
@@ -27,26 +27,25 @@ def _create_taste_info_frame(dig_handler, taste_digin_names):
     ----------
     dig_handler : DigInHandler
         Handler object containing digital input data
-    taste_digin_names : list
-        List of digital input names for taste stimuli
 
     Returns
     -------
     pd.DataFrame
         Taste information frame with trial timing and metadata
     """
+
     taste_info_list = []
-    for ind, name in enumerate(taste_digin_names):
-        this_dig = dig_handler.dig_in_frame.loc[
-            dig_handler.dig_in_frame['dig_in_names'] == name]
-        pulse_times = this_dig['pulse_times'].values[0]
-        pulse_times = literal_eval(pulse_times)
-        dig_in_num = this_dig['dig_in_nums'].values[0]
+    # for ind, name in enumerate(taste_digin_names):
+    for ind, this_dig in dig_handler.dig_in_frame.iterrows():
+        if not this_dig['taste_bool']:
+            continue
+        pulse_times = this_dig['pulse_times']
+        if isinstance(pulse_times, str):
+            pulse_times = literal_eval(pulse_times)
         this_frame = pd.DataFrame(
             dict(
-                dig_in_num=dig_in_num,
-                dig_in_name=name,
-                taste=this_dig['taste'].values[0],
+                dig_in_name=this_dig['dig_in_names'],
+                taste=this_dig['taste'],
                 start=[x[0] for x in pulse_times],
                 end=[x[1] for x in pulse_times],
             )
@@ -90,16 +89,16 @@ def _create_laser_info_frame(dig_handler, laser_digin_names):
         return None
 
     laser_info_list = []
-    for ind, name in enumerate(laser_digin_names):
-        this_dig = dig_handler.dig_in_frame.loc[
-            dig_handler.dig_in_frame['dig_in_names'] == name]
-        pulse_times = this_dig['pulse_times'].values[0]
-        pulse_times = literal_eval(pulse_times)
-        dig_in_num = this_dig['dig_in_nums'].values[0]
+    for ind, this_dig in dig_handler.dig_in_frame.iterrows():
+        if not this_dig['laser_bool']:
+            continue
+        pulse_times = this_dig['pulse_times']
+        if isinstance(pulse_times, str):
+            pulse_times = literal_eval(pulse_times)
+        dig_in_num = this_dig['dig_in_nums']
         this_frame = pd.DataFrame(
             dict(
-                dig_in_num=dig_in_num,
-                dig_in_name=name,
+                dig_in_name=this_dig['dig_in_names'],
                 laser=True,
                 start=[x[0] for x in pulse_times],
                 end=[x[1] for x in pulse_times],
@@ -351,8 +350,6 @@ def _plot_laser_correction(trial_info_frame, orig_lag, orig_duration, output_dir
 
 def create_trial_info_frame(
         dig_handler,
-        taste_digin_names,
-        laser_digin_names,
         info_dict,
         sampling_rate,
         output_dir=None
@@ -385,10 +382,13 @@ def create_trial_info_frame(
         Trial information frame with taste and laser timing data
     """
     # Extract taste trial information
-    taste_info_frame = _create_taste_info_frame(dig_handler, taste_digin_names)
+    taste_info_frame = _create_taste_info_frame(dig_handler)
 
     # Extract laser trial information
-    laser_info_frame = _create_laser_info_frame(dig_handler, laser_digin_names)
+    if 'laser_bool' in dig_handler.dig_in_frame.columns and dig_handler.dig_in_frame['laser_bool'].any():
+        laser_info_frame = _create_laser_info_frame(dig_handler)
+    else:
+        laser_info_frame = None
 
     # Match laser pulses to taste trials
     if laser_info_frame is not None:
