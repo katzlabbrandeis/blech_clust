@@ -475,11 +475,13 @@ for i, vals in enumerate(dig_in_markers):
     plt.scatter(vals,
                 np.ones_like(vals)*i,
                 s=50, marker='|', c='k')
-digIndex = [list(this_dig_handler.dig_in_frame.dig_in_nums).index(digN) for digN in dig_in_map.keys()]
+digIndex = [list(this_dig_handler.dig_in_frame.dig_in_nums).index(digN)
+            for digN in dig_in_map.keys()]
 
 # If there is a laser_dig_in, mark laser trials with axvline
 if len(laser_dig_in) > 0:
-    laser_locs = list(compress(digIndex,[value == 'Laser' for value in dig_in_map.values()]))
+    laser_locs = list(
+        compress(digIndex, [value == 'Laser' for value in dig_in_map.values()]))
     laser_markers = dig_in_markers[laser_locs[0]]
     for marker in laser_markers:
         plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
