@@ -57,7 +57,8 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
+            # dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -1290,7 +1291,14 @@ def main():
     6. Assembles and saves the final experiment info file
     """
     # Setup experiment info
-    dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
+    (
+            dir_path, 
+            dir_name, 
+            cache_file_path, 
+            cache, 
+            existing_info, 
+            metadata_dict, 
+            pipeline_check, ) = setup_experiment_info()
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1349,21 +1357,41 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
-            this_dig_handler, args)
+        (
+            taste_dig_inds, 
+            tastes, 
+            concs, 
+            pal_ranks, 
+            taste_digin_nums, 
+            taste_digin_trials, )= process_dig_ins_programmatic(this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
-            this_dig_handler, args, existing_info, cache, cache_file_path)
+        (
+            taste_dig_inds, 
+            tastes, 
+            concs, 
+            pal_ranks, 
+            taste_digin_nums, 
+            taste_digin_trials, ) = process_dig_ins_manual(
+                            this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
     # Process Laser Parameters
     ##################################################
     print("\n=== Processing Laser Parameters ===")
     if args.programmatic:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_programmatic(
-            this_dig_handler, args)
+        (
+                laser_digin_ind, 
+                laser_digin_nums, 
+                laser_params_list, 
+                virus_region_str, 
+                opto_loc_list, ) = process_laser_params_programmatic(this_dig_handler, args)
     else:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_manual(
+        (
+                laser_digin_ind, 
+                laser_digin_nums, 
+                laser_params_list, 
+                virus_region_str, 
+                opto_loc_list, ) = process_laser_params_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     # Write out dig-in frame
