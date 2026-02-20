@@ -466,8 +466,9 @@ dig_in_labels = []
 for i, row in this_dig_handler.dig_in_frame.iterrows():
     if row.taste_bool:
         dig_in_labels.append(row.taste)
-    elif row.laser_bool:
-        laser_ind = i
+    elif 'laser_bool' in row.index:
+        if row.laser_bool:
+            laser_ind = i
     else:
         laser_ind = None
 
