@@ -1512,8 +1512,8 @@ def main():
 
     trial_info_frame = create_trial_info_frame(
         this_dig_handler,
-        taste_digin_nums,
-        laser_digin_nums,
+        taste_digin_names,
+        laser_digin_names,
         fin_dict,
         sampling_rate,
         output_dir=qa_output_dir

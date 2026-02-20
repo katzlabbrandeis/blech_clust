@@ -19,7 +19,7 @@ import os
 from ast import literal_eval
 
 
-def _create_taste_info_frame(dig_handler, taste_digin_nums):
+def _create_taste_info_frame(dig_handler, taste_digin_names):
     """
     Create taste information frame from digital input data.
 
@@ -27,8 +27,8 @@ def _create_taste_info_frame(dig_handler, taste_digin_nums):
     ----------
     dig_handler : DigInHandler
         Handler object containing digital input data
-    taste_digin_nums : list
-        List of digital input numbers for taste stimuli
+    taste_digin_names : list
+        List of digital input names for taste stimuli
 
     Returns
     -------
@@ -36,16 +36,16 @@ def _create_taste_info_frame(dig_handler, taste_digin_nums):
         Taste information frame with trial timing and metadata
     """
     taste_info_list = []
-    for ind, num in enumerate(taste_digin_nums):
+    for ind, name in enumerate(taste_digin_names):
         this_dig = dig_handler.dig_in_frame.loc[
-            dig_handler.dig_in_frame['dig_in_nums'] == num]
+            dig_handler.dig_in_frame['dig_in_names'] == name]
         pulse_times = this_dig['pulse_times'].values[0]
         pulse_times = literal_eval(pulse_times)
-        dig_in_name = this_dig['dig_in_names'].values[0]
+        dig_in_num = this_dig['dig_in_nums'].values[0]
         this_frame = pd.DataFrame(
             dict(
-                dig_in_num=num,
-                dig_in_name=dig_in_name,
+                dig_in_num=dig_in_num,
+                dig_in_name=name,
                 taste=this_dig['taste'].values[0],
                 start=[x[0] for x in pulse_times],
                 end=[x[1] for x in pulse_times],
@@ -59,7 +59,7 @@ def _create_taste_info_frame(dig_handler, taste_digin_nums):
     taste_info_frame['abs_trial_num'] = taste_info_frame.index
 
     # Add taste_rel_trial_num
-    taste_grouped = taste_info_frame.groupby('dig_in_num')
+    taste_grouped = taste_info_frame.groupby('dig_in_name')
     fin_group = []
     for name, group in taste_grouped:
         group['taste_rel_trial_num'] = np.arange(group.shape[0])
@@ -70,7 +70,7 @@ def _create_taste_info_frame(dig_handler, taste_digin_nums):
     return taste_info_frame
 
 
-def _create_laser_info_frame(dig_handler, laser_digin_nums):
+def _create_laser_info_frame(dig_handler, laser_digin_names):
     """
     Create laser information frame from digital input data.
 
@@ -78,28 +78,28 @@ def _create_laser_info_frame(dig_handler, laser_digin_nums):
     ----------
     dig_handler : DigInHandler
         Handler object containing digital input data
-    laser_digin_nums : list
-        List of digital input numbers for laser stimuli
+    laser_digin_names : list
+        List of digital input names for laser stimuli
 
     Returns
     -------
     pd.DataFrame or None
         Laser information frame with pulse timing, or None if no laser inputs
     """
-    if len(laser_digin_nums) == 0:
+    if len(laser_digin_names) == 0:
         return None
 
     laser_info_list = []
-    for ind, num in enumerate(laser_digin_nums):
+    for ind, name in enumerate(laser_digin_names):
         this_dig = dig_handler.dig_in_frame.loc[
-            dig_handler.dig_in_frame['dig_in_nums'] == num]
+            dig_handler.dig_in_frame['dig_in_names'] == name]
         pulse_times = this_dig['pulse_times'].values[0]
         pulse_times = literal_eval(pulse_times)
-        dig_in_name = this_dig['dig_in_names'].values[0]
+        dig_in_num = this_dig['dig_in_nums'].values[0]
         this_frame = pd.DataFrame(
             dict(
-                dig_in_num=num,
-                dig_in_name=dig_in_name,
+                dig_in_num=dig_in_num,
+                dig_in_name=name,
                 laser=True,
                 start=[x[0] for x in pulse_times],
                 end=[x[1] for x in pulse_times],
@@ -351,8 +351,8 @@ def _plot_laser_correction(trial_info_frame, orig_lag, orig_duration, output_dir
 
 def create_trial_info_frame(
         dig_handler,
-        taste_digin_nums,
-        laser_digin_nums,
+        taste_digin_names,
+        laser_digin_names,
         info_dict,
         sampling_rate,
         output_dir=None
@@ -368,10 +368,10 @@ def create_trial_info_frame(
     ----------
     dig_handler : DigInHandler
         Handler object containing digital input data
-    taste_digin_nums : list
-        List of digital input numbers for taste stimuli
-    laser_digin_nums : list
-        List of digital input numbers for laser stimuli
+    taste_digin_names : list
+        List of digital input names for taste stimuli
+    laser_digin_names : list
+        List of digital input names for laser stimuli
     info_dict : dict
         Dictionary containing experimental information
     sampling_rate : float
@@ -385,10 +385,10 @@ def create_trial_info_frame(
         Trial information frame with taste and laser timing data
     """
     # Extract taste trial information
-    taste_info_frame = _create_taste_info_frame(dig_handler, taste_digin_nums)
+    taste_info_frame = _create_taste_info_frame(dig_handler, taste_digin_names)
 
     # Extract laser trial information
-    laser_info_frame = _create_laser_info_frame(dig_handler, laser_digin_nums)
+    laser_info_frame = _create_laser_info_frame(dig_handler, laser_digin_names)
 
     # Match laser pulses to taste trials
     if laser_info_frame is not None:
