@@ -60,6 +60,7 @@ import sys  # noqa
 import tables  # noqa
 import os  # noqa
 import xarray as xr  # noqa
+from itertools import compress
 
 
 class HDF5Handler:
@@ -464,7 +465,7 @@ dig_in_map = {}
 for num, name in zip(info_dict['taste_params']['dig_in_nums'], info_dict['taste_params']['tastes']):
     dig_in_map[num] = name
 for num in laser_dig_in:
-    dig_in_map[num] = 'laser'
+    dig_in_map[num] = 'Laser'
 
 # Sort dig_in_map
 dig_in_map = {num: dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
@@ -474,14 +475,19 @@ for i, vals in enumerate(dig_in_markers):
     plt.scatter(vals,
                 np.ones_like(vals)*i,
                 s=50, marker='|', c='k')
+digIndex = [list(this_dig_handler.dig_in_frame.dig_in_nums).index(digN)
+            for digN in dig_in_map.keys()]
+
 # If there is a laser_dig_in, mark laser trials with axvline
 if len(laser_dig_in) > 0:
-    # laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
-    laser_markers = dig_in_markers[laser_dig_in[0]]
+    laser_locs = list(
+        compress(digIndex, [value == 'Laser' for value in dig_in_map.values()]))
+    laser_markers = dig_in_markers[laser_locs[0]]
     for marker in laser_markers:
         plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
                     zorder=-1)
-plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
+
+plt.yticks(digIndex, dig_in_str)
 plt.title('Digital Inputs')
 plt.xlabel('Time (s)')
 plt.ylabel('Digital Input Channel')
