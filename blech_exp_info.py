@@ -1510,6 +1510,9 @@ def main():
     qa_output_dir = os.path.join(dir_path, 'QA_output')
     os.makedirs(qa_output_dir, exist_ok=True)
 
+    # Extract taste dig-in names from the dig-in frame
+    taste_digin_names = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list()
+
     trial_info_frame = create_trial_info_frame(
         this_dig_handler,
         taste_digin_names,
