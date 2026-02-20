@@ -220,7 +220,7 @@ else:
     # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
     # data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
     # data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
-    data_dir='/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
     # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
 
@@ -289,7 +289,7 @@ file_lists = {
 
 # Valid file types
 VALID_FILE_TYPES = ['one file per signal type',
-                    'one file per channel', 
+                    'one file per channel',
                     'traditional']
 if file_type not in VALID_FILE_TYPES:
     raise ValueError(
@@ -329,7 +329,7 @@ if file_type != 'traditional':
     ports = info_dict['ports']
 
     check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-            + f'\n Ports : {ports} \n Total recording time: {total_recording_time} seconds'\
+        + f'\n Ports : {ports} \n Total recording time: {total_recording_time} seconds'\
         '\n---------- \n \n'
     print(check_str)
 

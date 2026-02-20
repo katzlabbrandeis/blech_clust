@@ -1294,13 +1294,13 @@ def main():
     """
     # Setup experiment info
     (
-            dir_path, 
-            dir_name, 
-            cache_file_path, 
-            cache, 
-            existing_info, 
-            metadata_dict, 
-            pipeline_check, ) = setup_experiment_info()
+        dir_path,
+        dir_name,
+        cache_file_path,
+        cache,
+        existing_info,
+        metadata_dict,
+        pipeline_check, ) = setup_experiment_info()
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1360,21 +1360,21 @@ def main():
     # Process dig-ins based on mode
     if args.programmatic:
         (
-            taste_dig_inds, 
-            tastes, 
-            concs, 
-            pal_ranks, 
-            taste_digin_nums, 
-            taste_digin_trials, )= process_dig_ins_programmatic(this_dig_handler, args)
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
+            taste_digin_trials, ) = process_dig_ins_programmatic(this_dig_handler, args)
     else:
         (
-            taste_dig_inds, 
-            tastes, 
-            concs, 
-            pal_ranks, 
-            taste_digin_nums, 
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
             taste_digin_trials, ) = process_dig_ins_manual(
-                            this_dig_handler, args, existing_info, cache, cache_file_path)
+            this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
     # Process Laser Parameters
@@ -1382,18 +1382,18 @@ def main():
     print("\n=== Processing Laser Parameters ===")
     if args.programmatic:
         (
-                laser_digin_ind, 
-                laser_digin_nums, 
-                laser_params_list, 
-                virus_region_str, 
-                opto_loc_list, ) = process_laser_params_programmatic(this_dig_handler, args)
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_programmatic(this_dig_handler, args)
     else:
         (
-                laser_digin_ind, 
-                laser_digin_nums, 
-                laser_params_list, 
-                virus_region_str, 
-                opto_loc_list, ) = process_laser_params_manual(
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     # Write out dig-in frame
@@ -1429,7 +1429,8 @@ def main():
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
         )
-        laser_digin_names = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_names'].to_list()
+        laser_digin_names = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_names'].to_list(
+        )
     else:
         laser_digin_trials = []
         laser_digin_names = []
@@ -1511,7 +1512,8 @@ def main():
     os.makedirs(qa_output_dir, exist_ok=True)
 
     # Extract taste dig-in names from the dig-in frame
-    taste_digin_names = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list()
+    taste_digin_names = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list(
+    )
 
     trial_info_frame = create_trial_info_frame(
         this_dig_handler,

@@ -173,7 +173,7 @@ if __name__ == '__main__':
     has_laser = trial_info_frame['laser'].any()
     if has_laser:
         laser_digin_names = trial_info_frame[trial_info_frame['laser']
-                                            ]['dig_in_name_laser'].unique().tolist()
+                                             ]['dig_in_name_laser'].unique().tolist()
         laser_str = "\n".join([str(x) for x in laser_digin_names])
     else:
         laser_digin_names = []
