@@ -1449,7 +1449,6 @@ def main():
         'regions': list(layout_dict.keys()),
         'ports': list(np.unique(ports)),
         'dig_ins': {
-            # 'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
             'names': this_dig_handler.dig_in_frame.dig_in_names.to_list(),
             'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
         },
@@ -1460,7 +1459,8 @@ def main():
         },
         'electrode_layout': layout_dict,
         'taste_params': {
-            'dig_in_nums': taste_digin_nums,
+            # 'dig_in_nums': taste_digin_nums,
+            'dig_in_names': this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list(),
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
