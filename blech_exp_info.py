@@ -915,7 +915,8 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
         if not args.programmatic:
             prompt_str = 'Please fill in car groups / regions' + "\n" + \
                 "emg and none are case-specific" + "\n" +\
-                "Indicate different CARS from same region as GC1,GC2...etc"
+                "Indicate different CARS from same region as GC1,GC2...etc\n"\
+                "electrodes marked none will not be processed" + "\n"
             print(prompt_str)
 
             def confirm_check(x):
@@ -1427,8 +1428,10 @@ def main():
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
         )
+        laser_digin_names = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_names'].to_list()
     else:
         laser_digin_trials = []
+        laser_digin_names = []
 
     ##################################################
     # Extract Recording Parameters
@@ -1445,7 +1448,8 @@ def main():
         'regions': list(layout_dict.keys()),
         'ports': list(np.unique(ports)),
         'dig_ins': {
-            'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
+            # 'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
+            'names': this_dig_handler.dig_in_frame.dig_in_names.to_list(),
             'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
         },
         'emg': {
@@ -1462,7 +1466,8 @@ def main():
             'pal_rankings': pal_ranks
         },
         'laser_params': {
-            'dig_in_nums': laser_digin_nums,
+            # 'dig_in_nums': laser_digin_nums,
+            'dig_in_names': laser_digin_names,
             'trial_count': laser_digin_trials,
             'onset_duration': laser_params_list,
             'opto_locs': opto_loc_list,
