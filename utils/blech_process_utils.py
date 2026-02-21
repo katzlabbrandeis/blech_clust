@@ -35,6 +35,7 @@ This module is designed for handling and processing electrophysiological data, s
 - **spike_handler**: Processes spikes from electrode data.
   - `extract_waveforms`: Extracts waveforms from filtered electrode data.
   - `dejitter_spikes`: Dejitters spikes to correct timing.
+  - `interpolate_waveforms`: Interpolates waveforms to target sampling rate for classifier compatibility.
   - `extract_features`: Extracts features from spike waveforms.
   - `return_feature`: Returns specific features from spike data.
   - `write_out_spike_data`: Saves spike data to files.
@@ -1143,6 +1144,22 @@ class spike_handler():
         self.polarity = polarity
         del self.slices
         del self.spike_times
+
+    def interpolate_waveforms(self, target_sampling_rate=30000.0):
+        """
+        Interpolate waveforms to match expected sampling rate for classifier.
+
+        This allows the classifier to work with data recorded at different
+        sampling rates as long as pre/post windows are the same.
+        """
+        interpolated_slices = clust.interpolate_waveforms_to_30khz(
+            self.slices_dejittered,
+            spike_snapshot=[self.params_dict['spike_snapshot_before'],
+                            self.params_dict['spike_snapshot_after']],
+            actual_sampling_rate=self.params_dict['sampling_rate'],
+            target_sampling_rate=target_sampling_rate
+        )
+        return interpolated_slices
 
     def extract_features(self,
                          slices_dejittered,
