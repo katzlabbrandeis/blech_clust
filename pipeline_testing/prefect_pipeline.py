@@ -656,6 +656,40 @@ def pass_check_direct():
 ############################################################
 # Define Flows
 ############################################################
+# Global error collector to track errors across flows
+flow_errors = []
+
+
+def clear_flow_errors():
+    """Clear the error collector before starting a new top-level flow"""
+    global flow_errors
+    flow_errors = []
+
+
+def print_error_summary():
+    """Print summary of all errors encountered during flow execution"""
+    global flow_errors
+    if not flow_errors:
+        print("\n" + "=" * 60)
+        print("FLOW EXECUTION SUMMARY: All steps completed successfully")
+        print("=" * 60 + "\n")
+        return
+
+    print("\n" + "=" * 60)
+    print(f"FLOW EXECUTION SUMMARY: {len(flow_errors)} error(s) encountered")
+    print("=" * 60)
+
+    for i, error_info in enumerate(flow_errors, 1):
+        print(f"\n--- Error {i}/{len(flow_errors)} ---")
+        print(f"Flow: {error_info['flow_name']}")
+        print(f"Error: {error_info['error_message']}")
+        print(f"Traceback:\n{error_info['traceback']}")
+
+    print("\n" + "=" * 60)
+    print("END OF ERROR SUMMARY")
+    print("=" * 60 + "\n")
+
+
 # Make a try-except decorator to catch errors in flows but allow Prefect to log and continue
 def try_except_flow(flow_func):
     def wrapper(*args, **kwargs):
@@ -663,6 +697,12 @@ def try_except_flow(flow_func):
         try:
             flow_func(*args, **kwargs)
         except Exception as e:
+            error_info = {
+                'flow_name': flow_func.__name__,
+                'error_message': str(e),
+                'traceback': traceback.format_exc()
+            }
+            flow_errors.append(error_info)
             print(f"Error in flow {flow_func.__name__}: {str(e)}")
     return wrapper
 
@@ -954,34 +994,54 @@ def full_test():
 # If no individual tests are required, run both
 if args.all:
     print('Running all tests')
+    clear_flow_errors()
     full_test(return_state=True)
+    print_error_summary()
 elif args.e:
     print('Running emg tests only')
+    clear_flow_errors()
     emg_only_test(return_state=True)
+    print_error_summary()
 elif args.s:
     print('Running spike-sorting tests only')
+    clear_flow_errors()
     spike_only_test(return_state=True)
+    print_error_summary()
 elif args.freq:
     print('Running BSA tests only')
+    clear_flow_errors()
     run_emg_freq_only(return_state=True)
+    print_error_summary()
 elif args.qda:
     print('Running QDA tests only')
+    clear_flow_errors()
     run_EMG_QDA_test(return_state=True)
+    print_error_summary()
 elif args.bsa:
     print('Running BSA tests only')
+    clear_flow_errors()
     bsa_only_test(return_state=True)
+    print_error_summary()
 elif args.stft:
     print('Running STFT tests only')
+    clear_flow_errors()
     stft_only_test(return_state=True)
+    print_error_summary()
 elif args.spike_emg:
     print('Running spike then emg test')
+    clear_flow_errors()
     spike_emg_test(return_state=True)
+    print_error_summary()
 elif args.dummy_upload:
     print('Running dummy upload test')
     dummy_upload_test_results()
 elif args.ephys_data:
     print('Running ephys_data class tests only')
+    clear_flow_errors()
     ephys_data_only_flow(return_state=True)
+    print_error_summary()
 elif args.fail_check:
     print('Running fail_check test')
+    clear_flow_errors()
     fail_check_flow(use_popen=args.fail_popen, return_state=True)
+    print_error_summary()
