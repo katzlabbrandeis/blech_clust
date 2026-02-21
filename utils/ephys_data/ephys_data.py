@@ -695,14 +695,14 @@ class ephys_data():
                     dig_in_nodes, key=lambda x: int(x._v_name.split('_')[-1]))
                 self.dig_in_node_list = [x._v_name for x in dig_in_nodes]
                 # Extract actual taste names from dig_in attributes
-                self.dig_in_name_list = [x._v_attrs.taste_name if hasattr(x._v_attrs, 'taste_name') 
-                                        else x._v_name for x in dig_in_nodes]
+                self.dig_in_name_list = [x._v_attrs.taste_name if hasattr(x._v_attrs, 'taste_name')
+                                         else x._v_name for x in dig_in_nodes]
             else:
                 raise Exception('No spike trains found in HF5')
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {name} ({node})' for i, (name, node) in 
+                "\n".join([f'{i}. {name} ({node})' for i, (name, node) in
                           enumerate(zip(self.dig_in_name_list, self.dig_in_node_list))]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
@@ -998,14 +998,14 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         results = [calc_firing_func(spikes) for spikes in self.spikes]
-        
+
         # Check if we have any results
         if len(results) == 0 or results[0][0].size == 0:
             print('No spike data available to calculate firing rates')
             self.firing_list = []
             self.time_vector = np.array([])
             return
-        
+
         self.firing_list = [result[0] for result in results]
         # Store the time vector from the first result (they should all be the same)
         # Adjust time relative to stimulus delivery
@@ -1095,7 +1095,8 @@ class ephys_data():
         taste_dig_in_names = self.info_dict['taste_params']['dig_in_names']
 
         # Create a mapping from dig_in names to indices in the taste arrays
-        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_in_names)}
+        dig_in_to_index = {dig_in: i for i,
+                           dig_in in enumerate(taste_dig_in_names)}
 
         # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
         ordered_taste_names = []
@@ -1695,7 +1696,8 @@ class ephys_data():
         sequestered_spikes_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
             taste_ind = np.where(
-                np.array(self.dig_in_name_list) == this_row['dig_in_name_taste']
+                np.array(
+                    self.dig_in_name_list) == this_row['dig_in_name_taste']
             )[0][0]
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
@@ -1741,7 +1743,8 @@ class ephys_data():
         sequestered_firing_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
             taste_ind = np.where(
-                np.array(self.dig_in_name_list) == this_row['dig_in_name_taste']
+                np.array(
+                    self.dig_in_name_list) == this_row['dig_in_name_taste']
             )[0][0]
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'],
