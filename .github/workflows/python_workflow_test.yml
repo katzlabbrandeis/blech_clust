@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   Preamble:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-test') }}
     runs-on: self-hosted
     steps:
       - name: Clean working directory
