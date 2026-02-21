@@ -101,7 +101,7 @@ try:
 except Exception as e:
     print(f"Error reading log file: {e}")
 
-incomplete = [e for e, data in process_log.items() if data['status'] == 'attempted']
+incomplete = list(process_log.get('attempted', {}).keys())
 
 if incomplete:
     print(f"Error: The following electrodes did not complete successfully: {incomplete}")

@@ -105,10 +105,19 @@ if log_path.exists():
 else:
     process_log = {}
 
-# Log processing start
-process_log[str(electrode_num)] = {
+# Ensure top-level structure exists
+if 'complete' not in process_log:
+    process_log['complete'] = {}
+if 'attempted' not in process_log:
+    process_log['attempted'] = {}
+
+# Remove electrode from 'complete' if it exists (re-processing)
+if str(electrode_num) in process_log['complete']:
+    del process_log['complete'][str(electrode_num)]
+
+# Log processing start under 'attempted'
+process_log['attempted'][str(electrode_num)] = {
     'start_time': datetime.datetime.now().isoformat(),
-    'status': 'attempted'
 }
 with open(log_path, 'w') as f:
     json.dump(process_log, f, indent=2)
@@ -407,9 +416,12 @@ print(f'Electrode {electrode_num} complete.')
 # Update processing log with completion
 with open(log_path) as f:
     process_log = json.load(f)
-process_log[str(electrode_num)
-            ]['end_time'] = datetime.datetime.now().isoformat()
-process_log[str(electrode_num)]['status'] = 'complete'
+
+# Move electrode from 'attempted' to 'complete'
+electrode_entry = process_log['attempted'].pop(str(electrode_num), {})
+electrode_entry['end_time'] = datetime.datetime.now().isoformat()
+process_log['complete'][str(electrode_num)] = electrode_entry
+
 with open(log_path, 'w') as f:
     json.dump(process_log, f, indent=2)
 
