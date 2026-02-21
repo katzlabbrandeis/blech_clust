@@ -95,6 +95,9 @@ def plot_channels(dir_path, qa_out_path, file_type):
     if file_type == 'one file per channel':
         fig, ax = plt.subplots(len(digin_files),
                                sharex=True, sharey=True, figsize=(8, 10))
+        # Ensure ax is always iterable - when there's only 1 subplot, ax is not an array
+        if len(digin_files) == 1:
+            ax = np.array([ax])
         for this_file, this_ax in tqdm(zip(digin_files, ax.flatten())):
             data = np.fromfile(this_file, dtype=np.dtype('uint16'))
             this_ax.plot(data[::downsample])
