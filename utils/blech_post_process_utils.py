@@ -67,8 +67,8 @@ import matplotlib.image as mpimg
 import pandas as pd
 import hashlib
 from blech_clust.utils.blech_utils import entry_checker, imp_metadata
-from blech_units_plot import gen_isi_hist
-from utils import blech_waveforms_datashader
+from blech_clust.blech_units_plot import gen_isi_hist
+from blech_clust.utils import blech_waveforms_datashader
 from datetime import datetime
 from scipy.stats import chisquare
 from tqdm import tqdm
