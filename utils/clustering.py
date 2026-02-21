@@ -13,22 +13,12 @@ This module provides functions for processing and analyzing electrophysiological
 - `clusterGMM(data, n_clusters, n_iter, restarts, threshold)`: Clusters data using Gaussian Mixture Models (GMM), returning the best model, predictions, and Bayesian Information Criterion (BIC) score.
 """
 import numpy as np
-from scipy.signal import butter
-from scipy.signal import filtfilt
 from scipy.interpolate import interp1d
 from sklearn.mixture import GaussianMixture
 import pylab as plt
 from sklearn.decomposition import PCA
 from scipy.signal import fftconvolve
 from sklearn.cluster import KMeans
-
-
-def get_filtered_electrode(data, freq=[300.0, 3000.0], sampling_rate=30000.0):
-    el = 0.195*(data)
-    m, n = butter(2, [2.0*freq[0]/sampling_rate, 2.0 *
-                  freq[1]/sampling_rate], btype='bandpass')
-    filt_el = filtfilt(m, n, el)
-    return filt_el
 
 
 def extract_waveforms_abu(filt_el, spike_snapshot=[0.5, 1.0],
