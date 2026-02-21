@@ -405,11 +405,10 @@ if __name__ == '__main__':
         cutoff_data = []
         for this_el in tqdm(raw_emg_electrodes):
             raw_el = this_el[:]
-            # High bandpass filter the raw electrode recordings
+            # High-pass filter the raw electrode recordings
             filt_el = get_filtered_electrode(
                 raw_el,
-                freq=[params_dict['bandpass_lower_cutoff'],
-                      params_dict['bandpass_upper_cutoff']],
+                freq=params_dict['highpass_cutoff'],
                 sampling_rate=params_dict['sampling_rate'])
 
             # Cut data to have integer number of seconds
