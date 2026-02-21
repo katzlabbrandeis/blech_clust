@@ -998,6 +998,14 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         results = [calc_firing_func(spikes) for spikes in self.spikes]
+        
+        # Check if we have any results
+        if len(results) == 0 or results[0][0].size == 0:
+            print('No spike data available to calculate firing rates')
+            self.firing_list = []
+            self.time_vector = np.array([])
+            return
+        
         self.firing_list = [result[0] for result in results]
         # Store the time vector from the first result (they should all be the same)
         # Adjust time relative to stimulus delivery

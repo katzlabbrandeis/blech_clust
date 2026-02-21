@@ -395,6 +395,14 @@ dat = ephys_data.ephys_data(dir_name)
 dat.get_firing_rates()
 # each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
 firing_list = dat.firing_list
+
+# Check if we have any firing data
+if len(firing_list) == 0 or firing_list[0].shape[1] == 0:
+    print("No firing rate data available. Skipping PCA analysis.")
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')
+    sys.exit(0)
+
 # Normalize for each neuron
 n_neurons = firing_list[0].shape[1]
 norm_firing_list = []
