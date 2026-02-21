@@ -240,6 +240,12 @@ os.makedirs('emg_BSA_results')
 
 # Also delete log
 print('Deleting results.log')
+logs_dir = os.path.join(data_dir, 'logs')
+os.makedirs(logs_dir, exist_ok=True)
+results_log_path = os.path.join(logs_dir, 'results.log')
+if os.path.exists(results_log_path):
+    os.remove(results_log_path)
+# Also check old location for backward compatibility
 if os.path.exists('results.log'):
     os.remove('results.log')
 
@@ -255,7 +261,7 @@ format_args = (
     data_dir,
     len(emg_env_df)-1)
 print(
-    "parallel -k -j {:d} --noswap --load 100% --progress --ungroup --joblog {:s}/results.log bash blech_emg_jetstream_parallel1.sh ::: {{0..{:d}}}".format(
+    "parallel -k -j {:d} --noswap --load 100% --progress --ungroup --joblog {:s}/logs/results.log bash blech_emg_jetstream_parallel1.sh ::: {{0..{:d}}}".format(
         *format_args),
     file=f)
 f.close()
@@ -281,8 +287,18 @@ f.close()
 ############################################################
 # Merge the emg_env_df with trial_info_df
 ############################################################
-# Also get trial_info_frame
-trial_info_frame = pd.read_csv(os.path.join(data_dir, 'trial_info_frame.csv'))
+# Also get trial_info_frame (check both metadata dir and old location)
+metadata_dir = os.path.join(data_dir, 'metadata')
+trial_info_path_new = os.path.join(metadata_dir, 'trial_info_frame.csv')
+trial_info_path_old = os.path.join(data_dir, 'trial_info_frame.csv')
+
+if os.path.exists(trial_info_path_new):
+    trial_info_frame = pd.read_csv(trial_info_path_new)
+elif os.path.exists(trial_info_path_old):
+    trial_info_frame = pd.read_csv(trial_info_path_old)
+else:
+    raise FileNotFoundError(
+        "trial_info_frame.csv not found in metadata/ or data directory")
 
 merge_frame = pd.merge(emg_env_df, trial_info_frame,
                        left_on=['dig_in', 'trial_inds'],

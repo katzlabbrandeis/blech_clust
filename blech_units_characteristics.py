@@ -26,7 +26,7 @@ import os
 import json
 import glob
 import itertools
-from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check
+from blech_clust.utils.blech_utils import entry_checker, imp_metadata, pipeline_graph_check, get_metadata_dir
 from blech_clust.utils.ephys_data import ephys_data
 from blech_clust.utils.ephys_data import visualize as vz
 import pandas as pd
@@ -765,7 +765,8 @@ out_frame = pd.concat(
     [this_resp_neurons, taste_bin_pval_frame, this_pal_sig_frame])
 out_frame.drop(columns=['p-unc'], inplace=True)
 
-out_frame.to_csv(os.path.join(dir_name, 'aggregated_characteristics.csv'),
+metadata_dir = get_metadata_dir(dir_name)
+out_frame.to_csv(os.path.join(metadata_dir, 'aggregated_characteristics.csv'),
                  index=False)
 out_frame.to_hdf(
     metadata_handler.hdf5_name,
