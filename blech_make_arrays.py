@@ -1,8 +1,9 @@
 """
-This module processes neural and EMG data from an HDF5 file, extracting and organizing spike trains and EMG trials based on digital input events. It also handles metadata and logs the processing steps.
+This module processes neural, EMG, and AUX data from an HDF5 file, extracting and organizing spike trains, EMG trials, and AUX trials based on digital input events. It also handles metadata and logs the processing steps.
 
 - `create_spike_trains_for_digin(this_starts, this_dig_name, durations, sampling_rate_ms, units, hf5)`: Generates spike trains for specified digital input events and stores them in the HDF5 file.
 - `create_emg_trials_for_digin(this_starts, dig_in_basename, durations, sampling_rate_ms, emg_nodes, hf5)`: Extracts EMG trial data for specified digital input events and stores it in the HDF5 file.
+- `create_aux_trials_for_digin(this_starts, dig_in_basename, durations, sampling_rate_ms, aux_nodes, hf5)`: Extracts AUX trial data for specified digital input events and stores it in the HDF5 file.
 - The main script:
   - Loads metadata and performs a pipeline graph check.
   - Extracts digital input data and organizes it into a trial information frame.
@@ -10,6 +11,7 @@ This module processes neural and EMG data from an HDF5 file, extracting and orga
   - Determines experiment end time based on EMG or spike data.
   - Creates spike trains if sorted units are present and saves them to the HDF5 file.
   - Creates EMG trial arrays if EMG data is available and saves them to the HDF5 file.
+  - Creates AUX trial arrays if AUX data is available and saves them to the HDF5 file.
   - Logs the successful completion of the processing steps.
 """
 # Import stuff!
@@ -112,6 +114,55 @@ def create_emg_trials_for_digin(
         f'/emg_data/{dig_in_basename}',
         'emg_array', np.array(emg_data))
     hf5.flush()
+
+
+def create_aux_trials_for_digin(
+        this_starts,
+        dig_in_basename,
+        durations,
+        sampling_rate_ms,
+        aux_nodes,
+        hf5,
+):
+    """
+    Create AUX trial arrays for a specific digital input
+    AUX data mapping: 1=X, 2=Y, 3=Z
+    Uses same trial parameters as spike-trains
+
+    Args:
+        this_starts: Trial start times
+        dig_in_basename: Name for the dig-in (e.g., 'dig_in_0')
+        durations: [pre_stim, post_stim] durations in ms
+        sampling_rate_ms: Sampling rate in samples per ms
+        aux_nodes: List of AUX data nodes from HDF5
+        hf5: HDF5 file handle
+    """
+    aux_data = [[this_aux[this_start - durations[0]*sampling_rate_ms:
+                          this_start + durations[1]*sampling_rate_ms]
+                 for this_start in this_starts]
+                for this_aux in aux_nodes]
+    aux_data = np.stack(aux_data)
+
+    # Downsample to 1ms resolution (same as EMG processing)
+    aux_data = np.mean(
+        aux_data.reshape((*aux_data.shape[:2], -1, int(sampling_rate_ms))),
+        axis=-1)
+
+    # Write out ind:name map for each node
+    ind_name_map = {i: node._v_name for i, node in enumerate(aux_nodes)}
+    str_dict = str(ind_name_map)
+    if '/aux_data/ind_electrode_map' in hf5:
+        hf5.remove_node('/aux_data', 'ind_electrode_map')
+    hf5.create_array('/aux_data', 'ind_electrode_map', np.array(str_dict))
+
+    # Add aux_data to the hdf5 file
+    hf5.create_group('/aux_data', dig_in_basename)
+    # Shape = (n_channels, n_trials, n_samples)
+    hf5.create_array(
+        f'/aux_data/{dig_in_basename}',
+        'aux_array', np.array(aux_data))
+    hf5.flush()
+
 
 ############################################################
 # Run Main
@@ -583,6 +634,53 @@ if __name__ == '__main__':
             f.write('Numbers indicate "electrode_ind" in electrode_layout_frame')
     else:
         print('No EMG Data Found...NOT MAKING EMG ARRAYS')
+
+    # Test for AUX Data and then use it
+    raw_aux_electrodes = []
+    try:
+        raw_aux_electrodes = [x for x in hf5.get_node('/', 'raw_aux')]
+    except tables.NoSuchNodeError:
+        pass
+
+    if len(raw_aux_electrodes) > 0:
+        print('AUX Data found ==> Making AUX Trial Arrays')
+
+        # Grab the names of the arrays containing aux recordings
+        aux_nodes = hf5.list_nodes('/raw_aux')
+        aux_pathname = []
+        for node in aux_nodes:
+            aux_pathname.append(node._v_pathname)
+
+        # Delete /aux_data in hf5 file if it exists, and then create it
+        if '/aux_data' in hf5:
+            hf5.remove_node('/aux_data', recursive=True)
+        hf5.create_group('/', 'aux_data')
+
+        # Pull out aux trials
+        for num, this_starts in zip(taste_digin_nums, taste_starts_cutoff):
+            dig_in_basename = f'dig_in_{num}'
+            print(f'Creating aux-trials for dig-in {num}')
+            create_aux_trials_for_digin(
+                this_starts,
+                dig_in_basename,
+                durations,
+                sampling_rate_ms,
+                aux_nodes,
+                hf5,
+            )
+
+        # Save output in aux dir
+        if not os.path.exists('aux_output'):
+            os.makedirs('aux_output')
+
+        # Also write out README to explain AUX data mapping for user
+        with open('aux_output/aux_data_readme.txt', 'w') as f:
+            f.write(f'Channels used : {aux_pathname}\n')
+            f.write('Numbers indicate "electrode_ind" in electrode_layout_frame\n')
+            f.write('AUX data mapping: 1=X, 2=Y, 3=Z\n')
+            f.write('Data format: UINT16 converted to INT32\n')
+    else:
+        print('No AUX Data Found...NOT MAKING AUX ARRAYS')
 
     hf5.close()
 
