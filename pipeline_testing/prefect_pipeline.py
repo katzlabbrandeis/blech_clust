@@ -514,8 +514,7 @@ def run_rnn(data_dir, separate_regions=False, separate_tastes=False):
         args.append("--separate_regions")
     if separate_tastes:
         args.append("--separate_tastes")
-    process = Popen(args,
-                    stdout=PIPE, stderr=PIPE)
+    process = Popen(args, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     raise_error_if_error(data_dir, process, stderr, stdout)
 
