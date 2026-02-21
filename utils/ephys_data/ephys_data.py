@@ -678,8 +678,8 @@ class ephys_data():
         Side Effects:
             Sets attributes:
                 - spikes: List of spike arrays, one per taste/dig_in
-                - dig_in_name_list: List of digital input names
-                - dig_in_num_list: List of digital input numbers
+                - dig_in_name_list: List of digital input names (e.g., 'Suc', 'NaCl')
+                - dig_in_node_list: List of HDF5 node names (e.g., 'dig_in_0')
 
         Raises:
             Exception: If no spike trains found in HDF5 file
@@ -687,25 +687,26 @@ class ephys_data():
         print('Loading spikes')
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/spike_trains' in hf5:
-                dig_in_list = \
+                dig_in_nodes = \
                     [x for x in hf5.list_nodes('/spike_trains')
                      if 'dig_in' in x.__str__()]
-                # Sort dig_in_list by the digital input number to ensure consistent ordering
-                print("Debug Output dig_in_list:")
-                dig_in_list = sorted(
-                    dig_in_list, key=lambda x: str(x._v_name.split('_')[-1]))
-                self.dig_in_name_list = [x._v_name for x in dig_in_list]
-                self.dig_in_num_list = [str(x.split('_')[-1])
-                                        for x in self.dig_in_name_list]
+                # Sort dig_in_nodes by the digital input number to ensure consistent ordering
+                dig_in_nodes = sorted(
+                    dig_in_nodes, key=lambda x: int(x._v_name.split('_')[-1]))
+                self.dig_in_node_list = [x._v_name for x in dig_in_nodes]
+                # Extract actual taste names from dig_in attributes
+                self.dig_in_name_list = [x._v_attrs.taste_name if hasattr(x._v_attrs, 'taste_name') 
+                                        else x._v_name for x in dig_in_nodes]
             else:
                 raise Exception('No spike trains found in HF5')
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {x} (dig_in_{self.dig_in_num_list[i]})' for i, x in enumerate(self.dig_in_name_list)]))
+                "\n".join([f'{i}. {name} ({node})' for i, (name, node) in 
+                          enumerate(zip(self.dig_in_name_list, self.dig_in_node_list))]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
-            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
+            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_nodes]
 
     def separate_laser_spikes(self):
         """Separate spike arrays into laser on and off conditions
@@ -1083,37 +1084,37 @@ class ephys_data():
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
 
         # Get digital input information from info_dict to ensure correct mapping
-        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
+        taste_dig_in_names = self.info_dict['taste_params']['dig_in_names']
 
-        # Create a mapping from dig_in numbers to indices in the taste arrays
-        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
+        # Create a mapping from dig_in names to indices in the taste arrays
+        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_in_names)}
 
         # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
         ordered_taste_names = []
         ordered_pal_ranks = []
 
-        for dig_in_num in self.dig_in_num_list:
-            if dig_in_num in dig_in_to_index:
-                idx = dig_in_to_index[dig_in_num]
+        for dig_in_name in self.dig_in_name_list:
+            if dig_in_name in dig_in_to_index:
+                idx = dig_in_to_index[dig_in_name]
                 if idx < len(self.taste_names):
                     ordered_taste_names.append(self.taste_names[idx])
                     ordered_pal_ranks.append(self.palatability_ranks[idx])
                 else:
                     warnings.warn(
                         f"Index {idx} out of range for taste_names and palatability_ranks")
-                    ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    ordered_taste_names.append(f"Unknown-{dig_in_name}")
                     ordered_pal_ranks.append(0)  # Default palatability rank
             else:
                 warnings.warn(
-                    f"Digital input {dig_in_num} not found in taste_params.dig_ins")
-                ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    f"Digital input {dig_in_name} not found in taste_params.dig_in_names")
+                ordered_taste_names.append(f"Unknown-{dig_in_name}")
                 ordered_pal_ranks.append(0)  # Default palatability rank
 
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
-                dig_ins=self.dig_in_name_list,
-                dig_in_nums=self.dig_in_num_list,
+                dig_in_names=self.dig_in_name_list,
+                dig_in_nodes=self.dig_in_node_list,
                 taste_names=ordered_taste_names,
                 pal_ranks=ordered_pal_ranks,
             )
@@ -1635,28 +1636,21 @@ class ephys_data():
         a DataFrame with trial indices for each unique combination.
 
         Side Effects:
-            Sets self.trial_inds_frame: pandas DataFrame with columns:
-                - dig_in_num_taste: Digital input number
-                - laser_duration_ms: Laser duration in ms
-                - trial_inds: List of trial indices for this condition
-
-        Side Effects:
             Sets self.trial_inds_frame: DataFrame with columns:
-                - dig_in_num_taste: Digital input number
+                - dig_in_name_taste: Digital input name (taste name)
                 - laser_duration_ms: Laser duration
                 - laser_lag_ms: Laser lag
                 - trial_inds: List of trial indices for this group
         """
 
         wanted_cols = [
-            'dig_in_num_taste',
             'dig_in_name_taste',
             'taste',
             'laser_duration_ms',
             'laser_lag_ms',
             'taste_rel_trial_num',
         ]
-        group_cols = ['dig_in_num_taste', 'laser_duration_ms', 'laser_lag_ms']
+        group_cols = ['dig_in_name_taste', 'laser_duration_ms', 'laser_lag_ms']
         if 'trial_info_frame' not in dir(self):
             self.get_trial_info_frame()
         wanted_frame = self.trial_info_frame[wanted_cols]
@@ -1693,8 +1687,7 @@ class ephys_data():
         sequestered_spikes_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
             taste_ind = np.where(
-                np.array(self.dig_in_num_list, dtype=str) == str(
-                    this_row['dig_in_num_taste'])
+                np.array(self.dig_in_name_list) == this_row['dig_in_name_taste']
             )[0][0]
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
@@ -1708,6 +1701,7 @@ class ephys_data():
                 )
             )
             this_seq_spikes['taste_num'] = taste_ind
+            this_seq_spikes['taste_name'] = this_row['dig_in_name_taste']
             this_seq_spikes['laser_tuple'] = str(
                 (this_row['laser_lag_ms'], this_row['laser_duration_ms']))
             sequestered_spikes_frame_list.append(this_seq_spikes)
@@ -1732,15 +1726,14 @@ class ephys_data():
             self.sequester_trial_inds()
         if 'firing_array' not in dir(self):
             self.get_firing_rates()
-        group_cols = ['dig_in_num_taste', 'laser_duration_ms', 'laser_lag_ms']
+        group_cols = ['dig_in_name_taste', 'laser_duration_ms', 'laser_lag_ms']
         # Get trial inds for each group
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_firing = []
         sequestered_firing_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
             taste_ind = np.where(
-                np.array(self.dig_in_num_list, dtype=str) == str(
-                    this_row['dig_in_num_taste'])
+                np.array(self.dig_in_name_list) == this_row['dig_in_name_taste']
             )[0][0]
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'],
@@ -1757,6 +1750,7 @@ class ephys_data():
                 )
             )
             this_seq_firing['taste_num'] = taste_ind
+            this_seq_firing['taste_name'] = this_row['dig_in_name_taste']
             this_seq_firing['laser_tuple'] = str(laser_tuple)
             sequestered_firing_frame_list.append(this_seq_firing)
         self.trial_inds_frame['firing'] = self.sequestered_firing
