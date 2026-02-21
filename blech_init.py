@@ -472,10 +472,11 @@ for i, row in this_dig_handler.dig_in_frame.iterrows():
     else:
         laser_ind = None
 
-laser_markers = dig_in_markers.pop(laser_ind)
 if laser_ind is not None:
-    dig_in_labels.append('Laser')
-    dig_in_markers.append(laser_markers)
+    laser_markers = dig_in_markers.pop(laser_ind)
+    if laser_ind is not None:
+        dig_in_labels.append('Laser')
+        dig_in_markers.append(laser_markers)
 
 for ind, (this_label, this_markers) in enumerate(zip(dig_in_labels, dig_in_markers)):
     plt.scatter(this_markers,
