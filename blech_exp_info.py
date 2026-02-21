@@ -68,6 +68,7 @@ def parse_arguments():
             tastes=None,
             concentrations=None,
             palatability=None,
+            taste_delivery_day=None,
             laser_digin=None,
             laser_params=None,
             virus_region=None,
@@ -109,6 +110,8 @@ def parse_arguments():
                             help='Comma-separated concentrations in M')
         parser.add_argument(
             '--palatability', help='Comma-separated palatability rankings')
+        parser.add_argument('--taste-delivery-day', type=int,
+                            help='Taste delivery day number (e.g., 1, 2, 3...)')
 
         # Programmatic mode parameters - Laser information
         parser.add_argument('--laser-digin', help='Laser digital input index')
@@ -421,6 +424,8 @@ def display_existing_info(existing_info):
         print(f"Tastes: {taste_params.get('tastes', [])}")
         print(f"Concentrations: {taste_params.get('concs', [])}")
         print(f"Palatability rankings: {taste_params.get('pal_rankings', [])}")
+        print(
+            f"Taste delivery day: {taste_params.get('taste_delivery_day', 'Not set')}")
 
     if 'laser_params' in existing_info:
         laser_params = existing_info['laser_params']
@@ -446,7 +451,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
         args: Command line arguments containing taste-related parameters
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day
     """
     this_dig_handler.get_dig_in_files()
     this_dig_handler.get_trial_data()
@@ -455,7 +460,14 @@ def process_dig_ins_programmatic(this_dig_handler, args):
 
     if not dig_in_present_bool:
         print('No dig-ins found. Please check your data.')
-        return [], [], [], [], [], []
+        return [], [], [], [], [], [], None
+
+    # Process taste delivery day
+    if args.taste_delivery_day is not None:
+        taste_delivery_day = args.taste_delivery_day
+    else:
+        raise ValueError(
+            'Taste delivery day not provided, use --taste-delivery-day')
 
     # Process taste dig-ins
     if args.taste_digins:
@@ -513,7 +525,7 @@ def process_dig_ins_programmatic(this_dig_handler, args):
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day
 
 
 def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_file_path):
@@ -532,7 +544,7 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
         cache_file_path: Path to cache file for saving user preferences
 
     Returns:
-        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+        Tuple containing taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day
     """
     this_dig_handler.get_dig_in_files()
     dig_in_list_str = "All Dig-ins : \n" + \
@@ -680,12 +692,40 @@ def process_dig_ins_manual(this_dig_handler, args, existing_info, cache, cache_f
     print_df = print_df[print_df.taste_bool]
     print(print_df)
 
+    # Get taste delivery day
+    def int_check(x):
+        try:
+            int(x)
+            return True
+        except ValueError:
+            return False
+
+    taste_delivery_day_str = populate_field_with_defaults(
+        field_name='taste_delivery_day',
+        nested_field='taste_params',
+        entry_checker_msg='Enter taste delivery day number (e.g., 1, 2, 3...)',
+        check_func=int_check,
+        existing_info=existing_info,
+        cache=cache,
+        fail_response='Please enter a valid integer for taste delivery day',
+        convert_func=lambda x: int(x) if x.strip() else None,
+        force_default=args.auto_defaults
+    )
+
+    taste_delivery_day = int(
+        taste_delivery_day_str) if taste_delivery_day_str and taste_delivery_day_str.strip() else None
+
+    if 'taste_params' not in cache:
+        cache['taste_params'] = {}
+    cache['taste_params']['taste_delivery_day'] = taste_delivery_day
+    save_to_cache(cache, cache_file_path)
+
     taste_digin_nums = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_nums'].to_list(
     )
     taste_digin_trials = this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'trial_counts'].to_list(
     )
 
-    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials
+    return taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day
 
 
 def setup_experiment_info():
@@ -1349,10 +1389,10 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day = process_dig_ins_programmatic(
             this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
+        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials, taste_delivery_day = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
@@ -1431,7 +1471,8 @@ def main():
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
-            'pal_rankings': pal_ranks
+            'pal_rankings': pal_ranks,
+            'taste_delivery_day': taste_delivery_day
         },
         'laser_params': {
             'dig_in_nums': laser_digin_nums,
