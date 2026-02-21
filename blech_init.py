@@ -441,8 +441,8 @@ corr_mat_xr = xr.DataArray(
 )
 corr_mat_xr.to_netcdf(os.path.join(qa_out_path, 'channel_corr_mat.nc'))
 
-# Generate channel profile plots for non-traditional file types
-if file_type in ['one file per channel', 'one file per signal type']:
+# Generate channel profile plots for all file types
+if file_type in ['one file per channel', 'one file per signal type', 'traditional']:
     print('\nGenerating channel profile plots')
     plot_channels(dir_name, qa_out_path, file_type)
 ##############################
