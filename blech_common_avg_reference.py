@@ -667,6 +667,8 @@ if not testing_bool:
     parser.add_argument('--cluster_algo', type=str, choices=['kmeans', 'bgmm'],
                         help='Clustering algorithm to use for auto CAR, BGMM tends to allow more clusters',
                         default='kmeans')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
     args = parser.parse_args()
 
     # Get name of directory with the data files
@@ -676,7 +678,9 @@ if not testing_bool:
     # Get directory name from metadata handler
     dir_name = metadata_handler.dir_name
     # Now create pipeline check with the correct dir_name
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    overwrite_dependencies = args.overwrite_dependencies
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 

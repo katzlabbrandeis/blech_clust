@@ -187,8 +187,11 @@ if not testing_bool:
                         help='Directory name with data files')
     parser.add_argument('--force_run', action='store_true',
                         help='Force run the script without asking user')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
     args = parser.parse_args()
     force_run = args.force_run
+    overwrite_dependencies = args.overwrite_dependencies
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], args.dir_name])
@@ -199,7 +202,8 @@ if not testing_bool:
     dir_name = metadata_handler.dir_name
 
     # Now create pipeline check with the correct dir_name
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
     # If info_dict present but execution log is not

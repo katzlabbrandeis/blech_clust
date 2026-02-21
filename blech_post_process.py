@@ -73,6 +73,8 @@ parser.add_argument('--skip-processed', help='Skip already processed electrodes'
                     action='store_true')
 parser.add_argument('--delete-existing', help='Delete existing units',
                     action='store_true')
+parser.add_argument('--overwrite_dependencies', action='store_true',
+                    help='Overwrite dependency check and continue even if previous script was not run')
 args = parser.parse_args()
 
 ############################################################
@@ -137,7 +139,8 @@ dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
 script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check = pipeline_graph_check(
+    dir_name, args.overwrite_dependencies)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 

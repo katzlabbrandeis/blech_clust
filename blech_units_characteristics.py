@@ -11,6 +11,7 @@ This module performs various analyses on neural data, focusing on firing rates, 
 - **Data Export**: Merges results into a single DataFrame and exports it to CSV and HDF5 formats.
 """
 
+import argparse
 import shutil
 from tqdm import tqdm
 import pingouin as pg
@@ -38,17 +39,32 @@ tqdm.pandas()
 # Get name of directory with the data files
 test_bool = False
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description='Analyze unit characteristics')
+parser.add_argument('dir_name', type=str, nargs='?',
+                    help='Directory name with data files')
+parser.add_argument('--overwrite_dependencies', action='store_true',
+                    help='Overwrite dependency check and continue even if previous script was not run')
+args = parser.parse_args()
+
 if test_bool:
     # data_dir = '/media/storage/NM_resorted_data/NM43/NM43_500ms_160510_125413'
     data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     dir_name = metadata_handler.dir_name
+    overwrite_dependencies = False
 else:
-    metadata_handler = imp_metadata(sys.argv)
+    if args.dir_name:
+        metadata_handler = imp_metadata([[], args.dir_name])
+    else:
+        metadata_handler = imp_metadata(sys.argv[1:])
     dir_name = metadata_handler.dir_name
+    overwrite_dependencies = args.overwrite_dependencies
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check = pipeline_graph_check(
+        dir_name, overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
