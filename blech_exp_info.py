@@ -43,6 +43,7 @@ from blech_clust.utils.blech_utils import (
 )
 from blech_clust.utils.importrhdutilities import load_file, read_header
 from blech_clust.utils.read_file import DigInHandler
+from blech_clust.utils.blech_trial_info import create_trial_info_frame
 
 # Constants
 test_bool = False  # noqa
@@ -57,7 +58,8 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
+            # dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -914,7 +916,8 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
         if not args.programmatic:
             prompt_str = 'Please fill in car groups / regions' + "\n" + \
                 "emg and none are case-specific" + "\n" +\
-                "Indicate different CARS from same region as GC1,GC2...etc"
+                "Indicate different CARS from same region as GC1,GC2...etc\n"\
+                "electrodes marked none will not be processed" + "\n"
             print(prompt_str)
 
             def confirm_check(x):
@@ -1290,7 +1293,14 @@ def main():
     6. Assembles and saves the final experiment info file
     """
     # Setup experiment info
-    dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
+    (
+        dir_path,
+        dir_name,
+        cache_file_path,
+        cache,
+        existing_info,
+        metadata_dict,
+        pipeline_check, ) = setup_experiment_info()
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1349,10 +1359,21 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
-            this_dig_handler, args)
+        (
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
+            taste_digin_trials, ) = process_dig_ins_programmatic(this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
+        (
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
+            taste_digin_trials, ) = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
@@ -1360,10 +1381,19 @@ def main():
     ##################################################
     print("\n=== Processing Laser Parameters ===")
     if args.programmatic:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_programmatic(
-            this_dig_handler, args)
+        (
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_programmatic(this_dig_handler, args)
     else:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_manual(
+        (
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     # Write out dig-in frame
@@ -1399,8 +1429,11 @@ def main():
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
         )
+        laser_digin_names = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_names'].to_list(
+        )
     else:
         laser_digin_trials = []
+        laser_digin_names = []
 
     ##################################################
     # Extract Recording Parameters
@@ -1417,7 +1450,7 @@ def main():
         'regions': list(layout_dict.keys()),
         'ports': list(np.unique(ports)),
         'dig_ins': {
-            'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
+            'names': this_dig_handler.dig_in_frame.dig_in_names.to_list(),
             'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
         },
         'emg': {
@@ -1427,14 +1460,16 @@ def main():
         },
         'electrode_layout': layout_dict,
         'taste_params': {
-            'dig_in_nums': taste_digin_nums,
+            # 'dig_in_nums': taste_digin_nums,
+            'dig_in_names': this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list(),
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
             'pal_rankings': pal_ranks
         },
         'laser_params': {
-            'dig_in_nums': laser_digin_nums,
+            # 'dig_in_nums': laser_digin_nums,
+            'dig_in_names': laser_digin_names,
             'trial_count': laser_digin_trials,
             'onset_duration': laser_params_list,
             'opto_locs': opto_loc_list,
@@ -1451,6 +1486,46 @@ def main():
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
     with open(json_file_name, 'w') as file:
         json.dump(fin_dict, file, indent=4)
+
+    ##################################################
+    # Generate trial_info_frame
+    ##################################################
+    # Trial_info_frame needs info dict for correction of laser_times
+    # Hence it has to be made after info_dict is made
+    print("\n=== Generating Trial Info Frame ===")
+
+    # Get recording parameters for sampling rate
+    if recording_params is not None:
+        sampling_rate = recording_params['sampling_rate']
+    else:
+        # Try to get from params file if available
+        params_file = os.path.join(dir_path, f"{dir_name}.params")
+        if os.path.exists(params_file):
+            with open(params_file, 'r') as f:
+                params_dict = json.load(f)
+                sampling_rate = params_dict.get('sampling_rate', 30000)
+        else:
+            # Default to 30kHz if not available
+            sampling_rate = 30000
+            print(
+                f"Warning: Could not find sampling rate, using default: {sampling_rate} Hz")
+
+    qa_output_dir = os.path.join(dir_path, 'QA_output')
+    os.makedirs(qa_output_dir, exist_ok=True)
+
+    trial_info_frame = create_trial_info_frame(
+        this_dig_handler,
+        fin_dict,
+        sampling_rate,
+        output_dir=qa_output_dir
+    )
+
+    # Save trial info frame to HDF5 file and CSV
+    hdf5_name = os.path.join(dir_path, f"{dir_name}.h5")
+    trial_info_frame.to_hdf(hdf5_name, 'trial_info_frame', mode='a')
+    csv_path = os.path.join(dir_path, 'trial_info_frame.csv')
+    trial_info_frame.to_csv(csv_path, index=False)
+    print(f"Trial info frame saved to: {csv_path}")
 
     # Write success to log
     if pipeline_check:

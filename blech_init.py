@@ -60,6 +60,7 @@ import sys  # noqa
 import tables  # noqa
 import os  # noqa
 import xarray as xr  # noqa
+from itertools import compress
 
 
 class HDF5Handler:
@@ -74,7 +75,7 @@ class HDF5Handler:
         """
         self.dir_name = dir_name
         self.force_run = force_run
-        self.group_list = ['raw', 'raw_emg', 'digital_in', 'digital_out']
+        self.group_list = ['raw', 'raw_emg']
         self.setup_hdf5()
 
     def setup_hdf5(self):
@@ -218,7 +219,8 @@ else:
     # data_dir = '/media/storage/abu_resorted/gc_only/AM34_4Tastes_201216_105150/'
     # data_dir = '/media/storage/abu_resorted/bla_gc/AM11_4Tastes_191030_114043_copy'
     # data_dir = '/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201230_115322'
-    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    # data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
     # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
 
@@ -287,7 +289,8 @@ file_lists = {
 
 # Valid file types
 VALID_FILE_TYPES = ['one file per signal type',
-                    'one file per channel', 'traditional']
+                    'one file per channel',
+                    'traditional']
 if file_type not in VALID_FILE_TYPES:
     raise ValueError(
         f"Invalid file_type: {file_type}. Must be one of: {VALID_FILE_TYPES}")
@@ -326,7 +329,8 @@ if file_type != 'traditional':
     ports = info_dict['ports']
 
     check_str = f'Amplifier files: {electrodes_list} \nSampling rate: {sampling_rate} Hz'\
-        + '\n Ports : {ports} \n---------- \n \n'
+        + f'\n Ports : {ports} \n Total recording time: {total_recording_time} seconds'\
+        '\n---------- \n \n'
     print(check_str)
 
 if file_type == 'traditional':
@@ -457,31 +461,33 @@ dig_in_pulses = [literal_eval(x) for x in dig_in_pulses]
 dig_in_pulses = [[x[0] for x in this_dig] for this_dig in dig_in_pulses]
 dig_in_markers = [np.array(x) / sampling_rate for x in dig_in_pulses]
 
-# Check if laser is present
-laser_dig_in = info_dict['laser_params']['dig_in_nums']
+# Get labels but make sure laser is at the end
+dig_in_labels = []
+for i, row in this_dig_handler.dig_in_frame.iterrows():
+    if row.taste_bool:
+        dig_in_labels.append(row.taste)
+    elif 'laser_bool' in row.index:
+        if row.laser_bool:
+            laser_ind = i
+    else:
+        laser_ind = None
 
-dig_in_map = {}
-for num, name in zip(info_dict['taste_params']['dig_in_nums'], info_dict['taste_params']['tastes']):
-    dig_in_map[num] = name
-for num in laser_dig_in:
-    dig_in_map[num] = 'laser'
+if laser_ind is not None:
+    laser_markers = dig_in_markers.pop(laser_ind)
+    if laser_ind is not None:
+        dig_in_labels.append('Laser')
+        dig_in_markers.append(laser_markers)
 
-# Sort dig_in_map
-dig_in_map = {num: dig_in_map[num] for num in sorted(list(dig_in_map.keys()))}
-dig_in_str = [f'{num}: {dig_in_map[num]}' for num in dig_in_map.keys()]
-
-for i, vals in enumerate(dig_in_markers):
-    plt.scatter(vals,
-                np.ones_like(vals)*i,
+for ind, (this_label, this_markers) in enumerate(zip(dig_in_labels, dig_in_markers)):
+    plt.scatter(this_markers,
+                np.ones_like(this_markers)*ind,
                 s=50, marker='|', c='k')
-# If there is a laser_dig_in, mark laser trials with axvline
-if len(laser_dig_in) > 0:
-    # laser_markers = np.where(dig_in_markers[0] == laser_dig_in)[0]
-    laser_markers = dig_in_markers[laser_dig_in[0]]
-    for marker in laser_markers:
-        plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
-                    zorder=-1)
-plt.yticks(np.array(list(dig_in_map.keys())), dig_in_str)
+    if this_label == 'Laser':
+        for marker in this_markers:
+            plt.axvline(marker, c='yellow', lw=2, alpha=0.5,
+                        zorder=-1)
+
+plt.yticks(range(len(dig_in_labels)), dig_in_labels)
 plt.title('Digital Inputs')
 plt.xlabel('Time (s)')
 plt.ylabel('Digital Input Channel')
