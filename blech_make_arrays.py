@@ -132,9 +132,6 @@ if __name__ == '__main__':
     os.chdir(metadata_handler.dir_name)
     print(f'Processing: {metadata_handler.dir_name}')
 
-    # Open the hdf5 file
-    hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
-
     # Extract taste dig-ins from experimental info file
     info_dict = metadata_handler.info_dict
     params_dict = metadata_handler.params_dict
@@ -162,6 +159,9 @@ if __name__ == '__main__':
                 "trial_info_frame not found in HDF5 or CSV. "
                 "Please run blech_exp_info.py first to generate it."
             )
+
+    # Open the hdf5 file after loading trial info frame
+    hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 
     print(trial_info_frame.head())
 
