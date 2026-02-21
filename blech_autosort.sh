@@ -14,15 +14,16 @@ fi
 SCRIPT_DIR=$0
 BLECH_DIR=$(dirname $SCRIPT_DIR)
 
-# Check that `params/sorting_params_template.json' has:
+# Check that sorting params in data_dir has:
 # "clustering_params": {
 #   "auto_params": {
 #       "auto_cluster": true,
 #       "auto_post_process": true
 #       ...
-sort_params=$BLECH_DIR/params/sorting_params_template.json
-if [ ! -f $sort_params ]; then
-    echo "File $sort_params does not exist"
+# Look for .params file in data directory
+sort_params=$(find $DIR -maxdepth 1 -name "*.params" | head -n 1)
+if [ -z "$sort_params" ]; then
+    echo "No .params file found in $DIR"
     exit 1
 fi
 
@@ -40,13 +41,14 @@ if [ -z "$AUTO_POST_PROCESS" ]; then
     exit 1
 fi
 
-# Check that `params/waveform_classifier_params.json' has:
+# Check that waveform_classifier_params.json in data_dir has:
 # 'use_neuRecommend': true
 # 'use_classifier': true
 
-waveform_params=$BLECH_DIR/params/waveform_classifier_params.json
+waveform_params=$DIR/waveform_classifier_params.json
 if [ ! -f $waveform_params ]; then
-    echo "File $waveform_params does not exist"
+    echo "File $waveform_params does not exist in data directory"
+    echo "Please ensure waveform_classifier_params.json is present in $DIR"
     exit 1
 fi
 
