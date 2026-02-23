@@ -188,12 +188,21 @@ with tables.open_file(hdf5_path, 'r') as hf5:
     spike_times = [unit.times.read() for unit in units]
 
 # Convert to histograms
+if len(spike_times) == 0 or all(len(x) == 0 for x in spike_times):
+    print("No spike times found, skipping drift analysis")
+    sys.exit(0)
+
 max_time = int(np.ceil(max([x[-1] for x in spike_times])))
 bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
 # Shape: n_neurons x n_bins
 zscored_hists = zscore(spiketime_hists, axis=1)
+
+# Check if we have valid data after processing
+if zscored_hists.shape[0] == 0:
+    print("No valid spike histogram data, skipping drift analysis")
+    sys.exit(0)
 
 # Perform PCA and keep 5 components
 n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
