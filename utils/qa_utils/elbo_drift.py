@@ -58,7 +58,7 @@ else:
     data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
     metadata_handler = imp_metadata([[], data_dir])
     dir_name = metadata_handler.dir_name
-    
+
     # Create a mock args object for testing
     class Args:
         force = False
@@ -198,10 +198,10 @@ spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
 # Shape: n_neurons x n_bins
 # Ensure spiketime_hists is always 2D
-if spiketime_hists.shape[0] == 1: 
+if spiketime_hists.shape[0] == 1:
     # And add a dummy neuron for plotting
     randn_data = np.random.randn(spiketime_hists.shape[1])
-    spiketime_hists = np.vstack([spiketime_hists, randn_data]) 
+    spiketime_hists = np.vstack([spiketime_hists, randn_data])
     # Print a warning about the dummy neuron
     print('='*40)
     print('WARNING: Only one neuron found, adding a dummy neuron for plotting')
