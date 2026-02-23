@@ -195,6 +195,7 @@ plt.show()
   - `get_stable_units`: Loads drift check results and marks units as stable or unstable.
   - `profile_units`: Generates a DataFrame with unit characteristics (responsiveness, discriminability, palatability, dynamicity, stability).
 """
+
 import os
 import warnings
 import numpy as np
@@ -681,11 +682,8 @@ class ephys_data():
                 raise Exception('No spike trains found in HF5')
 
             print('Spike trains loaded from following dig-ins')
-            # Create dig_in_name_list for backward compatibility
-            self.dig_in_name_list = [self.dig_in_name_map.get(node, node) 
-                                     for node in self.dig_in_node_list]
             print(
-                "\n".join([f'{i}. {self.dig_in_name_map.get(node, node)} ({node})' for i, node in
+                "\n".join([f'{i}. {self.dig_in_name_map[node]} ({node})' for i, node in
                           enumerate(self.dig_in_node_list)]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
@@ -1677,11 +1675,13 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
+        print('Using following dig_in_name_map to match trial info to spike data:')
+        pp(self.dig_in_name_map)
         for i, this_row in trial_inds_frame.iterrows():
             # Find taste_ind by matching dig_in_name_taste to dig_in_name_map values
             taste_ind = None
             for idx, node in enumerate(self.dig_in_node_list):
-                if self.dig_in_name_map.get(node, node) == this_row['dig_in_name_taste']:
+                if node == this_row['dig_in_name_taste']:
                     taste_ind = idx
                     break
             if taste_ind is None:
@@ -1732,7 +1732,7 @@ class ephys_data():
             # Find taste_ind by matching dig_in_name_taste to dig_in_name_map values
             taste_ind = None
             for idx, node in enumerate(self.dig_in_node_list):
-                if self.dig_in_name_map.get(node, node) == this_row['dig_in_name_taste']:
+                if node == this_row['dig_in_name_taste']:
                     taste_ind = idx
                     break
             if taste_ind is None:
