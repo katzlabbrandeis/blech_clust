@@ -513,6 +513,8 @@ class ephys_data():
             self.hdf5_path = self.get_hdf5_path(data_dir)
             self.hdf5_name = os.path.basename(self.hdf5_path)
 
+        self.create_dig_in_name_map()
+
             # self.spikes = None
 
         # Create environemnt variable to allow program to know
@@ -563,13 +565,6 @@ class ephys_data():
             'max_freq': 20,
             'time_range_tuple': (0, 5)
         }
-
-    # class access:
-    #    def __init__(self, key_name):
-    #        os.environ[key_name] = '0'
-
-    #    def check(self):
-    #        access_bool =
 
     def extract_and_process(self):
         """Extract and process all data types (units, spikes, firing rates, LFPs)
@@ -644,33 +639,21 @@ class ephys_data():
             self.laser_exists = False
         self.laser_durations = laser_durations
 
-        # with tables.open_file(self.hdf5_path, 'r+') as hf5:
-        #     dig_in_list = \
-        #         [x for x in hf5.list_nodes('/spike_trains')
-        #          if 'dig_in' in x.__str__()]
-        #
-        #     # Mark whether laser exists or not
-        #     self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
-        #                                        for dig_in in dig_in_list]) > 0
-        #
-        #     # If it does, pull out laser durations
-        #     if self.laser_durations_exists:
-        #         self.laser_durations = np.array([dig_in.laser_durations[:]
-        #                                          for dig_in in dig_in_list])
-        #
-        #         non_zero_laser_durations = np.any(
-        #             np.sum(self.laser_durations, axis=0) > 0)
-        #
-        #     # If laser_durations exists, only non_zero durations
-        #     # will indicate laser
-        #     # If it doesn't exist, then mark laser as absent
-        #     if self.laser_durations_exists:
-        #         if non_zero_laser_durations:
-        #             self.laser_exists = True
-        #         else:
-        #             self.laser_exists = False
-        #     else:
-        #         self.laser_exists = False
+    def create_dig_in_name_map(self):
+        """
+        Create mapping from digital input names to taste names
+
+        Side Effects:
+            Sets self.dig_in_name_map: Dictionary mapping digital input names (e.g., 'dig_in_0') to taste names (e.g., 'Sucrose')
+        """
+
+        if 'info_dict' not in dir(self):
+            print('Info dict not found in attributes...Loading')
+            self.get_info_dict()
+
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_names']
+        taste_names = self.info_dict['taste_params']['tastes']
+        self.dig_in_name_map = {dig_in: taste for dig_in, taste in zip(taste_dig_ins, taste_names)}
 
     def get_spikes(self):
         """Extract spike arrays from HDF5 file
@@ -684,26 +667,22 @@ class ephys_data():
         Raises:
             Exception: If no spike trains found in HDF5 file
         """
+
         print('Loading spikes')
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/spike_trains' in hf5:
-                dig_in_nodes = \
-                    [x for x in hf5.list_nodes('/spike_trains')
-                     if 'dig_in' in x.__str__()]
+                dig_in_nodes = [x for x in hf5.list_nodes('/spike_trains')]
                 # Sort dig_in_nodes by the digital input number to ensure consistent ordering
                 dig_in_nodes = sorted(
-                    dig_in_nodes, key=lambda x: int(x._v_name.split('_')[-1]))
+                    dig_in_nodes, key=lambda x: str(x._v_name.split('-')[-1]))
                 self.dig_in_node_list = [x._v_name for x in dig_in_nodes]
-                # Extract actual taste names from dig_in attributes
-                self.dig_in_name_list = [x._v_attrs.taste_name if hasattr(x._v_attrs, 'taste_name')
-                                         else x._v_name for x in dig_in_nodes]
             else:
                 raise Exception('No spike trains found in HF5')
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {name} ({node})' for i, (name, node) in
-                          enumerate(zip(self.dig_in_name_list, self.dig_in_node_list))]))
+                "\n".join([f'{i}. {self.dig_in_name_map[node]} ({node})' for i, node in
+                          enumerate(self.dig_in_node_list)]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
             self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_nodes]
@@ -1102,7 +1081,7 @@ class ephys_data():
         ordered_taste_names = []
         ordered_pal_ranks = []
 
-        for dig_in_name in self.dig_in_name_list:
+        for dig_in_name in self.dig_in_name_map.keys():
             if dig_in_name in dig_in_to_index:
                 idx = dig_in_to_index[dig_in_name]
                 if idx < len(self.taste_names):
@@ -1122,7 +1101,7 @@ class ephys_data():
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
-                dig_in_names=self.dig_in_name_list,
+                dig_in_names=self.dig_in_name_map.keys(),
                 dig_in_nodes=self.dig_in_node_list,
                 taste_names=ordered_taste_names,
                 pal_ranks=ordered_pal_ranks,
