@@ -197,6 +197,9 @@ bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
 # Shape: n_neurons x n_bins
+# Ensure spiketime_hists is always 2D
+if spiketime_hists.ndim == 1:
+    spiketime_hists = spiketime_hists.reshape(1, -1)
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Check if we have valid data after processing
