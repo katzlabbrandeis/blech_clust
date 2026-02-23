@@ -730,12 +730,10 @@ class ephys_data():
         if 'trial_info_frame' not in dir(self):
             print('Trial info frame not found...Loading')
             self.get_trial_info_frame()
-        taste_dig_ins = self.info_dict['taste_params']['dig_in_names']
         # Add final argument to argument list
         if None in self.lfp_params.values():
             print('No LFP params found...using default LFP params')
             self.lfp_params = self.default_lfp_params
-        self.lfp_params.update({'dig_in_list': taste_dig_ins})
         lfp_processing.extract_lfps(
             self.data_dir,
             **self.lfp_params,
