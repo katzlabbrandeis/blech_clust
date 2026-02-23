@@ -198,14 +198,15 @@ spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
 # Shape: n_neurons x n_bins
 # Ensure spiketime_hists is always 2D
-if spiketime_hists.ndim == 1:
-    spiketime_hists = spiketime_hists.reshape(1, -1)
+if spiketime_hists.shape[0] == 1: 
+    # And add a dummy neuron for plotting
+    randn_data = np.random.randn(spiketime_hists.shape[1])
+    spiketime_hists = np.vstack([spiketime_hists, randn_data]) 
+    # Print a warning about the dummy neuron
+    print('='*40)
+    print('WARNING: Only one neuron found, adding a dummy neuron for plotting')
+    print('='*40)
 zscored_hists = zscore(spiketime_hists, axis=1)
-
-# Check if we have valid data after processing
-if zscored_hists.shape[0] == 0:
-    print("No valid spike histogram data, skipping drift analysis")
-    sys.exit(0)
 
 # Perform PCA and keep 5 components
 n_components = np.min([5, zscored_hists.shape[0], zscored_hists.shape[1]])
