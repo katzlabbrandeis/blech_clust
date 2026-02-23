@@ -65,12 +65,12 @@ jobs:
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
+        working-directory: ${{ github.workspace }}
         run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+              tee ${{ github.workspace }}/github.log;
+              if grep -q "ERROR" ${{ github.workspace }}/github.log; then
                 echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                ./pipeline_testing/extract_traceback.sh ${{ github.workspace }}/github.log;
                 exit 1;
               fi
   EMG-Only:
@@ -80,12 +80,12 @@ jobs:
     steps:
       - name: Prefect EMG only test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
+        working-directory: ${{ github.workspace }}
         run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+              tee ${{ github.workspace }}/github.log;
+              if grep -q "ERROR" ${{ github.workspace }}/github.log; then
                 echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                ./pipeline_testing/extract_traceback.sh ${{ github.workspace }}/github.log;
                 exit 1;
               fi
 
@@ -93,5 +93,7 @@ jobs:
         if: always()
         run: |
           echo "Cleaning up working directory and test artifacts"
-          rm -rf /home/exouser/Desktop/blech_clust
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
           echo "Note: Test data in ~/.blech_clust_test_data is preserved for reuse"
