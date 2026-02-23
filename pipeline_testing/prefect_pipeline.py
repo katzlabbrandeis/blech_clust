@@ -151,17 +151,6 @@ def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
 # Define paths
 # TODO: Replace with call to blech_process_utils.path_handler
 
-# Read emg_env path
-emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
-if not os.path.exists(emg_params_path):
-    print('=== Environment params file not found. ===')
-    print(
-        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
-    exit()
-with open(emg_params_path) as f:
-    env_params = json.load(f)
-emg_env_path = env_params['emg_env']
-
 # Load test data configuration from test_config.json
 data_dirs_dict = get_data_dirs_dict()
 data_dir_base = get_test_data_dir()
