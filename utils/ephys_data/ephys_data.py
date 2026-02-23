@@ -515,7 +515,7 @@ class ephys_data():
 
         self.create_dig_in_name_map()
 
-            # self.spikes = None
+        # self.spikes = None
 
         # Create environemnt variable to allow program to know
         # if file is currently accessed
@@ -653,7 +653,8 @@ class ephys_data():
 
         taste_dig_ins = self.info_dict['taste_params']['dig_in_names']
         taste_names = self.info_dict['taste_params']['tastes']
-        self.dig_in_name_map = {dig_in: taste for dig_in, taste in zip(taste_dig_ins, taste_names)}
+        self.dig_in_name_map = {dig_in: taste for dig_in,
+                                taste in zip(taste_dig_ins, taste_names)}
 
     def get_spikes(self):
         """Extract spike arrays from HDF5 file
