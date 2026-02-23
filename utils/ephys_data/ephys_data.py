@@ -1685,7 +1685,8 @@ class ephys_data():
                     taste_ind = idx
                     break
             if taste_ind is None:
-                raise ValueError(f"Could not find taste index for {this_row['dig_in_name_taste']}")
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1736,7 +1737,8 @@ class ephys_data():
                     taste_ind = idx
                     break
             if taste_ind is None:
-                raise ValueError(f"Could not find taste index for {this_row['dig_in_name_taste']}")
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'],
                            this_row['laser_duration_ms'])
