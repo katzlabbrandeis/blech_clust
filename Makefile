@@ -100,7 +100,7 @@ params:
 		fi; \
 	else \
 		echo "No parameter files found. Copying parameter templates to params directory..."; \
-		cp -v params/templates/* params/; \
+		cp -v params/_templates/* params/; \
 	fi
 
 dev:
