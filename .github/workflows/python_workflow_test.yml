@@ -51,10 +51,10 @@ jobs:
         run: cd ${{ github.workspace }} && ls -la
 
       - name: Setup params
-        run: make params 
+        run: make params
 
       - name: Check params
-        run: ls -la params 
+        run: ls -la params
       - name: Install blech_clust package
         run: make base test
 
