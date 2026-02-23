@@ -633,7 +633,7 @@ class ephys_data():
             self.get_trial_info_frame()
 
         laser_durations = [x['laser_duration_ms'].values for _,
-                           x in self.trial_info_frame.groupby('dig_in_num_taste')]
+                           x in self.trial_info_frame.groupby('dig_in_name_taste')]
         if any([np.any(x > 0) for x in laser_durations]):
             self.laser_exists = True
         else:
@@ -730,7 +730,7 @@ class ephys_data():
         if 'trial_info_frame' not in dir(self):
             print('Trial info frame not found...Loading')
             self.get_trial_info_frame()
-        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_names']
         # Add final argument to argument list
         if None in self.lfp_params.values():
             print('No LFP params found...using default LFP params')
@@ -1611,7 +1611,7 @@ class ephys_data():
 
         Side Effects:
             Sets self.trial_info_frame: pandas DataFrame with columns including:
-                - dig_in_num_taste: Digital input number for taste delivery
+                - dig_in_name_taste: Digital input name corresponding to taste identity
                 - laser_duration_ms: Duration of laser stimulation in ms
                 - start_taste_ms: Trial start time in ms
                 - end_taste_ms: Trial end time in ms
