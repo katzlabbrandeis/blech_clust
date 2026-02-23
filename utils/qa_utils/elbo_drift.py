@@ -181,10 +181,10 @@ tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)
 
 fig, ax = plt.subplots(3, 1, sharex=True)
-ax[0].scatter(trial_info_frame['start_taste'], trial_info_frame['dig_in_num_taste'],
+ax[0].scatter(trial_info_frame['start_taste'], trial_info_frame['dig_in_name_taste'],
               marker='|', color='black')
 ax[0].set_title('Taste Trials')
-ax[0].set_ylabel('Dig In #')
+ax[0].set_ylabel('Taste Name')
 ax[1].pcolorfast(bins, np.arange(zscored_hists.shape[0]),
                  zscored_hists, cmap='viridis')
 ax[1].set_title('Spike Histograms')
