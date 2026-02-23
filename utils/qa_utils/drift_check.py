@@ -32,6 +32,7 @@ blech_path = os.path.dirname(os.path.dirname(script_dir_path))
 sys.path.append(blech_path)
 from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+import blech_clust as bc  # noqa: E402
 
 
 def get_spike_trains(hf5_path):
@@ -72,13 +73,36 @@ def array_to_df(array, dim_names):
     return df
 
 
+testing_bool = False
+
+if not testing_bool:
+
+    import argparse  # noqa
+    parser = argparse.ArgumentParser(
+        description='Analyze drift in firing rates across session')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory name with data files')
+    parser.add_argument('--force_run', action='store_true',
+                        help='Force run the script without asking user')
+    args = parser.parse_args()
+    force_run = args.force_run
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.dir_name])
+    # Get directory name from metadata handler
+    dir_name = metadata_handler.dir_name
+
+else:
+    blech_clust_dir = os.path.dirname(bc.__file__)
+    # Set your test data directory here
+    data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+    force_run = False
+
 ############################################################
 # Initialize
 ############################################################
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
-
 # Perform pipeline graph check
 this_pipeline_check = pipeline_graph_check(dir_name)
 this_pipeline_check.check_previous(script_path)
