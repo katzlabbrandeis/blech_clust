@@ -31,6 +31,7 @@ from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 import blech_clust as bc  # noqa: E402
 
+
 def array_to_df(array, dim_names):
     """
     Convert array to dataframe with dimensions as columns
@@ -103,7 +104,8 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 # spike_trains = get_spike_trains(metadata_handler.hdf5_name)
 
 from importlib import reload  # noqa: E402
-reload(ephys_data)  # in case we made changes to ephys_data.py and want to reload it without restarting the kernel
+# in case we made changes to ephys_data.py and want to reload it without restarting the kernel
+reload(ephys_data)
 
 dat = ephys_data.ephys_data(dir_name)
 dat.get_spikes()
