@@ -682,7 +682,7 @@ class ephys_data():
 
             print('Spike trains loaded from following dig-ins')
             # Create dig_in_name_list for backward compatibility
-            self.dig_in_name_list = [self.dig_in_name_map.get(node, node) 
+            self.dig_in_name_list = [self.dig_in_name_map.get(node, node)
                                      for node in self.dig_in_node_list]
             print(
                 "\n".join([f'{i}. {self.dig_in_name_map.get(node, node)} ({node})' for i, node in
@@ -1685,7 +1685,8 @@ class ephys_data():
                     taste_ind = idx
                     break
             if taste_ind is None:
-                raise ValueError(f"Could not find taste index for {this_row['dig_in_name_taste']}")
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1736,7 +1737,8 @@ class ephys_data():
                     taste_ind = idx
                     break
             if taste_ind is None:
-                raise ValueError(f"Could not find taste index for {this_row['dig_in_name_taste']}")
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'],
                            this_row['laser_duration_ms'])
