@@ -469,8 +469,9 @@ for i, row in this_dig_handler.dig_in_frame.iterrows():
     elif 'laser_bool' in row.index:
         if row.laser_bool:
             laser_ind = i
-    else:
-        laser_ind = None
+
+# Define laser_ind if not already defined
+laser_ind = laser_ind if 'laser_ind' in locals() else None
 
 if laser_ind is not None:
     laser_markers = dig_in_markers.pop(laser_ind)
