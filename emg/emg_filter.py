@@ -119,7 +119,8 @@ for x in emg_car_groups:
     print(x)
     print()
 
-print(f'Processing {len(emg_car_groups)} EMG CAR groups across {len(emg_data)} dig-ins...')
+print(
+    f'Processing {len(emg_car_groups)} EMG CAR groups across {len(emg_data)} dig-ins...')
 
 # TODO: This question can go into an EMG params file
 # Bandpass filter the emg signals, and store them in a numpy array.
