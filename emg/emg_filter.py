@@ -65,7 +65,7 @@ print(f'Processing : {dir_name}')
 # emg_data = np.load('emg_output/emg_data.npy')
 with tables.open_file(metadata_handler.hdf5_name, 'r') as hf5:
     emg_digins = hf5.list_nodes('/emg_data')
-    emg_digins = [x for x in emg_digins if 'dig_in' in x._v_name]
+    emg_digins = [x for x in emg_digins if 'board-DIN' in x._v_name]
     emg_digin_names = [x._v_name for x in emg_digins]
     emg_data = [x.emg_array[:] for x in emg_digins]
     map_array = hf5.get_node('/emg_data/ind_electrode_map').read()
@@ -226,16 +226,18 @@ with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
             hf5.remove_node(f'{digin_path}/processed_emg', recursive=True)
         hf5.create_group(f'{digin_path}', 'processed_emg')
         for car_ind, this_car_name in enumerate(emg_car_names):
+            base_path = f'{digin_path}/processed_emg'
             hf5.create_array(
-                f'{digin_path}/processed_emg',
+                base_path,
                 f'{this_car_name}_emg_filt',
                 emg_filt_list[car_ind][digin_ind]
             )
             hf5.create_array(
-                f'{digin_path}/processed_emg',
+                base_path,
                 f'{this_car_name}_emg_env',
                 emg_env_list[car_ind][digin_ind]
             )
+        print(f'Wrote to: {base_path} for {digin_name}')
 print('All processed EMG data saved successfully' + '\n')
 
 # Write successful execution to log
