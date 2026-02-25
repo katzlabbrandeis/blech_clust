@@ -29,7 +29,7 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 # Get emg data
 print("Reading EMG data nodes...")
 emg_nodes = hf5.list_nodes('/emg_data')
-emg_nodes = [x for x in emg_nodes if 'dig' in x._v_name]
+emg_nodes = [x for x in emg_nodes if 'board-DIN' in x._v_name]
 print(f"Found {len(emg_nodes)} EMG nodes")
 
 # Shape for each array = (n_channels, n_trials, n_samples)
