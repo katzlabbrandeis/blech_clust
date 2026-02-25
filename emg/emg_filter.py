@@ -63,13 +63,17 @@ pre_stim = int(durations[0])
 print(f'Using pre-stim duration : {pre_stim}' + '\n')
 
 # Get coefficients for Butterworth filters
+print('Configuring Butterworth filters...')
 m, n = butter(2, 2.0*300.0/1000.0, 'highpass')
 c, d = butter(2, 2.0*15.0/1000.0, 'lowpass')
+print('Filters configured successfully' + '\n')
 
 # todo: This can be pulled from info file
 # check how many EMG channels used in this experiment
+print('Loading electrode layout...')
 layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
 electrode_layout_frame = pd.read_csv(layout_path)
+print(f'Loaded layout from: {os.path.basename(layout_path)}' + '\n')
 
 # Change CAR_group col to lower
 electrode_layout_frame['CAR_group'] = electrode_layout_frame['CAR_group'].str.lower()
@@ -96,6 +100,8 @@ for x in emg_car_groups:
     print(x)
     print()
 
+print(f'Processing {len(emg_car_groups)} EMG CAR groups across {len(emg_data)} dig-ins...')
+
 # TODO: This question can go into an EMG params file
 # Bandpass filter the emg signals, and store them in a numpy array.
 # Low pass filter the bandpassed signals, and store them in another array
@@ -105,6 +111,7 @@ for x in emg_car_groups:
 #       outer list : emg CAR groups
 #       inner list : dig-ins
 #       element_array : channels x trials x time
+print('Grouping EMG data by CAR groups...')
 emg_data_grouped = [[dat[x] for dat in emg_data] for x in emg_car_inds]
 # Make sure all element arrays are 3D with shape: channels x trials x time
 for x in emg_data_grouped:
@@ -112,6 +119,7 @@ for x in emg_data_grouped:
         if len(y.shape) < 3:
             y = np.expand_dims(y, axis=0)
 
+print('Differencing EMG signals within CAR groups...')
 emg_diff_data = []
 for this_car in emg_data_grouped:
     this_car_diff = []
@@ -123,8 +131,10 @@ for this_car in emg_data_grouped:
         else:
             this_car_diff.append(np.squeeze(this_dig))
     emg_diff_data.append(this_car_diff)
+print('Differencing complete' + '\n')
 
 # Iterate over trials and apply frequency filter
+print('Applying bandpass and lowpass filters...')
 emg_filt_list = []
 emg_env_list = []
 for car_group in emg_diff_data:
@@ -139,8 +149,10 @@ for car_group in emg_diff_data:
         this_car_env.append(temp_env)
     emg_filt_list.append(this_car_filt)
     emg_env_list.append(this_car_env)
+print('Filtering complete' + '\n')
 
 # Iterate and check for signficant changes in activity
+print('Identifying significant trials based on activity changes...')
 n_cars = len(emg_diff_data)
 n_dig = len(emg_diff_data[0])
 trial_lens = [[len(x) for x in y] for y in emg_diff_data]
@@ -180,10 +192,12 @@ for i, this_row in ind_frame.iterrows():
     sig_trials_list.append(sig_trials)
 
 ind_frame['sig_trials'] = sig_trials_list
+print(f'Identified {sum(sig_trials_list)} significant trials out of {len(sig_trials_list)} total trials' + '\n')
 
 # Save the highpass filtered signal,
 # the envelope and the indicator of significant trials as a np array
 # Iterate over channels and save them in different directories
+print('Saving processed EMG data to HDF5 file...')
 ind_frame.to_hdf(metadata_handler.hdf5_name, '/emg_data/emg_sig_trials')
 
 with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
@@ -203,6 +217,8 @@ with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
                 f'{this_car_name}_emg_env',
                 emg_env_list[car_ind][digin_ind]
             )
+print('All processed EMG data saved successfully' + '\n')
 
 # Write successful execution to log
+print('EMG filtering pipeline completed successfully')
 this_pipeline_check.write_to_log(script_path, 'completed')
