@@ -23,19 +23,38 @@ import glob
 import pandas as pd
 import tables
 import ast
+import argparse
 
-sys.path.append('..')
-from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+parser = argparse.ArgumentParser(
+    description='Filter and process EMG data')
+parser.add_argument('data_dir', type=str,
+                    help='Directory containing the data files')
+args = parser.parse_args()
 
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
+test_bool = False
 
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if test_bool:
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new/'
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_filter.py'
+    from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+
+else:
+    script_path = os.path.realpath(__file__)
+
+    from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.data_dir])
+    dir_name = metadata_handler.dir_name
+
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -221,4 +240,5 @@ print('All processed EMG data saved successfully' + '\n')
 
 # Write successful execution to log
 print('EMG filtering pipeline completed successfully')
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not test_bool:
+    this_pipeline_check.write_to_log(script_path, 'completed')
