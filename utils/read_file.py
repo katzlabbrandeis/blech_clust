@@ -100,7 +100,8 @@ class DigInHandler:
             # Refer to: https://github.com/katzlabbrandeis/blech_clust/pull/780#issuecomment-3962005678
             # for issue
             # Replace 'digital-in' with 'board-DIN' to match naming convention of other formats
-            print('Renaming dig-in channels in traditional format for consistency with other formats...')
+            print(
+                'Renaming dig-in channels in traditional format for consistency with other formats...')
             print(f'Original dig-in names: {dig_in_name}')
             dig_in_name = [x.replace('digital-in', 'board-DIN')
                            for x in dig_in_name]
