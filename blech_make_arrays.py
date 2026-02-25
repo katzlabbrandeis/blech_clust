@@ -313,6 +313,7 @@ if __name__ == '__main__':
                 units,
                 hf5,
             )
+            print(f'  Generated {len(this_starts)} spike trials for {name}')
         ###############
         # Write out laser_duration and lag to hdf5 file
         if True in trial_info_frame['laser'] and '/spike_trains' in hf5:
@@ -365,6 +366,7 @@ if __name__ == '__main__':
                 emg_nodes,
                 hf5,
             )
+            print(f'  Generated {len(this_starts)} EMG trials for {name}')
 
         # Save output in emg dir
         if not os.path.exists('emg_output'):
