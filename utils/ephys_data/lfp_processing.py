@@ -348,7 +348,8 @@ def extract_lfps(dir_name,
     change_points_fin = [
         np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_name_taste')
     ]
-    dig_in_names = list(trial_info_frame.groupby('dig_in_name_taste').groups.keys())
+    dig_in_names = list(trial_info_frame.groupby(
+        'dig_in_name_taste').groups.keys())
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
                          for this_dig_in_markers in change_points_fin]
@@ -566,11 +567,13 @@ def extract_emgs(dir_name,
     change_points_fin = [
         np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_name_taste')
     ]
-    dig_in_names = list(trial_info_frame.groupby('dig_in_name_taste').groups.keys())
-    
+    dig_in_names = list(trial_info_frame.groupby(
+        'dig_in_name_taste').groups.keys())
+
     # Downsample change points to match downsampled data
     new_intersample_interval = sampling_rate/fin_sampling_rate
-    change_points = [np.array(x)//new_intersample_interval for x in change_points_fin]
+    change_points = [
+        np.array(x)//new_intersample_interval for x in change_points_fin]
 
     # ==============================
     # Write-Out Extracted LFP
