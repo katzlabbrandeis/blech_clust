@@ -53,7 +53,7 @@ if test_bool:
     # script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
     script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_freq_setup.py'
     # from utils.blech_process_utils import path_handler  # noqa: E402
-    from blech_clust.utils.blech_utils import imp_metadata # noqa: E402
+    from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], data_dir])
