@@ -33,6 +33,8 @@ import tables
 import pandas as pd
 import pylab as plt
 import argparse
+import blech_clust as bc
+blech_clust_dir = bc.__path__[0]
 
 parser = argparse.ArgumentParser(
     description='Setup EMG data for running BSA on the envelope of EMG data')
@@ -46,14 +48,12 @@ test_bool = False
 
 if test_bool:
     # data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new/'
     # script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
     script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_freq_setup.py'
-    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-    sys.path.append(blech_clust_dir)
-    print(f'blech_clust_dir: {blech_clust_dir}')
     # from utils.blech_process_utils import path_handler  # noqa: E402
-    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+    from blech_clust.utils.blech_utils import imp_metadata # noqa: E402
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], data_dir])
@@ -62,11 +62,8 @@ if test_bool:
 else:
     script_path = os.path.realpath(__file__)
 
-    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-    sys.path.append(blech_clust_dir)
-    print(f'blech_clust_dir: {blech_clust_dir}')
     # from utils.blech_process_utils import path_handler  # noqa: E402
-    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+    from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], args.data_dir])
@@ -116,7 +113,7 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r')
 # Get all emg_env data
 # Structure /emg_data/dig_in_<xx>/processed_emg/<xx>_emg_env
 dig_in_nodes = hf5.list_nodes('/emg_data')
-dig_in_nodes = [x for x in dig_in_nodes if 'dig_in' in x._v_name]
+dig_in_nodes = [x for x in dig_in_nodes if 'board-DIN' in x._v_name]
 emg_env_node_names = []
 emg_env_data = []
 emg_filt_data = []
@@ -155,7 +152,7 @@ flat_emg_filt_data = np.stack(
 
 emg_env_df = pd.DataFrame(
     dict(
-        dig_in=[int(x.split('_')[-1]) for x in fin_dig_list],
+        dig_in=[x for x in fin_dig_list],
         car=fin_car_list,
         trial_inds=trial_inds,
     )
@@ -286,7 +283,7 @@ trial_info_frame = pd.read_csv(os.path.join(data_dir, 'trial_info_frame.csv'))
 
 merge_frame = pd.merge(emg_env_df, trial_info_frame,
                        left_on=['dig_in', 'trial_inds'],
-                       right_on=['dig_in_num_taste', 'taste_rel_trial_num'],
+                       right_on=['dig_in_name_taste', 'taste_rel_trial_num'],
                        how='left')
 merge_frame.drop(
     columns=['dig_in', 'trial_inds',
@@ -312,7 +309,7 @@ max_trials = merge_frame.taste_rel_trial_num.max() + 1
 
 if not args.no_plots:
     for car_name, car_data in car_group:
-        n_digs = car_data.dig_in_num_taste.nunique()
+        n_digs = car_data.dig_in_name_taste.nunique()
         fig, ax = plt.subplots(max_trials, n_digs,
                                sharex=True, sharey=True,
                                figsize=(n_digs*4, max_trials)
@@ -331,7 +328,7 @@ if not args.no_plots:
         plt.close()
 
     for car_name, car_data in car_group:
-        n_digs = car_data.dig_in_num_taste.nunique()
+        n_digs = car_data.dig_in_name_taste.nunique()
         fig, ax = plt.subplots(max_trials, n_digs,
                                sharex=True, sharey=True,
                                figsize=(n_digs*4, max_trials)
