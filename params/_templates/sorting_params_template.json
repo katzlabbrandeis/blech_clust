@@ -9,8 +9,7 @@
     "max_secs_above_cutoff": 60,
     "max_mean_breach_rate_persec": 100,
     "wf_amplitude_sd_cutoff": 3,
-    "bandpass_lower_cutoff": 300,
-    "bandpass_upper_cutoff": 3000,
+    "highpass_cutoff": 300,
     "spike_snapshot_before": 1,
     "spike_snapshot_after": 1.5,
     "auto_CAR": {
