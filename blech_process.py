@@ -205,7 +205,9 @@ if params_dict.get('use_rolling_threshold', False):
         step_len=step_len,
         threshold_mult=params_dict['waveform_threshold'],
     )
-    rolling_fig, _ = bpu.plot_rolling_threshold(rt_times, rt_thresholds)
+
+    rolling_fig, _ = bpu.plot_rolling_threshold(
+        rt_times, rt_thresholds, global_threshold=threshold)
     rolling_fig.savefig(
         f'./Plots/{electrode_num:02}/rolling_threshold.png',
         bbox_inches='tight', dpi=300,
@@ -220,6 +222,7 @@ if params_dict.get('use_rolling_threshold', False):
         times=rt_times,
         thresholds=rt_thresholds,
         electrode_num=electrode_num,
+        global_threshold=threshold,
     )
 # ------------------------------------------------------------
 
