@@ -23,7 +23,6 @@ from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
-from ast import literal_eval
 import matplotlib.pyplot as plt
 
 # def get_dig_in_data(hf5):
@@ -163,7 +162,7 @@ if __name__ == '__main__':
     )
     this_dig_handler.load_dig_in_frame()
     print('DigIn data loaded')
-    print(this_dig_handler.dig_in_frame.drop(columns='pulse_times'))
+    print(this_dig_handler.dig_in_frame)
 
     # Pull out taste dig-ins
     taste_digin_nums = info_dict['taste_params']['dig_in_nums']
@@ -202,17 +201,14 @@ if __name__ == '__main__':
     taste_info_list = []
     for ind, num in enumerate(taste_digin_nums):
         this_dig = this_dig_handler.dig_in_frame.loc[
-            this_dig_handler.dig_in_frame['dig_in_nums'] == num]
-        pulse_times = this_dig['pulse_times'].values[0]
-        pulse_times = literal_eval(pulse_times)
-        dig_in_name = this_dig['dig_in_names'].values[0]
+            this_dig_handler.dig_in_frame['dig_in_nums'] == num].copy()
         this_frame = pd.DataFrame(
             dict(
                 dig_in_num=num,
-                dig_in_name=dig_in_name,
+                dig_in_name=this_dig['dig_in_names'].values[0],
                 taste=this_dig['taste'].values[0],
-                start=[x[0] for x in pulse_times],
-                end=[x[1] for x in pulse_times],
+                start=this_dig['start'].values,
+                end=this_dig['end'].values,
             )
         )
         taste_info_list.append(this_frame)
@@ -231,22 +227,16 @@ if __name__ == '__main__':
     taste_info_frame.sort_values(by=['start'], inplace=True)
 
     laser_info_list = []
-    # for ind, num in enumerate(laser_digin_inds):
     for ind, num in enumerate(laser_digin_nums):
         this_dig = this_dig_handler.dig_in_frame.loc[
-            this_dig_handler.dig_in_frame['dig_in_nums'] == num]
-        # pulse_times = this_dig_handler.dig_in_frame['pulse_times'][num]
-        pulse_times = this_dig['pulse_times'].values[0]
-        pulse_times = literal_eval(pulse_times)
-        # dig_in_name = this_dig_handler.dig_in_frame['dig_in_nums'][num]
-        dig_in_name = this_dig['dig_in_names'].values[0]
+            this_dig_handler.dig_in_frame['dig_in_nums'] == num].copy()
         this_frame = pd.DataFrame(
             dict(
                 dig_in_num=num,
-                dig_in_name=dig_in_name,
+                dig_in_name=this_dig['dig_in_names'].values[0],
                 laser=True,
-                start=[x[0] for x in pulse_times],
-                end=[x[1] for x in pulse_times],
+                start=this_dig['start'].values,
+                end=this_dig['end'].values,
             )
         )
         laser_info_list.append(this_frame)
