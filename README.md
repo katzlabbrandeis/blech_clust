@@ -101,8 +101,8 @@ Spike Sorting
 [blech_post_process] -> [blech_units_plot]
 [blech_units_plot] -> [blech_make_arrays]
 [blech_make_arrays] -> [bash blech_run_QA.sh]
-[bash blech_run_QA.sh] -> [blech_unit_characteristics]
-[blech_unit_characteristics] -> [blech_data_summary]
+[bash blech_run_QA.sh] -> [blech_units_characteristics]
+[blech_units_characteristics] -> [blech_data_summary]
 [blech_data_summary] -> [grade_dataset]
 
 EMG shared
