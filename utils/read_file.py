@@ -81,13 +81,41 @@ class DigInHandler:
             dig_in_file_list = [
                 name for name in file_list if name.startswith('board-DI')]
             dig_in_name = [x.split('.')[0] for x in dig_in_file_list]
-            dig_in_num = [int(x.split('-')[-1]) for x in dig_in_name]
 
-            # Sort by dig-in number
-            sort_inds = np.argsort(dig_in_num)
-            dig_in_file_list = [dig_in_file_list[x] for x in sort_inds]
-            dig_in_name = [dig_in_name[x] for x in sort_inds]
-            dig_in_num = [dig_in_num[x] for x in sort_inds]
+            # Extract dig-in numbers - handle both numeric (board-DI-00) and string (board-DI-Suc) formats
+            dig_in_num = []
+            for name in dig_in_name:
+                last_part = name.split('-')[-1]
+                try:
+                    # Try to parse as integer (old format: board-DI-00)
+                    dig_in_num.append(int(last_part))
+                except ValueError:
+                    # If not a number, extract from board-DIN-## pattern or assign based on order
+                    # Check if there's a number anywhere in the name
+                    import re
+                    numbers = re.findall(r'\d+', name)
+                    if numbers:
+                        # Use the last number found in the filename
+                        dig_in_num.append(int(numbers[-1]))
+                    else:
+                        # No number found - will assign sequential numbers later
+                        dig_in_num.append(None)
+
+            # If any dig_in_num is None, assign sequential numbers based on alphabetical order
+            if None in dig_in_num:
+                # Sort by name first to get consistent ordering
+                name_sort_inds = np.argsort(dig_in_name)
+                dig_in_file_list = [dig_in_file_list[x]
+                                    for x in name_sort_inds]
+                dig_in_name = [dig_in_name[x] for x in name_sort_inds]
+                # Assign sequential numbers
+                dig_in_num = list(range(len(dig_in_name)))
+            else:
+                # Sort by dig-in number
+                sort_inds = np.argsort(dig_in_num)
+                dig_in_file_list = [dig_in_file_list[x] for x in sort_inds]
+                dig_in_name = [dig_in_name[x] for x in sort_inds]
+                dig_in_num = [dig_in_num[x] for x in sort_inds]
 
         else:
             rhd_file_list = [x for x in file_list if 'rhd' in x]
