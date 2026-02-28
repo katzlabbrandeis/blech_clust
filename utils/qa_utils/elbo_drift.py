@@ -27,6 +27,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('dir_name', type=str, help='Directory containing data')
 parser.add_argument('--force', action='store_true', help='Force re-fitting')
+parser.add_argument('--overwrite_dependencies', action='store_true',
+                    help='Overwrite dependency check and continue even if previous script was not run')
 args = parser.parse_args()
 
 
@@ -133,7 +135,8 @@ metadata_handler = imp_metadata([[], args.dir_name])
 dir_name = metadata_handler.dir_name
 
 # Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(dir_name)
+this_pipeline_check = pipeline_graph_check(
+    dir_name, args.overwrite_dependencies)
 this_pipeline_check.check_previous(script_path)
 this_pipeline_check.write_to_log(script_path, 'attempted')
 

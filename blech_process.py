@@ -44,11 +44,14 @@ else:
     parser.add_argument('data_dir', type=str, help='Path to data directory')
     parser.add_argument('electrode_num', type=int,
                         help='Electrode number to process')
+    parser.add_argument('--overwrite_dependencies', action='store_true',
+                        help='Overwrite dependency check and continue even if previous script was not run')
     args = parser.parse_args()
 
     # Perform pipeline graph check
     script_path = os.path.realpath(__file__)
-    this_pipeline_check = pipeline_graph_check(args.data_dir)
+    this_pipeline_check = pipeline_graph_check(
+        args.data_dir, args.overwrite_dependencies)
     this_pipeline_check.check_previous(script_path)
     this_pipeline_check.write_to_log(script_path, 'attempted')
 
