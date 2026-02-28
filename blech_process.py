@@ -245,11 +245,15 @@ if classifier_params['use_neuRecommend']:
     from feature_engineering_pipeline import *
     classifier_handler.load_pipelines()
 
-    # If override_classifier_threshold is set, use that
-    if classifier_params['classifier_threshold_override']['override'] is not False:
-        clf_threshold = classifier_params['classifier_threshold_override']['threshold']
-        print(f' == Overriding classifier threshold with {clf_threshold} ==')
-        classifier_handler.clf_threshold = clf_threshold
+# Check parameters before using classifier
+if classifier_params['use_classifier']:
+    if (params_dict['spike_snapshot_before'] != 1 or
+            params_dict['spike_snapshot_after'] != 1.5):
+        raise ValueError(
+            "Classifier cannot be used unless 'spike_snapshot_before' is 1 and 'spike_snapshot_after' is 1.5.")
+    if params_dict['sampling_rate'] != 30000:
+        raise ValueError(
+            "Sampling rate is not 30KHz. Classifier requires 30Khz.")
 
 if classifier_params['use_classifier'] and \
         classifier_params['use_neuRecommend']:
