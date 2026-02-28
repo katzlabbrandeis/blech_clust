@@ -404,6 +404,23 @@ if not os.path.exists(params_out_path) and not params_exist:
 else:
     print("Params file already present...not writing a new one")
 
+# Copy waveform_classifier_params.json to data directory
+waveform_classifier_template_path = os.path.join(
+    blech_clust_dir,
+    'params/waveform_classifier_params.json')
+waveform_classifier_out_path = os.path.join(
+    dir_name, 'waveform_classifier_params.json')
+if os.path.exists(waveform_classifier_template_path):
+    if not os.path.exists(waveform_classifier_out_path):
+        print('Copying waveform_classifier_params.json to data directory')
+        shutil.copy(waveform_classifier_template_path,
+                    waveform_classifier_out_path)
+    else:
+        print("waveform_classifier_params.json already present in data directory")
+else:
+    print('Warning: waveform_classifier_params.json not found in blech_clust/params/')
+    print('Please copy from _templates if needed for autosort functionality')
+
 ##############################
 # Test correlation between channels for quality check
 print()
