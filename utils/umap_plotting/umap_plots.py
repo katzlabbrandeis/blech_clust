@@ -255,9 +255,12 @@ if __name__ == '__main__':
         print(f'Creating {bash_file}')
         job_count = cpu_count()-2
         f = open(runner_path, 'w')
+        # Create logs directory if it doesn't exist
+        logs_dir = os.path.join(dir_name, 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
         print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
               "--memfree 4G --retry-failed " +
-              f"--joblog {dir_name}/umap_results.log " +
+              f"--joblog {logs_dir}/umap_results.log " +
               f"python umap_plots.py " +
               f"::: {' '.join([str(x) for x in range(len(path_frame))])}",
               file=f)

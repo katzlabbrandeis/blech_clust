@@ -52,7 +52,7 @@ This module is designed for handling and processing electrophysiological data, s
 
 # Set environment variables to limit the number of threads used by various libraries
 # Do it at the start of the script to ensure it applies to all imported libraries
-from blech_clust.utils.blech_utils import ifisdir_rmdir
+from blech_clust.utils.blech_utils import ifisdir_rmdir, get_metadata_dir
 import os  # noqa
 os.environ['OMP_NUM_THREADS'] = '1'  # noqa
 os.environ['MKL_NUM_THREADS'] = '1'  # noqa
@@ -761,7 +761,9 @@ class classifier_handler():
         Write out electrode number, count, mean prediction probability, and 5,95th percentiles
         """
         waveform_thresh = self.classifier_params['min_suggestion_count']
-        out_file_path = self.data_dir + '/waveform_classifier_recommendations.csv'
+        metadata_dir = get_metadata_dir(self.data_dir)
+        out_file_path = os.path.join(
+            metadata_dir, 'waveform_classifier_recommendations.csv')
         count = len(self.pos_spike_dict['waveforms'])
         if count > waveform_thresh:
             percentile_5 = np.percentile(self.pos_spike_dict['prob'], 5)

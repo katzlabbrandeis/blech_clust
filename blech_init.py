@@ -170,7 +170,7 @@ def generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_fram
         f.write(f'DIR={dir_name} \n')
         print(f"parallel -k -j {job_count} --noswap --load 100% --progress " +
               "--memfree 4G --ungroup --retry-failed " +
-              f"--joblog $DIR/results.log " +
+              f"--joblog $DIR/logs/results.log " +
               "bash $DIR/temp/blech_process_single.sh " +
               f"::: {' '.join([str(x) for x in bash_electrode_list])}",
               file=f)
@@ -204,7 +204,11 @@ if not testing_bool:
     this_pipeline_check.write_to_log(script_path, 'attempted')
     # If info_dict present but execution log is not
     # just create the execution log with blech_exp_info marked
-    if 'info_dict' in dir(metadata_handler) and not os.path.exists(metadata_handler.dir_name + '/execution_log.json'):
+    execution_log_path_new = os.path.join(
+        metadata_handler.dir_name, 'logs', 'execution_log.json')
+    execution_log_path_old = os.path.join(
+        metadata_handler.dir_name, 'execution_log.json')
+    if 'info_dict' in dir(metadata_handler) and not os.path.exists(execution_log_path_new) and not os.path.exists(execution_log_path_old):
         blech_exp_info_path = os.path.join(
             blech_clust_dir, 'blech_exp_info.py')
         this_pipeline_check.write_to_log(blech_exp_info_path, 'attempted')

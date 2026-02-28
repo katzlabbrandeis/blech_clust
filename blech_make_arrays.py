@@ -21,7 +21,7 @@ import pandas as pd
 from tqdm import tqdm
 from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
-from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check, get_metadata_dir
 from blech_clust.utils.read_file import DigInHandler
 from ast import literal_eval
 import matplotlib.pyplot as plt
@@ -376,7 +376,8 @@ if __name__ == '__main__':
 
     trial_info_frame.to_hdf(metadata_handler.hdf5_name,
                             'trial_info_frame', mode='a')
-    csv_path = os.path.join(metadata_handler.dir_name, 'trial_info_frame.csv')
+    metadata_dir = get_metadata_dir(metadata_handler.dir_name)
+    csv_path = os.path.join(metadata_dir, 'trial_info_frame.csv')
     trial_info_frame.to_csv(csv_path, index=False)
 
     # Get list of units under the sorted_units group.

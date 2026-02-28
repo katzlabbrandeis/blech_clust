@@ -59,7 +59,7 @@ else:
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
 from blech_clust.utils.qa_utils.channel_corr import get_all_channels, intra_corr  # noqa
-from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check, get_metadata_dir  # noqa
 
 
 def extract_unit_characteristics(dir_name):
@@ -152,8 +152,13 @@ def extract_unit_characteristics(dir_name):
         print("Falling back to aggregated_characteristics.csv...")
 
     # Fallback: read from aggregated_characteristics.csv
+    metadata_dir = get_metadata_dir(dir_name)
     characteristics_path = os.path.join(
-        dir_name, 'aggregated_characteristics.csv')
+        metadata_dir, 'aggregated_characteristics.csv')
+    # Check old location for backward compatibility
+    old_path = os.path.join(dir_name, 'aggregated_characteristics.csv')
+    if not os.path.exists(characteristics_path) and os.path.exists(old_path):
+        characteristics_path = old_path
 
     if not os.path.exists(characteristics_path):
         print(
@@ -385,7 +390,12 @@ def extract_laser_conditions(dir_name):
     Returns:
         Dictionary with laser condition information
     """
-    trial_info_path = os.path.join(dir_name, 'trial_info_frame.csv')
+    metadata_dir = get_metadata_dir(dir_name)
+    trial_info_path = os.path.join(metadata_dir, 'trial_info_frame.csv')
+    # Check old location for backward compatibility
+    old_path = os.path.join(dir_name, 'trial_info_frame.csv')
+    if not os.path.exists(trial_info_path) and os.path.exists(old_path):
+        trial_info_path = old_path
 
     if not os.path.exists(trial_info_path):
         print(f"Warning: {trial_info_path} not found.")
