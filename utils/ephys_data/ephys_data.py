@@ -818,13 +818,14 @@ class ephys_data():
                          if 'dig_in' in node.__str__()]
             # Account for parsed LFPs being different
             trial_arrays = [
-                np.asarray(node).transpose(1,0,2)   # trials × electrodes × samples
+                # trials × electrodes × samples
+                np.asarray(node).transpose(1, 0, 2)
                 for node in lfp_nodes
             ]
-            
+
             all_trials = np.concatenate(trial_arrays, axis=0)
-            
-            self.all_lfp_array = all_trials.transpose(1,0,2)
+
+            self.all_lfp_array = all_trials.transpose(1, 0, 2)
 
     def separate_laser_lfp(self):
         """Separate LFP arrays into laser on and off conditions
