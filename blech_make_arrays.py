@@ -300,6 +300,7 @@ if __name__ == '__main__':
         hf5.create_group('/', 'spike_trains')
 
         # Pull out spike trains
+        spike_trial_counts = []
         for name, this_starts in zip(taste_digin_names, taste_starts_cutoff):
             print(f'Creating spike-trains for {name}')
             create_spike_trains_for_digin(
@@ -310,7 +311,12 @@ if __name__ == '__main__':
                 units,
                 hf5,
             )
-            print(f'  Generated {len(this_starts)} spike trials for {name}')
+            spike_trial_counts.append((name, len(this_starts)))
+        
+        # Report all spike trial counts
+        print('\n=== Spike Trials Generated ===')
+        for name, count in spike_trial_counts:
+            print(f'  {name}: {count} trials')
         ###############
         # Write out laser_duration and lag to hdf5 file
         if True in trial_info_frame['laser'] and '/spike_trains' in hf5:
@@ -353,6 +359,7 @@ if __name__ == '__main__':
         hf5.create_group('/', 'emg_data')
 
         # Pull out emg trials
+        emg_trial_counts = []
         for name, this_starts in zip(taste_digin_names, taste_starts_cutoff):
             print(f'Creating emg-trials for {name}')
             create_emg_trials_for_digin(
@@ -363,7 +370,12 @@ if __name__ == '__main__':
                 emg_nodes,
                 hf5,
             )
-            print(f'  Generated {len(this_starts)} EMG trials for {name}')
+            emg_trial_counts.append((name, len(this_starts)))
+        
+        # Report all EMG trial counts
+        print('\n=== EMG Trials Generated ===')
+        for name, count in emg_trial_counts:
+            print(f'  {name}: {count} trials')
 
         # Save output in emg dir
         if not os.path.exists('emg_output'):
