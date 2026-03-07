@@ -547,6 +547,17 @@ def test_ephys_data(data_dir):
         'profile_units': 'unit_profiling',
     }
 
+    method_kwargs = {
+            'get_lfps': [
+                {'re_extract': False},
+                {'re_extract': True}
+                ],
+            'get_stft': [
+                {'recalculate': False},
+                {'recalculate': True}
+                ]
+            }
+
     dat.check_laser()
     if dat.laser_exists:
         test_methods.update({
@@ -564,7 +575,15 @@ def test_ephys_data(data_dir):
     for method, category in test_methods.items():
         try:
             print(f"Testing {method}...")
-            getattr(dat, method)()
+            # Check if method has kwargs to test
+            if method in method_kwargs.keys():
+                kwargs_list = method_kwargs[method]
+                print(f"Testing {method} with kwargs: {kwargs_list}")
+                for kwargs in kwargs_list:
+                    print(f"Testing {method} with kwargs: {kwargs}")
+                    getattr(dat, method)(**kwargs)
+            else:
+                getattr(dat, method)()
             result = 'Success'
         except Exception as e:
             print(f"Error in {method}: {str(e)}")
