@@ -365,6 +365,8 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
+    # If not throwing out noise, ensure labels are continuous (i.e. no gaps in label numbers)
+    # at this stage
     cluster_handler.ensure_continuous_labels()
 
     # At this point, cluster_handler has a trained GMM
