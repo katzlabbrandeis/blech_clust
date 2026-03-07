@@ -45,7 +45,7 @@ When throw_out_noise = True:
            |
            +---> Classify (neuRecommend)
            |           |
-           |           +---> Noise waveforms (discarded from training)
+           |           +---> Noise waveforms (discarded from GMM fitting)
            |           |
            |           +---> Spike waveforms (slices_dejittered)
            |                       |
