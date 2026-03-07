@@ -548,15 +548,15 @@ def test_ephys_data(data_dir):
     }
 
     method_kwargs = {
-            'get_lfps': [
-                {'re_extract': False},
-                {'re_extract': True}
-                ],
-            'get_stft': [
-                {'recalculate': False},
-                {'recalculate': True}
-                ]
-            }
+        'get_lfps': [
+            {'re_extract': False},
+            {'re_extract': True}
+        ],
+        'get_stft': [
+            {'recalculate': False},
+            {'recalculate': True}
+        ]
+    }
 
     dat.check_laser()
     if dat.laser_exists:
