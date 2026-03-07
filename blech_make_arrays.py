@@ -313,7 +313,7 @@ if __name__ == '__main__':
                 hf5,
             )
             spike_trial_counts.append((name, len(this_starts)))
-        
+
         # Report all spike trial counts
         print('\n=== Spike Trials Generated ===')
         for name, count in spike_trial_counts:
@@ -372,7 +372,7 @@ if __name__ == '__main__':
                 hf5,
             )
             emg_trial_counts.append((name, len(this_starts)))
-        
+
         # Report all EMG trial counts
         print('\n=== EMG Trials Generated ===')
         for name, count in emg_trial_counts:
