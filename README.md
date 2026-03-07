@@ -146,6 +146,15 @@ Test data available at: [Google Drive](https://drive.google.com/drive/folders/1n
 
 We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+## Community and Support
+
+For general questions, discussions, and community support, please use our **[Discourse forum](https://blech-clust.discourse.diy/)**.
+
+- **Discourse**: For things other than feature requests or bugs, use the discourse forum to ask questions, share knowledge, and crowdsource solutions with other users.
+- **GitHub Issues**: For bug reports and feature requests, please open an issue on GitHub.
+
+If you're unsure whether your question belongs on Discourse or GitHub, start with Discourse! The community can help determine if a GitHub issue is warranted.
+
 ## Citation
 
 If you use this code in your research, please cite:
