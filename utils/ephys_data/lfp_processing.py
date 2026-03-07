@@ -319,7 +319,7 @@ def extract_lfps(dir_name,
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
         electrode_str = f'electrode{electrodegroup[i]:0>3}'
-        hf5.create_array('/raw_LFP', 
+        hf5.create_array('/raw_LFP',
                          electrode_str,
                          filt_el_down)
         hf5.flush()
