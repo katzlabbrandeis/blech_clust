@@ -1403,6 +1403,67 @@ class ephys_data():
         If STFT exists in HDF5, retrieves it. Otherwise calculates STFT
         for all LFP data and optionally saves to HDF5.
 
+        Flowchart of conditional logic:
+        
+        ```
+        START
+          |
+          v
+        recalculate == True? ----YES----> Set calc_stft_bool = 1
+          |                                      |
+          NO                                     |
+          |                                      |
+          v                                      |
+        /stft in HDF5? ----NO----> Create /stft group
+          |                        Set calc_stft_bool = 1
+          YES                              |
+          |                                |
+          v                                |
+        /stft has data nodes? ----NO----> Set calc_stft_bool = 1
+          |                                      |
+          YES                                    |
+          |                                      |
+          v                                      |
+        Load requested dat_types                 |
+        (raw, amplitude, phase)                  |
+        Any missing? ----YES----> Set calc_stft_bool = 1
+          |                                      |
+          NO                                     |
+          |                                      |
+          v                                      |
+        Set calc_stft_bool = 0                   |
+          |                                      |
+          +--------------------------------------+
+          |
+          v
+        calc_stft_bool == 1? ----NO----> DONE (data loaded)
+          |
+          YES
+          |
+          v
+        Load LFP data
+          |
+          v
+        Calculate STFT for all trials
+        (parallel processing)
+          |
+          v
+        Calculate amplitude and phase
+          |
+          v
+        Store requested dat_types
+          |
+          v
+        write_out == True? ----YES----> Write to HDF5
+          |                              (/stft/raw, /stft/amplitude, /stft/phase)
+          NO                                     |
+          |                                      |
+          +--------------------------------------+
+          |
+          v
+        DONE
+        ```
+
         Args:
             recalculate: If True, force recalculation even if STFT exists
             dat_type: List of data types to load/calculate: 'raw', 'amplitude', 'phase'
