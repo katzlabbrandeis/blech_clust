@@ -10,7 +10,7 @@ Python and R based code for clustering and sorting electrophysiology data record
 
 ## ⚠️ Known Issues
 
-**The following methods in the `ephys_data` module are currently failing tests:**
+**The following methods in the `ephys_data` module are currently failing tests (as of 2026-03-07):**
 
 - `return_region_lfps` (electrode_handling)
 - `return_representative_lfp_channels` (electrode_handling)
