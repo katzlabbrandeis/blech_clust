@@ -806,7 +806,8 @@ class ephys_data():
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
 
             if ('/Parsed_LFP' not in hf5) or (re_extract == True):
-                print('Parsed LFPs not found in HDF5 or re-extract requested...Extracting')
+                print(
+                    'Parsed LFPs not found in HDF5 or re-extract requested...Extracting')
                 self.extract_lfps()
 
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
@@ -1433,24 +1434,27 @@ class ephys_data():
                     self.time_vec = hf5.root.stft.time_vec[:]
                     if 'raw' in dat_type:
                         # self.stft_array = hf5.root.stft.stft_array[:]
-                        self.stft_array_list = [hf5.get_node('/stft/raw', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
+                        self.stft_array_list = [hf5.get_node('/stft/raw', dig_in)[:]
+                                                for dig_in in self.dig_in_name_map.keys()]
                         if len(self.stft_array_list) == 0:
-                            warnings.warn("Raw STFT data not found in HDF5, will need to recalculate")
+                            warnings.warn(
+                                "Raw STFT data not found in HDF5, will need to recalculate")
                             self.calc_stft_bool = 1
                     if 'amplitude' in dat_type:
                         # self.amplitude_array = hf5.root.stft.amplitude_array[:]
-                        self.amplitude_array_list = [hf5.get_node('/stft/amplitude', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
+                        self.amplitude_array_list = [hf5.get_node('/stft/amplitude', dig_in)[:]
+                                                     for dig_in in self.dig_in_name_map.keys()]
                         if len(self.amplitude_array_list) == 0:
-                            warnings.warn("Amplitude STFT data not found in HDF5, will need to recalculate")
+                            warnings.warn(
+                                "Amplitude STFT data not found in HDF5, will need to recalculate")
                             self.calc_stft_bool = 1
                     if 'phase' in dat_type:
                         # self.phase_array = hf5.root.stft.phase_array[:]
-                        self.phase_array_list = [hf5.get_node('/stft/phase', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
+                        self.phase_array_list = [hf5.get_node('/stft/phase', dig_in)[:]
+                                                 for dig_in in self.dig_in_name_map.keys()]
                         if len(self.phase_array_list) == 0:
-                            warnings.warn("Phase STFT data not found in HDF5, will need to recalculate")
+                            warnings.warn(
+                                "Phase STFT data not found in HDF5, will need to recalculate")
                             self.calc_stft_bool = 1
 
                     # If everything there, then don't calculate
@@ -1497,13 +1501,13 @@ class ephys_data():
             try:
                 stft_list = []
                 for taste_num, taste_iters in enumerate(stft_iters):
-                    print(f'Calculating STFT for taste {taste_num+1}/{len(stft_iters)}')
-                    taste_stft = Parallel(n_jobs=mp.cpu_count()-2)\
-                            (
-                                delayed(self.calc_stft)\
-                                        (self.lfp_array_list[taste_num][this_iter[0], this_iter[1]],
-                                                             **self.stft_params)
-                                                              for this_iter in tqdm(taste_iters))
+                    print(
+                        f'Calculating STFT for taste {taste_num+1}/{len(stft_iters)}')
+                    taste_stft = Parallel(n_jobs=mp.cpu_count()-2)(
+                        delayed(self.calc_stft)
+                        (self.lfp_array_list[taste_num][this_iter[0], this_iter[1]],
+                         **self.stft_params)
+                        for this_iter in tqdm(taste_iters))
                     stft_list.append(taste_stft)
             except:
                 warnings.warn("Couldn't process STFT in parallel."
@@ -1515,7 +1519,8 @@ class ephys_data():
             self.freq_vec = stft_list[0][0][0]
             self.time_vec = stft_list[0][0][1]
             # fin_stft_list = [x[-1] for x in stft_list]
-            fin_stft_list = [[x[-1] for x in taste_stft] for taste_stft in stft_list]
+            fin_stft_list = [[x[-1] for x in taste_stft]
+                             for taste_stft in stft_list]
             del stft_list
             print('Calculating amplitude and phase')
             # amplitude_list = self.parallelize(np.abs, fin_stft_list)
@@ -1523,16 +1528,18 @@ class ephys_data():
 
             # (taste, channel, trial, frequencies, time)
             # self.stft_array = self.convert_to_array(fin_stft_list, stft_iters)
-            self.stft_array_list = [self.convert_to_array(taste_stft, taste_iters) \
-                    for taste_stft, taste_iters in zip(fin_stft_list, stft_iters)] 
+            self.stft_array_list = [self.convert_to_array(taste_stft, taste_iters)
+                                    for taste_stft, taste_iters in zip(fin_stft_list, stft_iters)]
             del fin_stft_list
             # self.amplitude_array = self.convert_to_array(
             #     amplitude_list, stft_iters)**2
             # del amplitude_list
             # self.phase_array = self.convert_to_array(phase_list, stft_iters)
             # del phase_list
-            self.amplitude_array_list = [np.abs(taste_stft)**2 for taste_stft in self.stft_array_list]
-            self.phase_array_list = [np.angle(taste_stft) for taste_stft in self.stft_array_list]
+            self.amplitude_array_list = [
+                np.abs(taste_stft)**2 for taste_stft in self.stft_array_list]
+            self.phase_array_list = [
+                np.angle(taste_stft) for taste_stft in self.stft_array_list]
 
             # After recalculating, only keep what was asked for
             object_names = ['freq_vec', 'time_vec']
@@ -1568,11 +1575,14 @@ class ephys_data():
 
                         else:
                             # Object will be saved by dig-in name
-                            assert len(obj) == len(self.dig_in_name_map), "Length of object list must match number of tastes"
-                            self.remove_node(os.path.join(dir_path, name), hf5, recursive=True)
+                            assert len(obj) == len(
+                                self.dig_in_name_map), "Length of object list must match number of tastes"
+                            self.remove_node(os.path.join(
+                                dir_path, name), hf5, recursive=True)
                             hf5.create_group('/stft', name)
                             for dig_in_name, this_obj in zip(self.dig_in_name_map.keys(), obj):
-                                hf5.create_array(dir_path+f'/{name}', dig_in_name, this_obj)
+                                hf5.create_array(
+                                    dir_path+f'/{name}', dig_in_name, this_obj)
 
     def return_region_lfps(self):
         """Return list containing LFPs for each region and region names
