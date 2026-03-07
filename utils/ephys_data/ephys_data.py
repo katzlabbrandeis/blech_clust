@@ -1544,13 +1544,6 @@ class ephys_data():
             if "lfp_array_list" not in dir(self):
                 self.get_lfps()
 
-            # Generate list of individual trials to be fed into STFT function
-            # stft_iters = list(
-            #     product(
-            #         *list(map(np.arange, self.lfp_array.shape[:3]))
-            #     )
-            # )
-
             # now that we have lfp_array_list, we have to generate stft_iters differently
             stft_iters = []
             for taste_num, taste in enumerate(self.lfp_array_list):
@@ -1590,19 +1583,11 @@ class ephys_data():
                              for taste_stft in stft_list]
             del stft_list
             print('Calculating amplitude and phase')
-            # amplitude_list = self.parallelize(np.abs, fin_stft_list)
-            # phase_list = self.parallelize(np.angle, fin_stft_list)
 
-            # (taste, channel, trial, frequencies, time)
-            # self.stft_array = self.convert_to_array(fin_stft_list, stft_iters)
+            # [taste](channel, trial, frequencies, time)
             self.stft_array_list = [self.convert_to_array(taste_stft, taste_iters)
                                     for taste_stft, taste_iters in zip(fin_stft_list, stft_iters)]
             del fin_stft_list
-            # self.amplitude_array = self.convert_to_array(
-            #     amplitude_list, stft_iters)**2
-            # del amplitude_list
-            # self.phase_array = self.convert_to_array(phase_list, stft_iters)
-            # del phase_list
             self.amplitude_array_list = [
                 np.abs(taste_stft)**2 for taste_stft in self.stft_array_list]
             self.phase_array_list = [
