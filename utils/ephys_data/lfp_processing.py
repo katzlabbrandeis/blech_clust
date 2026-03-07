@@ -318,9 +318,12 @@ def extract_lfps(dir_name,
 
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
-        hf5.create_array('/raw_LFP', 'electrode{:0>3}'.
-                         format(electrodegroup[i]), filt_el_down)
+        electrode_str = f'electrode{electrodegroup[i]:0>3}'
+        hf5.create_array('/raw_LFP', 
+                         electrode_str,
+                         filt_el_down)
         hf5.flush()
+        print(f'Finished electrode {electrode_str}')
         del data, data_down, filt_el_down
 
     # ==============================
@@ -382,6 +385,7 @@ def extract_lfps(dir_name,
         # Use dig_in_name instead of numeric index
         hf5.create_array('/Parsed_LFP', f'{dig_in_name}_LFPs', this_taste_LFP)
         hf5.flush()
+        print(f'Finished parsing LFPs for {dig_in_name}')
 
     # Delete data
     hf5.remove_node('/raw_LFP', recursive=True)
@@ -394,7 +398,6 @@ def extract_lfps(dir_name,
     # Code copied from LFP_Spectrogram_Stone.py
     # Might need cleanup
 
-    dig_in_channels = hf5.list_nodes('/digital_in')
     dig_in_LFP_nodes = hf5.list_nodes('/Parsed_LFP')
 
     # Create dictionary of all parsed LFP arrays
@@ -633,7 +636,6 @@ def extract_emgs(dir_name,
     # Code copied from LFP_Spectrogram_Stone.py
     # Might need cleanup
 
-    dig_in_channels = hf5.list_nodes('/digital_in')
     dig_in_LFP_nodes = hf5.list_nodes('/Parsed_emg')
 
     # Create dictionary of all parsed LFP arrays
