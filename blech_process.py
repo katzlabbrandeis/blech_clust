@@ -22,6 +22,52 @@ This module processes single electrode waveforms for spike detection and cluster
 - **Logging**:
   - Updates the processing log with start and end times, and status of processing.
   - Writes successful execution to a pipeline log.
+
+**Data Processing Flow:**
+
+When throw_out_noise = False:
+    Raw Waveforms (slices_dejittered)
+           |
+           v
+    Extract Features
+           |
+           v
+    Train GMM on all features
+           |
+           v
+    Get cluster labels for all waveforms
+           |
+           v
+    Remove outliers & save results
+
+When throw_out_noise = True:
+    Raw Waveforms (slices_og)
+           |
+           +---> Classify (neuRecommend)
+           |           |
+           |           +---> Noise waveforms (discarded from training)
+           |           |
+           |           +---> Spike waveforms (slices_dejittered)
+           |                       |
+           |                       v
+           |                Extract Features (spike features only)
+           |                       |
+           |                       v
+           |                Train GMM on spike features only
+           |                       |
+           v                       v
+    Extract Features (all)    Get GMM model
+           |                       |
+           +----------+------------+
+                      |
+                      v
+           Apply GMM to all waveforms
+                      |
+                      v
+           Get cluster labels for all waveforms
+                      |
+                      v
+           Remove outliers & save results
 """
 
 ############################################################
