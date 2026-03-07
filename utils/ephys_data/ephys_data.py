@@ -1473,9 +1473,11 @@ class ephys_data():
             Sets attributes:
                 - freq_vec: Frequency vector for STFT
                 - time_vec: Time vector for STFT
-                - stft_array: Raw complex STFT (if 'raw' in dat_type)
-                - amplitude_array: STFT amplitude (if 'amplitude' in dat_type)
-                - phase_array: STFT phase (if 'phase' in dat_type)
+                - stft_array_list: List of raw complex STFT arrays, one per taste (if 'raw' in dat_type)
+                - amplitude_array_list: List of STFT amplitude arrays, one per taste (if 'amplitude' in dat_type)
+                - phase_array_list: List of STFT phase arrays, one per taste (if 'phase' in dat_type)
+            
+            Each array in the lists has shape: (n_trials, n_channels, n_frequencies, n_timepoints)
         """
 
         assert all(x in ['raw', 'amplitude', 'phase'] for x in dat_type), \
