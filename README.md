@@ -8,6 +8,16 @@ Python and R based code for clustering and sorting electrophysiology data record
 
 **📚 [Full Documentation](https://katzlabbrandeis.github.io/blech_clust/)** | **🚀 [Getting Started](https://katzlabbrandeis.github.io/blech_clust/getting-started/installation/)** | **📖 [Tutorials](https://katzlabbrandeis.github.io/blech_clust/tutorials/)** | **🔧 [API Reference](https://katzlabbrandeis.github.io/blech_clust/reference/)**
 
+## ⚠️ Known Issues
+
+**The following methods in the `ephys_data` module are currently failing tests:**
+
+- `return_region_lfps` (electrode_handling)
+- `return_representative_lfp_channels` (electrode_handling)
+- `get_mean_stft_amplitude` (stft)
+
+These methods may produce incorrect results or errors. Use with caution and verify outputs independently. We are working on fixes for these issues.
+
 ## Features
 
 - **Automated Spike Sorting**: Complete pipeline from raw Intan data to sorted units
