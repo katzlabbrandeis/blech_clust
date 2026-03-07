@@ -142,23 +142,16 @@ if __name__ == '__main__':
     # Load trial info frame
     print('Loading trial info frame...')
 
-    # Try to load from HDF5 first
-    try:
-        trial_info_frame = pd.read_hdf(
-            metadata_handler.hdf5_name, 'trial_info_frame')
-        print('Trial info frame loaded from HDF5')
-    except (KeyError, FileNotFoundError):
-        # Fall back to CSV if HDF5 doesn't have it
-        csv_path = os.path.join(
-            metadata_handler.dir_name, 'trial_info_frame.csv')
-        if os.path.exists(csv_path):
-            trial_info_frame = pd.read_csv(csv_path)
-            print('Trial info frame loaded from CSV')
-        else:
-            raise FileNotFoundError(
-                "trial_info_frame not found in HDF5 or CSV. "
-                "Please run blech_exp_info.py first to generate it."
-            )
+    csv_path = os.path.join(
+        metadata_handler.dir_name, 'trial_info_frame.csv')
+    if os.path.exists(csv_path):
+        trial_info_frame = pd.read_csv(csv_path)
+        print('Trial info frame loaded from CSV')
+    else:
+        raise FileNotFoundError(
+            "trial_info_frame.csv not found. "
+            "Please run blech_exp_info.py first to generate it."
+        )
 
     # Open the hdf5 file after loading trial info frame
     hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
