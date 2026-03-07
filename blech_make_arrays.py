@@ -23,11 +23,15 @@ import tables
 import sys
 import os
 import pandas as pd
+import warnings
 from tqdm import tqdm
 from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
+
+# Suppress NaturalNameWarning from tables library for non-Python-identifier object names
+warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
 
 def create_spike_trains_for_digin(
