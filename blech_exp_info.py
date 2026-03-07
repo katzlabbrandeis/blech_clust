@@ -1520,9 +1520,7 @@ def main():
         output_dir=qa_output_dir
     )
 
-    # Save trial info frame to HDF5 file and CSV
-    hdf5_name = os.path.join(dir_path, f"{dir_name}.h5")
-    trial_info_frame.to_hdf(hdf5_name, 'trial_info_frame', mode='a')
+    # Save trial info frame to CSV
     csv_path = os.path.join(dir_path, 'trial_info_frame.csv')
     trial_info_frame.to_csv(csv_path, index=False)
     print(f"Trial info frame saved to: {csv_path}")
