@@ -1422,41 +1422,50 @@ class ephys_data():
         if not self.check_file_type():
             return
 
+        def load_stft_data():
+            print('STFT group found in HDF5, children nodes are: ')
+            print([node._v_name for node in hf5.list_nodes('/stft')])
+            print(f'Loading data types: {dat_type}')
+            self.freq_vec = hf5.root.stft.freq_vec[:]
+            self.time_vec = hf5.root.stft.time_vec[:]
+            if 'raw' in dat_type:
+                # self.stft_array = hf5.root.stft.stft_array[:]
+                self.stft_array_list = [hf5.get_node('/stft/raw', dig_in)[:] \
+                        for dig_in in self.dig_in_name_map.keys()]
+                if len(self.stft_array_list) == 0:
+                    warnings.warn("Raw STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+            if 'amplitude' in dat_type:
+                # self.amplitude_array = hf5.root.stft.amplitude_array[:]
+                self.amplitude_array_list = [hf5.get_node('/stft/amplitude', dig_in)[:] \
+                        for dig_in in self.dig_in_name_map.keys()]
+                if len(self.amplitude_array_list) == 0:
+                    warnings.warn("Amplitude STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+            if 'phase' in dat_type:
+                # self.phase_array = hf5.root.stft.phase_array[:]
+                self.phase_array_list = [hf5.get_node('/stft/phase', dig_in)[:] \
+                        for dig_in in self.dig_in_name_map.keys()]
+                if len(self.phase_array_list) == 0:
+                    warnings.warn("Phase STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+
+
         # Check if STFT in HDF5
         # If present, only load what user has asked for
         # TODO: This chunk can be streamlined
         if not recalculate:
             self.calc_stft_bool = 0
             with tables.open_file(self.hdf5_path, 'r+') as hf5:
-                if ('/stft' in hf5) and (not recalculate):
-                    self.freq_vec = hf5.root.stft.freq_vec[:]
-                    self.time_vec = hf5.root.stft.time_vec[:]
-                    if 'raw' in dat_type:
-                        # self.stft_array = hf5.root.stft.stft_array[:]
-                        self.stft_array_list = [hf5.get_node('/stft/raw', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
-                        if len(self.stft_array_list) == 0:
-                            warnings.warn("Raw STFT data not found in HDF5, will need to recalculate")
-                            self.calc_stft_bool = 1
-                    if 'amplitude' in dat_type:
-                        # self.amplitude_array = hf5.root.stft.amplitude_array[:]
-                        self.amplitude_array_list = [hf5.get_node('/stft/amplitude', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
-                        if len(self.amplitude_array_list) == 0:
-                            warnings.warn("Amplitude STFT data not found in HDF5, will need to recalculate")
-                            self.calc_stft_bool = 1
-                    if 'phase' in dat_type:
-                        # self.phase_array = hf5.root.stft.phase_array[:]
-                        self.phase_array_list = [hf5.get_node('/stft/phase', dig_in)[:] \
-                                for dig_in in self.dig_in_name_map.keys()]
-                        if len(self.phase_array_list) == 0:
-                            warnings.warn("Phase STFT data not found in HDF5, will need to recalculate")
-                            self.calc_stft_bool = 1
-
+                if ('/stft' in hf5): 
+                    if len(hf5.list_nodes('/stft')) == 0:
+                        warnings.warn("STFT group found in HDF5, but no data nodes present. Will need to recalculate.")
+                        self.calc_stft_bool = 1
+                    else:
+                        load_stft_data()
                     # If everything there, then don't calculate
                     # Unless forced to
                     self.calc_stft_bool = 0
-
                 else:
                     self.calc_stft_bool = 1
 
