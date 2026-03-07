@@ -31,6 +31,7 @@ from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
 from blech_clust.utils.read_file import DigInHandler
 
 # Suppress NaturalNameWarning from tables library for non-Python-identifier object names
+# This is because HDF5 does not like us naming our groups with the same names as the dig-ins, which can have characters that are not valid Python identifiers (e.g., spaces, dashes)
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
 
