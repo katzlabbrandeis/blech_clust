@@ -140,13 +140,13 @@ electrode_layout_frame = pd.read_csv(layout_path)
 
 
 # Read data files, and append to electrode arrays
+# NOTE: Dig-ins are now loaded into dig_in_frame via blech_init.py
+# so we no longer need to reload them here
 if file_type == ['one file per channel']:
-    read_file.read_digins(hdf5_name, dig_in, dig_in_list)
     read_file.read_electrode_channels(hdf5_name, electrode_layout_frame)
     if len(emg_channels) > 0:
         read_file.read_emg_channels(hdf5_name, electrode_layout_frame)
 elif file_type == ['one file per signal type']:
-    read_file.read_digins_single_file(hdf5_name, dig_in, dig_in_list)
     # This next line takes care of both electrodes and emgs
     read_file.read_electrode_emg_channels_single_file(
         hdf5_name, electrode_layout_frame, electrodes_list, num_recorded_samples, emg_channels)
