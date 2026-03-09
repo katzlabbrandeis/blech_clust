@@ -84,10 +84,10 @@ blechrnn:
 
 # Copy parameter templates
 # If json files exist in params, list them and ask user if they want to overwrite
-# If no json files exist, copy templates
+# If only 1 json files exist, copy templates (dependency_graph.json should be the only one there)
 params:
 	@echo "Checking parameter files..."
-	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 0 ]; then \
+	@if [ $$(ls params/*.json 2>/dev/null | wc -l) -gt 1 ]; then \
 		echo "Existing parameter files found in params directory:"; \
 		ls -la params/*.json; \
 		echo ""; \
@@ -97,10 +97,10 @@ params:
 			cp -v params/_templates/* params/; \
 		else \
 			echo "Skipping parameter template copying."; \
-		fi \
+		fi; \
 	else \
 		echo "No parameter files found. Copying parameter templates to params directory..."; \
-		cp -v params/templates/* params/; \
+		cp -v params/_templates/* params/; \
 	fi
 
 dev:

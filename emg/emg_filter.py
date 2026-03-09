@@ -23,19 +23,38 @@ import glob
 import pandas as pd
 import tables
 import ast
+import argparse
 
-sys.path.append('..')
-from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+parser = argparse.ArgumentParser(
+    description='Filter and process EMG data')
+parser.add_argument('data_dir', type=str,
+                    help='Directory containing the data files')
+args = parser.parse_args()
 
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
+test_bool = False
 
-# Perform pipeline graph check
-script_path = os.path.realpath(__file__)
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+if test_bool:
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new/'
+    script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_filter.py'
+    from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+
+else:
+    script_path = os.path.realpath(__file__)
+
+    from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.data_dir])
+    dir_name = metadata_handler.dir_name
+
+    # Perform pipeline graph check
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -46,7 +65,7 @@ print(f'Processing : {dir_name}')
 # emg_data = np.load('emg_output/emg_data.npy')
 with tables.open_file(metadata_handler.hdf5_name, 'r') as hf5:
     emg_digins = hf5.list_nodes('/emg_data')
-    emg_digins = [x for x in emg_digins if 'dig_in' in x._v_name]
+    emg_digins = [x for x in emg_digins if 'board-DIN' in x._v_name]
     emg_digin_names = [x._v_name for x in emg_digins]
     emg_data = [x.emg_array[:] for x in emg_digins]
     map_array = hf5.get_node('/emg_data/ind_electrode_map').read()
@@ -63,13 +82,17 @@ pre_stim = int(durations[0])
 print(f'Using pre-stim duration : {pre_stim}' + '\n')
 
 # Get coefficients for Butterworth filters
+print('Configuring Butterworth filters...')
 m, n = butter(2, 2.0*300.0/1000.0, 'highpass')
 c, d = butter(2, 2.0*15.0/1000.0, 'lowpass')
+print('Filters configured successfully' + '\n')
 
 # todo: This can be pulled from info file
 # check how many EMG channels used in this experiment
+print('Loading electrode layout...')
 layout_path = glob.glob(os.path.join(dir_name, "*layout.csv"))[0]
 electrode_layout_frame = pd.read_csv(layout_path)
+print(f'Loaded layout from: {os.path.basename(layout_path)}' + '\n')
 
 # Change CAR_group col to lower
 electrode_layout_frame['CAR_group'] = electrode_layout_frame['CAR_group'].str.lower()
@@ -96,6 +119,9 @@ for x in emg_car_groups:
     print(x)
     print()
 
+print(
+    f'Processing {len(emg_car_groups)} EMG CAR groups across {len(emg_data)} dig-ins...')
+
 # TODO: This question can go into an EMG params file
 # Bandpass filter the emg signals, and store them in a numpy array.
 # Low pass filter the bandpassed signals, and store them in another array
@@ -105,6 +131,7 @@ for x in emg_car_groups:
 #       outer list : emg CAR groups
 #       inner list : dig-ins
 #       element_array : channels x trials x time
+print('Grouping EMG data by CAR groups...')
 emg_data_grouped = [[dat[x] for dat in emg_data] for x in emg_car_inds]
 # Make sure all element arrays are 3D with shape: channels x trials x time
 for x in emg_data_grouped:
@@ -112,6 +139,7 @@ for x in emg_data_grouped:
         if len(y.shape) < 3:
             y = np.expand_dims(y, axis=0)
 
+print('Differencing EMG signals within CAR groups...')
 emg_diff_data = []
 for this_car in emg_data_grouped:
     this_car_diff = []
@@ -123,8 +151,10 @@ for this_car in emg_data_grouped:
         else:
             this_car_diff.append(np.squeeze(this_dig))
     emg_diff_data.append(this_car_diff)
+print('Differencing complete' + '\n')
 
 # Iterate over trials and apply frequency filter
+print('Applying bandpass and lowpass filters...')
 emg_filt_list = []
 emg_env_list = []
 for car_group in emg_diff_data:
@@ -139,8 +169,10 @@ for car_group in emg_diff_data:
         this_car_env.append(temp_env)
     emg_filt_list.append(this_car_filt)
     emg_env_list.append(this_car_env)
+print('Filtering complete' + '\n')
 
 # Iterate and check for signficant changes in activity
+print('Identifying significant trials based on activity changes...')
 n_cars = len(emg_diff_data)
 n_dig = len(emg_diff_data[0])
 trial_lens = [[len(x) for x in y] for y in emg_diff_data]
@@ -180,10 +212,12 @@ for i, this_row in ind_frame.iterrows():
     sig_trials_list.append(sig_trials)
 
 ind_frame['sig_trials'] = sig_trials_list
+print(f'Identified {sum(sig_trials_list)} significant trials out of {len(sig_trials_list)} total trials' + '\n')
 
 # Save the highpass filtered signal,
 # the envelope and the indicator of significant trials as a np array
 # Iterate over channels and save them in different directories
+print('Saving processed EMG data to HDF5 file...')
 ind_frame.to_hdf(metadata_handler.hdf5_name, '/emg_data/emg_sig_trials')
 
 with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
@@ -193,16 +227,21 @@ with tables.open_file(metadata_handler.hdf5_name, 'r+') as hf5:
             hf5.remove_node(f'{digin_path}/processed_emg', recursive=True)
         hf5.create_group(f'{digin_path}', 'processed_emg')
         for car_ind, this_car_name in enumerate(emg_car_names):
+            base_path = f'{digin_path}/processed_emg'
             hf5.create_array(
-                f'{digin_path}/processed_emg',
+                base_path,
                 f'{this_car_name}_emg_filt',
                 emg_filt_list[car_ind][digin_ind]
             )
             hf5.create_array(
-                f'{digin_path}/processed_emg',
+                base_path,
                 f'{this_car_name}_emg_env',
                 emg_env_list[car_ind][digin_ind]
             )
+        print(f'Wrote to: {base_path} for {digin_name}')
+print('All processed EMG data saved successfully' + '\n')
 
 # Write successful execution to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+print('EMG filtering pipeline completed successfully')
+if not test_bool:
+    this_pipeline_check.write_to_log(script_path, 'completed')

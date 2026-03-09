@@ -81,7 +81,7 @@ class DigInHandler:
             dig_in_file_list = [
                 name for name in file_list if name.startswith('board-DI')]
             dig_in_name = [x.split('.')[0] for x in dig_in_file_list]
-            dig_in_num = [int(x.split('-')[-1]) for x in dig_in_name]
+            dig_in_num = [str(x.split('-')[-1]) for x in dig_in_name]
 
             # Sort by dig-in number
             sort_inds = np.argsort(dig_in_num)
@@ -96,6 +96,16 @@ class DigInHandler:
             dig_in_file_list = sorted([x for x in rhd_file_list if 'rhd' in x])
             dig_in_name = [x['native_channel_name'].lower()
                            for x in header['board_dig_in_channels']]
+            # Rename for consistency with other formats
+            # Refer to: https://github.com/katzlabbrandeis/blech_clust/pull/780#issuecomment-3962005678
+            # for issue
+            # Replace 'digital-in' with 'board-DIN' to match naming convention of other formats
+            print(
+                'Renaming dig-in channels in traditional format for consistency with other formats...')
+            print(f'Original dig-in names: {dig_in_name}')
+            dig_in_name = [x.replace('digital-in', 'board-DIN')
+                           for x in dig_in_name]
+            print(f'Renamed dig-in names: {dig_in_name}')
             dig_in_num = [int(x.split('-')[-1]) for x in dig_in_name]
 
             # Sort by dig-in number

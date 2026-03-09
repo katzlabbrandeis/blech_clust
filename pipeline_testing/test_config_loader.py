@@ -3,13 +3,18 @@ Load test configuration from test_config.json
 """
 import json
 import os
+import blech_clust
 
-_script_dir = os.path.dirname(os.path.realpath(__file__))
-_config_path = os.path.join(_script_dir, 'test_config.json')
+blech_clust_path = blech_clust.__path__[0]
+
+_config_path = os.path.join(blech_clust_path, 'params', 'test_config.json')
 
 
 def load_test_config():
     """Load test configuration from test_config.json"""
+    if not os.path.exists(_config_path):
+        raise FileNotFoundError(
+            f"Test configuration file not found at {_config_path}")
     with open(_config_path, 'r') as f:
         return json.load(f)
 

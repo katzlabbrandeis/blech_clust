@@ -151,17 +151,6 @@ def raise_error_if_error(data_dir, process, stderr, stdout, fail_fast=True):
 # Define paths
 # TODO: Replace with call to blech_process_utils.path_handler
 
-# Read emg_env path
-emg_params_path = os.path.join(blech_clust_dir, 'params', 'emg_params.json')
-if not os.path.exists(emg_params_path):
-    print('=== Environment params file not found. ===')
-    print(
-        '==> Please copy [[ blech_clust/params/_templates/emg_params.json ]] to [[ blech_clust/params/env_params.json ]] and update as needed.')
-    exit()
-with open(emg_params_path) as f:
-    env_params = json.load(f)
-emg_env_path = env_params['emg_env']
-
 # Load test data configuration from test_config.json
 data_dirs_dict = get_data_dirs_dict()
 data_dir_base = get_test_data_dir()
@@ -558,6 +547,17 @@ def test_ephys_data(data_dir):
         'profile_units': 'unit_profiling',
     }
 
+    method_kwargs = {
+        'get_lfps': [
+            {'re_extract': False},
+            {'re_extract': True}
+        ],
+        'get_stft': [
+            {'recalculate': False},
+            {'recalculate': True}
+        ]
+    }
+
     dat.check_laser()
     if dat.laser_exists:
         test_methods.update({
@@ -575,7 +575,15 @@ def test_ephys_data(data_dir):
     for method, category in test_methods.items():
         try:
             print(f"Testing {method}...")
-            getattr(dat, method)()
+            # Check if method has kwargs to test
+            if method in method_kwargs.keys():
+                kwargs_list = method_kwargs[method]
+                print(f"Testing {method} with kwargs: {kwargs_list}")
+                for kwargs in kwargs_list:
+                    print(f"Testing {method} with kwargs: {kwargs}")
+                    getattr(dat, method)(**kwargs)
+            else:
+                getattr(dat, method)()
             result = 'Success'
         except Exception as e:
             print(f"Error in {method}: {str(e)}")

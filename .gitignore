@@ -8,3 +8,6 @@ blech.dir
 *.Rhistory
 .aider*
 .env
+
+# Local test configuration (use template from params/_templates/)
+params/test_config.json

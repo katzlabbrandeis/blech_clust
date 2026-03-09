@@ -195,6 +195,7 @@ plt.show()
   - `get_stable_units`: Loads drift check results and marks units as stable or unstable.
   - `profile_units`: Generates a DataFrame with unit characteristics (responsiveness, discriminability, palatability, dynamicity, stability).
 """
+
 import os
 import warnings
 import numpy as np
@@ -470,7 +471,7 @@ class ephys_data():
         return temp_array
 
     @staticmethod
-    def remove_node(path_to_node, hf5):
+    def remove_node(path_to_node, hf5, recursive=False):
         """Remove a node from HDF5 file if it exists
 
         Args:
@@ -479,7 +480,7 @@ class ephys_data():
         """
         if path_to_node in hf5:
             hf5.remove_node(
-                os.path.dirname(path_to_node), os.path.basename(path_to_node))
+                os.path.dirname(path_to_node), os.path.basename(path_to_node), recursive=recursive)
 
     ####################
     # Initialize instance
@@ -513,7 +514,9 @@ class ephys_data():
             self.hdf5_path = self.get_hdf5_path(data_dir)
             self.hdf5_name = os.path.basename(self.hdf5_path)
 
-            # self.spikes = None
+        self.create_dig_in_name_map()
+
+        # self.spikes = None
 
         # Create environemnt variable to allow program to know
         # if file is currently accessed
@@ -563,13 +566,6 @@ class ephys_data():
             'max_freq': 20,
             'time_range_tuple': (0, 5)
         }
-
-    # class access:
-    #    def __init__(self, key_name):
-    #        os.environ[key_name] = '0'
-
-    #    def check(self):
-    #        access_bool =
 
     def extract_and_process(self):
         """Extract and process all data types (units, spikes, firing rates, LFPs)
@@ -637,40 +633,29 @@ class ephys_data():
             self.get_trial_info_frame()
 
         laser_durations = [x['laser_duration_ms'].values for _,
-                           x in self.trial_info_frame.groupby('dig_in_num_taste')]
+                           x in self.trial_info_frame.groupby('dig_in_name_taste')]
         if any([np.any(x > 0) for x in laser_durations]):
             self.laser_exists = True
         else:
             self.laser_exists = False
         self.laser_durations = laser_durations
 
-        # with tables.open_file(self.hdf5_path, 'r+') as hf5:
-        #     dig_in_list = \
-        #         [x for x in hf5.list_nodes('/spike_trains')
-        #          if 'dig_in' in x.__str__()]
-        #
-        #     # Mark whether laser exists or not
-        #     self.laser_durations_exists = sum([dig_in.__contains__('laser_durations')
-        #                                        for dig_in in dig_in_list]) > 0
-        #
-        #     # If it does, pull out laser durations
-        #     if self.laser_durations_exists:
-        #         self.laser_durations = np.array([dig_in.laser_durations[:]
-        #                                          for dig_in in dig_in_list])
-        #
-        #         non_zero_laser_durations = np.any(
-        #             np.sum(self.laser_durations, axis=0) > 0)
-        #
-        #     # If laser_durations exists, only non_zero durations
-        #     # will indicate laser
-        #     # If it doesn't exist, then mark laser as absent
-        #     if self.laser_durations_exists:
-        #         if non_zero_laser_durations:
-        #             self.laser_exists = True
-        #         else:
-        #             self.laser_exists = False
-        #     else:
-        #         self.laser_exists = False
+    def create_dig_in_name_map(self):
+        """
+        Create mapping from digital input names to taste names
+
+        Side Effects:
+            Sets self.dig_in_name_map: Dictionary mapping digital input names (e.g., 'dig_in_0') to taste names (e.g., 'Sucrose')
+        """
+
+        if 'info_dict' not in dir(self):
+            print('Info dict not found in attributes...Loading')
+            self.get_info_dict()
+
+        taste_dig_ins = self.info_dict['taste_params']['dig_in_names']
+        taste_names = self.info_dict['taste_params']['tastes']
+        self.dig_in_name_map = {dig_in: taste for dig_in,
+                                taste in zip(taste_dig_ins, taste_names)}
 
     def get_spikes(self):
         """Extract spike arrays from HDF5 file
@@ -678,33 +663,31 @@ class ephys_data():
         Side Effects:
             Sets attributes:
                 - spikes: List of spike arrays, one per taste/dig_in
-                - dig_in_name_list: List of digital input names
-                - dig_in_num_list: List of digital input numbers
+                - dig_in_name_list: List of digital input names (e.g., 'Suc', 'NaCl')
+                - dig_in_node_list: List of HDF5 node names (e.g., 'dig_in_0')
 
         Raises:
             Exception: If no spike trains found in HDF5 file
         """
+
         print('Loading spikes')
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             if '/spike_trains' in hf5:
-                dig_in_list = \
-                    [x for x in hf5.list_nodes('/spike_trains')
-                     if 'dig_in' in x.__str__()]
-                # Sort dig_in_list by the digital input number to ensure consistent ordering
-                dig_in_list = sorted(
-                    dig_in_list, key=lambda x: int(x._v_name.split('_')[-1]))
-                self.dig_in_name_list = [x._v_name for x in dig_in_list]
-                self.dig_in_num_list = [int(x.split('_')[-1])
-                                        for x in self.dig_in_name_list]
+                dig_in_nodes = [x for x in hf5.list_nodes('/spike_trains')]
+                # Sort dig_in_nodes by the digital input number to ensure consistent ordering
+                dig_in_nodes = sorted(
+                    dig_in_nodes, key=lambda x: str(x._v_name.split('-')[-1]))
+                self.dig_in_node_list = [x._v_name for x in dig_in_nodes]
             else:
                 raise Exception('No spike trains found in HF5')
 
             print('Spike trains loaded from following dig-ins')
             print(
-                "\n".join([f'{i}. {x} (dig_in_{self.dig_in_num_list[i]})' for i, x in enumerate(self.dig_in_name_list)]))
+                "\n".join([f'{i}. {self.dig_in_name_map[node]} ({node})' for i, node in
+                          enumerate(self.dig_in_node_list)]))
             # list of length n_tastes, each element is a 3D array
             # array dimensions are (n_trials, n_neurons, n_timepoints)
-            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_list]
+            self.spikes = [dig_in.spike_array[:] for dig_in in dig_in_nodes]
 
     def separate_laser_spikes(self):
         """Separate spike arrays into laser on and off conditions
@@ -747,12 +730,10 @@ class ephys_data():
         if 'trial_info_frame' not in dir(self):
             print('Trial info frame not found...Loading')
             self.get_trial_info_frame()
-        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
         # Add final argument to argument list
         if None in self.lfp_params.values():
             print('No LFP params found...using default LFP params')
             self.lfp_params = self.default_lfp_params
-        self.lfp_params.update({'dig_in_list': taste_dig_ins})
         lfp_processing.extract_lfps(
             self.data_dir,
             **self.lfp_params,
@@ -825,24 +806,28 @@ class ephys_data():
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
 
             if ('/Parsed_LFP' not in hf5) or (re_extract == True):
-                extract_bool = True
-            else:
-                extract_bool = False
-
-        if extract_bool:
-            self.extract_lfps()
+                print(
+                    'Parsed LFPs not found in HDF5 or re-extract requested...Extracting')
+                self.extract_lfps()
 
         with tables.open_file(self.hdf5_path, 'r+') as hf5:
             lfp_nodes = [node for node in hf5.list_nodes('/Parsed_LFP')
-                         if 'dig_in' in node.__str__()]
+                         if 'DIN' in node.__str__()]
             # Account for parsed LFPs being different
-            self.lfp_array = np.asarray([node[:] for node in lfp_nodes])
-            self.all_lfp_array = \
-                self.lfp_array.\
-                swapaxes(1, 2).\
-                reshape(-1, self.lfp_array.shape[1],
-                        self.lfp_array.shape[-1]).\
-                swapaxes(0, 1)
+            self.lfp_array_list = trial_arrays = [
+                # trials × electrodes × samples
+                np.asarray(node).transpose(1, 0, 2)
+                for node in lfp_nodes
+            ]
+
+            # Print information about loaded LFP arrays for quality control
+            print('Loaded LFP arrays from the following dig-ins:')
+            for node, array in zip(lfp_nodes, self.lfp_array_list):
+                print(f'{node._v_name}: shape {array.shape}')
+
+            all_trials = np.concatenate(self.lfp_array_list, axis=0)
+
+            self.all_lfp_array = all_trials.transpose(1, 0, 2)
 
     def separate_laser_lfp(self):
         """Separate LFP arrays into laser on and off conditions
@@ -996,6 +981,14 @@ class ephys_data():
 
         calc_firing_func = self.firing_rate_method_selector()
         results = [calc_firing_func(spikes) for spikes in self.spikes]
+
+        # Check if we have any results
+        if len(results) == 0 or results[0][0].size == 0:
+            print('No spike data available to calculate firing rates')
+            self.firing_list = []
+            self.time_vector = np.array([])
+            return
+
         self.firing_list = [result[0] for result in results]
         # Store the time vector from the first result (they should all be the same)
         # Adjust time relative to stimulus delivery
@@ -1082,37 +1075,38 @@ class ephys_data():
         self.palatability_ranks = self.info_dict['taste_params']['pal_rankings']
 
         # Get digital input information from info_dict to ensure correct mapping
-        taste_dig_ins = self.info_dict['taste_params']['dig_in_nums']
+        taste_dig_in_names = self.info_dict['taste_params']['dig_in_names']
 
-        # Create a mapping from dig_in numbers to indices in the taste arrays
-        dig_in_to_index = {dig_in: i for i, dig_in in enumerate(taste_dig_ins)}
+        # Create a mapping from dig_in names to indices in the taste arrays
+        dig_in_to_index = {dig_in: i for i,
+                           dig_in in enumerate(taste_dig_in_names)}
 
         # Reorder taste_names and palatability_ranks to match the order in dig_in_name_list
         ordered_taste_names = []
         ordered_pal_ranks = []
 
-        for dig_in_num in self.dig_in_num_list:
-            if dig_in_num in dig_in_to_index:
-                idx = dig_in_to_index[dig_in_num]
+        for dig_in_name in self.dig_in_name_map.keys():
+            if dig_in_name in dig_in_to_index:
+                idx = dig_in_to_index[dig_in_name]
                 if idx < len(self.taste_names):
                     ordered_taste_names.append(self.taste_names[idx])
                     ordered_pal_ranks.append(self.palatability_ranks[idx])
                 else:
                     warnings.warn(
                         f"Index {idx} out of range for taste_names and palatability_ranks")
-                    ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    ordered_taste_names.append(f"Unknown-{dig_in_name}")
                     ordered_pal_ranks.append(0)  # Default palatability rank
             else:
                 warnings.warn(
-                    f"Digital input {dig_in_num} not found in taste_params.dig_ins")
-                ordered_taste_names.append(f"Unknown-{dig_in_num}")
+                    f"Digital input {dig_in_name} not found in taste_params.dig_in_names")
+                ordered_taste_names.append(f"Unknown-{dig_in_name}")
                 ordered_pal_ranks.append(0)  # Default palatability rank
 
         print('Calculating palatability with following order:')
         self.pal_df = pd.DataFrame(
             dict(
-                dig_ins=self.dig_in_name_list,
-                dig_in_nums=self.dig_in_num_list,
+                dig_in_names=self.dig_in_name_map.keys(),
+                dig_in_nodes=self.dig_in_node_list,
                 taste_names=ordered_taste_names,
                 pal_ranks=ordered_pal_ranks,
             )
@@ -1409,6 +1403,67 @@ class ephys_data():
         If STFT exists in HDF5, retrieves it. Otherwise calculates STFT
         for all LFP data and optionally saves to HDF5.
 
+        Flowchart of conditional logic:
+
+        ```
+        START
+          |
+          v
+        recalculate == True? ----YES----> Set calc_stft_bool = 1
+          |                                      |
+          NO                                     |
+          |                                      |
+          v                                      |
+        /stft in HDF5? ----NO----> Create /stft group
+          |                        Set calc_stft_bool = 1
+          YES                              |
+          |                                |
+          v                                |
+        /stft has data nodes? ----NO----> Set calc_stft_bool = 1
+          |                                      |
+          YES                                    |
+          |                                      |
+          v                                      |
+        Load requested dat_types                 |
+        (raw, amplitude, phase)                  |
+        Any missing? ----YES----> Set calc_stft_bool = 1
+          |                                      |
+          NO                                     |
+          |                                      |
+          v                                      |
+        Set calc_stft_bool = 0                   |
+          |                                      |
+          +--------------------------------------+
+          |
+          v
+        calc_stft_bool == 1? ----NO----> DONE (data loaded)
+          |
+          YES
+          |
+          v
+        Load LFP data
+          |
+          v
+        Calculate STFT for all trials
+        (parallel processing)
+          |
+          v
+        Calculate amplitude and phase
+          |
+          v
+        Store requested dat_types
+          |
+          v
+        write_out == True? ----YES----> Write to HDF5
+          |                              (/stft/raw, /stft/amplitude, /stft/phase)
+          NO                                     |
+          |                                      |
+          +--------------------------------------+
+          |
+          v
+        DONE
+        ```
+
         Args:
             recalculate: If True, force recalculation even if STFT exists
             dat_type: List of data types to load/calculate: 'raw', 'amplitude', 'phase'
@@ -1418,33 +1473,66 @@ class ephys_data():
             Sets attributes:
                 - freq_vec: Frequency vector for STFT
                 - time_vec: Time vector for STFT
-                - stft_array: Raw complex STFT (if 'raw' in dat_type)
-                - amplitude_array: STFT amplitude (if 'amplitude' in dat_type)
-                - phase_array: STFT phase (if 'phase' in dat_type)
+                - stft_array_list: List of raw complex STFT arrays, one per taste (if 'raw' in dat_type)
+                - amplitude_array_list: List of STFT amplitude arrays, one per taste (if 'amplitude' in dat_type)
+                - phase_array_list: List of STFT phase arrays, one per taste (if 'phase' in dat_type)
+
+            Each array in the lists has shape: (n_trials, n_channels, n_frequencies, n_timepoints)
         """
+
+        assert all(x in ['raw', 'amplitude', 'phase'] for x in dat_type), \
+            "dat_type must be a list containing any of 'raw', 'amplitude', 'phase'"
 
         if not self.check_file_type():
             return
 
+        def load_stft_data():
+            print('STFT group found in HDF5, children nodes are: ')
+            print([node._v_name for node in hf5.list_nodes('/stft')])
+            print(f'Loading data types: {dat_type}')
+            self.freq_vec = hf5.root.stft.freq_vec[:]
+            self.time_vec = hf5.root.stft.time_vec[:]
+            if 'raw' in dat_type:
+                # self.stft_array = hf5.root.stft.stft_array[:]
+                self.stft_array_list = [hf5.get_node('/stft/raw', dig_in)[:]
+                                        for dig_in in self.dig_in_name_map.keys()]
+                if len(self.stft_array_list) == 0:
+                    warnings.warn(
+                        "Raw STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+            if 'amplitude' in dat_type:
+                # self.amplitude_array = hf5.root.stft.amplitude_array[:]
+                self.amplitude_array_list = [hf5.get_node('/stft/amplitude', dig_in)[:]
+                                             for dig_in in self.dig_in_name_map.keys()]
+                if len(self.amplitude_array_list) == 0:
+                    warnings.warn(
+                        "Amplitude STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+            if 'phase' in dat_type:
+                # self.phase_array = hf5.root.stft.phase_array[:]
+                self.phase_array_list = [hf5.get_node('/stft/phase', dig_in)[:]
+                                         for dig_in in self.dig_in_name_map.keys()]
+                if len(self.phase_array_list) == 0:
+                    warnings.warn(
+                        "Phase STFT data not found in HDF5, will need to recalculate")
+                    self.calc_stft_bool = 1
+
         # Check if STFT in HDF5
         # If present, only load what user has asked for
+        # TODO: This chunk can be streamlined
         if not recalculate:
             self.calc_stft_bool = 0
             with tables.open_file(self.hdf5_path, 'r+') as hf5:
-                if ('/stft/stft_array' in hf5) and (not recalculate):
-                    self.freq_vec = hf5.root.stft.freq_vec[:]
-                    self.time_vec = hf5.root.stft.time_vec[:]
-                    if 'raw' in dat_type:
-                        self.stft_array = hf5.root.stft.stft_array[:]
-                    if 'amplitude' in dat_type:
-                        self.amplitude_array = hf5.root.stft.amplitude_array[:]
-                    if 'phase' in dat_type:
-                        self.phase_array = hf5.root.stft.phase_array[:]
-
+                if ('/stft' in hf5):
+                    if len(hf5.list_nodes('/stft')) == 0:
+                        warnings.warn(
+                            "STFT group found in HDF5, but no data nodes present. Will need to recalculate.")
+                        self.calc_stft_bool = 1
+                    else:
+                        load_stft_data()
                     # If everything there, then don't calculate
                     # Unless forced to
                     self.calc_stft_bool = 0
-
                 else:
                     self.calc_stft_bool = 1
 
@@ -1458,21 +1546,34 @@ class ephys_data():
             print('Calculating STFT')
 
             # Get LFPs to calculate STFT
-            if "lfp_array" not in dir(self):
+            if "lfp_array_list" not in dir(self):
                 self.get_lfps()
 
-            # Generate list of individual trials to be fed into STFT function
-            stft_iters = list(
-                product(
-                    *list(map(np.arange, self.lfp_array.shape[:3]))
-                )
-            )
+            # now that we have lfp_array_list, we have to generate stft_iters differently
+            stft_iters = []
+            for taste_num, taste in enumerate(self.lfp_array_list):
+                stft_taste_iters = []
+                for trial_num in range(taste.shape[0]):
+                    for channel_num in range(taste.shape[1]):
+                        stft_taste_iters.append((trial_num, channel_num))
+                stft_iters.append(stft_taste_iters)
+
+            # # Brute force check that iters were generated correctly
+            # for this_iter in stft_iters:
+            #     x = self.lfp_array_list[this_iter[0]][this_iter[1], this_iter[2]]
 
             # Calculate STFT over lfp array
             try:
-                stft_list = Parallel(n_jobs=mp.cpu_count()-2)(delayed(self.calc_stft)(self.lfp_array[this_iter],
-                                                                                      **self.stft_params)
-                                                              for this_iter in tqdm(stft_iters))
+                stft_list = []
+                for taste_num, taste_iters in enumerate(stft_iters):
+                    print(
+                        f'Calculating STFT for taste {taste_num+1}/{len(stft_iters)}')
+                    taste_stft = Parallel(n_jobs=mp.cpu_count()-2)(
+                        delayed(self.calc_stft)
+                        (self.lfp_array_list[taste_num][this_iter[0], this_iter[1]],
+                         **self.stft_params)
+                        for this_iter in tqdm(taste_iters))
+                    stft_list.append(taste_stft)
             except:
                 warnings.warn("Couldn't process STFT in parallel."
                               "Running serial loop")
@@ -1480,51 +1581,65 @@ class ephys_data():
             #                            **self.stft_params)\
             #        for this_iter in tqdm(stft_iters)]
 
-            self.freq_vec = stft_list[0][0]
-            self.time_vec = stft_list[0][1]
-            fin_stft_list = [x[-1] for x in stft_list]
+            self.freq_vec = stft_list[0][0][0]
+            self.time_vec = stft_list[0][0][1]
+            # fin_stft_list = [x[-1] for x in stft_list]
+            fin_stft_list = [[x[-1] for x in taste_stft]
+                             for taste_stft in stft_list]
             del stft_list
-            amplitude_list = self.parallelize(np.abs, fin_stft_list)
-            phase_list = self.parallelize(np.angle, fin_stft_list)
+            print('Calculating amplitude and phase')
 
-            # (taste, channel, trial, frequencies, time)
-            self.stft_array = self.convert_to_array(fin_stft_list, stft_iters)
+            # [taste](channel, trial, frequencies, time)
+            self.stft_array_list = [self.convert_to_array(taste_stft, taste_iters)
+                                    for taste_stft, taste_iters in zip(fin_stft_list, stft_iters)]
             del fin_stft_list
-            self.amplitude_array = self.convert_to_array(
-                amplitude_list, stft_iters)**2
-            del amplitude_list
-            self.phase_array = self.convert_to_array(phase_list, stft_iters)
-            del phase_list
+            self.amplitude_array_list = [
+                np.abs(taste_stft)**2 for taste_stft in self.stft_array_list]
+            self.phase_array_list = [
+                np.angle(taste_stft) for taste_stft in self.stft_array_list]
 
             # After recalculating, only keep what was asked for
             object_names = ['freq_vec', 'time_vec']
             object_list = [self.freq_vec, self.time_vec]
 
             if 'raw' in dat_type:
-                object_names.append('stft_array')
-                object_list.append(self.stft_array)
+                object_names.append('raw')
+                object_list.append(self.stft_array_list)
             else:
-                del self.stft_array
+                del self.stft_array_list
 
             if 'amplitude' in dat_type:
-                object_names.append('amplitude_array')
-                object_list.append(self.amplitude_array)
+                object_names.append('amplitude')
+                object_list.append(self.amplitude_array_list)
             else:
-                del self.amplitude_array
+                del self.amplitude_array_list
 
             if 'phase' in dat_type:
-                object_names.append('phase_array')
-                object_list.append(self.phase_array)
+                object_names.append('phase')
+                object_list.append(self.phase_array_list)
             else:
-                del self.phase_array
+                del self.phase_array_list
 
             if write_out:
                 dir_path = '/stft'
 
                 with tables.open_file(self.hdf5_path, 'r+') as hf5:
                     for name, obj in zip(object_names, object_list):
-                        self.remove_node(os.path.join(dir_path, name), hf5)
-                        hf5.create_array(dir_path, name, obj)
+                        # Save freq_vec, time_vec separately as lists will be saved by dig-in name
+                        if name in ['freq_vec', 'time_vec']:
+                            self.remove_node(os.path.join(dir_path, name), hf5)
+                            hf5.create_array(dir_path, name, obj)
+
+                        else:
+                            # Object will be saved by dig-in name
+                            assert len(obj) == len(
+                                self.dig_in_name_map), "Length of object list must match number of tastes"
+                            self.remove_node(os.path.join(
+                                dir_path, name), hf5, recursive=True)
+                            hf5.create_group('/stft', name)
+                            for dig_in_name, this_obj in zip(self.dig_in_name_map.keys(), obj):
+                                hf5.create_array(
+                                    dir_path+f'/{name}', dig_in_name, this_obj)
 
     def return_region_lfps(self):
         """Return list containing LFPs for each region and region names
@@ -1619,7 +1734,7 @@ class ephys_data():
 
         Side Effects:
             Sets self.trial_info_frame: pandas DataFrame with columns including:
-                - dig_in_num_taste: Digital input number for taste delivery
+                - dig_in_name_taste: Digital input name corresponding to taste identity
                 - laser_duration_ms: Duration of laser stimulation in ms
                 - start_taste_ms: Trial start time in ms
                 - end_taste_ms: Trial end time in ms
@@ -1634,28 +1749,21 @@ class ephys_data():
         a DataFrame with trial indices for each unique combination.
 
         Side Effects:
-            Sets self.trial_inds_frame: pandas DataFrame with columns:
-                - dig_in_num_taste: Digital input number
-                - laser_duration_ms: Laser duration in ms
-                - trial_inds: List of trial indices for this condition
-
-        Side Effects:
             Sets self.trial_inds_frame: DataFrame with columns:
-                - dig_in_num_taste: Digital input number
+                - dig_in_name_taste: Digital input name (taste name)
                 - laser_duration_ms: Laser duration
                 - laser_lag_ms: Laser lag
                 - trial_inds: List of trial indices for this group
         """
 
         wanted_cols = [
-            'dig_in_num_taste',
             'dig_in_name_taste',
             'taste',
             'laser_duration_ms',
             'laser_lag_ms',
             'taste_rel_trial_num',
         ]
-        group_cols = ['dig_in_num_taste', 'laser_duration_ms', 'laser_lag_ms']
+        group_cols = ['dig_in_name_taste', 'laser_duration_ms', 'laser_lag_ms']
         if 'trial_info_frame' not in dir(self):
             self.get_trial_info_frame()
         wanted_frame = self.trial_info_frame[wanted_cols]
@@ -1690,11 +1798,18 @@ class ephys_data():
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_spikes = []
         sequestered_spikes_frame_list = []
+        print('Using following dig_in_name_map to match trial info to spike data:')
+        pp(self.dig_in_name_map)
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = np.where(
-                np.array(self.dig_in_num_list) == int(
-                    this_row['dig_in_num_taste'])
-            )[0][0]
+            # Find taste_ind by matching dig_in_name_taste to dig_in_name_map values
+            taste_ind = None
+            for idx, node in enumerate(self.dig_in_node_list):
+                if node == this_row['dig_in_name_taste']:
+                    taste_ind = idx
+                    break
+            if taste_ind is None:
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
             self.sequestered_spikes.append(this_seq_spikes)
@@ -1707,6 +1822,7 @@ class ephys_data():
                 )
             )
             this_seq_spikes['taste_num'] = taste_ind
+            this_seq_spikes['taste_name'] = this_row['dig_in_name_taste']
             this_seq_spikes['laser_tuple'] = str(
                 (this_row['laser_lag_ms'], this_row['laser_duration_ms']))
             sequestered_spikes_frame_list.append(this_seq_spikes)
@@ -1731,16 +1847,21 @@ class ephys_data():
             self.sequester_trial_inds()
         if 'firing_array' not in dir(self):
             self.get_firing_rates()
-        group_cols = ['dig_in_num_taste', 'laser_duration_ms', 'laser_lag_ms']
+        group_cols = ['dig_in_name_taste', 'laser_duration_ms', 'laser_lag_ms']
         # Get trial inds for each group
         trial_inds_frame = self.trial_inds_frame.copy()
         self.sequestered_firing = []
         sequestered_firing_frame_list = []
         for i, this_row in trial_inds_frame.iterrows():
-            taste_ind = np.where(
-                np.array(self.dig_in_num_list) == int(
-                    this_row['dig_in_num_taste'])
-            )[0][0]
+            # Find taste_ind by matching dig_in_name_taste to dig_in_name_map values
+            taste_ind = None
+            for idx, node in enumerate(self.dig_in_node_list):
+                if node == this_row['dig_in_name_taste']:
+                    taste_ind = idx
+                    break
+            if taste_ind is None:
+                raise ValueError(
+                    f"Could not find taste index for {this_row['dig_in_name_taste']}")
             trial_inds = this_row['trial_inds']
             laser_tuple = (this_row['laser_lag_ms'],
                            this_row['laser_duration_ms'])
@@ -1756,6 +1877,7 @@ class ephys_data():
                 )
             )
             this_seq_firing['taste_num'] = taste_ind
+            this_seq_firing['taste_name'] = this_row['dig_in_name_taste']
             this_seq_firing['laser_tuple'] = str(laser_tuple)
             sequestered_firing_frame_list.append(this_seq_firing)
         self.trial_inds_frame['firing'] = self.sequestered_firing

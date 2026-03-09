@@ -23,19 +23,46 @@ from pymc.variational.callbacks import CheckParametersConvergence
 import os
 import sys
 from tqdm import tqdm, trange
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('dir_name', type=str, help='Directory containing data')
-parser.add_argument('--force', action='store_true', help='Force re-fitting')
-args = parser.parse_args()
-
 
 script_path = os.path.realpath(__file__)
-script_dir_path = os.path.dirname(script_path)
-blech_path = os.path.dirname(os.path.dirname(script_dir_path))
-sys.path.append(blech_path)
 from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+import blech_clust as bc  # noqa: E402
+
+testing_bool = False
+
+if not testing_bool:
+
+    import argparse  # noqa
+    parser = argparse.ArgumentParser(
+        description='Detect drift in neural data using change point model')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory containing data')
+    parser.add_argument('--force', action='store_true',
+                        help='Force re-fitting')
+    args = parser.parse_args()
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.dir_name])
+    # Get directory name from metadata handler
+    dir_name = metadata_handler.dir_name
+
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
+else:
+    blech_clust_dir = os.path.dirname(bc.__file__)
+    # Set your test data directory here
+    # data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+
+    # Create a mock args object for testing
+    class Args:
+        force = False
+    args = Args()
 
 
 def gaussian_changepoint_mean_var_2d(data_array, n_states, **kwargs):
@@ -128,14 +155,9 @@ def ridge_plot(
 ############################################################
 # Initialize
 ############################################################
-# Get name of directory with the data files
-metadata_handler = imp_metadata([[], args.dir_name])
-dir_name = metadata_handler.dir_name
 
-# Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
+os.chdir(dir_name)
+print(f'Processing : {dir_name}')
 
 basename = os.path.basename(dir_name[:-1])
 
@@ -166,11 +188,24 @@ with tables.open_file(hdf5_path, 'r') as hf5:
     spike_times = [unit.times.read() for unit in units]
 
 # Convert to histograms
+if len(spike_times) == 0 or all(len(x) == 0 for x in spike_times):
+    print("No spike times found, skipping drift analysis")
+    sys.exit(0)
+
 max_time = int(np.ceil(max([x[-1] for x in spike_times])))
 bins = np.linspace(0, max_time, 150)
 spiketime_hists = np.stack([np.histogram(x, bins=bins)[0]
                            for x in spike_times])
 # Shape: n_neurons x n_bins
+# Ensure spiketime_hists is always 2D
+if spiketime_hists.shape[0] == 1:
+    # And add a dummy neuron for plotting
+    randn_data = np.random.randn(spiketime_hists.shape[1])
+    spiketime_hists = np.vstack([spiketime_hists, randn_data])
+    # Print a warning about the dummy neuron
+    print('='*40)
+    print('WARNING: Only one neuron found, adding a dummy neuron for plotting')
+    print('='*40)
 zscored_hists = zscore(spiketime_hists, axis=1)
 
 # Perform PCA and keep 5 components
@@ -181,10 +216,10 @@ tot_var_explained = pca.explained_variance_ratio_.sum()
 zscored_hists_pca = pca.transform(zscored_hists.T)
 
 fig, ax = plt.subplots(3, 1, sharex=True)
-ax[0].scatter(trial_info_frame['start_taste'], trial_info_frame['dig_in_num_taste'],
+ax[0].scatter(trial_info_frame['start_taste'], trial_info_frame['dig_in_name_taste'],
               marker='|', color='black')
 ax[0].set_title('Taste Trials')
-ax[0].set_ylabel('Dig In #')
+ax[0].set_ylabel('Taste Name')
 ax[1].pcolorfast(bins, np.arange(zscored_hists.shape[0]),
                  zscored_hists, cmap='viridis')
 ax[1].set_title('Spike Histograms')
@@ -373,4 +408,6 @@ with open(best_change_path, 'w') as f:
     f.write('# If you want to manually set the best change point, change this number\n')
     f.write(str(best_change))
 
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not testing_bool:
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')

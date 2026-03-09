@@ -27,12 +27,6 @@ jobs:
   Preamble:
     runs-on: self-hosted
     steps:
-      - name: Clean working directory
-        run: |
-          echo "Cleaning working directory to ensure fresh code"
-          rm -rf /home/exouser/Desktop/blech_clust
-          mkdir -p /home/exouser/Desktop/blech_clust
-
       - name: Clean workspace
         run: |
           echo "Cleaning workspace to ensure fresh checkout"
@@ -53,19 +47,15 @@ jobs:
       - name: check labels
         run: echo "${{ github.event.pull_request.labels.*.name }}"
 
-      - name: Copy files to working-directory
-        run: cp -r ./* /home/exouser/Desktop/blech_clust
-
       - name: Check files in working-directory
-        run: ls -R /home/exouser/Desktop/blech_clust
+        run: cd ${{ github.workspace }} && ls -la
 
       - name: Setup params
-        run: cp /home/exouser/Desktop/blech_clust/params/_templates/* /home/exouser/Desktop/blech_clust/params
+        run: make params
 
       - name: Check params
-        run: for f in $(find /home/exouser/Desktop/blech_clust/params/ -type f); do echo $f; cat $f; done
+        run: ls -la params
       - name: Install blech_clust package
-        working-directory: /home/exouser/Desktop/blech_clust
         run: make base test
 
   Spike-EMG:
@@ -75,12 +65,12 @@ jobs:
     steps:
       - name: Prefect SPIKE then EMG test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
+        working-directory: ${{ github.workspace }}
         run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py --spike-emg 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+              tee ${{ github.workspace }}/github.log;
+              if grep -q "ERROR" ${{ github.workspace }}/github.log; then
                 echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                ./pipeline_testing/extract_traceback.sh ${{ github.workspace }}/github.log;
                 exit 1;
               fi
   EMG-Only:
@@ -90,12 +80,12 @@ jobs:
     steps:
       - name: Prefect EMG only test
         shell: bash
-        working-directory: /home/exouser/Desktop/blech_clust
+        working-directory: ${{ github.workspace }}
         run: conda run --no-capture-output -n blech_clust python pipeline_testing/prefect_pipeline.py -e 2>&1 |
-              tee ~/Desktop/blech_clust/github.log;
-              if grep -q "ERROR" ~/Desktop/blech_clust/github.log; then
+              tee ${{ github.workspace }}/github.log;
+              if grep -q "ERROR" ${{ github.workspace }}/github.log; then
                 echo "ERROR detected by bash";
-                ./pipeline_testing/extract_traceback.sh ~/Desktop/blech_clust/github.log;
+                ./pipeline_testing/extract_traceback.sh ${{ github.workspace }}/github.log;
                 exit 1;
               fi
 
@@ -103,5 +93,7 @@ jobs:
         if: always()
         run: |
           echo "Cleaning up working directory and test artifacts"
-          rm -rf /home/exouser/Desktop/blech_clust
+          rm -rf ${{ github.workspace }}/*
+          rm -rf ${{ github.workspace }}/.git
+          rm -rf ${{ github.workspace }}/.github
           echo "Note: Test data in ~/.blech_clust_test_data is preserved for reuse"
