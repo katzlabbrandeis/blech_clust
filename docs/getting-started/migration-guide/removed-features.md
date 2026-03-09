@@ -69,8 +69,8 @@ The entire `LFP_analysis/` directory has been removed:
 LFP functionality is now available through the `ephys_data` module:
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Load data
 data = ephys_data(data_dir='/path/to/data')
@@ -87,7 +87,7 @@ data.lfp_params = {
 # Extract and load LFPs
 data.extract_lfps()
 data.get_lfps()
-lfp_data = data.lfp_array
+lfp_data = data.lfp_array_list
 ```
 
 See [Ephys Data Reference](../../reference/ephys-data.md) for complete documentation.
@@ -147,7 +147,7 @@ The `additional_analyses/` directory has been removed:
 Basic palatability analysis is available through the `ephys_data` module:
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 data = ephys_data(data_dir='/path/to/data')
 data.get_unit_descriptors()
@@ -180,7 +180,7 @@ The `laser_effect_analysis/` directory has been removed:
 Laser trial separation is available through the `ephys_data` module:
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 data = ephys_data(data_dir='/path/to/data')
 data.get_spikes()

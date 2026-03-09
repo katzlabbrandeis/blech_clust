@@ -19,7 +19,7 @@ Implementation of Bayesian Adaptive Kernel Smoother for firing rate estimation.
 ## Basic Usage
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 # Initialize with data directory
 data = ephys_data(data_dir='/path/to/data')
@@ -61,11 +61,11 @@ firing = data.firing_array # 4D array of firing rates
 ### LFP Analysis
 
 ```python
-# Access LFP data
-lfps = data.lfp_array     # Raw LFP data
-stft = data.stft_array    # Complex Spectrograms
-amplitude = data.amplitude_array # STFT Amplitude (power)
-phase = data.phase_array  # STFT Phase
+# Access LFP data (returns list of arrays, one per taste)
+lfps = data.lfp_array_list     # Raw LFP data (list of arrays)
+stft = data.stft_array_list    # Complex Spectrograms (list of arrays)
+amplitude = data.amplitude_array_list # STFT Amplitude (power) (list of arrays)
+phase = data.phase_array_list  # STFT Phase (list of arrays)
 ```
 
 ### Region-Based Analysis
@@ -124,7 +124,7 @@ pal_array = data.pal_array # Palatability correlations
 ### Ephys Data Processing
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -175,7 +175,7 @@ plt.show()
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import raster, firing_overview
+from blech_clust.utils.ephys_data.visualize import raster, firing_overview
 
 # Create sample spike data (binary array where 1 indicates a spike)
 spike_array = np.zeros((10, 100))  # 10 trials, 100 time points
@@ -223,8 +223,8 @@ plt.show()
 ### LFP Processing
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import lfp_processing
 import numpy as np
 import matplotlib.pyplot as plt
 

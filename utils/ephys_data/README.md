@@ -7,7 +7,7 @@ The `ephys_data` module provides tools for analyzing electrophysiology data, inc
 ## Quick Start
 
 ```python
-from utils.ephys_data.ephys_data import ephys_data
+from blech_clust.utils.ephys_data.ephys_data import ephys_data
 
 # Initialize with data directory
 data = ephys_data(data_dir='/path/to/data')

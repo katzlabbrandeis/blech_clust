@@ -51,7 +51,7 @@ Located in `emg/`, these handle EMG signal analysis:
 from utils.blech_utils import Tee, path_handler, imp_metadata
 
 # Import ephys data tools
-from utils.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import ephys_data
 
 # Import clustering utilities
 from utils.clustering import clustering
@@ -61,7 +61,7 @@ from utils.clustering import clustering
 
 ```python
 # Load experimental data
-from utils.ephys_data import ephys_data
+from blech_clust.utils.ephys_data import ephys_data
 
 # Create data handler
 data = ephys_data('/path/to/data')
