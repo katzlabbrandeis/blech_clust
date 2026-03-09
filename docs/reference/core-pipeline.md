@@ -48,6 +48,15 @@ Perform common average referencing on electrode data.
 - Signal referencing
 - Artifact reduction
 
+**CAR Groups:**
+
+CAR (Common Average Reference) groups are used to organize electrodes that should be referenced together during preprocessing. When configuring CAR groups:
+
+- Group electrodes from the same brain region together (e.g., all electrodes in the right gustatory cortex as `GC1`, left gustatory cortex as `GC2`)
+- Two CAR group names are reserved and have special behavior:
+  - **`none`**: Channels marked with CAR group `none` are excluded from CAR processing and will not be analyzed
+  - **`emg`** (or any name containing "emg"): Channels with CAR groups containing "emg" are treated as EMG channels and processed separately for EMG analysis
+
 **Usage:**
 
 ```bash
