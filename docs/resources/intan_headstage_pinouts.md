@@ -14,8 +14,6 @@ For complete and up-to-date information about Intan headstage pinouts, please re
 
 The RHD 32-channel headstages have 36-pin electrode connectors that mate with many commercially-available electrodes.
 
-![32-Channel Headstage Pinout](./resources/intan_32ch_pinout.png)
-
 ### Key Specifications
 
 - **Connector Type**: 36-pin electrode connector
@@ -35,8 +33,6 @@ The RHD 32-channel headstages have 36-pin electrode connectors that mate with ma
 ## RHD 64-Channel Headstage
 
 The RHD 64-channel headstages provide higher density recordings.
-
-![64-Channel Headstage Pinout](./resources/intan_64ch_pinout.png)
 
 ### Key Specifications
 

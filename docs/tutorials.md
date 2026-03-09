@@ -26,6 +26,7 @@ Once you've started running the script, it will ask you to "fill in car groups".
    - Example: All electrodes from a bundle in right GC are called `GC1`, and all electrodes from a bundle in left GC are called `GC2`
 5. Return to the terminal and type `y` then press `enter`
 
+For more information about Intan headstage pinouts and connector layouts, see [Intan Headstage Pinouts](resources/intan_headstage_pinouts.md).
 #### Reserved CAR Group Names
 
 Two CAR group names have special meaning and should not be used as regular group identifiers:
