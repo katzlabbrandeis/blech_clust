@@ -915,9 +915,10 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
 
         if not args.programmatic:
             prompt_str = 'Please fill in car groups / regions' + "\n" + \
-                "emg and none are case-specific" + "\n" +\
+                "emg and none are case-specific and reserved" + "\n" +\
                 "Indicate different CARS from same region as GC1,GC2...etc\n"\
-                "electrodes marked none will not be processed" + "\n"
+                "electrodes marked 'none' will not be processed\n" + \
+                "electrodes with CAR groups containing 'emg' are treated as EMG channels\n"
             print(prompt_str)
 
             def confirm_check(x):

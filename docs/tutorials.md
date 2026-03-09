@@ -26,6 +26,16 @@ Once you've started running the script, it will ask you to "fill in car groups".
    - Example: All electrodes from a bundle in right GC are called `GC1`, and all electrodes from a bundle in left GC are called `GC2`
 5. Return to the terminal and type `y` then press `enter`
 
+#### Reserved CAR Group Names
+
+Two CAR group names have special meaning and should not be used as regular group identifiers:
+
+- **`none`**: Channels marked with the CAR group `none` will be excluded from common average reference (CAR) processing and will not be analyzed. Use this for electrodes that should be ignored (e.g., dead channels or channels not part of the recording).
+
+- **`emg`** (or any CAR group containing "emg"): Channels with CAR groups containing "emg" (case-insensitive) are treated as EMG channels. These are processed separately from regular electrode CAR groups and are used for EMG analysis (BSA/STFT frequency analysis and QDA-based gape detection).
+
+> **Important**: These reserved names are case-specific. You must use lowercase "none" and "emg" exactly as shown.
+
 #### Selecting Digital Inputs
 
 The script will search your data folder for DIN files and print something like:
