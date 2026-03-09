@@ -27,6 +27,15 @@ Once you've started running the script, it will ask you to "fill in car groups".
 5. Return to the terminal and type `y` then press `enter`
 
 For more information about Intan headstage pinouts and connector layouts, see [Intan Headstage Pinouts](resources/intan_headstage_pinouts.md).
+#### Reserved CAR Group Names
+
+Two CAR group names have special meaning and should not be used as regular group identifiers:
+
+- **`none`**: Channels marked with the CAR group `none` will be excluded from common average reference (CAR) processing and will not be analyzed. Use this for electrodes that should be ignored (e.g., dead channels or channels not part of the recording).
+
+- **`emg`** (or any CAR group containing "emg"): Channels with CAR groups containing "emg" (case-insensitive) are treated as EMG channels. These are processed separately from regular electrode CAR groups and are used for EMG analysis (BSA/STFT frequency analysis and QDA-based gape detection).
+
+> **Important**: These reserved names are case-specific. You must use lowercase "none" and "emg" exactly as shown.
 
 #### Selecting Digital Inputs
 
