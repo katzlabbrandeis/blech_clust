@@ -58,6 +58,7 @@ For more detailed installation instructions, see the [Getting Started](getting-s
 
 - [blech_clust Secrets Within (PDF)](resources/blech_clust_secrets_within.pdf) - Brief guide to blech_clust internals and advanced usage
 - [Auto Sorting Resources](resources/autosorting.md) - Comprehensive documentation for the implemented auto sorting solution, including ML techniques and implementation details
+- [Intan Headstage Pinouts](resources/intan_headstage_pinouts.md) - Reference for Intan headstage electrode connector pinouts (useful for creating electrode_layout_frame in blech_exp_info.py)
 
 ## Contributing
 
