@@ -65,9 +65,89 @@ python3 utils/ram_monitor.py "$DIR" &
 RAM_MONITOR_PID=$!
 
 echo "Processing $DIR"
+
+# Generate parallel command on-the-fly instead of using temp file
+cd "$DIR"
+
+# Get list of electrodes from layout file, excluding EMG and "none" CAR groups
+ELECTRODE_LIST=$(python3 - <<'PYEOF'
+import pandas as pd
+import json
+import glob
+import os
+import sys
+
+# Find layout file
+layout_files = glob.glob('*layout.csv')
+if not layout_files:
+    print("No layout file found", file=sys.stderr)
+    exit(1)
+
+layout_df = pd.read_csv(layout_files[0])
+
+# Find params file
+param_files = glob.glob('*.params')
+if not param_files:
+    print("No params file found", file=sys.stderr)
+    exit(1)
+
+with open(param_files[0], 'r') as f:
+    params = json.load(f)
+
+max_parallel_cpu = params.get('max_parallel_cpu', os.cpu_count() - 2)
+
+# Filter electrodes - exclude EMG and "none"/"None"/"na" CAR groups
+if 'CAR_group' in layout_df.columns:
+    electrode_bool = layout_df[~layout_df.CAR_group.isin(["none", "None", "na"])]
+    electrode_bool = electrode_bool[~electrode_bool.CAR_group.str.contains('emg', case=False, na=False)]
+    electrodes = sorted(electrode_bool['electrode_ind'].dropna().astype(int).tolist())
+else:
+    electrodes = sorted(layout_df['electrode_ind'].dropna().astype(int).tolist())
+
+# Print to stderr (we only want the electrode list in stdout)
+num_cpus = os.cpu_count()
+job_count = min(len(electrodes), max_parallel_cpu, num_cpus - 2)
+if job_count < 1:
+    job_count = 1
+
+print(f"Using {job_count} parallel jobs for {len(electrodes)} electrodes", file=sys.stderr)
+
+# Only print the electrode list to stdout
+print(" ".join([str(e) for e in electrodes]))
+PYEOF
+)
+
+if [ -z "$ELECTRODE_LIST" ]; then
+    echo "Error: Could not generate electrode list"
+    exit 1
+fi
+
+# Run the parallel processing
 for i in {1..10}; do
-    echo Retry $i
-    bash $DIR/temp/blech_process_parallel.sh
+    echo "Retry $i"
+    # Generate and run the parallel command on-the-fly
+    # Get job count from params
+    JOB_COUNT=$(python3 - <<'PYEOF'
+import json
+import glob
+import os
+
+param_files = glob.glob('*.params')
+if param_files:
+    with open(param_files[0], 'r') as f:
+        params = json.load(f)
+    max_parallel_cpu = params.get('max_parallel_cpu', os.cpu_count() - 2)
+    num_cpus = os.cpu_count()
+    job_count = min(max_parallel_cpu, num_cpus - 2)
+    if job_count < 1:
+        job_count = 1
+    print(job_count)
+else:
+    print(os.cpu_count() - 2)
+PYEOF
+)
+    parallel -k -j "$JOB_COUNT" --noswap --load 100% --progress --memfree 4G --ungroup --retry-failed --joblog "$DIR/results.log" \
+        "bash $DIR/temp/blech_process_single.sh" ::: $ELECTRODE_LIST
 done
 
 # Kill RAM monitor when done
