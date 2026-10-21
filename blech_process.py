@@ -22,6 +22,52 @@ This module processes single electrode waveforms for spike detection and cluster
 - **Logging**:
   - Updates the processing log with start and end times, and status of processing.
   - Writes successful execution to a pipeline log.
+
+**Data Processing Flow:**
+
+When throw_out_noise = False:
+    Raw Waveforms (slices_dejittered)
+           |
+           v
+    Extract Features
+           |
+           v
+    Train GMM on all features
+           |
+           v
+    Get cluster labels for all waveforms
+           |
+           v
+    Remove outliers & save results
+
+When throw_out_noise = True:
+    Raw Waveforms (slices_og)
+           |
+           +---> Classify (neuRecommend)
+           |           |
+           |           +---> Noise waveforms (discarded from GMM fitting)
+           |           |
+           |           +---> Spike waveforms (slices_dejittered)
+           |                       |
+           |                       v
+           |                Extract Features (spike features only)
+           |                       |
+           |                       v
+           |                Train GMM on spike features only
+           |                       |
+           v                       v
+    Extract Features (all)    Get GMM model
+           |                       |
+           +----------+------------+
+                      |
+                      v
+           Apply GMM to all waveforms
+                      |
+                      v
+           Get cluster labels for all waveforms
+                      |
+                      v
+           Remove outliers & save results
 """
 
 ############################################################
@@ -30,7 +76,7 @@ This module processes single electrode waveforms for spike detection and cluster
 import time
 import argparse  # noqa
 import os  # noqa
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa
 
 test_bool = False
 if test_bool:
@@ -66,7 +112,7 @@ import numpy as np  # noqa
 import sys  # noqa
 import json  # noqa
 import pylab as plt  # noqa
-import utils.blech_process_utils as bpu  # noqa
+import blech_clust.utils.blech_process_utils as bpu  # noqa
 from itertools import product  # noqa
 
 # Confirm sys.argv[1] is a path that exists
@@ -192,6 +238,37 @@ fig = bpu.gen_window_plots(
 fig.savefig(f'./Plots/{electrode_num:02}/bandapass_trace_snippets.png',
             bbox_inches='tight', dpi=300)
 plt.close(fig)
+
+# ------------------------------------------------------------
+# Rolling threshold plot (only if rolling threshold is enabled)
+if params_dict.get('use_rolling_threshold', False):
+    window_len = params_dict.get('rolling_threshold_window', 5.0)
+    step_len = params_dict.get('rolling_threshold_step', 5.0)
+    rt_times, rt_thresholds = bpu.compute_rolling_threshold(
+        filtered_data,
+        params_dict['sampling_rate'],
+        window_len=window_len,
+        step_len=step_len,
+        threshold_mult=params_dict['waveform_threshold'],
+    )
+    rolling_fig, _ = bpu.plot_rolling_threshold(rt_times, rt_thresholds)
+    rolling_fig.savefig(
+        f'./Plots/{electrode_num:02}/rolling_threshold.png',
+        bbox_inches='tight', dpi=300,
+    )
+    plt.close(rolling_fig)
+
+    # Save rolling thresholds for QA grid plot
+    rolling_thresh_dir = './QA_output/rolling_thresholds'
+    os.makedirs(rolling_thresh_dir, exist_ok=True)
+    np.savez(
+        f'{rolling_thresh_dir}/electrode{electrode_num:02}_rolling_threshold.npz',
+        times=rt_times,
+        thresholds=rt_thresholds,
+        electrode_num=electrode_num,
+    )
+# ------------------------------------------------------------
+
 ############################################################
 
 # Delete filtered electrode from memory
@@ -334,6 +411,8 @@ for cluster_num, fit_type in iters:
     )
     # Use the new simplified clustering method
     cluster_handler.perform_clustering()
+    # If not throwing out noise, ensure labels are continuous (i.e. no gaps in label numbers)
+    # at this stage
     cluster_handler.ensure_continuous_labels()
 
     # At this point, cluster_handler has a trained GMM

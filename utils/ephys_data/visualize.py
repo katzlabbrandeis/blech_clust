@@ -14,7 +14,7 @@ Workflow 1: Basic Raster Plot
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import raster
+from blech_clust.utils.ephys_data.visualize import raster
 
 # Create sample spike data (binary array where 1 indicates a spike)
 spike_array = np.zeros((10, 100))  # 10 trials, 100 time points
@@ -36,7 +36,7 @@ Workflow 2: Firing Rate Heatmaps
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import firing_overview
+from blech_clust.utils.ephys_data.visualize import firing_overview
 
 # Create sample firing rate data for multiple neurons
 # Shape: (neurons, trials, time points)
@@ -74,7 +74,7 @@ Workflow 3: Combining Multiple Visualization Types
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import raster, imshow
+from blech_clust.utils.ephys_data.visualize import raster, imshow
 
 # Create sample data
 spike_array = np.zeros((10, 100))
@@ -148,7 +148,7 @@ Workflow 1: Basic Raster Plot
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import raster
+from blech_clust.utils.ephys_data.visualize import raster
 
 # Create sample spike data (binary array where 1 indicates a spike)
 spike_array = np.zeros((10, 100))  # 10 trials, 100 time points
@@ -170,7 +170,7 @@ Workflow 2: Firing Rate Heatmaps
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import firing_overview
+from blech_clust.utils.ephys_data.visualize import firing_overview
 
 # Create sample firing rate data for multiple neurons
 # Shape: (neurons, trials, time points)
@@ -208,7 +208,7 @@ Workflow 3: Combining Multiple Visualization Types
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.visualize import raster, imshow
+from blech_clust.utils.ephys_data.visualize import raster, imshow
 
 # Create sample data
 spike_array = np.zeros((10, 100))

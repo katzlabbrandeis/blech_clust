@@ -29,7 +29,9 @@ class TestBlechUnitsPlot:
         }
         mock.layout = pd.DataFrame({
             'electrode_num': [1, 2, 3],
-            'threshold': [100, 150, 200]
+            'threshold': [100, 150, 200],
+            'electrode_ind': [1, 2, 3],  # Ensure this column exists
+            'some_other_column': [0, 1, 2]  # Add any other necessary columns
         })
         mock.hdf5_name = "test.h5"
         return mock
@@ -170,8 +172,8 @@ class TestBlechUnitsPlot:
         # Call the function
         with patch('matplotlib.pyplot.savefig'):
             blech_units_plot.plot_unit_summary(
-                0, unit_data, unit_descriptor, layout_frame,
-                params_dict, 0, 10000, "test_output_dir"
+                unit_data, 0, 10000, unit_descriptor, layout_frame,
+                params_dict, "test_output_dir"
             )
 
         # Check that the plotting functions were called
@@ -240,6 +242,10 @@ class TestBlechUnitsPlot:
 
         mock_hf5 = MagicMock()
         mock_units = [MagicMock(), MagicMock()]
+        mock_units[0].waveforms = np.random.randn(100, 30)
+        mock_units[0].times = np.sort(np.random.randint(0, 10000, 100))
+        mock_units[1].waveforms = np.random.randn(150, 30)
+        mock_units[1].times = np.sort(np.random.randint(0, 10000, 150))
         mock_load_units_data.return_value = (mock_hf5, mock_units, 0, 10000)
 
         # Call the main function

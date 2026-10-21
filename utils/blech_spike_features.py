@@ -14,7 +14,7 @@ from scipy.stats import zscore
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import PCA
-from utils.blech_process_utils import path_handler
+from blech_clust.utils.blech_process_utils import path_handler
 
 ############################################################
 # Figure out paths
@@ -24,7 +24,7 @@ blech_clust_dir = path_handler.blech_clust_dir
 ############################################################
 
 sys.path.append(blech_clust_dir)
-from utils.blech_utils import imp_metadata  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
 
 
 class EnergyFeature(BaseEstimator, TransformerMixin):

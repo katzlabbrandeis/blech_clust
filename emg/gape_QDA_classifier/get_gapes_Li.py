@@ -13,7 +13,7 @@ import seaborn as sns
 from detect_peaks import detect_peaks
 from QDA_classifier import QDA
 sys.path.append('../..')
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
 
 def QDA_process_single_trial(this_trial, pre_stim, pre_stim_mean):

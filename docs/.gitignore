@@ -1,0 +1,13 @@
+# MkDocs build output
+/site/
+
+# Legacy Quarto files (deprecated)
+/_site/
+/.quarto/
+*.qmd
+_quarto.yml
+build_docs.py
+
+# Auto-generated API docs (don't commit these)
+/reference/api/
+/reference/_sidebar.yml

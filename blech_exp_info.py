@@ -36,13 +36,14 @@ import pandas as pd
 from tqdm import tqdm
 
 # Local imports
-from utils.blech_utils import (
+from blech_clust.utils.blech_utils import (
     entry_checker,
     imp_metadata,
     pipeline_graph_check,
 )
-from utils.importrhdutilities import load_file, read_header
-from utils.read_file import DigInHandler
+from blech_clust.utils.importrhdutilities import load_file, read_header
+from blech_clust.utils.read_file import DigInHandler
+from blech_clust.utils.blech_trial_info import create_trial_info_frame
 
 # Constants
 test_bool = False  # noqa
@@ -57,7 +58,8 @@ def parse_arguments():
     """
     if test_bool:
         return argparse.Namespace(
-            dir_name='/media/storage/for_transfer/bla_gc/AM35_4Tastes_201228_124547',
+            # dir_name='/media/storage/abu_resorted/bla_gc/AM35_4Tastes_201228_124547',
+            dir_name='/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new',
             template=None,
             mode='legacy',
             programmatic=False,
@@ -285,8 +287,10 @@ def populate_field_with_defaults(
         )
 
     if continue_bool:
-        if user_input.strip():
-            # Convert input if conversion function provided
+        if user_input.strip().lower() == "none":
+            return []
+        # Convert input if conversion function provided
+        elif user_input.strip():
             if convert_func:
                 return convert_func(user_input)
             return user_input
@@ -317,6 +321,70 @@ def parse_laser_params(s):
             "Invalid laser parameter format. Expected format: (onset1,duration1),(onset2,duration2)")
     # Convert to integers and return as list of tuples
     return [(int(onset), int(duration)) for onset, duration in matches]
+
+
+def extract_recording_params(dir_path, header=None):
+    """
+    Extract recording parameters from info.rhd file or from provided header.
+
+    Args:
+        dir_path: Path to the directory containing info.rhd
+        header: Optional pre-loaded header dict (for traditional format)
+
+    Returns:
+        Dictionary containing recording parameters, or None if not available
+    """
+    # If header is provided (traditional format), use it directly
+    if header is not None:
+        try:
+            freq_params = header.get('frequency_parameters', {})
+
+            recording_params = {
+                'sampling_rate': header.get('sample_rate'),
+                'notch_filter_frequency': header.get('notch_filter_frequency'),
+                'dsp_enabled': freq_params.get('dsp_enabled'),
+                'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+                'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+                'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+                'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+                'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+                'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+            }
+
+            return recording_params
+        except Exception as e:
+            print(f'Error extracting recording parameters from header: {e}')
+            return None
+
+    # Otherwise, try to read from info.rhd file
+    info_rhd_path = os.path.join(dir_path, 'info.rhd')
+
+    if not os.path.exists(info_rhd_path):
+        print('info.rhd file not found. Recording parameters will not be included.')
+        return None
+
+    try:
+        with open(info_rhd_path, 'rb') as f:
+            header = read_header(f)
+
+        freq_params = header.get('frequency_parameters', {})
+
+        recording_params = {
+            'sampling_rate': header.get('sample_rate'),
+            'notch_filter_frequency': header.get('notch_filter_frequency'),
+            'dsp_enabled': freq_params.get('dsp_enabled'),
+            'actual_dsp_cutoff_frequency': freq_params.get('actual_dsp_cutoff_frequency'),
+            'actual_lower_bandwidth': freq_params.get('actual_lower_bandwidth'),
+            'actual_upper_bandwidth': freq_params.get('actual_upper_bandwidth'),
+            'desired_dsp_cutoff_frequency': freq_params.get('desired_dsp_cutoff_frequency'),
+            'desired_lower_bandwidth': freq_params.get('desired_lower_bandwidth'),
+            'desired_upper_bandwidth': freq_params.get('desired_upper_bandwidth'),
+        }
+
+        return recording_params
+    except Exception as e:
+        print(f'Error reading info.rhd: {e}')
+        return None
 
 
 def extract_metadata_from_dir_name(dir_name):
@@ -691,7 +759,7 @@ def process_laser_params_programmatic(this_dig_handler, args):
         Tuple containing laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list
     """
     # Process laser dig-ins
-    if args.laser_digin:
+    if args.laser_digin and args.laser_digin.lower() != "none":
         laser_digin_ind = parse_csv(args.laser_digin, int)
     else:
         laser_digin_ind = []
@@ -847,8 +915,10 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
 
         if not args.programmatic:
             prompt_str = 'Please fill in car groups / regions' + "\n" + \
-                "emg and none are case-specific" + "\n" +\
-                "Indicate different CARS from same region as GC1,GC2...etc"
+                "emg and none are case-specific and reserved" + "\n" +\
+                "Indicate different CARS from same region as GC1,GC2...etc\n"\
+                "electrodes marked 'none' will not be processed\n" + \
+                "electrodes with CAR groups containing 'emg' are treated as EMG channels\n"
             print(prompt_str)
 
             def confirm_check(x):
@@ -867,8 +937,15 @@ def process_electrode_layout(dir_path, dir_name, electrode_files, ports, electro
     layout_frame_filled = pd.read_csv(layout_file_path)
 
     if not args.programmatic:
-        layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
-        )
+        if 'original_CAR_group' not in layout_frame_filled.columns:
+            layout_frame_filled['CAR_group'] = layout_frame_filled['CAR_group'].str.lower(
+            )
+        else:
+            print('='*40)
+            print('Original CAR groups detected, using those values')
+            print('='*40)
+            layout_frame_filled['CAR_group'] = layout_frame_filled['original_CAR_group'].str.lower(
+            )
         layout_frame_filled['CAR_group'] = [x.strip()
                                             for x in layout_frame_filled['CAR_group']]
     else:
@@ -1014,15 +1091,18 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Custom conversion function for laser dig-ins
     def convert_laser_digin(input_str):
-        if len(input_str) == 0:
+        if input_str.lower() == "none":
             return []
-        return [int(input_str)]
+        elif len(input_str) == 0:
+            return []
+        else:
+            return [int(input_str)]
 
     # Use helper function with special handling for blank input
     laser_select_str = populate_field_with_defaults(
         field_name='dig_in_nums',
         nested_field='laser_params',
-        entry_checker_msg='Laser dig_in INDEX, <BLANK> for none',
+        entry_checker_msg='Laser dig_in INDEX, "none" for no laser digins',
         check_func=count_check,
         existing_info=existing_info,
         cache=cache,
@@ -1034,7 +1114,9 @@ def process_laser_params_manual(this_dig_handler, args, existing_info, cache, ca
 
     # Handle the special case for laser dig-ins
     if isinstance(laser_select_str, str):
-        if len(laser_select_str) == 0:
+        if laser_select_str.lower() == "none":
+            laser_digin_ind = []
+        elif len(laser_select_str) == 0:
             laser_digin_ind = default_laser_digin_ind if default_laser_digin_ind else []
         else:
             laser_digin_ind = [int(laser_select_str)]
@@ -1212,7 +1294,14 @@ def main():
     6. Assembles and saves the final experiment info file
     """
     # Setup experiment info
-    dir_path, dir_name, cache_file_path, cache, existing_info, metadata_dict, pipeline_check = setup_experiment_info()
+    (
+        dir_path,
+        dir_name,
+        cache_file_path,
+        cache,
+        existing_info,
+        metadata_dict,
+        pipeline_check, ) = setup_experiment_info()
 
     # Initialize the final dictionary with metadata
     fin_dict = {}
@@ -1241,6 +1330,8 @@ def main():
         file_type = 'one file per channel'
 
     # Initialize electrodes_list based on file type
+    # Also store header for traditional format to extract recording params
+    rhd_header = None
     if file_type == 'one file per signal type':
         electrodes_list = ['amplifier.dat']
     elif file_type == 'one file per channel':
@@ -1252,10 +1343,10 @@ def main():
         electrodes_list = []
         rhd_file_list = [x for x in file_list if 'rhd' in x]
         with open(os.path.join(dir_path, rhd_file_list[0]), 'rb') as f:
-            header = read_header(f)
-        ports = [x['port_prefix'] for x in header['amplifier_channels']]
+            rhd_header = read_header(f)
+        ports = [x['port_prefix'] for x in rhd_header['amplifier_channels']]
         electrode_files = [x['native_channel_name']
-                           for x in header['amplifier_channels']]
+                           for x in rhd_header['amplifier_channels']]
 
     ##################################################
     # Process Digital Inputs
@@ -1269,10 +1360,21 @@ def main():
     print("\n=== Processing Taste Parameters ===")
     # Process dig-ins based on mode
     if args.programmatic:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_programmatic(
-            this_dig_handler, args)
+        (
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
+            taste_digin_trials, ) = process_dig_ins_programmatic(this_dig_handler, args)
     else:
-        taste_dig_inds, tastes, concs, pal_ranks, taste_digin_nums, taste_digin_trials = process_dig_ins_manual(
+        (
+            taste_dig_inds,
+            tastes,
+            concs,
+            pal_ranks,
+            taste_digin_nums,
+            taste_digin_trials, ) = process_dig_ins_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     ##################################################
@@ -1280,10 +1382,19 @@ def main():
     ##################################################
     print("\n=== Processing Laser Parameters ===")
     if args.programmatic:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_programmatic(
-            this_dig_handler, args)
+        (
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_programmatic(this_dig_handler, args)
     else:
-        laser_digin_ind, laser_digin_nums, laser_params_list, virus_region_str, opto_loc_list = process_laser_params_manual(
+        (
+            laser_digin_ind,
+            laser_digin_nums,
+            laser_params_list,
+            virus_region_str,
+            opto_loc_list, ) = process_laser_params_manual(
             this_dig_handler, args, existing_info, cache, cache_file_path)
 
     # Write out dig-in frame
@@ -1319,8 +1430,18 @@ def main():
     if laser_digin_ind:
         laser_digin_trials = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'trial_counts'].to_list(
         )
+        laser_digin_names = this_dig_handler.dig_in_frame.loc[laser_digin_ind, 'dig_in_names'].to_list(
+        )
     else:
         laser_digin_trials = []
+        laser_digin_names = []
+
+    ##################################################
+    # Extract Recording Parameters
+    ##################################################
+    print("\n=== Extracting Recording Parameters ===")
+    # Pass header if available (traditional format)
+    recording_params = extract_recording_params(dir_path, header=rhd_header)
 
     # Create final dictionary
     fin_dict = {
@@ -1330,7 +1451,7 @@ def main():
         'regions': list(layout_dict.keys()),
         'ports': list(np.unique(ports)),
         'dig_ins': {
-            'nums': this_dig_handler.dig_in_frame.dig_in_nums.to_list(),
+            'names': this_dig_handler.dig_in_frame.dig_in_names.to_list(),
             'trial_counts': this_dig_handler.dig_in_frame.trial_counts.to_list(),
         },
         'emg': {
@@ -1340,14 +1461,16 @@ def main():
         },
         'electrode_layout': layout_dict,
         'taste_params': {
-            'dig_in_nums': taste_digin_nums,
+            # 'dig_in_nums': taste_digin_nums,
+            'dig_in_names': this_dig_handler.dig_in_frame.loc[taste_dig_inds, 'dig_in_names'].to_list(),
             'trial_count': taste_digin_trials,
             'tastes': tastes,
             'concs': concs,
             'pal_rankings': pal_ranks
         },
         'laser_params': {
-            'dig_in_nums': laser_digin_nums,
+            # 'dig_in_nums': laser_digin_nums,
+            'dig_in_names': laser_digin_names,
             'trial_count': laser_digin_trials,
             'onset_duration': laser_params_list,
             'opto_locs': opto_loc_list,
@@ -1356,10 +1479,52 @@ def main():
         'notes': notes
     }
 
+    # Add recording parameters if available
+    if recording_params is not None:
+        fin_dict['recording_params'] = recording_params
+
     # Write the final dictionary to a JSON file
     json_file_name = os.path.join(dir_path, '.'.join([dir_name, 'info']))
     with open(json_file_name, 'w') as file:
         json.dump(fin_dict, file, indent=4)
+
+    ##################################################
+    # Generate trial_info_frame
+    ##################################################
+    # Trial_info_frame needs info dict for correction of laser_times
+    # Hence it has to be made after info_dict is made
+    print("\n=== Generating Trial Info Frame ===")
+
+    # Get recording parameters for sampling rate
+    if recording_params is not None:
+        sampling_rate = recording_params['sampling_rate']
+    else:
+        # Try to get from params file if available
+        params_file = os.path.join(dir_path, f"{dir_name}.params")
+        if os.path.exists(params_file):
+            with open(params_file, 'r') as f:
+                params_dict = json.load(f)
+                sampling_rate = params_dict.get('sampling_rate', 30000)
+        else:
+            # Default to 30kHz if not available
+            sampling_rate = 30000
+            print(
+                f"Warning: Could not find sampling rate, using default: {sampling_rate} Hz")
+
+    qa_output_dir = os.path.join(dir_path, 'QA_output')
+    os.makedirs(qa_output_dir, exist_ok=True)
+
+    trial_info_frame = create_trial_info_frame(
+        this_dig_handler,
+        fin_dict,
+        sampling_rate,
+        output_dir=qa_output_dir
+    )
+
+    # Save trial info frame to CSV
+    csv_path = os.path.join(dir_path, 'trial_info_frame.csv')
+    trial_info_frame.to_csv(csv_path, index=False)
+    print(f"Trial info frame saved to: {csv_path}")
 
     # Write success to log
     if pipeline_check:

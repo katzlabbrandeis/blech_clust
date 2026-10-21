@@ -19,7 +19,7 @@ from datashader.utils import export_image
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from imageio import imread
+# from imageio import imread
 import shutil
 import os
 
@@ -78,7 +78,8 @@ def waveforms_datashader(
     export(tf.shade(agg, how='eq_hist'), 'tempfile')
 
     # Read in the temporary image file
-    img = imread(dir_name + "/tempfile.png")
+    # img = imread(dir_name + "/tempfile.png")
+    img = plt.imread(dir_name + "/tempfile.png")
 
     # Figure sizes chosen so that the resolution is 100 dpi
     if ax is None:

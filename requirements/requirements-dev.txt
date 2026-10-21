@@ -1,0 +1,3 @@
+prefect==2.20.22
+gdown
+boto3

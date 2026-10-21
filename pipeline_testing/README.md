@@ -16,6 +16,35 @@ The framework uses small test datasets that can be automatically downloaded:
 - OFPC format data: `KM45_5tastes_210620_113227_new`
 - Traditional format data: `eb24_behandephys_11_12_24_241112_114659_copy`
 
+## Configuration
+
+Test data locations and dataset information are configured in `test_config.json`:
+
+```json
+{
+    "test_data_dir": "~/.blech_clust_test_data",
+    "datasets": {
+        "ofpc": {
+            "name": "KM45_5tastes_210620_113227_new",
+            "gdrive_id": "1EcpUIqp81h3J89-6dEEueeULqBlKW5a7"
+        },
+        "trad": {
+            "name": "eb24_behandephys_11_12_24_241112_114659_copy",
+            "gdrive_id": "1aU2DWHhbVB3rDujbF4KRX9QLA1LlfpU3"
+        }
+    }
+}
+```
+
+Use `test_config_loader.py` to access configuration values in Python code:
+
+```python
+from blech_clust.pipeline_testing.test_config_loader import (
+    get_data_dirs_dict,
+    get_test_data_dir,
+)
+```
+
 ## Running Tests
 
 You can run specific test workflows or all tests:

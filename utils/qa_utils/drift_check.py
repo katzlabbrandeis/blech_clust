@@ -24,32 +24,12 @@ import pingouin as pg
 import seaborn as sns
 import glob
 from sklearn.decomposition import PCA
-from umap import UMAP
+# from umap import UMAP
 # Get script path
 script_path = os.path.realpath(__file__)
-script_dir_path = os.path.dirname(script_path)
-blech_path = os.path.dirname(os.path.dirname(script_dir_path))
-sys.path.append(blech_path)
-from utils.ephys_data import ephys_data  # noqa: E402
-from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
-
-
-def get_spike_trains(hf5_path):
-    """
-    Get spike trains from hdf5 file
-
-    Inputs:
-        hf5_path: path to hdf5 file
-
-    Outputs:
-        spike_trains: list of spike trains (trials, units, time)
-    """
-    with tables.open_file(hf5_path, 'r') as hf5:
-        # Get the spike trains
-        dig_ins = hf5.list_nodes('/spike_trains')
-        dig_in_names = [dig_in._v_name for dig_in in dig_ins]
-        spike_trains = [x.spike_array[:] for x in dig_ins]
-    return spike_trains
+from blech_clust.utils.ephys_data import ephys_data  # noqa: E402
+from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+import blech_clust as bc  # noqa: E402
 
 
 def array_to_df(array, dim_names):
@@ -72,17 +52,38 @@ def array_to_df(array, dim_names):
     return df
 
 
+testing_bool = False
+
+if not testing_bool:
+
+    import argparse  # noqa
+    parser = argparse.ArgumentParser(
+        description='Analyze drift in firing rates across session')
+    parser.add_argument('dir_name', type=str,
+                        help='Directory name with data files')
+    args = parser.parse_args()
+
+    # Get name of directory with the data files
+    metadata_handler = imp_metadata([[], args.dir_name])
+    # Get directory name from metadata handler
+    dir_name = metadata_handler.dir_name
+
+    this_pipeline_check = pipeline_graph_check(dir_name)
+    this_pipeline_check.check_previous(script_path)
+    this_pipeline_check.write_to_log(script_path, 'attempted')
+
+else:
+    blech_clust_dir = os.path.dirname(bc.__file__)
+    # Set your test data directory here
+    # data_dir = '/home/abuzarmahmood/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new'
+    metadata_handler = imp_metadata([[], data_dir])
+    dir_name = metadata_handler.dir_name
+
 ############################################################
 # Initialize
 ############################################################
-# Get name of directory with the data files
-metadata_handler = imp_metadata(sys.argv)
-dir_name = metadata_handler.dir_name
-
 # Perform pipeline graph check
-this_pipeline_check = pipeline_graph_check(dir_name)
-this_pipeline_check.check_previous(script_path)
-this_pipeline_check.write_to_log(script_path, 'attempted')
 
 os.chdir(dir_name)
 print(f'Processing : {dir_name}')
@@ -100,7 +101,15 @@ warnings_file_path = os.path.join(output_dir, 'warnings.txt')
 ############################################################
 # Open the hdf5 file
 # A list of length [# of stimuli], containing arrays with dimensions = [trials, units, samples/trial]
-spike_trains = get_spike_trains(metadata_handler.hdf5_name)
+# spike_trains = get_spike_trains(metadata_handler.hdf5_name)
+
+from importlib import reload  # noqa: E402
+# in case we made changes to ephys_data.py and want to reload it without restarting the kernel
+reload(ephys_data)
+
+dat = ephys_data.ephys_data(dir_name)
+dat.get_spikes()
+spike_trains = dat.spikes
 
 ############################################################
 # Perform Processing
@@ -158,6 +167,8 @@ else:
 
 # Plot heatmaps of all tastes, both raw data and zscored
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
+if len(plot_spike_trains) == 1:
+    ax = np.expand_dims(ax, axis=0)
 for i in range(len(plot_spike_trains)):
     ax[i, 0].imshow(plot_spike_trains[i], aspect='auto', interpolation='none')
     ax[i, 1].imshow(zscore_binned_spike_trains[i],
@@ -173,6 +184,8 @@ plt.close()
 
 # Plot timeseries of above data as well
 fig, ax = plt.subplots(len(plot_spike_trains), 2, figsize=(10, plotHeight))
+if len(plot_spike_trains) == 1:
+    ax = np.expand_dims(ax, axis=0)
 for i in range(len(plot_spike_trains)):
     ax[i, 0].plot(np.array(plot_spike_trains[i]).T, alpha=0.7)
     ax[i, 1].plot(zscore_binned_spike_trains[i].T, alpha=0.7)
@@ -387,10 +400,17 @@ if np.any(sig_p_val_vec):
 ############################################################
 # Perform PCA on firing rates across trials
 ############################################################
-dat = ephys_data.ephys_data(dir_name)
 dat.get_firing_rates()
 # each element is a 3D array of shape (n_trials, n_neurons, n_timepoints)
 firing_list = dat.firing_list
+
+# Check if we have any firing data
+if len(firing_list) == 0 or firing_list[0].shape[1] == 0:
+    print("No firing rate data available. Skipping PCA analysis.")
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')
+    sys.exit(0)
+
 # Normalize for each neuron
 n_neurons = firing_list[0].shape[1]
 norm_firing_list = []
@@ -407,22 +427,18 @@ long_firing_list = [x.reshape(x.shape[0], -1) for x in norm_firing_list]
 # Perform PCA on long_firing_list
 pca_firing_list = [PCA(n_components=1, whiten=True).fit_transform(x)
                    for x in long_firing_list]
-umap_firing_list = [UMAP(n_components=1).fit_transform(x)
-                    for x in long_firing_list]
-umap_zscore = [zscore(x, axis=None) for x in umap_firing_list]
-
-# Plot PCA and UMAP results
-fig, ax = plt.subplots(2, 1, figsize=(5, 5), sharex=True)
+#
+# Plot PCA only
+fig, ax = plt.subplots(figsize=(5, 5))
 for i in range(len(pca_firing_list)):
-    ax[0].plot(pca_firing_list[i], alpha=0.7)
-    ax[1].plot(umap_zscore[i], alpha=0.7)
-    ax[0].set_title('PCA')
-    ax[1].set_title('UMAP')
-ax[-1].set_xlabel('Trial num')
-fig.suptitle('PCA and UMAP of Firing Rates \n' + basename)
+    ax.plot(pca_firing_list[i], alpha=0.7)
+    ax.set_title('PCA')
+ax.set_xlabel('Trial num')
+fig.suptitle('PCA of Firing Rates \n' + basename)
 plt.tight_layout()
-plt.savefig(os.path.join(output_dir, 'pca_umap_firing_rates.png'))
+plt.savefig(os.path.join(output_dir, 'pca_firing_rates.png'))
 plt.close()
 
-# Write successful execution to log
-this_pipeline_check.write_to_log(script_path, 'completed')
+if not testing_bool:
+    # Write successful execution to log
+    this_pipeline_check.write_to_log(script_path, 'completed')

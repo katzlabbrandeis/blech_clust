@@ -1,3 +1,4 @@
+
 if [ "$2" == "--force" ]; then
     FORCE=1
 else

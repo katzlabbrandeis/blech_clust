@@ -1,0 +1,13 @@
+{
+    "test_data_dir": "~/.blech_clust_test_data",
+    "datasets": {
+        "ofpc": {
+            "name": "KM45_5tastes_210620_113227_new",
+            "gdrive_id": "1EcpUIqp81h3J89-6dEEueeULqBlKW5a7"
+        },
+        "trad": {
+            "name": "eb24_behandephys_11_12_24_241112_114659_copy",
+            "gdrive_id": "1aU2DWHhbVB3rDujbF4KRX9QLA1LlfpU3"
+        }
+    }
+}

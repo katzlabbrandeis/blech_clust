@@ -29,7 +29,7 @@ Here are some common usage patterns:
 
 Workflow 1: Basic LFP Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for LFP extraction
 params = {
@@ -52,7 +52,7 @@ lfp_processing.extract_lfps(
 
 Workflow 2: EMG Extraction
 -----------------------------------------------------
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for EMG extraction
 params = {
@@ -76,7 +76,7 @@ Workflow 3: Quality Control for LFP Trials
 import numpy as np
 import tables
 import matplotlib.pyplot as plt
-from utils.ephys_data import lfp_processing
+from blech_clust.utils.ephys_data import lfp_processing
 
 # Load LFP data from HDF5 file
 with tables.open_file('/path/to/data/session.h5', 'r') as hf5:
@@ -194,6 +194,17 @@ if try_again:
 
 
 def get_filtered_electrode(data, low_pass, high_pass, sampling_rate):
+    """Apply bandpass filtering to electrode data
+
+    Args:
+        data: Raw electrode data array
+        low_pass: Low frequency cutoff in Hz
+        high_pass: High frequency cutoff in Hz
+        sampling_rate: Sampling rate of the data in Hz
+
+    Returns:
+        filt_el: Bandpass filtered electrode data
+    """
     el = 0.195*(data)
     m, n = butter(
         2,
@@ -214,10 +225,31 @@ def extract_lfps(dir_name,
                  sampling_rate,
                  taste_signal_choice,
                  fin_sampling_rate,
-                 dig_in_list,
                  trial_durations,
                  trial_info_frame,
                  ):
+    """Extract and process LFP data from raw electrode recordings
+
+    Extracts LFP data from raw .dat files, applies bandpass filtering, downsamples,
+    segments into trials based on digital inputs, and saves to HDF5 file. Also
+    generates quality control plots for visual inspection of channels.
+
+    Args:
+        dir_name: Directory containing data files and HDF5 file
+        freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
+        sampling_rate: Original sampling rate of raw data in Hz
+        taste_signal_choice: 'Start' or 'End' for trial alignment point
+        fin_sampling_rate: Final sampling rate after downsampling in Hz
+        dig_in_list: List of digital input channel indices to process
+        trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
+        trial_info_frame: DataFrame containing trial timing information
+
+    Side Effects:
+        - Creates /raw_LFP and /Parsed_LFP nodes in HDF5 file
+        - Creates /Parsed_LFP_channels array in HDF5 file
+        - Generates channel check plots in LFP_channel_check directory
+        - Removes /raw_LFP node after processing to save space
+    """
 
     if taste_signal_choice == 'Start':
         # diff_val = 1
@@ -286,9 +318,12 @@ def extract_lfps(dir_name,
 
         # Zero padding to 3 digits because code get screwy with sorting electrodes
         # if that isn't done
-        hf5.create_array('/raw_LFP', 'electrode{:0>3}'.
-                         format(electrodegroup[i]), filt_el_down)
+        electrode_str = f'electrode{electrodegroup[i]:0>3}'
+        hf5.create_array('/raw_LFP',
+                         electrode_str,
+                         filt_el_down)
         hf5.flush()
+        print(f'Finished electrode {electrode_str}')
         del data, data_down, filt_el_down
 
     # ==============================
@@ -312,11 +347,12 @@ def extract_lfps(dir_name,
     hf5.flush()
 
     # Make markers to slice trials for every dig_on
-    trial_info_frame['dig_in_ind'] = trial_info_frame['dig_in_num_taste'].rank(
-        method='dense') - 1
+    # Group by dig_in_name_taste to get change points for each taste
     change_points_fin = [
-        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_ind')
+        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_name_taste')
     ]
+    dig_in_names = list(trial_info_frame.groupby(
+        'dig_in_name_taste').groups.keys())
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
                          for this_dig_in_markers in change_points_fin]
@@ -339,16 +375,17 @@ def extract_lfps(dir_name,
         ]
         all_channel_trials.append(this_channel_trials)
 
-    # Resort data to have 4 arrays (one for every dig_in)
+    # Resort data to have arrays (one for every dig_in)
     # with dims (channels , trials, time)
-    for dig_in in dig_in_list:
+    for dig_in_idx, dig_in_name in enumerate(dig_in_names):
         this_taste_LFP = np.asarray([
-            channel[dig_in] for channel in all_channel_trials])
+            channel[dig_in_idx] for channel in all_channel_trials])
 
         # Put the LFP data for this taste in hdf5 file under /Parsed_LFP
-        hf5.create_array('/Parsed_LFP', 'dig_in_%i_LFPs'
-                         % (dig_in), this_taste_LFP)
+        # Use dig_in_name instead of numeric index
+        hf5.create_array('/Parsed_LFP', f'{dig_in_name}_LFPs', this_taste_LFP)
         hf5.flush()
+        print(f'Finished parsing LFPs for {dig_in_name}')
 
     # Delete data
     hf5.remove_node('/raw_LFP', recursive=True)
@@ -361,7 +398,6 @@ def extract_lfps(dir_name,
     # Code copied from LFP_Spectrogram_Stone.py
     # Might need cleanup
 
-    dig_in_channels = hf5.list_nodes('/digital_in')
     dig_in_LFP_nodes = hf5.list_nodes('/Parsed_LFP')
 
     # Create dictionary of all parsed LFP arrays
@@ -422,7 +458,7 @@ def extract_lfps(dir_name,
         fig.savefig(
             os.path.join(channel_check_dir,
                          hdf5_name[0:4] +
-                         '_dig_in{}'.format(taste) +
+                         f'_{dig_in_LFP_nodes[taste]._v_name}' +
                          '_ %s_%s' % (re.findall(r'_(\d{6})', hdf5_name)[0],
                                       taste) + '_channelcheck.png'))
 
@@ -441,25 +477,33 @@ def extract_emgs(dir_name,
                  sampling_rate,
                  taste_signal_choice,
                  fin_sampling_rate,
-                 dig_in_list,
-                 trial_durations):
+                 trial_durations,
+                 trial_info_frame):
     """Extract EMG data from raw recordings
 
+    Extracts EMG (electromyography) data from raw .dat files, applies bandpass filtering,
+    downsamples, segments into trials, and saves to HDF5 file.
+
     Args:
-        dir_name: Directory containing data files
+        dir_name: Directory containing data files and HDF5 file
         emg_electrode_nums: List of electrode numbers for EMG channels
-        freq_bounds: [low, high] frequency bounds for filtering
-        sampling_rate: Original sampling rate
-        taste_signal_choice: 'Start' or 'End' for trial alignment
-        fin_sampling_rate: Final sampling rate after downsampling
-        dig_in_list: List of digital input channels to process
-        trial_durations: [pre_trial, post_trial] durations in ms
+        freq_bounds: [low, high] frequency bounds for bandpass filtering in Hz
+        sampling_rate: Original sampling rate of raw data in Hz
+        taste_signal_choice: 'Start' or 'End' for trial alignment point
+        fin_sampling_rate: Final sampling rate after downsampling in Hz
+        dig_in_list: List of digital input channel indices to process
+        trial_durations: [pre_trial, post_trial] durations in ms relative to alignment
+
+    Side Effects:
+        - Creates /raw_emg and /Parsed_EMG nodes in HDF5 file
+        - Creates dig_in_X_EMGs arrays for each digital input
+        - Removes /raw_emg node after processing to save space
     """
 
     if taste_signal_choice == 'Start':
-        diff_val = 1
+        dig_col = 'start_taste_ms'
     elif taste_signal_choice == 'End':
-        diff_val = -1
+        dig_col = 'end_taste_ms'
 
     # ==============================
     # Open HDF5 File
@@ -521,24 +565,18 @@ def extract_emgs(dir_name,
         hf5.flush()
         del data, data_down, filt_el_down
 
-    # Grab the names of the arrays containing digital inputs,
-    # and pull the data into a numpy array
-    dig_in_nodes = hf5.list_nodes('/digital_in')
-    dig_in = []
-    dig_in_pathname = []
-    for node in dig_in_nodes:
-        dig_in_pathname.append(node._v_pathname)
-        exec("dig_in.append(hf5.root.digital_in.%s[:])"
-             % dig_in_pathname[-1].split('/')[-1])
-    dig_in = np.array(dig_in)
+    # Make markers to slice trials for every dig_on
+    # Group by dig_in_name_taste to get change points for each taste
+    change_points_fin = [
+        np.vectorize(int)(x[dig_col].values) for _, x in trial_info_frame.groupby('dig_in_name_taste')
+    ]
+    dig_in_names = list(trial_info_frame.groupby(
+        'dig_in_name_taste').groups.keys())
 
-    # The tail end of the pulse generates a negative value when passed through diff
-    # This method removes the need for a "for" loop
-
-    diff_points = list(np.where(np.diff(dig_in) == diff_val))
-    diff_points[1] = diff_points[1]//new_intersample_interval
-    change_points = [diff_points[1][diff_points[0] == this_dig_in]
-                     for this_dig_in in range(len(dig_in))]
+    # Downsample change points to match downsampled data
+    new_intersample_interval = sampling_rate/fin_sampling_rate
+    change_points = [
+        np.array(x)//new_intersample_interval for x in change_points_fin]
 
     # ==============================
     # Write-Out Extracted LFP
@@ -560,14 +598,10 @@ def extract_emgs(dir_name,
     hf5.create_array('/', 'Parsed_emg_channels', emg_electrode_nums)
     hf5.flush()
 
-    # Remove dig_ins which are not relevant
-    change_points_fin = [change_points[x] for x in range(len(change_points))
-                         if x in dig_in_list]
-
     # Make markers to slice trials for every dig_on
     all_trial_markers = [[(x-trial_durations[0], x+trial_durations[1])
                           for x in this_dig_in_markers]
-                         for this_dig_in_markers in change_points_fin]
+                         for this_dig_in_markers in change_points]
 
     # Extract trials for every channel for every dig_in
     print('Parsing EMGs')
@@ -580,15 +614,15 @@ def extract_emgs(dir_name,
         ]
         all_channel_trials.append(this_channel_trials)
 
-    # Resort data to have 4 arrays (one for every dig_in)
+    # Resort data to have arrays (one for every dig_in)
     # with dims (channels , trials, time)
-    for dig_in in dig_in_list:
+    for dig_in_idx, dig_in_name in enumerate(dig_in_names):
         this_taste_LFP = np.asarray([
-            channel[dig_in] for channel in all_channel_trials])
+            channel[dig_in_idx] for channel in all_channel_trials])
 
-        # Put the LFP data for this taste in hdf5 file under /Parsed_LFP
-        hf5.create_array('/Parsed_emg', 'dig_in_%i_emg'
-                         % (dig_in), this_taste_LFP)
+        # Put the EMG data for this taste in hdf5 file under /Parsed_emg
+        # Use dig_in_name instead of numeric index
+        hf5.create_array('/Parsed_emg', f'{dig_in_name}_emg', this_taste_LFP)
         hf5.flush()
 
     # Delete data
@@ -602,7 +636,6 @@ def extract_emgs(dir_name,
     # Code copied from LFP_Spectrogram_Stone.py
     # Might need cleanup
 
-    dig_in_channels = hf5.list_nodes('/digital_in')
     dig_in_LFP_nodes = hf5.list_nodes('/Parsed_emg')
 
     # Create dictionary of all parsed LFP arrays
@@ -663,7 +696,7 @@ def extract_emgs(dir_name,
         fig.savefig(
             os.path.join(channel_check_dir,
                          hdf5_name[0:4] +
-                         '_dig_in{}'.format(taste) +
+                         f'_{dig_in_LFP_nodes[taste]._v_name}' +
                          '_ %s_%s' % (re.findall(r'_(\d{6})', hdf5_name)[0],
                                       taste) + '_channelcheck.png'))
 
@@ -707,8 +740,15 @@ def return_good_lfp_trial_inds(data, MAD_threshold=3):
 
 def return_good_lfp_trials(data, MAD_threshold=3):
     """Return good trials (for all channels) based on MAD threshold
-        data : shape (n_channels, n_trials, n_timepoints)
-        MAD_threshold : number of MADs to use as threshold for individual timepoints
+
+    Filters out trials with excessive deviation from median LFP using MAD-based thresholding.
+
+    Args:
+        data: LFP data array, shape (n_channels, n_trials, n_timepoints)
+        MAD_threshold: Number of MADs to use as threshold for trial deviation (default: 3)
+
+    Returns:
+        np.array: Filtered LFP data containing only good trials, shape (n_channels, n_good_trials, n_timepoints)
     """
     good_trials_bool = return_good_lfp_trial_inds(
         data, MAD_threshold)

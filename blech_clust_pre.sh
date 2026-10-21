@@ -1,4 +1,4 @@
-# Detect --force flag for forcing blech_clust.py and blech_run_process.sh to run
+# Detect --force flag for forcing blech_init.py and blech_run_process.sh to run
 #
 
 if [ "$2" == "--force" ]; then
@@ -13,12 +13,12 @@ if [ ! -d $DIR ]; then
     exit 1
 fi
 
-echo Running Blech Clust
+echo Running Blech Init
 if [ $FORCE -eq 1 ]; then
-    echo "Forcing blech_clust.py to run"
-    python blech_clust.py $DIR --force_run
+    echo "Forcing blech_init.py to run"
+    python blech_init.py $DIR --force_run
 else
-    python blech_clust.py $DIR
+    python blech_init.py $DIR
 fi
 
 echo Running Common Average Reference

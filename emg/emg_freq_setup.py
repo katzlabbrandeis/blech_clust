@@ -33,6 +33,8 @@ import tables
 import pandas as pd
 import pylab as plt
 import argparse
+import blech_clust as bc
+blech_clust_dir = bc.__path__[0]
 
 parser = argparse.ArgumentParser(
     description='Setup EMG data for running BSA on the envelope of EMG data')
@@ -46,14 +48,12 @@ test_bool = False
 
 if test_bool:
     # data_dir = '/home/abuzarmahmood/projects/blech_clust/pipeline_testing/test_data_handling/test_data/KM45_5tastes_210620_113227_new/'
-    data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    # data_dir = '/home/abuzarmahmood/Desktop/blech_clust/pipeline_testing/test_data_handling/test_data/eb24_behandephys_11_12_24_241112_114659_copy'
+    data_dir = '/media/bigdata/.blech_clust_test_data/KM45_5tastes_210620_113227_new/'
     # script_path = '/home/abuzarmahmood/projects/blech_clust/emg/emg_freq_setup.py'
     script_path = '/home/abuzarmahmood/Desktop/blech_clust/emg/emg_freq_setup.py'
-    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-    sys.path.append(blech_clust_dir)
-    print(f'blech_clust_dir: {blech_clust_dir}')
     # from utils.blech_process_utils import path_handler  # noqa: E402
-    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+    from blech_clust.utils.blech_utils import imp_metadata  # noqa: E402
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], data_dir])
@@ -62,11 +62,8 @@ if test_bool:
 else:
     script_path = os.path.realpath(__file__)
 
-    blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
-    sys.path.append(blech_clust_dir)
-    print(f'blech_clust_dir: {blech_clust_dir}')
     # from utils.blech_process_utils import path_handler  # noqa: E402
-    from utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
+    from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check  # noqa: E402
 
     # Get name of directory with the data files
     metadata_handler = imp_metadata([[], args.data_dir])
@@ -116,7 +113,7 @@ hf5 = tables.open_file(metadata_handler.hdf5_name, 'r')
 # Get all emg_env data
 # Structure /emg_data/dig_in_<xx>/processed_emg/<xx>_emg_env
 dig_in_nodes = hf5.list_nodes('/emg_data')
-dig_in_nodes = [x for x in dig_in_nodes if 'dig_in' in x._v_name]
+dig_in_nodes = [x for x in dig_in_nodes if 'board-DIN' in x._v_name]
 emg_env_node_names = []
 emg_env_data = []
 emg_filt_data = []
@@ -155,7 +152,7 @@ flat_emg_filt_data = np.stack(
 
 emg_env_df = pd.DataFrame(
     dict(
-        dig_in=[int(x.split('_')[-1]) for x in fin_dig_list],
+        dig_in=[x for x in fin_dig_list],
         car=fin_car_list,
         trial_inds=trial_inds,
     )
@@ -207,25 +204,29 @@ np.save('flat_emg_env_data.npy', flat_emg_env_data)
 max_n_trials = emg_env_df.trial_inds.max() + 1
 n_dig_ins = emg_env_df.dig_in.nunique()
 
-emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
-                         dtype=np.float32)
-emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
-                          dtype=np.float32)
+for this_car, this_df in emg_env_df.groupby('car'):
 
-# Fill both with nans
-emg_env_array.fill(np.nan)
-emg_filt_array.fill(np.nan)
+    emg_env_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_env_data.shape[-1]),
+                             dtype=np.float32)
+    emg_filt_array = np.zeros((n_dig_ins, max_n_trials, flat_emg_filt_data.shape[-1]),
+                              dtype=np.float32)
 
-# Fill the arrays with the data
-for i, this_row in emg_env_df.iterrows():
-    dig_in_ind = this_row['dig_in_ind']
-    trial_ind = this_row['trial_inds']
-    emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
-    emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
+    # Fill both with nans
+    emg_env_array.fill(np.nan)
+    emg_filt_array.fill(np.nan)
 
-# Save the arrays to numpy files
-np.save(os.path.join(emg_output_dir, 'emg_env.npy'), emg_env_array)
-np.save(os.path.join(emg_output_dir, 'emg_filt.npy'), emg_filt_array)
+    # Fill the arrays with the data
+    for i, this_row in this_df.iterrows():
+        dig_in_ind = this_row['dig_in_ind']
+        trial_ind = this_row['trial_inds']
+        emg_env_array[dig_in_ind, trial_ind, :] = flat_emg_env_data[i]
+        emg_filt_array[dig_in_ind, trial_ind, :] = flat_emg_filt_data[i]
+
+    # Save the arrays to numpy files
+    emg_car_output_dir = os.path.join(emg_output_dir, this_car)
+    os.makedirs(emg_car_output_dir, exist_ok=True)
+    np.save(os.path.join(emg_car_output_dir, 'emg_env.npy'), emg_env_array)
+    np.save(os.path.join(emg_car_output_dir, 'emg_filt.npy'), emg_filt_array)
 
 ############################################################
 
@@ -282,7 +283,7 @@ trial_info_frame = pd.read_csv(os.path.join(data_dir, 'trial_info_frame.csv'))
 
 merge_frame = pd.merge(emg_env_df, trial_info_frame,
                        left_on=['dig_in', 'trial_inds'],
-                       right_on=['dig_in_num_taste', 'taste_rel_trial_num'],
+                       right_on=['dig_in_name_taste', 'taste_rel_trial_num'],
                        how='left')
 merge_frame.drop(
     columns=['dig_in', 'trial_inds',
@@ -308,7 +309,7 @@ max_trials = merge_frame.taste_rel_trial_num.max() + 1
 
 if not args.no_plots:
     for car_name, car_data in car_group:
-        n_digs = car_data.dig_in_num_taste.nunique()
+        n_digs = car_data.dig_in_name_taste.nunique()
         fig, ax = plt.subplots(max_trials, n_digs,
                                sharex=True, sharey=True,
                                figsize=(n_digs*4, max_trials)
@@ -327,7 +328,7 @@ if not args.no_plots:
         plt.close()
 
     for car_name, car_data in car_group:
-        n_digs = car_data.dig_in_num_taste.nunique()
+        n_digs = car_data.dig_in_name_taste.nunique()
         fig, ax = plt.subplots(max_trials, n_digs,
                                sharex=True, sharey=True,
                                figsize=(n_digs*4, max_trials)

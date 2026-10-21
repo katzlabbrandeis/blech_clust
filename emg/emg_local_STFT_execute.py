@@ -25,7 +25,7 @@ import json
 script_path = os.path.realpath(__file__)
 blech_clust_dir = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(blech_clust_dir)
-from utils.blech_utils import pipeline_graph_check  # noqa: E402
+from blech_clust.utils.blech_utils import pipeline_graph_check  # noqa: E402
 
 
 class Logger(object):

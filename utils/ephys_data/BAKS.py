@@ -12,7 +12,7 @@ Workflow: Estimating Firing Rates from Spike Times
 -----------------------------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.ephys_data.BAKS import BAKS
+from blech_clust.utils.ephys_data.BAKS import BAKS
 
 # Create sample spike times (in seconds)
 spike_times = np.array([0.1, 0.15, 0.17, 0.32, 0.4, 0.55, 0.6, 0.61, 0.7])

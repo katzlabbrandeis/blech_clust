@@ -8,7 +8,7 @@ This module performs post-processing cleanup of files created by `emg_local_BSA_
 - Extracts experimental information and taste names from metadata.
 - Loads trial data from a CSV file and frequency analysis results from NPY files.
 - Processes and saves the first non-NaN omega data to disk.
-- Calculates `gape_array` and `ltp_array` based on specific frequency ranges and saves them to disk.
+- Calculates `gape_array` and `licking_array` based on specific frequency ranges and saves them to disk.
 - Logs the successful execution of the script.
 """
 
@@ -106,7 +106,7 @@ np.save(os.path.join('emg_output', 'omega.npy'), omega)
 np.save(os.path.join('emg_output', 'p_data.npy'), p_data)
 
 ############################################################
-# ## Create gape and ltp arrays
+# ## Create gape and licking arrays
 ############################################################
 # Segment by frequencies
 
@@ -114,20 +114,20 @@ np.save(os.path.join('emg_output', 'p_data.npy'), p_data)
 #         p_flat >= 3,
 #         p_flat <= 5
 #         )
-# ltp_array = p_flat >= 5.5
+# licking_array = p_flat >= 5.5
 
 # Find the frequency with the maximum EMG power at each time point on each trial
 # Gapes are anything upto 4.6 Hz
-# LTPs are from 5.95 Hz to 8.65 Hz
-# Alternatively, gapes from 3.65-5.95 Hz (6-11). LTPs from 5.95 to 8.65 Hz (11-17)
+# Licking are from 5.95 Hz to 8.65 Hz
+# Alternatively, gapes from 3.65-5.95 Hz (6-11). Licking from 5.95 to 8.65 Hz (11-17)
 gape_array = np.sum(p_data[:, :, 6:11], axis=2) /\
     np.sum(p_data, axis=2)
-ltp_array = np.sum(p_data[:, :, 11:], axis=2) /\
+licking_array = np.sum(p_data[:, :, 11:], axis=2) /\
     np.sum(p_data, axis=2)
 
 # Write out
 np.save('emg_output/gape_array.npy', gape_array)
-np.save('emg_output/ltp_array.npy', ltp_array)
+np.save('emg_output/licking_array.npy', licking_array)
 
 ############################################################
 # Also export to HDF5 as arrays
@@ -234,8 +234,8 @@ for _, this_df in car_grouped_df:
 n_laser_conds = emg_env_merge_frame['laser_cond'].nunique()
 taste_gape_array = np.zeros(
     (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, gape_array.shape[1]))
-taste_ltp_array = np.zeros(
-    (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, ltp_array.shape[1]))
+taste_licking_array = np.zeros(
+    (len(car_grouped_df), n_laser_conds, len(taste_names), max_n_trials, licking_array.shape[1]))
 
 # SHAPE : channel x laser_cond x taste x trial x time x freq
 final_p_array = np.zeros(
@@ -262,22 +262,22 @@ for row_ind, this_row in emg_env_merge_frame.iterrows():
 
     taste_gape_array[this_car_num, this_laser_cond_num, this_taste_num,
                      this_trial_ind] = gape_array[row_ind]
-    taste_ltp_array[this_car_num, this_laser_cond_num, this_taste_num,
-                    this_trial_ind] = ltp_array[row_ind]
+    taste_licking_array[this_car_num, this_laser_cond_num, this_taste_num,
+                        this_trial_ind] = licking_array[row_ind]
 
     final_p_array[this_car_num, this_laser_cond_num, this_taste_num,
                   this_trial_ind] = p_data[row_ind]
 
 # hf5.create_array('/emg_BSA_results', 'gapes', final_gapes_array)
-# hf5.create_array('/emg_BSA_results', 'ltps', final_ltps_array)
+# hf5.create_array('/emg_BSA_results', 'licking', final_licking_array)
 # hf5.create_array('/emg_BSA_results', 'emg_BSA_results_final', final_emg_BSA_array)
 
-# Save gape and ltp arrays to hdf5
+# Save gape and licking arrays to hdf5
 atom = tables.Atom.from_dtype(taste_gape_array.dtype)
 hf5.create_array(
     '/emg_BSA_results', 'gapes', taste_gape_array, atom=atom)
 hf5.create_array(
-    '/emg_BSA_results', 'ltps', taste_ltp_array, atom=atom)
+    '/emg_BSA_results', 'licking', taste_licking_array, atom=atom)
 hf5.create_array(
     '/emg_BSA_results', 'emg_BSA_results_final', final_p_array, atom=atom)
 

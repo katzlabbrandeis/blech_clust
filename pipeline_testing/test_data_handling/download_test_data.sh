@@ -1,49 +1,48 @@
-# Google Drive link : https://drive.google.com/file/d/1EcpUIqp81h3J89-6dEEueeULqBlKW5a7/view?usp=sharing
+#!/bin/bash
+# Download test data from Google Drive using configuration from test_config.json
 
 SCRIPT_PATH=$(realpath ${BASH_SOURCE[0]})
-# Find path to neuRecommend as parent directory of test.sh
 DIR_PATH=$(dirname ${SCRIPT_PATH})
+CONFIG_PATH="${DIR_PATH}/../test_config.json"
 
-#pip install gdown
-LINK_TO_DATA=(
-    1EcpUIqp81h3J89-6dEEueeULqBlKW5a7
-    1aU2DWHhbVB3rDujbF4KRX9QLA1LlfpU3
-)
-
-DATA_DIR_NAMES=(
-    KM45_5tastes_210620_113227_new
-    eb24_behandephys_11_12_24_241112_114659_copy
-)
-
-DATA_SUP_DIR=${DIR_PATH}/test_data
-# If DATA_DIR does not exist, create it
-if [ ! -d "$DATA_SUP_DIR" ]; then
-    mkdir $DATA_SUP_DIR
+# Check if jq is available, otherwise use python to parse JSON
+if command -v jq &> /dev/null; then
+    DATA_SUP_DIR=$(jq -r '.test_data_dir' "$CONFIG_PATH")
+    # Get dataset names and gdrive IDs as arrays
+    readarray -t DATA_DIR_NAMES < <(jq -r '.datasets[].name' "$CONFIG_PATH")
+    readarray -t LINK_TO_DATA < <(jq -r '.datasets[].gdrive_id' "$CONFIG_PATH")
+else
+    # Fallback to python for JSON parsing
+    DATA_SUP_DIR=$(python3 -c "import json; print(json.load(open('$CONFIG_PATH'))['test_data_dir'])")
+    readarray -t DATA_DIR_NAMES < <(python3 -c "import json; [print(d['name']) for d in json.load(open('$CONFIG_PATH'))['datasets'].values()]")
+    readarray -t LINK_TO_DATA < <(python3 -c "import json; [print(d['gdrive_id']) for d in json.load(open('$CONFIG_PATH'))['datasets'].values()]")
 fi
 
-for i in {0..1}
+# Expand ~ in path
+DATA_SUP_DIR="${DATA_SUP_DIR/#\~/$HOME}"
+
+# Create data directory if it doesn't exist
+if [ ! -d "$DATA_SUP_DIR" ]; then
+    mkdir -p $DATA_SUP_DIR
+fi
+
+# Download each dataset
+for i in "${!DATA_DIR_NAMES[@]}"
 do
     DATA_DIR=${DATA_SUP_DIR}/${DATA_DIR_NAMES[i]}
-    # If DATA_DIR does not exist, create it
     if [ ! -d "$DATA_DIR" ]; then
-        echo Test dataset ${DATA_DIR_NAMES[i]} does not exist. Creating directory
+        echo "Test dataset ${DATA_DIR_NAMES[i]} does not exist. Creating directory"
         mkdir $DATA_DIR
-        echo Downloading data to ${DATA_DIR}
-        # Use gdown to download the model to DATA_DIR
-        # gdown -O <output_file> <link_to_file>
-        # -O option specifies the output file name
+        echo "Downloading data to ${DATA_DIR}"
         gdown ${LINK_TO_DATA[i]} -O $DATA_DIR/
 
         # Unzip the downloaded file
-        # unzip <zip_file> -d <destination_folder>
         FILENAME=$(basename $(ls $DATA_DIR/*.zip))
-        # Remove the .zip extension
         unzip $DATA_DIR/$FILENAME -d $DATA_DIR/
-        # Remove the .zip file
         rm $DATA_DIR/$FILENAME
         mv $DATA_DIR/*/* $DATA_DIR/
         rm -r $DATA_DIR/*/
     else
-        echo Test dataset ${DATA_DIR_NAMES[i]} already exists. Skipping download
+        echo "Test dataset ${DATA_DIR_NAMES[i]} already exists. Skipping download"
     fi
 done
