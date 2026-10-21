@@ -156,6 +156,16 @@ Test data available at: [Google Drive](https://drive.google.com/drive/folders/1n
 
 We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+For Katz Lab users, the contribution/ issue resolution framework is as follows:
+-If you identify an issue, you are now the owner of that issue, and are responsible for making sure that it gets fixed.
+-In order to fix the issue, and validate the fix, recruit at least 1 additional lab member to work with you.
+-Create an issue here on Github, and start a branch attached to the issue to house the fix.
+  -When making the issue, try to describe the problem with as much detail as possible, ideally including error messages or other examples.
+-Working with your buddy, make the fix and do you best to comprehensively test it.
+-Once you're confident in the fix, use Prefect to test it on your GIT issue branch.
+-If the Prefect testing checks out, and your buddy agrees that the fix is sound, make a pull request and merge to the Master branch.
+-Let people know about the update, and be alert for potential undiscovered issues that may arise.
+
 ## Community and Support
 
 For general questions, discussions, and community support, please use our **[Discourse forum](https://blech-clust.discourse.diy/)**.
